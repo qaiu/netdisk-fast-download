@@ -7,7 +7,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 /**
- * sinoreal2-web
+ * lz-web
  * <br>Create date 2021/8/25 14:28
  *
  * @author <a href="https://qaiu.top">QAIU</a>

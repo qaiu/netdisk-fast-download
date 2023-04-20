@@ -9,7 +9,7 @@ import io.vertx.core.json.JsonObject;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * sinoreal2-web
+ * lz-web
  * <br>Create date 2021/7/12 17:26
  *
  * @author <a href="https://qaiu.top">QAIU</a>

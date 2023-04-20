@@ -3,7 +3,7 @@ package cn.qaiu.lz.common;
 import io.vertx.core.json.JsonObject;
 
 /**
- * sinoreal2-web <br>
+ * lz-web <br>
  * 实现此接口 POJO转JSON对象
  *
  * @author <a href="https://qaiu.top">QAIU</a>

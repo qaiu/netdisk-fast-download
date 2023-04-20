@@ -7,7 +7,7 @@ import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 
 /**
- * sinoreal2-web
+ * lz-web
  * <br>Create date 2021/7/12 17:16
  *
  * @author <a href="https://qaiu.top">QAIU</a>
