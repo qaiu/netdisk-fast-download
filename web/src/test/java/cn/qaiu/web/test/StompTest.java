@@ -11,7 +11,7 @@ import io.vertx.ext.stomp.StompServerOptions;
 import java.util.Arrays;
 
 /**
- * sinoreal2-web
+ * lz-web
  * <p>create 2021/9/18 12:10</p>
  *
  * @author <a href="https://qaiu.top">QAIU</a>

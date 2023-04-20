@@ -11,7 +11,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * sinoreal2-web
+ * lz-web
  *
  * @author <a href="https://qaiu.top">QAIU</a>
  * <br>Create date 2021/8/10 11:10

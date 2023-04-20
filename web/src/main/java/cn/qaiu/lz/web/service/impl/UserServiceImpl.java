@@ -6,7 +6,7 @@ import cn.qaiu.vx.core.annotaions.Service;
 import io.vertx.core.Future;
 
 /**
- * sinoreal2-web
+ * lz-web
  * <br>Create date 2021/8/27 14:09
  *
  * @author <a href="https://qaiu.top">QAIU</a>

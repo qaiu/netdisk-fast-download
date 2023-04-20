@@ -6,7 +6,7 @@ import io.vertx.codegen.annotations.ProxyGen;
 import io.vertx.core.Future;
 
 /**
- * sinoreal2-web
+ * lz-web
  * <br>Create date 2021/8/27 14:06
  *
  * @author <a href="https://qaiu.top">QAIU</a>
