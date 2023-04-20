@@ -2,6 +2,9 @@
 .idea/
 /.idea/
 */.idea/
+logs/
+*/logs/
+*/generated/
 *.iws
 *.iml
 *.ipr
