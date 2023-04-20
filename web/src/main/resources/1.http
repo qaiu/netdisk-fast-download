@@ -1,0 +1,163 @@
+
+###
+POST http://127.0.0.1:8088/real/serverApi/login
+Content-Type: application/x-www-form-urlencoded
+
+username=sa&password=sinoreal
+
+###
+POST http://47.114.185.111:8088/real/serverApi/login
+Content-Type: application/x-www-form-urlencoded
+
+username=sa&password=sinoreal
+
+###
+
+GET http://127.0.0.1:8088/real/basePointApi/getTables
+token: cab5bcd2fc250f27c3984205fbffc46e
+Content-Type: application/json
+
+###
+
+GET http://127.0.0.1:8088/real/basePointApi/getTags?tablemask=JTdevice
+token: 7670b1a3da5e22ffc42a1e738ea4f0f6
+
+###
+GET http://127.0.0.1:8088/real/basePointApi/getSnapshotDataByTag/adasd?aaa=3
+token: 7670b1a3da5e22ffc42a1e738ea4f0f6
+
+###
+
+POST http://127.0.0.1:8088/real/serverApi/login
+Content-Type: application/json
+
+{
+  "username": "sa",
+  "password": "sinoreal"
+}
+
+###
+
+POST http://127.0.0.1:8088/real/basePointApi/updateTag
+token: cab5bcd2fc250f27c3984205fbffc46e
+Content-Type: application/json
+
+{
+  "userints": [123223,35356],
+  "id": 123,
+  "equation": "asd",
+  "trigger": "RTDB_EVENT_TRIGGER",
+  "shutdown": true
+}
+
+
+
+###
+
+GET http://127.0.0.1:8088/real/basePointApi/getTagById/753
+token: eb7d391ad89d4bb4a81897af8829f0e8
+
+###
+
+GET http://127.0.0.1:8088/real/basePointApi/aaaa
+token: cab5bcd2fc250f27c3984205fbffc46e
+
+###
+
+GET http://127.0.0.1:8088/real/serverApi/test
+
+###
+
+POST http://127.0.0.1:8088/real/serverApi/addUser
+Content-Type: application/x-www-form-urlencoded
+token: 2b4769b63c90adb6490cfe6e449da90b
+
+username=sa1&password=sinoreal&permission=3
+
+
+###
+POST http://127.0.0.1:8088/real/serverApi/removeUser
+Content-Type: application/x-www-form-urlencoded
+token: 2b4769b63c90adb6490cfe6e449da90b
+
+username=sa1
+
+
+###
+
+POST http://127.0.0.1:8088/real/serverApi/updatePassword
+Content-Type: application/x-www-form-urlencoded
+token: 33c21f7cf053b90a713f1f9e124d0335
+
+oldPassword=sinoreal1&newPassword=sinoreal
+
+
+###
+
+POST http://127.0.0.1:8088/real/serverApi/changePriv
+Content-Type: application/x-www-form-urlencoded
+token: 2b4769b63c90adb6490cfe6e449da90b
+
+username=sa1&permission=3
+
+
+###
+POST http://127.0.0.1:8088/real/serverApi/addAuthorization
+Content-Type: application/x-www-form-urlencoded
+token: 2b4769b63c90adb6490cfe6e449da90b
+
+addr=192.168.1.56&mask=255.255.255.255&permission=3&description=测试信任666111
+
+
+###
+POST http://127.0.0.1:8088/real/serverApi/removeAuthorization
+Content-Type: application/x-www-form-urlencoded
+token: 2b4769b63c90adb6490cfe6e449da90b
+
+addr=192.168.1.56&mask=255.255.255.255
+
+
+###
+POST http://127.0.0.1:8088/real/historyApi/getHistory
+Content-Type: application/x-www-form-urlencoded
+token: 2b4769b63c90adb6490cfe6e449da90b
+
+startDate=2021-05-17 11:03&endDate=2021-05-17 11:04&interval=3
+
+###
+POST http://127.0.0.1:8088/real/historyApi/getHistory
+Content-Type: application/x-www-form-urlencoded
+token: 2b4769b63c90adb6490cfe6e449da90b
+
+startDate=2021-05-17 11:03
+
+###
+GET http://127.0.0.1:8088/real/dict/getDictByName?name=dict2
+token: 7670b1a3da5e22ffc42a1e738ea4f0f6
+
+###
+tagmask=*&desc=*&_PointType=Every&_ValueTypeString=*&_TimeAccuracy=-1&_SearchCondition=SEARCH_NULL&SearchMaskValue=*&source=*&instrument=*&
+
+###
+http://127.0.0.1:8088/real/basePointApi/getTags?tablemask=demo02&tagmask=*&desc=*&_PointType=Every&_ValueTypeString=*&_TimeAccuracy=-1&_SearchCondition=SEARCH_NULL&SearchMaskValue=*&source=*&instrument=*&pageNumber=1&pageSize=10
+token: eb7d391ad89d4bb4a81897af8829f0e8
+
+###
+http://127.0.0.1:8088/real/serverApi/getFile?path=D:
+token: 7670b1a3da5e22ffc42a1e738ea4f0f6
+
+###
+#http://127.0.0.1:8088/real/serverApi/hello1/:msg
+http://127.0.0.1:8088/real/serverApi/hello1/ok1
+token: a3cada4c97be40d3bc35cfe6ec1288ab
+
+###
+http://127.0.0.1:8088/real/serverApi/hello2/ok2
+token: a3cada4c97be40d3bc35cfe6ec1288ab
+
+
+
+
+###
+http://127.0.0.1:8085/real/basePointApi/getTags?tablemask=demo02&tagmask=*&desc=*&unit=*&pointType=Every&valueTypeString=*&timeAccuracy=-1&searchCondition=SEARCH_NULL&SearchMaskValue=*&source=*&instrument=*&pageNumber=1&pageSize=10&accurateSearch=
+token: c423c04a55964571bd34aaa1683229e8

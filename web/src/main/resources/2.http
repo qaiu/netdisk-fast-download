@@ -1,0 +1,47 @@
+###
+http://127.0.0.1:8088/real/test
+
+###
+POST http://127.0.0.1:8088/real/serverApi/login
+Content-Type: application/x-www-form-urlencoded
+
+username=sa&password=sinoreal
+###
+POST http://47.114.185.111:8070/real/serverApi/login
+Content-Type: application/x-www-form-urlencoded
+
+username=sa&password=sinoreal
+
+###
+http://127.0.0.1:8088/real/serverApi/hello2/ok2
+token: 11f1a7ad9dd907bf1fa6a9e79277d053
+
+
+
+###
+http://127.0.0.1:8088/real/test2
+
+
+###
+POST http://127.0.0.1:8088/real/serverApi/getConnections
+token: 370ba165d3164049b7704e8b3d595930
+
+###
+POST http://127.0.0.1:8085/real/serverApi/getConnectionInfo
+token: 21f99c6080074ae79cda2e988ab2bdb8
+
+###
+http://127.0.0.1:7070/demo/foo
+
+###
+http://127.0.0.1:8085/api/foo
+
+
+###
+http://127.0.0.1:8085/real/serverApi/thread-test
+token: c1b89b3193bd4498be77b6e782e0df38
+
+
+###
+http://127.0.0.1:8085/
+Accept: application/json

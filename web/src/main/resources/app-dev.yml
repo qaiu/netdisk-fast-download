@@ -1,0 +1,33 @@
+# 服务配置
+server:
+  port: 6400
+  contextPath: /api
+  enableStaticHtmlService: false
+  staticResourcePath: webroot/
+# 反向代理服务器配置路径(不用加后缀)
+proxyConf: server-proxy
+
+vertx:
+  eventLoopPoolSize: 8
+  workerPoolSize: 20
+custom:
+  asyncServiceInstances: 8
+  routerLocations: cn.com.yhinfo.real.web.http
+  interceptorClassPath: cn.com.yhinfo.real.common.interceptorImpl.DefaultInterceptor
+  handlerLocations: cn.com.yhinfo.real.web.service
+  ignoresReg:
+    - .*/login$
+    - .*/test.*$
+  entityPackagesReg:
+    - ^cn\.com\.yhinfo\.real\.web\.model\..*
+    - ^sinereal\.core\..*
+  otherConfig:
+    - dictionaries.json
+  errorPage404: /index.html
+  indexPage: /test2
+  sharedLogin: true
+lzConfig:
+  config: '111'
+
+cowConfig:
+  config: '111'

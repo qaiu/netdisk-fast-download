@@ -1,0 +1,13 @@
+<assembly>
+    <id>bin</id>
+    <formats>
+        <format>zip</format>
+    </formats>
+    <fileSets>
+        <!-- 从目标目录拷贝文件去压缩 -->
+        <fileSet>
+            <directory>target/package/</directory>
+            <outputDirectory>/</outputDirectory>
+        </fileSet>
+    </fileSets>
+</assembly>

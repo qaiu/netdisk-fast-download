@@ -1,0 +1,30 @@
+# 反向代理
+server-name: Vert.x-proxy-server(v4.1.2)
+
+proxy:
+  - listen: 8085
+    # 404的路径
+    404: webroot/real-html/index.html
+    static:
+      path: /
+#      add-headers:
+#        x-token: ABC
+      root: webroot/real-html/
+      index: realIndex
+    location:
+      - path: /real/
+        origin: 127.0.0.1:8088
+      - path: /api/
+        origin: 127.0.0.1:7070/demo/
+
+  - listen: 8086
+    static:
+      path: /t2/
+      root: webroot/test/
+      index: sockTest.html
+#    location:
+#      - path: /real/
+#        origin: 127.0.0.1:8088
+#    sock:
+#      - path: /real/
+#        origin: 127.0.0.1:8088

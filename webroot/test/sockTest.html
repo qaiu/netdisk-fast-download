@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ZH-cn">
+<script src="sockjs-min.js"></script>
+<head>
+    <meta charset="UTF-8">
+    <title>测试021</title>
+</head>
+<body>
+<div>
+    <label>
+        <input id="input0"/>
+        <input type="button" value="发送" onclick="send()">
+    </label>
+</div>
+</body>
+<script>
+
+  var sock = new SockJS('http://127.0.0.1:8086/real/serverApi/test');
+
+  // 测试websocket直接http反向代理
+  // var sock = new SockJS('http://'+location.host+'/real/serverApi/test'); // 这会导致sockjs降级处理 (使用普通post轮询 模拟websocket)
+
+
+  sock.onopen = function () {
+    console.log('open');
+  };
+
+  function send() {
+
+    var v = document.getElementById("input0");
+    console.log('client:', v.value)
+    sock.send(v.value)
+  }
+
+  sock.onmessage = function (e) {
+    console.log('message', e.data);
+  };
+
+  sock.onevent = function (event, message) {
+    console.log('event: %o, message:%o', event, message);
+    return true; // 为了标记消息已被处理了
+  };
+
+  sock.onunhandled = function (json) {
+    console.log('this message has no address:', json);
+  };
+
+  sock.onclose = function () {
+    console.log('close');
+  };
+</script>
+</html>
