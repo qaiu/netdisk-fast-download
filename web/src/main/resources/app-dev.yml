@@ -12,15 +12,14 @@ vertx:
   workerPoolSize: 20
 custom:
   asyncServiceInstances: 8
-  routerLocations: cn.com.yhinfo.real.web.http
-  interceptorClassPath: cn.com.yhinfo.real.common.interceptorImpl.DefaultInterceptor
-  handlerLocations: cn.com.yhinfo.real.web.service
+  routerLocations: cn.qaiu.lz.web.http
+  interceptorClassPath: cn.qaiu.lz.common.interceptorImpl.DefaultInterceptor
+  handlerLocations: cn.qaiu.lz.web.service
   ignoresReg:
     - .*/login$
     - .*/test.*$
   entityPackagesReg:
-    - ^cn\.com\.yhinfo\.real\.web\.model\..*
-    - ^sinereal\.core\..*
+    - ^cn\.qaiu\.lz\.web\.model\..*
   otherConfig:
     - dictionaries.json
   errorPage404: /index.html
