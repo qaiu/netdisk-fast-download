@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <version>0.0.1</version>
-    <artifactId>web</artifactId>
+    <artifactId>lz-cow-api-web</artifactId>
 
     <properties>
         <packageDirectory>${project.basedir}/target/package</packageDirectory>

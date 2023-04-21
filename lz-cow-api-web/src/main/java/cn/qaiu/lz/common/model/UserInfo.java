@@ -2,10 +2,7 @@ package cn.qaiu.lz.common.model;
 
 import cn.qaiu.lz.common.ToJson;
 import io.vertx.codegen.annotations.DataObject;
-import io.vertx.codegen.format.SnakeCase;
 import io.vertx.core.json.JsonObject;
-import io.vertx.sqlclient.templates.annotations.ParametersMapped;
-import io.vertx.sqlclient.templates.annotations.RowMapped;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,8 +17,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @DataObject
-@RowMapped(formatter = SnakeCase.class)
-@ParametersMapped(formatter = SnakeCase.class)
 public class UserInfo implements ToJson {
 
     private String username;
