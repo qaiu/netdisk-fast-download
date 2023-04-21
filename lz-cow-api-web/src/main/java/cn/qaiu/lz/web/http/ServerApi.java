@@ -59,7 +59,7 @@ public class ServerApi {
 
     @RouteMapping(value = "/cow/:id", method = RouteMethod.GET)
     public void cowParse(HttpServerResponse response, String id) throws Exception {
-        String url = "https://cowtransfer.com/core/api/transfer/share?uniqueUrl=" + id;
+        String url = "https://cowtransfer.com/s/" + id;
         String urlDownload = CowTool.parse(url);
         response.putHeader("location", urlDownload).setStatusCode(302).end();
     }
@@ -74,7 +74,7 @@ public class ServerApi {
 
     @RouteMapping(value = "/json/cow/:id", method = RouteMethod.GET)
     public JsonResult<String> cowParseJson(HttpServerResponse response, String id) throws Exception {
-        String url = "https://cowtransfer.com/core/api/transfer/share?uniqueUrl=" + id;
+        String url = "https://cowtransfer.com/s/" + id;
         return JsonResult.data(CowTool.parse(url));
     }
 }

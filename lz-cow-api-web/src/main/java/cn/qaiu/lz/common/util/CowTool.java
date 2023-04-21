@@ -41,7 +41,7 @@ public class CowTool {
           }
     */
     public static String parse(String fullUrl) throws IOException {
-        String uniqueUrl = fullUrl.substring(fullUrl.lastIndexOf('=') + 1);
+        String uniqueUrl = fullUrl.substring(fullUrl.lastIndexOf('/') + 1);
         String baseUrl = "https://cowtransfer.com/core/api/transfer/share";
         String result = Jsoup
                 .connect(baseUrl + "?uniqueUrl=" + uniqueUrl).ignoreContentType(true)
