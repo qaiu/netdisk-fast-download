@@ -9,7 +9,7 @@
 GET http://127.0.0.1:6400/parse?url=https://lanzoux.com/ia2cntg
 ###
 # @no-redirect
-GET http://127.0.0.1:6400/parse?url=https://cowtransfer.com/core/api/transfer/share?uniqueUrl=9a644fe3e3a748
+GET http://127.0.0.1:6400/parse?url=https://cowtransfer.com/s/9a644fe3e3a748
 
 // Rest请求(只提供共享文件Id): cow 奶牛快传; lz 蓝奏云
 ###
