@@ -1,0 +1,31 @@
+###
+GET http://127.0.0.1:6400/api/serverApi/test3?fullUrl=https://wwp.lanzoux.com/iNvid035jgcb
+###
+# @no-redirect
+GET http://127.0.0.1:6400/parse?url=https://lanzoux.com/ia2cntg
+###
+# @no-redirect
+GET http://127.0.0.1:6400/parse?url=https://cowtransfer.com/core/api/transfer/share?uniqueUrl=9a644fe3e3a748
+###
+# @no-redirect
+GET http://127.0.0.1:6400/cow/9a644fe3e3a748
+
+###
+GET http://127.0.0.1:6400/lz/ia2cntg
+###
+GET http://127.0.0.1:6400/json/lz/ia2cntg
+
+
+###
+https://cowtransfer.com/core/api/transfer/share?uniqueUrl=9a644fe3e3a748
+
+###
+https://cowtransfer.com/core/api/transfer/share?uniqueUrl=e4f41b51b5da4f
+
+###
+https://cowtransfer.com/core/api/transfer/share/download?transferGuid=e4f41b51-b5da-4f60-9312-37aa10c0aad7&fileId=23861191276513345
+
+
+//https://download.cowcs.com/cowtransfer/cowtransfer/29188/db32e132e69f490eb4a343b398990f4b.docx?auth_key=1682111861-7b9579fbebb84aaba6bca368d083ab12-0-cbf009f3ffbcbb86191b8cdbc103abce&biz_type=1&business_code=COW_TRANSFER&channel_code=COW_CN_WEB&response-content-disposition=attachment%3B%20filename%3D05-CGB-DB-MENU-V1.02.docx%3Bfilename*%3Dutf-8%27%2705-CGB-DB-MENU-V1.02.docx&user_id=1023860921943729188&x-verify=1
+
+

@@ -24,22 +24,6 @@ public class DefaultInterceptor implements Interceptor, BaseHttpApi {
 
     @Override
     public void handle(RoutingContext ctx) {
-
-        // 判断是否忽略
-        if (CommonUtil.matchRegList(ignores.getList(), ctx.request().path())) {
-            ctx.next();
-            return;
-        }
-        // 执行拦截
-        val token = ctx.request().getHeader("token");
-
-
-        LocalMap<String, String> tokenMap = SharedDataUtil.getLocalMapWithCast("token");
-        if (token != null && tokenMap != null && tokenMap.containsKey(token)) {
-            VertxHolder.getVertxInstance().getOrCreateContext().put("username", tokenMap.get(token));
-            ctx.next();
-        } else {
-            fireJsonResponse(ctx, JsonResult.error("没有权限", 401));
-        }
+        ctx.next();
     }
 }

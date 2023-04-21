@@ -1,7 +1,7 @@
 # 服务配置
 server:
   port: 6400
-  contextPath: /api
+  contextPath: /
   enableStaticHtmlService: false
   staticResourcePath: webroot/
 # 反向代理服务器配置路径(不用加后缀)

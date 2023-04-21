@@ -52,7 +52,7 @@ public class LzTool {
                 .userAgent(userAgent)
                 .get()
                 .html();
-        System.out.println(result);
+//        System.out.println(result);
         Matcher matcher = Pattern.compile("'[\\w]+_c_c'").matcher(result);
         Map<String, String> params = new LinkedHashMap<>();
         if (matcher.find()) {
@@ -60,7 +60,7 @@ public class LzTool {
             params.put("action", "downprocess");
             params.put("sign", sn);
             params.put("ves", "1");
-            System.out.println(sn);
+//            System.out.println(sn);
 
         } else {
             throw new IOException();
@@ -76,7 +76,7 @@ public class LzTool {
                 .replace("\\", "");
         //json转为map
         params = new ObjectMapper().readValue(result, new TypeReference<Map<String, String>>() {});
-        System.out.println(params);
+//        System.out.println(params);
         //通过json的数据拼接出最终的URL发起第最终请求,并得到响应信息头
         url = params.get("dom") + "/file/" + params.get("url");
         Map<String, String> headers = Jsoup.connect(url)
