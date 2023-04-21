@@ -4,14 +4,16 @@ import cn.qaiu.vx.core.annotaions.DateFormat;
 import cn.qaiu.vx.core.annotaions.RouteHandler;
 import cn.qaiu.vx.core.annotaions.RouteMapping;
 import cn.qaiu.vx.core.annotaions.SockRouteMapper;
+import cn.qaiu.vx.core.base.BaseHttpApi;
 import cn.qaiu.vx.core.enums.MIMEType;
 import cn.qaiu.vx.core.model.JsonResult;
-import cn.qaiu.vx.core.base.BaseHttpApi;
 import cn.qaiu.vx.core.util.*;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Route;
@@ -46,7 +48,7 @@ import static io.vertx.core.http.HttpHeaders.*;
 public class RouterHandlerFactory implements BaseHttpApi {
     private static final Logger LOGGER = LoggerFactory.getLogger(RouterHandlerFactory.class);
 
-    private static final Set<HttpMethod> httpMethods = new HashSet<HttpMethod>() {{
+    private static final Set<HttpMethod> httpMethods = new HashSet<>() {{
         add(HttpMethod.GET);
         add(HttpMethod.POST);
         add(HttpMethod.OPTIONS);
@@ -95,7 +97,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
                 return Integer.compare(routeHandler2.order(), routeHandler1.order());
             };
             // 获取处理器类列表
-            List<Class<?>> sortedHandlers = handlers.stream().sorted(comparator).collect(Collectors.toList());
+            List<Class<?>> sortedHandlers = handlers.stream().sorted(comparator).toList();
             for (Class<?> handler : sortedHandlers) {
                 try {
                     // 注册请求处理方法
@@ -292,11 +294,11 @@ public class RouterHandlerFactory implements BaseHttpApi {
                 String fmt = getFmt(v.getLeft(), v.getRight());
                 String value = queryParams.get(k);
                 parameterValueList.put(k, ReflectionUtil.conversion(v.getRight(), value, fmt));
-            } else if ("io.vertx.ext.web.RoutingContext".equals(v.getRight().getName())) {
+            } else if (RoutingContext.class.getName().equals(v.getRight().getName())) {
                 parameterValueList.put(k, ctx);
-            } else if ("io.vertx.core.http.HttpServerRequest".equals(v.getRight().getName())) {
+            } else if (HttpServerRequest.class.getName().equals(v.getRight().getName())) {
                 parameterValueList.put(k, ctx.request());
-            } else if ("io.vertx.core.http.HttpServerResponse".equals(v.getRight().getName())) {
+            } else if (HttpServerResponse.class.getName().equals(v.getRight().getName())) {
                 parameterValueList.put(k, ctx.response());
             } else if (CommonUtil.matchRegList(entityPackagesReg.getList(), v.getRight().getName())) {
                 // 绑定实体类
@@ -371,7 +373,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
      */
     private String getFmt(Annotation[] parameterAnnotations, CtClass v) {
         String fmt = "";
-        if ("java.util.Date".equals(v.getName())) {
+        if (Date.class.getName().equals(v.getName())) {
             for (Annotation annotation : parameterAnnotations) {
                 if (annotation instanceof DateFormat) {
                     fmt = ((DateFormat) annotation).value();

@@ -60,12 +60,13 @@ public class ReverseProxyVerticle extends AbstractVerticle {
     private void handleProxyConfList(JsonObject config) {
         serverName = config.getString("server-name");
         JsonArray proxyConfList = config.getJsonArray("proxy");
-
-        proxyConfList.forEach(proxyConf -> {
-            if (proxyConf instanceof JsonObject) {
-                handleProxyConf((JsonObject) proxyConf);
-            }
-        });
+        if (proxyConfList != null) {
+            proxyConfList.forEach(proxyConf -> {
+                if (proxyConf instanceof JsonObject) {
+                    handleProxyConf((JsonObject) proxyConf);
+                }
+            });
+        }
     }
 
     /**
