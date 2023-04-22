@@ -3,12 +3,10 @@ package cn.qaiu.lz.common.util;
 import cn.qaiu.vx.core.util.CastUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.vertx.core.http.HttpClient;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 
-import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -40,7 +38,7 @@ public class CowTool {
             }
           }
     */
-    public static String parse(String fullUrl) throws IOException {
+    public static String parse(String fullUrl) throws Exception {
         var uniqueUrl = fullUrl.substring(fullUrl.lastIndexOf('/') + 1);
         var baseUrl = "https://cowtransfer.com/core/api/transfer/share";
         var result = Jsoup
@@ -73,7 +71,7 @@ public class CowTool {
             }
         }
         log.info("Cow parse field------------->end");
-        return null;
+        throw new Exception("Cow解析失败");
     }
 
 
