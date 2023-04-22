@@ -36,14 +36,14 @@ public class ServerApi {
         return JsonResult.data("ok");
     }
 
-    @RouteMapping(value = "/parse", method = RouteMethod.GET)
+    @RouteMapping(value = "/parser", method = RouteMethod.GET)
     public void parse(HttpServerResponse response, String url) throws Exception {
         if (url.contains("lanzou")) {
-            String urlDownload = LzTool.parse(url);
+            var urlDownload = LzTool.parse(url);
             log.info("url = {}", urlDownload);
             response.putHeader("location", urlDownload).setStatusCode(302).end();
         } else if (url.contains("cowtransfer.com")) {
-            String urlDownload = CowTool.parse(url);
+            var urlDownload = CowTool.parse(url);
             response.putHeader("location", urlDownload).setStatusCode(302).end();
         }
 
@@ -51,30 +51,30 @@ public class ServerApi {
 
     @RouteMapping(value = "/lz/:id", method = RouteMethod.GET)
     public void lzParse(HttpServerResponse response, String id) throws Exception {
-        String url = "https://wwa.lanzoux.com/" + id;
-        String urlDownload = LzTool.parse(url);
+        var url = "https://wwa.lanzoux.com/" + id;
+        var urlDownload = LzTool.parse(url);
         log.info("url = {}", urlDownload);
         response.putHeader("location", urlDownload).setStatusCode(302).end();
     }
 
     @RouteMapping(value = "/cow/:id", method = RouteMethod.GET)
     public void cowParse(HttpServerResponse response, String id) throws Exception {
-        String url = "https://cowtransfer.com/s/" + id;
-        String urlDownload = CowTool.parse(url);
+        var url = "https://cowtransfer.com/s/" + id;
+        var urlDownload = CowTool.parse(url);
         response.putHeader("location", urlDownload).setStatusCode(302).end();
     }
 
     @RouteMapping(value = "/json/lz/:id", method = RouteMethod.GET)
     public JsonResult<String> lzParseJson(HttpServerResponse response, String id) throws Exception {
-        String url = "https://wwa.lanzoux.com/" + id;
-        String urlDownload = LzTool.parse(url);
+        var url = "https://wwa.lanzoux.com/" + id;
+        var urlDownload = LzTool.parse(url);
         log.info("url = {}", urlDownload);
         return JsonResult.data(urlDownload);
     }
 
     @RouteMapping(value = "/json/cow/:id", method = RouteMethod.GET)
     public JsonResult<String> cowParseJson(HttpServerResponse response, String id) throws Exception {
-        String url = "https://cowtransfer.com/s/" + id;
+        var url = "https://cowtransfer.com/s/" + id;
         return JsonResult.data(CowTool.parse(url));
     }
 }

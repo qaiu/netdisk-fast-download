@@ -41,38 +41,36 @@ public class CowTool {
           }
     */
     public static String parse(String fullUrl) throws IOException {
-        String uniqueUrl = fullUrl.substring(fullUrl.lastIndexOf('/') + 1);
-        String baseUrl = "https://cowtransfer.com/core/api/transfer/share";
-        String result = Jsoup
+        var uniqueUrl = fullUrl.substring(fullUrl.lastIndexOf('/') + 1);
+        var baseUrl = "https://cowtransfer.com/core/api/transfer/share";
+        var result = Jsoup
                 .connect(baseUrl + "?uniqueUrl=" + uniqueUrl).ignoreContentType(true)
                 .get()
                 .text();
-        ObjectMapper objectMapper = new ObjectMapper();
+        var objectMapper = new ObjectMapper();
         Map<String, Object> map = objectMapper.readValue(result, new TypeReference<>() {
         });
 
         if ("success".equals(map.get("message")) && map.containsKey("data")) {
             Map<String, Object> data = CastUtil.cast(map.get("data"));
-            String guid = data.get("guid").toString();
+            var guid = data.get("guid").toString();
             Map<String, Object> firstFile = CastUtil.cast(data.get("firstFile"));
-            String fileId = firstFile.get("id").toString();
-            String result2 = Jsoup
+            var fileId = firstFile.get("id").toString();
+            var result2 = Jsoup
                     .connect(baseUrl + "/download?transferGuid=" + guid + "&fileId=" + fileId)
                     .ignoreContentType(true)
                     .get()
                     .text();
-            Map<String, Object> map2 = objectMapper.readValue(result2, new TypeReference<>() {
-            });
+            Map<String, Object> map2 = objectMapper.readValue(result2, new TypeReference<>() {});
 
             if ("success".equals(map2.get("message")) && map2.containsKey("data")) {
                 Map<String, Object> data2 = CastUtil.cast(map2.get("data"));
-                String downloadUrl = data2.get("downloadUrl").toString();
+                var downloadUrl = data2.get("downloadUrl").toString();
                 if (StringUtils.isNotEmpty(downloadUrl)) {
                     log.info("cow parse success: {}", downloadUrl);
                     return downloadUrl;
                 }
             }
-
         }
         log.info("Cow parse field------------->end");
         return null;
