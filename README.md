@@ -1,15 +1,17 @@
 # lz-cow-api
 蓝奏云-奶牛快传的直链解析的API服务  
+使用Jdk17+Vert.x4.4.1+Jsoup  
+Core模块集成Vert.x实现声明式路由API  
 
 示例:  
 ```
 // 解析并重定向到直链
 ###
 # @no-redirect
-GET http://127.0.0.1:6400/parse?url=https://lanzoux.com/ia2cntg
+GET http://127.0.0.1:6400/parser?url=https://lanzoux.com/ia2cntg
 ###
 # @no-redirect
-GET http://127.0.0.1:6400/parse?url=https://cowtransfer.com/s/9a644fe3e3a748
+GET http://127.0.0.1:6400/parser?url=https://cowtransfer.com/s/9a644fe3e3a748
 
 // Rest请求(只提供共享文件Id): cow 奶牛快传; lz 蓝奏云
 ###

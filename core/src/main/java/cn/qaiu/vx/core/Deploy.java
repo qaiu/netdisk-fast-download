@@ -67,18 +67,21 @@ public final class Deploy {
      * 打印logo
      */
     private void outLogo(JsonObject conf) {
-        Date date = new Date();
         Calendar calendar = Calendar.getInstance();
-        calendar.setTime(date);
-        int year = calendar.get(Calendar.YEAR);
-        String logoTemplete = "\nWeb Server powered by: \n" +
-                " ____   ____              _              _    _    \n" +
-                "|_^^_| |_^^_|            / |_           | |  | |   \n" +
-                "  \\ \\   / /.---.  _ .--.`| |-'   _   __ | |__| |_  \n" +
-                "   \\ \\ / // /__\\\\[ `/'`\\]| |    [ \\ [  ]|____   _| \n" +
-                "    \\ V / | \\__., | |    | |, _  > '  <     _| |_  \n" +
-                "     \\_/   '.__.'[___]   \\__/(_)[__]`\\_]   |_____| \n" +
-                "                                      Version: %s; Framework version: %s; %s©%d.\n\n";
+        calendar.setTime(new Date());
+        var year = calendar.get(Calendar.YEAR);
+        var logoTemplete = """
+
+                Web Server powered by:\s
+                 ____   ____              _              _    _   \s
+                |_^^_| |_^^_|            / |_           | |  | |  \s
+                  \\ \\   / /.---.  _ .--.`| |-'   _   __ | |__| |_ \s
+                   \\ \\ / // /__\\\\[ `/'`\\]| |    [ \\ [  ]|____   _|\s
+                    \\ V / | \\__., | |    | |, _  > '  <     _| |_ \s
+                     \\_/   '.__.'[___]   \\__/(_)[__]`\\_]   |_____|\s
+                                                      Version: %s; Framework version: %s; %s©%d.
+
+                """;
 
         System.out.printf(logoTemplete,
                 conf.getString("version_app"),

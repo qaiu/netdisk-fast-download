@@ -2,10 +2,10 @@
 GET http://127.0.0.1:6400/api/serverApi/test3?fullUrl=https://wwp.lanzoux.com/iNvid035jgcb
 ###
 # @no-redirect
-GET http://127.0.0.1:6400/parse?url=https://lanzoux.com/ia2cntg
+GET http://127.0.0.1:6400/parser?url=https://lanzoux.com/ia2cntg
 ###
 # @no-redirect
-GET http://127.0.0.1:6400/parse?url=https://cowtransfer.com/s/9a644fe3e3a748
+GET http://127.0.0.1:6400/parser?url=https://cowtransfer.com/s/9a644fe3e3a748
 ###
 # @no-redirect
 GET http://127.0.0.1:6400/cow/9a644fe3e3a748

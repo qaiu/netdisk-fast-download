@@ -18,13 +18,12 @@ import java.util.regex.Pattern;
 public class LzTool {
 
     public static String parse(String fullUrl) throws Exception {
-        String userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.3";
-        String url = fullUrl.substring(0, fullUrl.lastIndexOf('/') + 1);
-        String id = fullUrl.substring(fullUrl.lastIndexOf('/') + 1);
+        var userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.3";
+        var url = fullUrl.substring(0, fullUrl.lastIndexOf('/') + 1);
+        var id = fullUrl.substring(fullUrl.lastIndexOf('/') + 1);
         Map<String, String> header = new HashMap<>();
         header.put("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
         header.put("referer", url);
-
 
         /*
             // 部分链接需要设置安卓UA
@@ -32,13 +31,13 @@ public class LzTool {
             sec-ch-ua-mobile: ?1
             sec-ch-ua-platform: "Android"
          */
-        String userAgent2 = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Mobile Safari/537.36";
-
+        var userAgent2 = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Mobile Safari/537.36";
         Map<String, String> header2 = new HashMap<>();
         header2.put("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
         header2.put("sec-ch-ua-mobile", "sec-ch-ua-mobile");
         header2.put("sec-ch-ua-platform", "Android");
         header2.put("referer", url);
+
         //第一次请求，获取iframe的地址
         String result = Jsoup.connect(url + id)
                 .userAgent(userAgent)
@@ -75,11 +74,11 @@ public class LzTool {
                 .text()
                 .replace("\\", "");
         //json转为map
-        params = new ObjectMapper().readValue(result, new TypeReference<Map<String, String>>() {});
+        params = new ObjectMapper().readValue(result, new TypeReference<>() {});
 //        System.out.println(params);
         //通过json的数据拼接出最终的URL发起第最终请求,并得到响应信息头
         url = params.get("dom") + "/file/" + params.get("url");
-        Map<String, String> headers = Jsoup.connect(url)
+        var headers = Jsoup.connect(url)
                 .ignoreContentType(true)
                 .userAgent(userAgent2)
                 .headers(header2)

@@ -1,7 +1,9 @@
 package cn.qaiu.lz;
 
 import cn.qaiu.vx.core.Deploy;
+import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.json.JsonObject;
+import lombok.val;
 
 
 /**
@@ -22,7 +24,6 @@ public class AppMain {
      * @param jsonObject 配置
      */
     private static void exec(JsonObject jsonObject) {
-        //
     }
 
 

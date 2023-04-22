@@ -14,11 +14,11 @@
     <properties>
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <vertx.version>4.1.3</vertx.version>
-        <org.reflections.version>0.9.12</org.reflections.version>
+        <vertx.version>4.4.1</vertx.version>
+        <org.reflections.version>0.10.2</org.reflections.version>
         <lombok.version>1.18.12</lombok.version>
         <slf4j.version>2.0.5</slf4j.version>
-        <commons-lang3.version>3.8.1</commons-lang3.version>
+        <commons-lang3.version>3.12.0</commons-lang3.version>
         <jackson.version>2.11.3</jackson.version>
     </properties>
 
