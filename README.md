@@ -1,7 +1,7 @@
 # lz-cow-api
 蓝奏云-奶牛快传的直链解析的API服务  
 使用Jdk17+Vert.x4.4.1+Jsoup  
-Core模块集成Vert.x实现声明式路由API  
+Core模块集成Vert.x实现类spring的注解式路由API  
 
 示例:  
 ```
