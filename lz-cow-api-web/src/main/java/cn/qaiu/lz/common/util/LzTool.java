@@ -52,10 +52,11 @@ public class LzTool {
                 .get()
                 .html();
 //        System.out.println(result);
-        Matcher matcher = Pattern.compile("'[\\w]+_c_c'").matcher(result);
+        // 'sign':'AWcGOFprUGFWX1BvBTVXawdrBDZTOAU_bV2FTZFU7W2sBJ1t4DW0FYFIyBmgDZVJgUjAFNV41UGQFNg_c_c' 改下正则TMD 最近上传竟然没_c_c
+        Matcher matcher = Pattern.compile("'sign'\s*:\s*'([0-9a-zA-Z_]+)'").matcher(result);
         Map<String, String> params = new LinkedHashMap<>();
         if (matcher.find()) {
-            String sn = matcher.group().replace("'", "");
+            String sn = matcher.group(1).replace("'", "");
             params.put("action", "downprocess");
             params.put("sign", sn);
             params.put("ves", "1");
