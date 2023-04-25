@@ -6,10 +6,8 @@
 
     <!--日志文件主目录：这里${user.home}为当前服务器用户主目录-->
     <property name="LOG_HOME" value="logs"/>
-    <!--日志文件名称：这里spring.application.name表示工程名称-->
 
     <property name="LOGBACK_DEFAULT" value="%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"/>
-    <property name="CUSTOMER_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %magenta([%t]) %highlight(%-5p) %yellow(${PID:-}) %cyan(%-40.40logger{39}) : %green(%m%n)"/>
     <property name="CUSTOMER_PATTERN2" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) -> %magenta([%15.15thread]) %cyan(%-40.40logger{39}) : %msg%n"/>
 
     <!--配置日志文件(File)-->
@@ -55,5 +53,6 @@
     <logger name="io.vertx" level="info"/>
     <root level="debug">
         <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE"/>
     </root>
 </configuration>
