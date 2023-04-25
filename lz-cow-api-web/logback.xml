@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- 日志自定义颜色 -->
+    <!-- https://logback.qos.ch/manual/layouts.html#coloring -->
+
+    <!--日志文件主目录：这里${user.home}为当前服务器用户主目录-->
+    <property name="LOG_HOME" value="logs"/>
+    <!--日志文件名称：这里spring.application.name表示工程名称-->
+
+    <property name="LOGBACK_DEFAULT" value="%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"/>
+    <property name="CUSTOMER_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %magenta([%t]) %highlight(%-5p) %yellow(${PID:-}) %cyan(%-40.40logger{39}) : %green(%m%n)"/>
+    <property name="CUSTOMER_PATTERN2" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) -> %magenta([%15.15thread]) %cyan(%-40.40logger{39}) : %msg%n"/>
+
+    <!--配置日志文件(File)-->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!--设置策略-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!--日志文件路径：这里%d{yyyyMMdd}表示按天分类日志-->
+            <FileNamePattern>${LOG_HOME}/%d{yyyyMMdd}/run.log</FileNamePattern>
+            <!--日志保留天数-->
+            <MaxHistory>15</MaxHistory>
+        </rollingPolicy>
+        <!--设置格式-->
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+            <!-- 或者使用默认配置 -->
+            <!--<pattern>${FILE_LOG_PATTERN}</pattern>-->
+            <charset>utf8</charset>
+        </encoder>
+        <!--日志文件最大的大小-->
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <MaxFileSize>100MB</MaxFileSize>
+        </triggeringPolicy>
+    </appender>
+
+    <!-- 将文件输出设置成异步输出 -->
+    <appender name="ASYNC-FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <!-- 不丢失日志.默认的,如果队列的80%已满,则会丢弃TRACT、DEBUG、INFO级别的日志 -->
+        <discardingThreshold>0</discardingThreshold>
+        <!-- 更改默认的队列的深度,该值会影响性能.默认值为256 -->
+        <queueSize>256</queueSize>
+        <!-- 添加附加的appender,最多只能添加一个 -->
+        <appender-ref ref="FILE"/>
+    </appender>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+            <pattern>${CUSTOMER_PATTERN2}</pattern>
+        </encoder>
+    </appender>
+    <logger name="io.netty" level="warn"/>
+    <logger name="io.vertx" level="info"/>
+    <root level="debug">
+<!--        <appender-ref ref="STDOUT"/>-->
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>
