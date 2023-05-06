@@ -1,9 +1,7 @@
 package cn.qaiu.lz;
 
 import cn.qaiu.vx.core.Deploy;
-import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.json.JsonObject;
-import lombok.val;
 
 
 /**
@@ -15,15 +13,16 @@ import lombok.val;
 public class AppMain {
 
     public static void main(String[] args) {
-        // 注册枚举类型转换器
         Deploy.instance().start(args, AppMain::exec);
     }
 
     /**
+     * 初始化数据库
      *
      * @param jsonObject 配置
      */
     private static void exec(JsonObject jsonObject) {
+//        JDBCPoolInit.builder().config(jsonObject.getJsonObject("dataSource")).build().initPool();
     }
 
 

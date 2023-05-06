@@ -35,4 +35,8 @@ https://cowtransfer.com/core/api/transfer/share/download?transferGuid=e4f41b51-b
 
 //https://download.cowcs.com/cowtransfer/cowtransfer/29188/db32e132e69f490eb4a343b398990f4b.docx?auth_key=1682111861-7b9579fbebb84aaba6bca368d083ab12-0-cbf009f3ffbcbb86191b8cdbc103abce&biz_type=1&business_code=COW_TRANSFER&channel_code=COW_CN_WEB&response-content-disposition=attachment%3B%20filename%3D05-CGB-DB-MENU-V1.02.docx%3Bfilename*%3Dutf-8%27%2705-CGB-DB-MENU-V1.02.docx&user_id=1023860921943729188&x-verify=1
 
+#V2 api
+###
+https://cowtransfer.com/core/api/dam/asset/files/download/23890683765739569/url/v2
+authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJndWlkIjoiMDc1OTMwNGItMDEwZS00MGJiLTlhNDUtZTczY2Q5ODYzMDQwIiwiZXhwIjoxNjgzNzkzOTExfQ.rE9z0vhogPjUC0I92MqU8U_PKe4j_mGn7lGgPFMGt5c
 
