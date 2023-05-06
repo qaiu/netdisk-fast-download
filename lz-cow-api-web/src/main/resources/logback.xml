@@ -54,7 +54,7 @@
     <logger name="io.netty" level="warn"/>
     <logger name="io.vertx" level="info"/>
     <root level="debug">
-<!--        <appender-ref ref="STDOUT"/>-->
-        <appender-ref ref="FILE"/>
+        <appender-ref ref="STDOUT"/>
+<!--        <appender-ref ref="FILE"/>-->
     </root>
 </configuration>
