@@ -4,7 +4,7 @@
 */.idea/
 logs/
 */logs/
-*/generated/
+*/generated/*
 *.iws
 *.iml
 *.ipr
@@ -37,3 +37,4 @@ sdkTest.log
 gradlew
 gradlew.bat
 unused.txt
+/lz-cow-api-web/src/main/generated/
