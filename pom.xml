@@ -12,6 +12,7 @@
     <modules>
         <module>core</module>
         <module>lz-cow-api-web</module>
+        <module>core-database</module>
     </modules>
 
     <properties>

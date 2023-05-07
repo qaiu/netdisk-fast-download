@@ -46,29 +46,19 @@ public class LzTool {
                 .attr("src");
 
         //第二次请求得到js里的json数据里的sign
-        /*
-        data : { 'action':'downprocess','signs':ajaxdata,
-        'sign':'UDZSbAg5BDUIAQE_bAjJVaQBrVGAAbVRlADBRYAVrVmUFNFcmCyIEbQdgAWFWOldkBm8OM1A_bU2AANQYy',
-        'websign':ws_sign,'websignkey':wsk_sign,'ves':1 },
-         */
         result = Jsoup.connect(url + result)
                 .headers(header)
                 .userAgent(userAgent)
                 .get()
                 .html();
 //        System.out.println(result);
-        Matcher matcher = Pattern.compile("\\s+data\\s*:\\s*.*(\\{.*})").matcher(result);
+        // 'sign':'AWcGOFprUGFWX1BvBTVXawdrBDZTOAU_bV2FTZFU7W2sBJ1t4DW0FYFIyBmgDZVJgUjAFNV41UGQFNg_c_c' 改下正则TMD 最近上传竟然没_c_c
+        Matcher matcher = Pattern.compile("'sign'\s*:\s*'([0-9a-zA-Z_]+)'").matcher(result);
         Map<String, String> params = new LinkedHashMap<>();
         if (matcher.find()) {
-            Map<String, String> ov1 = new ObjectMapper().readValue(
-                    matcher.group(matcher.groupCount()).replaceAll("'","\""), new TypeReference<Map<String, String>>() {
-            });
-            // { 'action':'downprocess','signs':ajaxdata,
-            // 'sign':'VzFWaAg5U2JSW1FuV2ddYVA7BDBTPgEwCzsAMVc5ATIENVQlWXAFbFUyBGRQPFNgAGlUaQRoBDZXYlRg','websign':ws_sign,
-            // 'websignkey':wsk_sign,'ves':1 }
-
+            String sn = matcher.group(1).replace("'", "");
             params.put("action", "downprocess");
-            params.put("sign", ov1.get("sign"));
+            params.put("sign", sn);
             params.put("ves", "1");
 //            System.out.println(sn);
 
