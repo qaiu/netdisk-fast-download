@@ -40,3 +40,18 @@ https://cowtransfer.com/core/api/transfer/share/download?transferGuid=e4f41b51-b
 https://cowtransfer.com/core/api/dam/asset/files/download/23890683765739569/url/v2
 authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJndWlkIjoiMDc1OTMwNGItMDEwZS00MGJiLTlhNDUtZTczY2Q5ODYzMDQwIiwiZXhwIjoxNjgzNzkzOTExfQ.rE9z0vhogPjUC0I92MqU8U_PKe4j_mGn7lGgPFMGt5c
 
+###
+POST https://drive-pc.quark.cn/1/clouddrive/file/download?pr=ucpro&fr=pc
+content-type: application/json;charset=UTF-8
+cookie: __pus=77641f2139b914c29ed2b0caf246723dAAQbjDyR/fi1Z9YqqWbfO2qPZYeRTrFSC2P30uuWJwtY2ZwwQTRsEPHJKc9nuPnrXfQxir+0N8K/mVfr7SIwGc2t;
+
+{"fids":["347f9589e0cd4294beeaaab2efac59e1"]}
+
+
+###
+POST https://drive.quark.cn/1/clouddrive/file/download?pr=ucpro&fr=pc&ve=2.1.5
+content-type: application/json;charset=UTF-8
+cookie: __pus=77641f2139b914c29ed2b0caf246723dAAQbjDyR/fi1Z9YqqWbfO2qPZYeRTrFSC2P30uuWJwtY2ZwwQTRsEPHJKc9nuPnrXfQxir+0N8K/mVfr7SIwGc2t;
+user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) quark-cloud-drive/2.5.20 Chrome/100.0.4896.160 Electron/18.3.5.4-b478491100 Safari/537.36 Channel/pckk_other_ch
+
+{"fids":["b3faf7f72ac64f94b4749588fc197816"]}
