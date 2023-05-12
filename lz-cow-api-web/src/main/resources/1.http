@@ -41,6 +41,55 @@ https://cowtransfer.com/core/api/dam/asset/files/download/23890683765739569/url/
 authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJndWlkIjoiMDc1OTMwNGItMDEwZS00MGJiLTlhNDUtZTczY2Q5ODYzMDQwIiwiZXhwIjoxNjgzNzkzOTExfQ.rE9z0vhogPjUC0I92MqU8U_PKe4j_mGn7lGgPFMGt5c
 
 ###
+POST https://cowtransfer.com/api/user/emaillogin
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="email"
+
+736226400@qq.com
+--WebAppBoundary
+Content-Disposition: form-data; name="password"
+
+4458225ff
+--WebAppBoundary--
+# eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJndWlkIjoiMDc1OTMwNGItMDEwZS00MGJiLTlhNDUtZTczY2Q5ODYzMDQwIiwiZXhwIjoxNjg0NDYyMjMzfQ.AeuB5-aQUlgudoLDRgvFodlHx2qKiPFx3BAqGA0R-eE
+# eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJndWlkIjoiMDc1OTMwNGItMDEwZS00MGJiLTlhNDUtZTczY2Q5ODYzMDQwIiwiZXhwIjoxNjg0NDYyMjMzfQ.AeuB5-aQUlgudoLDRgvFodlHx2qKiPFx3BAqGA0R-eE
+
+
+###
+POST https://cowtransfer.com/api/user/register/emailregistrationcheck
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="email"
+
+736226400@qq.com
+--WebAppBoundary
+Content-Disposition: form-data; name="joinProToken"
+
+
+--WebAppBoundary--
+
+
+
+### Send a form with the text and file fields
+POST https://httpbin.org/post
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="element-name"
+Content-Type: text/plain
+
+Name
+--WebAppBoundary
+Content-Disposition: form-data; name="data"; filename="data.json"
+Content-Type: application/json
+
+< ./request-form-data.json
+--WebAppBoundary--
+
+###
 POST https://drive-pc.quark.cn/1/clouddrive/file/download?pr=ucpro&fr=pc
 content-type: application/json;charset=UTF-8
 cookie: __pus=77641f2139b914c29ed2b0caf246723dAAQbjDyR/fi1Z9YqqWbfO2qPZYeRTrFSC2P30uuWJwtY2ZwwQTRsEPHJKc9nuPnrXfQxir+0N8K/mVfr7SIwGc2t;
@@ -55,3 +104,19 @@ cookie: __pus=77641f2139b914c29ed2b0caf246723dAAQbjDyR/fi1Z9YqqWbfO2qPZYeRTrFSC2
 user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) quark-cloud-drive/2.5.20 Chrome/100.0.4896.160 Electron/18.3.5.4-b478491100 Safari/537.36 Channel/pckk_other_ch
 
 {"fids":["b3faf7f72ac64f94b4749588fc197816"]}
+
+### quark_pan
+# 我用夸克网盘分享了「C# Shell (C# Offline Compiler)_2.5.16.apk」，点击链接即可保存。打开「夸克APP」，无需下载在线播放视频，畅享原画5倍速，支持电视投屏。
+#链接：https://pan.quark.cn/s/8f816f506409
+# step1 获取stoken
+POST https://drive-pc.quark.cn/1/clouddrive/share/sharepage/token?pr=ucpro&fr=pc
+accept: application/json, text/plain, */*
+content-type: application/json
+
+{"pwd_id":"8f816f506409","passcode":""}
+
+### quark_pan
+# step2 获取fid
+https://drive-pc.quark.cn/1/clouddrive/share/sharepage/detail?pr=ucpro&fr=pc&pwd_id=8f816f506409&stoken=TMJG1MBehHvDvuZgVZ%2FazmtOi0rGiw2v1O6%2FKCQwu%2Bc%3D&pdir_fid=0&force=0&_page=1&_size=50&_fetch_banner=1&_fetch_share=1&_fetch_total=1&_sort=file_type:asc,updated_at:desc
+
+
