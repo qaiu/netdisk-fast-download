@@ -88,7 +88,14 @@ public class JDBCPoolInit {
     }
 
     private void poolInitExecute(Promise<String> promise) {
-        // 初始化H2db, 创建本地db文件
+        // 初始化连接池
+        pool = JDBCPool.pool(vertx, dbConfig);
+        CreateTable.createTable(pool, dbConfig.getString("tableClassPath"));
+        promise.complete("init jdbc pool success");
+
+    }
+
+    private void checkOrCreateDBFile() {
         LOGGER.info("init sql start");
         String[] path = url.split("\\./");
         path[1] = path[1].split(";")[0];
@@ -109,14 +116,12 @@ public class JDBCPoolInit {
                 throw new RuntimeException("file create failed");
             }
         }
-        // 初始化连接池
-        pool = JDBCPool.pool(vertx, dbConfig);
-        CreateTable.createTable(pool, dbConfig.getString("tableClassPath"));
-        promise.complete("init jdbc pool success");
-
     }
 
     private void h2serverExecute(Promise<String> promise) {
+        // 初始化H2db, 创建本地db文件
+        checkOrCreateDBFile();
+
         try {
             String url = dbConfig.getString("jdbcUrl");
             String[] portStr = url.split(":");
