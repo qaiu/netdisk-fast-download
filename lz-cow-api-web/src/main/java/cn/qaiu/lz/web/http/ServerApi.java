@@ -51,7 +51,7 @@ public class ServerApi {
 
     @RouteMapping(value = "/lz/:id", method = RouteMethod.GET)
     public void lzParse(HttpServerResponse response, String id) throws Exception {
-        var url = "https://wwa.lanzoux.com/" + id;
+        var url = "https://wwsd.lanzoue.com/" + id;
         var urlDownload = LzTool.parse(url);
         log.info("url = {}", urlDownload);
         response.putHeader("location", urlDownload).setStatusCode(302).end();
