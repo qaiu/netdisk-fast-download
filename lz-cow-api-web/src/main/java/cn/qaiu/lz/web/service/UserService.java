@@ -1,7 +1,7 @@
 package cn.qaiu.lz.web.service;
 
+import cn.qaiu.lz.web.model.SysUser;
 import cn.qaiu.vx.core.base.BaseAsyncService;
-import cn.qaiu.lz.web.model.RealUser;
 import io.vertx.codegen.annotations.ProxyGen;
 import io.vertx.core.Future;
 
@@ -13,5 +13,5 @@ import io.vertx.core.Future;
  */
 @ProxyGen
 public interface UserService extends BaseAsyncService {
-    Future<String> login(RealUser user);
+    Future<String> login(SysUser user);
 }

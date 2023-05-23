@@ -12,6 +12,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
+ * 蓝奏云解析工具
+ *
  * @author QAIU
  * @version 1.0 update 2021/5/16 10:39
  */

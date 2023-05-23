@@ -76,14 +76,16 @@ public class JDBCPoolInit {
         // 异步启动H2服务
         vertx.createSharedWorkerExecutor("h2-server", 1, Long.MAX_VALUE)
                 .executeBlocking(this::h2serverExecute)
-                .onSuccess(LOGGER::info)
+                .onSuccess(res->{
+                    LOGGER.info(res);
+                    // 初始化数据库连接
+                    vertx.createSharedWorkerExecutor("sql-pool-init")
+                            .executeBlocking(this::poolInitExecute)
+                            .onSuccess(LOGGER::info)
+                            .onFailure(Throwable::printStackTrace);
+                })
                 .onFailure(Throwable::printStackTrace);
 
-        // 初始化数据库连接
-        vertx.createSharedWorkerExecutor("sql-pool-init")
-                .executeBlocking(this::poolInitExecute)
-                .onSuccess(LOGGER::info)
-                .onFailure(Throwable::printStackTrace);
 
     }
 

@@ -2,7 +2,7 @@ package cn.qaiu.lz.web.http;
 
 import cn.qaiu.lz.common.util.CowTool;
 import cn.qaiu.lz.common.util.LzTool;
-import cn.qaiu.lz.web.model.RealUser;
+import cn.qaiu.lz.web.model.SysUser;
 import cn.qaiu.lz.web.service.UserService;
 import cn.qaiu.vx.core.annotaions.RouteHandler;
 import cn.qaiu.vx.core.annotaions.RouteMapping;
@@ -26,7 +26,7 @@ public class ServerApi {
     private final UserService userService = AsyncServiceUtil.getAsyncServiceInstance(UserService.class);
 
     @RouteMapping(value = "/login", method = RouteMethod.POST)
-    public Future<String> login(RealUser user) {
+    public Future<String> login(SysUser user) {
         log.info("<------- login: {}", user.getUsername());
         return userService.login(user);
     }

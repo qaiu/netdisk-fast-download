@@ -126,3 +126,211 @@ content-type: application/json
 https://drive-pc.quark.cn/1/clouddrive/share/sharepage/detail?pr=ucpro&fr=pc&pwd_id=8f816f506409&stoken=JX6p1XFG5hD2VaUJFxazvE72u9TuhcKiXd81%2BXaFFsI%3D&pdir_fid=0&force=0&_page=1&_size=50&_fetch_banner=1&_fetch_share=1&_fetch_total=1&_sort=file_type:asc,updated_at:desc
 
 
+### quark_pan
+https://drive-pc.quark.cn/1/clouddrive/auth/pc/flush?pr=ucpro&fr=pc
+cookie: __pus=77641f2139b914c29ed2b0caf246723dAAQbjDyR/fi1Z9YqqWbfO2qPZYeRTrFSC2P30uuWJwtY2ZwwQTRsEPHJKc9nuPnrXfQxir+0N8K/mVfr7SIwGc2t;
+
+# https://fast.uc.cn/s/33197dd53ace4
+### UCpan
+https://fast.uc.cn/api/info?st=&fr=pc&pr=UCBrowser
+
+### UCpan 第一步 获取stoken POST json传入pwd_id(分享id),passcode(分享密码)
+POST https://pc-api.uc.cn/1/clouddrive/share/sharepage/token?entry=ft&fr=pc&pr=UCBrowser
+content-type: application/json
+
+{"pwd_id":"33197dd53ace4","passcode":"","share_for_transfer":true}
+
+### UCpan 第二步 获取fid,share_fid_token GET传参pwd_id,passcode,stoken
+https://pc-api.uc.cn/1/clouddrive/transfer_share/detail?pwd_id=33197dd53ace4&passcode=&stoken=oPz47hsgQXQdDYimsP4kBMi8aLv40X378IZOiBsnfLU%3D
+content-type: application/json
+
+### UCpan 第二步获取下载链接  POST json传入fids(fid),pwd_id,stoken,fids_token(share_fid_token)
+POST https://pc-api.uc.cn/1/clouddrive/file/download?entry=ft&fr=pc&pr=UCBrowser
+content-type: application/json
+
+{
+  "fids": [
+    "54c3cd90ed3e45119bb96ed99a562d40"
+  ],
+  "pwd_id": "33197dd53ace4",
+  "stoken": "oPz47hsgQXQdDYimsP4kBMi8aLv40X378IZOiBsnfLU=",
+  "fids_token": [
+    "ff9f5b5c94df9d08c8dd3b7948fc5e20"
+  ]
+}
+
+### https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
+###  ecpan(移动云空间)
+https://www.ecpan.cn/drive/fileextoverrid.do?chainUrlTemplate=https:%2F%2Fwww.ecpan.cn%2Fweb%2F%23%2FyunpanProxy%3Fpath%3D%252F%2523%252Fdrive%252Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&parentId=-1
+
+
+###
+POST https://www.ecpan.cn/drive/sharedownload.do
+Accept: application/json
+Content-Type: application/json
+
+{
+	"extCodeFlag": 0,
+	"isIp": 0,
+	"shareId": 2404807,
+	"groupId": "c27b53c4f91b11ed86b3b026287b20b1",
+	"fileIdList": [{
+				"tableName": "cloudp_file_52",
+				"appFileId": "2d06ad61f91c11ed86b3b026287b20b1",
+				"dfsFileId": "3080817de83747698ff5747e25f97e50",
+				"fileName": "fonts.zip",
+				"filePath": "个人盘",
+				"fileLevel": 0,
+				"fileCount": 0,
+				"fileType": 2,
+				"fileSort": 99,
+				"fileSize": 19115063,
+				"uploadSize": 19115063,
+				"parentId": "c27b53c4f91b11ed86b3b026287b20b1",
+				"usn": 11364252,
+				"userName": "157****1073",
+				"userId": "",
+				"corpId": 13260232,
+				"createDate": 1684813492000,
+				"modifyDate": 1684813492000,
+				"status": 1,
+				"version": 0,
+				"comeFrom": 21,
+				"isShare": 0,
+				"folderType": 0,
+				"groupDesc": null,
+				"groupId": "c27b53c4f91b11ed86b3b026287b20b1",
+				"groupName": null,
+				"permission": null,
+				"userInfo": null,
+				"diskType": 1,
+				"historyKey": null,
+				"oldAppFileId": null,
+				"fileRealPath": null,
+				"fileExt": null,
+				"oldFileName": null,
+				"key": null,
+				"isUpperCase": null,
+				"isSubDir": null,
+				"isViewFolder": null,
+				"uploadTimeType": null,
+				"startUploadTime": null,
+				"endUploadTime": null,
+				"sizeOperator": null,
+				"orderField": null,
+				"orderBy": null,
+				"oldFilePath": null,
+				"statusStr": null,
+				"rootUsn": 11364252,
+				"createdByUsn": null,
+				"attentionCount": 0,
+				"fileMd5": "86c1ff32437ca0ccaca24f7ea197e34a",
+				"fileLabel": null,
+				"fileDesc": null,
+				"fileExtends": "<fileExtends><shareRoot></shareRoot><isLock>0</isLock><isEncrypt>0</isEncrypt></fileExtends>",
+				"deviceId": null,
+				"fileNamePinyin": "fonts.zip",
+				"modifyUser": "157****1073",
+				"fileExFileds": {
+					"shareRoot": "",
+					"isLock": 0,
+					"isEncrypt": 0
+				},
+				"security": 0,
+				"createdDate": null,
+				"modifiedDate1": null,
+				"modifiedDate2": null,
+				"createdDate1": null,
+				"createdDate2": null,
+				"deleteUsn": null,
+				"toShares": null,
+				"firstLevel": null
+			}]
+}
+
+###
+https://www.ecpan.cn/drive/fileextoverrid.do?chainUrlTemplate=https:%2F%2Fwww.ecpan.cn%2Fweb%2F%23%2FyunpanProxy%3Fpath%3D%252F%2523%252Fdrive%252Foutside&data=aa0cae0164d8885e6d35826b5b2901eckbWJBalM&parentId=-1
+
+###
+POST https://www.ecpan.cn/drive/sharedownload.do
+Accept: application/json
+Content-Type: application/json
+
+{
+  "extCodeFlag": 0,
+  "isIp": 0,
+  "shareId": 2404807,
+  "groupId": "c27b53c4f91b11ed86b3b026287b20b1",
+  "fileIdList": [{
+    "tableName": "cloudp_file_52",
+    "appFileId": "fe4ea2d0f92011ed86b3b026287b20b1",
+    "dfsFileId": "a81bdef5a9614d30b7f856755c985cf8",
+    "fileName": "readline-7.0-rc1.tar.gz",
+    "filePath": "个人盘\\app",
+    "fileLevel": 1,
+    "fileCount": 0,
+    "fileType": 2,
+    "fileSort": 99,
+    "fileSize": 2897058,
+    "uploadSize": 2897058,
+    "parentId": "ed008146f92011ed86b3b026287b20b1",
+    "usn": 11364252,
+    "userName": "157****1073",
+    "userId": "",
+    "corpId": 13260232,
+    "createDate": 1684815561000,
+    "modifyDate": 1684815561000,
+    "status": 1,
+    "version": 0,
+    "comeFrom": 21,
+    "isShare": 0,
+    "folderType": 0,
+    "groupDesc": null,
+    "groupId": "c27b53c4f91b11ed86b3b026287b20b1",
+    "groupName": null,
+    "permission": null,
+    "userInfo": null,
+    "diskType": 1,
+    "historyKey": null,
+    "oldAppFileId": null,
+    "fileRealPath": null,
+    "fileExt": null,
+    "oldFileName": null,
+    "key": null,
+    "isUpperCase": null,
+    "isSubDir": null,
+    "isViewFolder": null,
+    "uploadTimeType": null,
+    "startUploadTime": null,
+    "endUploadTime": null,
+    "sizeOperator": null,
+    "orderField": null,
+    "orderBy": null,
+    "oldFilePath": null,
+    "statusStr": null,
+    "rootUsn": 11364252,
+    "createdByUsn": null,
+    "attentionCount": 0,
+    "fileMd5": "c5ed4d0fd48ec6c940d6da375e3f1b50",
+    "fileLabel": null,
+    "fileDesc": null,
+    "fileExtends": "<fileExtends><shareRoot></shareRoot><isLock>0</isLock><isEncrypt>0</isEncrypt></fileExtends>",
+    "deviceId": null,
+    "fileNamePinyin": "readline-7.0-rc1.tar.gz",
+    "modifyUser": "157****1073",
+    "fileExFileds": {
+      "shareRoot": "",
+      "isLock": 0,
+      "isEncrypt": 0
+    },
+    "security": 0,
+    "createdDate": null,
+    "modifiedDate1": null,
+    "modifiedDate2": null,
+    "createdDate1": null,
+    "createdDate2": null,
+    "deleteUsn": null,
+    "toShares": null,
+    "firstLevel": null
+  }]
+}
