@@ -10,6 +10,8 @@ import org.jsoup.Jsoup;
 import java.util.Map;
 
 /**
+ * 奶牛快传解析工具
+ *
  * @author <a href="https://qaiu.top">QAIU</a>
  * @date 2023/4/21 21:19
  */

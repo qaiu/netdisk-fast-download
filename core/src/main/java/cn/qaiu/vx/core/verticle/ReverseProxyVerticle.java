@@ -1,9 +1,6 @@
 package cn.qaiu.vx.core.verticle;
 
-import cn.qaiu.vx.core.util.CastUtil;
-import cn.qaiu.vx.core.util.ConfigUtil;
-import cn.qaiu.vx.core.util.SharedDataUtil;
-import cn.qaiu.vx.core.util.VertxHolder;
+import cn.qaiu.vx.core.util.*;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -39,7 +36,9 @@ public class ReverseProxyVerticle extends AbstractVerticle {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReverseProxyVerticle.class);
 
-    private static final String PATH_PROXY_CONFIG = SharedDataUtil.getJsonConfig("globalConfig").getString("proxyConf");
+    private static final String PATH_PROXY_CONFIG = SharedDataUtil
+            .getJsonConfig(ConfigConstant.GLOBAL_CONFIG)
+            .getString("proxyConf");
     private static final Future<JsonObject> CONFIG = ConfigUtil.readYamlConfig(PATH_PROXY_CONFIG);
     private static final String DEFAULT_PATH_404 = "webroot/err/404.html";
 

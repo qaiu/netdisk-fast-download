@@ -13,13 +13,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @DataObject
 @Table("t_user")
-public class RealUser implements ToJson {
+public class SysUser implements ToJson {
     private String id;
 
     private String username;
     private String password;
 
-    public RealUser(JsonObject json) {
+    public SysUser(JsonObject json) {
         this.username = json.getString("username");
         this.password = json.getString("password");
     }

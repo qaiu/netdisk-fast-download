@@ -1,5 +1,6 @@
 package cn.qaiu.vx.core;
 
+import cn.qaiu.vx.core.util.ConfigConstant;
 import cn.qaiu.vx.core.util.ConfigUtil;
 import cn.qaiu.vx.core.util.VertxHolder;
 import cn.qaiu.vx.core.verticle.ReverseProxyVerticle;
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.management.ManagementFactory;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.concurrent.locks.LockSupport;
 
 /**
  * vertx启动类 需要在主启动类完成回调
@@ -31,13 +33,17 @@ public final class Deploy {
     StringBuilder path = new StringBuilder("app");
 
     private JsonObject customConfig;
+    private JsonObject globalConfig;
     private Handler<JsonObject> handle;
+
+    private Thread mainThread;
 
     public static Deploy instance() {
         return INSTANCE;
     }
 
     public void start(String[] args, Handler<JsonObject> handle) {
+        this.mainThread = Thread.currentThread();
         this.handle = handle;
         if (args.length > 0) {
             // 启动参数dev或者prod
@@ -48,6 +54,8 @@ public final class Deploy {
         ConfigUtil.readYamlConfig(path.toString(), tempVertx)
                 .onSuccess(this::readConf)
                 .onFailure(Throwable::printStackTrace);
+        LockSupport.park();
+        deployVerticle();
     }
 
     private void readConf(JsonObject conf) {
@@ -59,7 +67,10 @@ public final class Deploy {
         } else {
             LOGGER.info("---------------> Production environment <--------------\n");
         }
-        ConfigUtil.readYamlConfig(path + "-" + activeMode, tempVertx).onSuccess(this::deployVerticle);
+        ConfigUtil.readYamlConfig(path + "-" + activeMode, tempVertx).onSuccess(res -> {
+            this.globalConfig = res;
+            LockSupport.unpark(mainThread);
+        });
     }
 
     /**
@@ -92,30 +103,31 @@ public final class Deploy {
 
     /**
      * 部署Verticle
-     *
-     * @param globalConfig 配置
      */
-    private void deployVerticle(JsonObject globalConfig) {
+    private void deployVerticle() {
         tempVertx.close();
         LOGGER.info("配置读取成功");
-        customConfig = globalConfig.getJsonObject("custom");
+        customConfig = globalConfig.getJsonObject(ConfigConstant.CUSTOM);
 
-        var vertxOptions = new VertxOptions(globalConfig.getJsonObject("vertx"));
+        var vertxOptions = new VertxOptions(globalConfig.getJsonObject(ConfigConstant.VERTX));
         var vertx = Vertx.vertx(vertxOptions);
         VertxHolder.init(vertx);
         //配置保存在共享数据中
         var sharedData = vertx.sharedData();
-        LocalMap<String, Object> localMap = sharedData.getLocalMap("local");
-        localMap.put("globalConfig", globalConfig);
-        localMap.put("customConfig", customConfig);
-        localMap.put("server", globalConfig.getJsonObject("server"));
-        handle.handle(globalConfig);
+        LocalMap<String, Object> localMap = sharedData.getLocalMap(ConfigConstant.LOCAL);
+        localMap.put(ConfigConstant.GLOBAL_CONFIG, globalConfig);
+        localMap.put(ConfigConstant.CUSTOM_CONFIG, customConfig);
+        localMap.put(ConfigConstant.SERVER, globalConfig.getJsonObject(ConfigConstant.SERVER));
+        var future0 = vertx.createSharedWorkerExecutor("other-handle").executeBlocking(bch -> {
+            handle.handle(globalConfig);
+            bch.complete("other handle complete");
+        });
 
         var future1 = vertx.deployVerticle(RouterVerticle.class, getWorkDeploymentOptions("Router"));
         var future2 = vertx.deployVerticle(ServiceVerticle.class, getWorkDeploymentOptions("Service"));
         var future3 = vertx.deployVerticle(ReverseProxyVerticle.class, getWorkDeploymentOptions("proxy"));
 
-        CompositeFuture.all(future1, future2, future3)
+        CompositeFuture.all(future1, future2, future3, future0)
                 .onSuccess(this::deployWorkVerticalSuccess)
                 .onFailure(this::deployVerticalFailed);
     }
@@ -148,7 +160,7 @@ public final class Deploy {
      * @return Deployment Options
      */
     private DeploymentOptions getWorkDeploymentOptions(String name) {
-        return getWorkDeploymentOptions(name, customConfig.getInteger("asyncServiceInstances"));
+        return getWorkDeploymentOptions(name, customConfig.getInteger(ConfigConstant.ASYNC_SERVICE_INSTANCES));
     }
 
     private DeploymentOptions getWorkDeploymentOptions(String name, int ins) {

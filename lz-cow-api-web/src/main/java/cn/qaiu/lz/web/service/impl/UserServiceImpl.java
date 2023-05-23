@@ -1,6 +1,6 @@
 package cn.qaiu.lz.web.service.impl;
 
-import cn.qaiu.lz.web.model.RealUser;
+import cn.qaiu.lz.web.model.SysUser;
 import cn.qaiu.lz.web.service.UserService;
 import cn.qaiu.vx.core.annotaions.Service;
 import io.vertx.core.Future;
@@ -15,7 +15,7 @@ import io.vertx.core.Future;
 public class UserServiceImpl implements UserService {
 
     @Override
-    public Future<String> login(RealUser user) {
+    public Future<String> login(SysUser user) {
 
         return Future.succeededFuture("111");
     }
