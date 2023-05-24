@@ -83,7 +83,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
             ctx.next();
         });
         // 添加跨域的方法
-        router.route().handler(CorsHandler.create("*").allowCredentials(true).allowedMethods(httpMethods));
+        router.route().handler(CorsHandler.create().addRelativeOrigin(".*").allowCredentials(true).allowedMethods(httpMethods));
 
         // 配置文件上传路径
         router.route().handler(BodyHandler.create().setUploadsDirectory("uploads"));
@@ -104,6 +104,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
                     registerNewHandler(router, handler);
                 } catch (Throwable e) {
                     LOGGER.error("Error register {}, Error details：", handler, e.getCause());
+
                 }
             }
         } catch (Exception e) {
@@ -181,7 +182,10 @@ public class RouterHandlerFactory implements BaseHttpApi {
                         e.printStackTrace();
                     }
                 });
-                router.mountSubRouter(url, route);
+                if (url.endsWith("*")) {
+                    throw new IllegalArgumentException("Don't include * when mounting a sub router");
+                }
+                router.route(url + "*").subRouter(route);
             }
         }
     }
@@ -312,8 +316,8 @@ public class RouterHandlerFactory implements BaseHttpApi {
             }
         });
         // 解析body-json参数
-        if ("application/json".equals(ctx.parsedHeaders().contentType().value()) && ctx.getBodyAsJson() != null) {
-            JsonObject body = ctx.getBodyAsJson();
+        if ("application/json".equals(ctx.parsedHeaders().contentType().value()) && ctx.body().asJsonObject() != null) {
+            JsonObject body = ctx.body().asJsonObject();
             if (body != null) {
                 methodParametersTemp.forEach((k, v) -> {
                     // 只解析已配置包名前缀的实体类
@@ -345,7 +349,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
                     ((Future<?>) data).onSuccess(res -> {
                         if (res instanceof JsonObject) {
                             fireJsonResponse(ctx, res);
-                        } else {
+                        } else if (res != null){
                             fireJsonResponse(ctx, JsonResult.data(res));
                         }
                     }).onFailure(e -> fireJsonResponse(ctx, JsonResult.error(e.getMessage())));

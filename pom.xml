@@ -5,13 +5,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>cn.qaiu</groupId>
-    <artifactId>lz-cow-api</artifactId>
+    <artifactId>netdisk-fast-download</artifactId>
     <packaging>pom</packaging>
-    <version>0.0.1</version>
+    <version>0.1.3</version>
 
     <modules>
         <module>core</module>
-        <module>lz-cow-api-web</module>
+        <module>web-service</module>
         <module>core-database</module>
     </modules>
 
@@ -19,8 +19,7 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <vertx.version>4.1.3</vertx.version>
-        <packageDirectory>${project.basedir}/lz-cow-api-web/target/package</packageDirectory>
+        <packageDirectory>${project.basedir}/netdisk-fast-download/target/package</packageDirectory>
     </properties>
 
     <build>

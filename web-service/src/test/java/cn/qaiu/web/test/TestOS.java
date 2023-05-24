@@ -4,6 +4,8 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class TestOS {
@@ -157,5 +159,6 @@ public class TestOS {
 //        all();
 //        new TestOS().showURL();
         System.out.println(File.separator);
+        System.out.println(URLEncoder.encode("https://www.ecpan.cn/web/#/yunpanProxy", StandardCharsets.UTF_8));
     }
 }

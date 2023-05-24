@@ -7,7 +7,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 # User=USER
-ExecStart=/usr/bin/java -server -Xmx128m -jar /root/java/lz-cow-api-web/lz-cow-api-web-0.0.1.jar
+ExecStart=/usr/bin/java -server -Xmx128m -jar /root/java/netdisk-fast-download/netdisk-fast-download-0.0.1.jar
 ExecStop=/bin/kill -s QUIT $MAINPID
 Restart=always
 StandOutput=syslog
