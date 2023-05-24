@@ -1,0 +1,29 @@
+
+# https://fast.uc.cn/s/33197dd53ace4
+### UCpan
+https://fast.uc.cn/api/info?st=&fr=pc&pr=UCBrowser
+
+### UCpan 第一步 获取stoken POST json传入pwd_id(分享id),passcode(分享密码)
+POST https://pc-api.uc.cn/1/clouddrive/share/sharepage/token?entry=ft&fr=pc&pr=UCBrowser
+content-type: application/json
+
+{"pwd_id":"33197dd53ace4","passcode":"","share_for_transfer":true}
+
+### UCpan 第二步 获取fid,share_fid_token GET传参pwd_id,passcode,stoken
+https://pc-api.uc.cn/1/clouddrive/transfer_share/detail?pwd_id=33197dd53ace4&passcode=&stoken=oPz47hsgQXQdDYimsP4kBMi8aLv40X378IZOiBsnfLU%3D
+content-type: application/json
+
+### UCpan 第二步获取下载链接  POST json传入fids(fid),pwd_id,stoken,fids_token(share_fid_token)
+POST https://pc-api.uc.cn/1/clouddrive/file/download?entry=ft&fr=pc&pr=UCBrowser
+content-type: application/json
+
+{
+  "fids": [
+    "54c3cd90ed3e45119bb96ed99a562d40"
+  ],
+  "pwd_id": "33197dd53ace4",
+  "stoken": "oPz47hsgQXQdDYimsP4kBMi8aLv40X378IZOiBsnfLU=",
+  "fids_token": [
+    "ff9f5b5c94df9d08c8dd3b7948fc5e20"
+  ]
+}

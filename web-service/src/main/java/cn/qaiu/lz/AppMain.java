@@ -2,6 +2,7 @@ package cn.qaiu.lz;
 
 import cn.qaiu.db.pool.JDBCPoolInit;
 import cn.qaiu.vx.core.Deploy;
+import cn.qaiu.vx.core.util.ConfigConstant;
 import io.vertx.core.json.JsonObject;
 
 
@@ -23,7 +24,9 @@ public class AppMain {
      * @param jsonObject 配置
      */
     private static void exec(JsonObject jsonObject) {
-        JDBCPoolInit.builder().config(jsonObject.getJsonObject("dataSource")).build().initPool();
+        if (jsonObject.getJsonObject(ConfigConstant.SERVER).getBoolean("enableDatabase")) {
+            JDBCPoolInit.builder().config(jsonObject.getJsonObject("dataSource")).build().initPool();
+        }
     }
 
 

@@ -1,0 +1,88 @@
+
+### https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
+###  ecpan(移动云空间)
+https://www.ecpan.cn/drive/fileextoverrid.do?chainUrlTemplate=https:%2F%2Fwww.ecpan.cn%2Fweb%2F%23%2FyunpanProxy%3Fpath%3D%252F%2523%252Fdrive%252Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&parentId=-1
+
+
+###
+POST https://www.ecpan.cn/drive/sharedownload.do
+Content-Type: application/json
+
+{
+  "extCodeFlag": 0,
+  "isIp": 0,
+  "shareId": 2404783,
+  "groupId": "c27b53c4f91b11ed86b3b026287b20b1",
+  "fileIdList": [{
+    "tableName": "cloudp_file_52",
+    "appFileId": "2d06ad61f91c11ed86b3b026287b20b1",
+    "dfsFileId": "3080817de83747698ff5747e25f97e50",
+    "fileName": "fonts.zip",
+    "filePath": "个人盘",
+    "fileLevel": 0,
+    "fileCount": 0,
+    "fileType": 2,
+    "fileSort": 99,
+    "fileSize": 19115063,
+    "uploadSize": 19115063,
+    "parentId": "c27b53c4f91b11ed86b3b026287b20b1",
+    "usn": 11364252,
+    "userName": "157****1073",
+    "userId": "",
+    "corpId": 13260232,
+    "createDate": 1684813492000,
+    "modifyDate": 1684813492000,
+    "status": 1,
+    "version": 0,
+    "comeFrom": 21,
+    "isShare": 0,
+    "folderType": 0,
+    "groupDesc": null,
+    "groupId": "c27b53c4f91b11ed86b3b026287b20b1",
+    "groupName": null,
+    "permission": null,
+    "userInfo": null,
+    "diskType": 1,
+    "historyKey": null,
+    "oldAppFileId": null,
+    "fileRealPath": null,
+    "fileExt": null,
+    "oldFileName": null,
+    "key": null,
+    "isUpperCase": null,
+    "isSubDir": null,
+    "isViewFolder": null,
+    "uploadTimeType": null,
+    "startUploadTime": null,
+    "endUploadTime": null,
+    "sizeOperator": null,
+    "orderField": null,
+    "orderBy": null,
+    "oldFilePath": null,
+    "statusStr": null,
+    "rootUsn": 11364252,
+    "createdByUsn": null,
+    "attentionCount": 0,
+    "fileMd5": "86c1ff32437ca0ccaca24f7ea197e34a",
+    "fileLabel": null,
+    "fileDesc": null,
+    "fileExtends": "<fileExtends><shareRoot></shareRoot><isLock>0</isLock><isEncrypt>0</isEncrypt></fileExtends>",
+    "deviceId": null,
+    "fileNamePinyin": "fonts.zip",
+    "modifyUser": "157****1073",
+    "fileExFileds": {
+      "shareRoot": "",
+      "isLock": 0,
+      "isEncrypt": 0
+    },
+    "security": 0,
+    "createdDate": null,
+    "modifiedDate1": null,
+    "modifiedDate2": null,
+    "createdDate1": null,
+    "createdDate2": null,
+    "deleteUsn": null,
+    "toShares": null,
+    "firstLevel": null
+  }]
+}

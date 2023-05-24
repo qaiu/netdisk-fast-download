@@ -37,4 +37,4 @@ sdkTest.log
 gradlew
 gradlew.bat
 unused.txt
-/lz-cow-api-web/src/main/generated/
+/web-service/src/main/generated/
