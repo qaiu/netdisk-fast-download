@@ -1,6 +1,6 @@
 # netdisk-fast-download
 # 网盘快速下载器--直链解析
-
+[![Java CI with Maven](https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml/badge.svg)](https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml)
 ## 网盘支持情况:  
 ` 网盘名称(网盘标识): ` 
 - 蓝奏云 (lz)
