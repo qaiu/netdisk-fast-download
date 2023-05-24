@@ -29,7 +29,7 @@ API接口
     http(s)://you_host/parser?url=分享链接
     http(s)://you_host/网盘标识/分享id(#分享密码)
 2. 获取解析后的直链--JSON格式
-    http(s)://you_host/网盘标识/分享id(#分享密码)
+    http(s)://you_host/json/网盘标识/分享id(#分享密码)
 
 ```
 
