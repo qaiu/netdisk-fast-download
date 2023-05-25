@@ -1,5 +1,5 @@
 [Unit]
-Description=lz-api
+Description=netdisk-fast-download
 Documentation=https://qaiu.top
 After=network-online.target
 Wants=network-online.target

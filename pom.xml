@@ -19,7 +19,7 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <packageDirectory>${project.basedir}/netdisk-fast-download/target/package</packageDirectory>
+        <packageDirectory>${project.basedir}/web-service/target/package</packageDirectory>
     </properties>
 
     <build>

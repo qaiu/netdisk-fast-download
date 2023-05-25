@@ -17,6 +17,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <slf4j.version>2.0.5</slf4j.version>
         <vertx-jooq.version>6.1.0</vertx-jooq.version>
+        <finalName>netdisk-fast-download-${project.version}</finalName>
     </properties>
 
     <dependencies>
@@ -63,7 +64,6 @@
             <groupId>cn.qaiu</groupId>
             <artifactId>core-database</artifactId>
             <version>0.1.3</version>
-            <scope>compile</scope>
         </dependency>
 
 
@@ -72,7 +72,7 @@
     <build>
         <directory>${project.basedir}/target/</directory>
         <outputDirectory>${project.build.directory}/classes</outputDirectory>
-        <finalName>${project.artifactId}-${project.version}</finalName>
+        <finalName>${finalName}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
