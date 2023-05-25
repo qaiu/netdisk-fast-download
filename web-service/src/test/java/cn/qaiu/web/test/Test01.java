@@ -1,7 +1,6 @@
 package cn.qaiu.web.test;
 
 import io.vertx.ext.web.RoutingContext;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.beanutils.ConvertUtils;
 import org.apache.commons.beanutils.Converter;
@@ -17,10 +16,8 @@ import java.util.Map;
 
 /**
  * <br>Create date 2021/4/29 15:27
- *
  * @author <a href="https://qaiu.top">QAIU</a>
  */
-@Slf4j
 public class Test01 {
 
     public static class A {
@@ -30,7 +27,6 @@ public class Test01 {
         String num3;
 
         Integer num5;
-
         public Integer getNum5() {
             return num5;
         }
@@ -73,7 +69,7 @@ public class Test01 {
     }
 
 
-    public static class B0 {
+    public static class B0{
         int num;
 
         public int getNum() {
@@ -86,7 +82,7 @@ public class Test01 {
 
     }
 
-    public static class B extends B0 {
+    public static class B extends B0{
         String name;
 
         boolean flag;
@@ -210,14 +206,14 @@ public class Test01 {
                         //日期->字符串
                         try {
                             return (T) DateFormatUtils.format((Date) value, "yyyy-MM-dd");
-                        } catch (Exception e) {
-                            return (T) value;
+                        }catch (Exception e){
+                            return (T)value;
                         }
                     }
                 }, String.class);
 
         BeanUtils.populate(b1, map);
-        log.info("---------> {}", b1);
+        System.out.println(b1);
     }
 
 }

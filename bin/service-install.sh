@@ -4,7 +4,7 @@ cp ./lz-api.service  /etc/systemd/system/
 systemctl daemon-reload
 
 # 运行服务
-systemctl start lz-api
+systemctl start netdisk-fast-download
 
 # 在系统启动时启动服务
-systemctl enable lz-api
+systemctl enable netdisk-fast-download
