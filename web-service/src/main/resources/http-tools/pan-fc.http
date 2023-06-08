@@ -1,0 +1,25 @@
+### 亿方云分享 重定向
+# @no-redirect
+https://v2.fangcloud.com/sharing/9cbe4b73521ba4d65a8cd38a8c
+
+### get重定向 set-cookie: fc_session
+https://share-d94258c2ebfde2a83a7d5931e8da5221.fangcloud.cn/share/9cbe4b73521ba4d65a8cd38a8c
+
+### cookie: fc_session=xxx 获取file_id
+# @no-cookie-jar
+https://share-d94258c2ebfde2a83a7d5931e8da5221.fangcloud.cn/apps/files/get_info?scenario=share&item_typed_id=file_559003251828
+Cookie:fc_session=eyJpdiI6Im9hQ0Njc1pKczNsaDl4Z2pubHRDVnc9PSIsInZhbHVlIjoieDAwRUc4NkNMSHZkMzZsVzVwWGJKd0M2dFNKcEM5elpsWFZONURRYkFqTm9maDN6aXpsMWNwR0ZydXliSDBENE1Cclh2SzNyNXNmS2ttOHBKakxzSVE9PSIsIm1hYyI6IjRkNzg5ZDQwOTIzOGRiZDYyNjg2ZDE3ZDgzZDg2OWViNWRmNGIwZDFjNjQ0ODdkYTc0MjljZjI1YzU5NDY4ZGQifQ%3D%3D
+
+#{
+#   "success": true
+#  "item": {
+#    "extension": "apk",
+#    "id": 559003251828, // file_id
+
+### 获取下载链接
+# @no-redirect
+# @no-cookie-jar
+https://share-d94258c2ebfde2a83a7d5931e8da5221.fangcloud.cn/apps/files/download?file_id=559003251828&scenario=share&unique_name=9cbe4b73521ba4d65a8cd38a8c
+Cookie:fc_session=eyJpdiI6Im9hQ0Njc1pKczNsaDl4Z2pubHRDVnc9PSIsInZhbHVlIjoieDAwRUc4NkNMSHZkMzZsVzVwWGJKd0M2dFNKcEM5elpsWFZONURRYkFqTm9maDN6aXpsMWNwR0ZydXliSDBENE1Cclh2SzNyNXNmS2ttOHBKakxzSVE9PSIsIm1hYyI6IjRkNzg5ZDQwOTIzOGRiZDYyNjg2ZDE3ZDgzZDg2OWViNWRmNGIwZDFjNjQ0ODdkYTc0MjljZjI1YzU5NDY4ZGQifQ%3D%3D
+
+

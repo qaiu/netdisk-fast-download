@@ -1,0 +1,53 @@
+POST https://www.wenshushu.cn/ap/ufile/nlist
+Accept: application/json, text/plain, */*
+X-Token: 2QujUq7M4xZpkeydcAnOmk4FVqw
+
+{"start":0,"sort":{"name":"asc"},"bid":"5zl01fgbops","pid":"5zl01fgehuo","options":{"uploader":"true"},"size":50}
+
+###
+# @no-cookie-jar
+POST https://www.wenshushu.cn/ap/user/userinfo
+Accept: application/json, text/plain, */*
+X-Token: 2QujUq7M4xZpkeydcAnOmk4FVqw
+
+{"plat":"pcweb"}
+
+
+
+### 分享文件信息 (有效期)
+# https://t.wss.ink/f/bekolxi7hqb
+POST https://www.wenshushu.cn/ap/task/mgrtask
+Accept: application/json, text/plain, */*
+X-Token: 2QujUq7M4xZpkeydcAnOmk4FVqw
+
+{"tid":"bekolxi7hqb","password":""}
+
+### 分享延期 需要<24小时 延期间隔=?
+POST https://www.wenshushu.cn/ap/task/delay
+Accept: application/json, text/plain, */*
+X-Token: 2QujUq7M4xZpkeydcAnOmk4FVqw
+
+{"tid":"bekolxi7hqb","delay_time":1,"is_extension":false}
+
+
+### 获取匿名TOKEN
+POST https://www.wenshushu.cn/ap/login/anonymous
+Accept: application/json, text/plain, */*
+
+### 获取下载文件URL
+POST https://www.wenshushu.cn/ap/dl/sign
+Accept: application/json, text/plain, */*
+X-Token:wss:bekzdwsfwwf
+
+{"ufileid":"bekoe5n508z","consumeCode":0,"type":1}
+
+###
+# {
+#  "code": 0,
+#  "message": "success",
+#  "data": {
+#    "url": "https://down.wss.show/zkrk4th/9/yj/9yjvzkrk4th?cdn_sign=1686211254-31-0-6edd2e228a030be23210158daeb2c4a1&exp=4800&response-content-disposition=attachment%3B%20filename%3D%22supervision.sql%22%3B%20filename%2A%3Dutf-8%27%27supervision.sql",
+
+### 直接下载
+https://down.wss.show/zkrk4th/9/yj/9yjvzkrk4th?cdn_sign=1686211254-31-0-6edd2e228a030be23210158daeb2c4a1&exp=4800&response-content-disposition=attachment%3B%20filename%3D%22supervision.sql%22%3B%20filename%2A%3Dutf-8%27%27supervision.sql
+
