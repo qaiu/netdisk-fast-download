@@ -1,0 +1,12 @@
+### lanzou login
+POST https://pc.woozooo.com/mlogin.php
+content-type: application/x-www-form-urlencoded;
+
+task=3&uid=&pwd=&formhash=7202fced
+
+### File list
+POST https://pc.woozooo.com/doupload.php?uid=1059498
+content-type: application/x-www-form-urlencoded;
+
+task=5&folder_id=-1
+
