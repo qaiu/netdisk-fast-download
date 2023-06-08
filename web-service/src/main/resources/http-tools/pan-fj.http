@@ -1,0 +1,22 @@
+###
+# devType: 6
+# devModel: Chrome
+# uuid: M_S4dl58NrtLkHCxonmWc
+# extra: 2
+# timestamp: C421C95B7A6E20745D98DD462118EEDA
+# shareId: 146731
+# type: 0
+# offset: 1
+# limit: 60
+# @no-cookie-jar
+POST https://api.feijipan.com/ws/recommend/list?devType=6&devModel=Chrome&extra=2&shareId=146731&type=0&offset=1&limit=60
+
+
+###
+https://api.feijipan.com/ws/file/redirect?downloadId=4703B103BD6871F83441233393695EF3&enable=1&devType=6&uuid=z1PkRuW9of6Lg6_Y_NiNK&timestamp=7FBE54506F49A38070E62936EA41D9B1&auth=159F4D596FC74050EACC77E2854CD2EDBF5F4A7B953DF72F95886E38F3DD9D3C
+
+# 654488C79332E7279F9A38367BD72D3B
+# 4703B103BD6871F83441233393695EF3
+
+###
+https://api.feijipan.com/ws/file/redirect?downloadId=4703B103BD6871F83441233393695EF3&enable=1&devType=6&uuid=M_S4dl58NrtLkHCxonmWc&timestamp=B4C5B9833113ACA41F16AABADE17349C&auth=159F4D596FC74050EACC77E2854CD2ED3805DDAAF2AEA1EFC67BD687D22F19E3
