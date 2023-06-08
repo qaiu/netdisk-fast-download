@@ -1,0 +1,107 @@
+### quark_pan not login >10M download file size limit[b3faf7f72ac64f94b4749588fc197816]
+#no-cookie-jar
+# 解除文件大小限制需要UA
+POST https://drive-pc.quark.cn/1/clouddrive/file/download?pr=ucpro&fr=pc
+content-type: application/json;charset=UTF-8
+#cookie: __pus=77641f2139b914c29ed2b0caf246723dAAQbjDyR/fi1Z9YqqWbfO2qPZYeRTrFSC2P30uuWJwtY2ZwwQTRsEPHJKc9nuPnrXfQxir+0N8K/mVfr7SIwGc2t;
+user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) quark-cloud-drive/2.5.20 Chrome/100.0.4896.160 Electron/18.3.5.4-b478491100 Safari/537.36 Channel/pckk_other_ch
+
+{"fids":["b3faf7f72ac64f94b4749588fc197816"]}
+
+
+
+
+###
+POST https://drive.quark.cn/1/clouddrive/file/download?pr=ucpro&fr=pc&ve=2.1.5
+content-type: application/json;charset=UTF-8
+cookie: __pus=77641f2139b914c29ed2b0caf246723dAAQbjDyR/fi1Z9YqqWbfO2qPZYeRTrFSC2P30uuWJwtY2ZwwQTRsEPHJKc9nuPnrXfQxir+0N8K/mVfr7SIwGc2t;
+user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) quark-cloud-drive/2.5.20 Chrome/100.0.4896.160 Electron/18.3.5.4-b478491100 Safari/537.36 Channel/pckk_other_ch
+
+{"fids":["b3faf7f72ac64f94b4749588fc197816"]}
+
+###
+https://dl-pc-zb-cf.pds.quark.cn/KTb1G4Lr/623810984/645b44ef8d9c47afbd2f4947b4b89d098f725188/645b44ef1eb3ebc1a8b448eb992b0e9195dfb646?Expires=1684137387&OSSAccessKeyId=LTAIyYfxTqY7YZsg&Signature=M5X1La7lpOJLRGZioFIMHRujuPs%3D&x-oss-traffic-limit=503316480&response-content-disposition=attachment%3B%20filename%3DC%23%20Shell%20%28C%23%20Offline%20Compiler%29_2.5.16.apk&u5=489aa5c778a51f717585a253ce8290a1&callback=eyJjYWxsYmFja0JvZHlUeXBlIjoiYXBwbGljYXRpb24vanNvbiIsImNhbGxiYWNrU3RhZ2UiOiJiZWZvcmUtZXhlY3V0ZSIsImNhbGxiYWNrRmFpbHVyZUFjdGlvbiI6Imlnbm9yZSIsImNhbGxiYWNrVXJsIjoiaHR0cHM6Ly9hdXRoLWNkbi51Yy5jbi9vdXRlci9vc3MvY2hlY2twbGF5IiwiY2FsbGJhY2tCb2R5Ijoie1wiaG9zdFwiOiR7aHR0cEhlYWRlci5ob3N0fSxcInNpemVcIjoke3NpemV9LFwicmFuZ2VcIjoke2h0dHBIZWFkZXIucmFuZ2V9LFwicmVmZXJlclwiOiR7aHR0cEhlYWRlci5yZWZlcmVyfSxcImNvb2tpZVwiOiR7aHR0cEhlYWRlci5jb29raWV9LFwibWV0aG9kXCI6JHtodHRwSGVhZGVyLm1ldGhvZH0sXCJpcFwiOiR7Y2xpZW50SXB9LFwib2JqZWN0XCI6JHtvYmplY3R9LFwic3BcIjoke3g6c3B9LFwidG9rZW5cIjoke3g6dG9rZW59LFwidHRsXCI6JHt4OnR0bH0sXCJjbGllbnRfdG9rZW5cIjoke3F1ZXJ5U3RyaW5nLmNsaWVudF90b2tlbn19In0%3D&callback-var=eyJ4OnNwIjoiMzc4IiwieDp0b2tlbiI6IjItNDg5YWE1Yzc3OGE1MWY3MTc1ODVhMjUzY2U4MjkwYTEtOC0xLTIwNDgtNDNiNGMxMzk4NTBjNDkyZWFmMTIwNTA2MWI5NjZiYTEtYTk2MDhlNTFlMjUwMDJlNTkyODJkYzNmMjA3MGU0M2EiLCJ4OnR0bCI6IjIxNjAwIn0%3D
+cookie: __pus=77641f2139b914c29ed2b0caf246723dAAQbjDyR/fi1Z9YqqWbfO2qPZYeRTrFSC2P30uuWJwtY2ZwwQTRsEPHJKc9nuPnrXfQxir+0N8K/mVfr7SIwGc2t;
+user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) quark-cloud-drive/2.5.20 Chrome/100.0.4896.160 Electron/18.3.5.4-b478491100 Safari/537.36 Channel/pckk_other_ch
+
+
+### quark_pan
+# 我用夸克网盘分享了「yh-cloud_20230320114659.rar」，点击链接即可保存。打开「夸克APP」，无需下载在线播放视频，畅享原画5倍速，支持电视投屏。
+# 链接：https://pan.quark.cn/s/fde352875597
+# step1 获取stoken
+POST https://drive-pc.quark.cn/1/clouddrive/share/sharepage/token?pr=ucpro&fr=pc
+accept: application/json, text/plain, */*
+content-type: application/json
+
+{"pwd_id":"fde352875597","passcode":""}
+
+###
+# {
+#   "status": 200,
+#   "code": 0,
+#   "data": {
+#     "stoken": "jWnLFnfoQMYTglPy5NsDZ8pBKQ5ZeQfJRdawZBru9IA=",
+#     "author": {
+#     },
+#   }
+# }
+
+
+### quark_pan
+# step2 获取fid
+https://drive-pc.quark.cn/1/clouddrive/share/sharepage/detail?pr=ucpro&fr=pc&pwd_id=fde352875597&stoken=jWnLFnfoQMYTglPy5NsDZ8pBKQ5ZeQfJRdawZBru9IA%3D&pdir_fid=0&force=0&_page=1&_size=50&_fetch_banner=1&_fetch_share=1&_fetch_total=1&_sort=file_type:asc,updated_at:desc
+
+###
+# {
+#  "status": 200,
+#  "code": 0,
+#  "data": {
+#    "is_owner": 0,
+#    "share": {
+#      "first_fid": "a7d83e634e70427e86c86bf215feeafa",
+
+### quark_pan
+
+### step3 获取下载链接需要pus 生成puus的cookie
+POST https://drive.quark.cn/1/clouddrive/file/download?pr=ucpro&fr=pc&ve=2.1.5
+content-type: application/json;charset=UTF-8
+#cookie: __pus=77641f2139b914c29ed2b0caf246723dAAQbjDyR/fi1Z9YqqWbfO2qPZYeRTrFSC2P30uuWJwtY2ZwwQTRsEPHJKc9nuPnrXfQxir+0N8K/mVfr7SIwGc2t;
+#user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) quark-cloud-drive/2.5.20 Chrome/100.0.4896.160 Electron/18.3.5.4-b478491100 Safari/537.36 Channel/pckk_other_ch
+
+{"fids":["a7d83e634e70427e86c86bf215feeafa"]}
+
+
+### 二维码登录
+# 1获取token
+POST https://uop.quark.cn/cas/ajax/getTokenForQrcodeLogin
+
+### 2. 循环获取用户扫码状态(扫码后会返回st码)
+POST https://uop.quark.cn/cas/ajax/getServiceTicketByQrcodeToken?__dt=5910&__t=1686191457201
+Content-Type: application/x-www-form-urlencoded
+
+client_id=532&v=1.2&request_id=1686191457201&token=cc9856e9-5bd3-4b91-ac47-7934710dc493
+
+### 拼接token参数生成二维码
+https://su.quark.cn/4_eMHBJ?uc_param_str=&token={{token}}&client_id=532&uc_biz_str=S%3Acustom%7COPT%3ASAREA%400%7COPT%3AIMMERSIVE%401%7COPT%3ABACK_BTN_STYLE%400
+
+# https://su.quark.cn/4_eMHBJ?uc_param_str=&token=d3d6244a-f477-4c73-8d5e-4e59c2b38771&client_id=532&uc_biz_str=S%3Acustom%7COPT%3ASAREA%400%7COPT%3AIMMERSIVE%401%7COPT%3ABACK_BTN_STYLE%400
+
+
+### 3. 基于st码信息获取用户信息 pus的cookie
+https://pan.quark.cn/account/info?st=st9026333a8yugxx3wteqyn2hc4fv9fn&fr=pc&platform=pc
+
+
+
+# {
+#   "status": 2000000,
+#   "message": "ok",
+#   "data": {
+#     "members": {
+#       "service_ticket": "st9026333d4f0ha0asnjjf0kz3k8xyog"
+#     }
+#   }
+# }
+
+### 需要puus
+# @no-redirect
+https://dl-pc-zb-cf.pds.quark.cn/aZ3Dtotu/623810984/645cb18e1f5104a87e6548d5a0025186fa5a4a50/645cb18e005da587561c407dac8a14962d006ba3?Expires=1686212388&OSSAccessKeyId=LTAIyYfxTqY7YZsg&Signature=6W%2F3qVJ3m%2FExuuMtAfDcNUXeN6E%3D&x-oss-traffic-limit=503316480&response-content-disposition=attachment%3B%20filename%3Dyh-cloud_20230320114659.rar&u5=489aa5c778a51f717585a253ce8290a1&callback=eyJjYWxsYmFja0JvZHlUeXBlIjoiYXBwbGljYXRpb24vanNvbiIsImNhbGxiYWNrU3RhZ2UiOiJiZWZvcmUtZXhlY3V0ZSIsImNhbGxiYWNrRmFpbHVyZUFjdGlvbiI6Imlnbm9yZSIsImNhbGxiYWNrVXJsIjoiaHR0cHM6Ly9hdXRoLWNkbi51Yy5jbi9vdXRlci9vc3MvY2hlY2twbGF5IiwiY2FsbGJhY2tCb2R5Ijoie1wiaG9zdFwiOiR7aHR0cEhlYWRlci5ob3N0fSxcInNpemVcIjoke3NpemV9LFwicmFuZ2VcIjoke2h0dHBIZWFkZXIucmFuZ2V9LFwicmVmZXJlclwiOiR7aHR0cEhlYWRlci5yZWZlcmVyfSxcImNvb2tpZVwiOiR7aHR0cEhlYWRlci5jb29raWV9LFwibWV0aG9kXCI6JHtodHRwSGVhZGVyLm1ldGhvZH0sXCJpcFwiOiR7Y2xpZW50SXB9LFwib2JqZWN0XCI6JHtvYmplY3R9LFwic3BcIjoke3g6c3B9LFwidG9rZW5cIjoke3g6dG9rZW59LFwidHRsXCI6JHt4OnR0bH0sXCJjbGllbnRfdG9rZW5cIjoke3F1ZXJ5U3RyaW5nLmNsaWVudF90b2tlbn19In0%3D&callback-var=eyJ4OnNwIjoiMzc4IiwieDp0b2tlbiI6IjItNDg5YWE1Yzc3OGE1MWY3MTc1ODVhMjUzY2U4MjkwYTEtMi0xLTIwNDgtMDBlMWE3ZTg4ZTQ1NGJjYjk1ZTNmYTQwY2ExZDZhYjMtNTQzYzJiNDAwN2M2ZTEyZTE5ZTY0MGU5MDk5ZDlhMzMiLCJ4OnR0bCI6IjIxNjAwIn0%3D

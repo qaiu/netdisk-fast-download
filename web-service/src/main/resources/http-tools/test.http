@@ -94,51 +94,6 @@ Content-Type: application/json
 --WebAppBoundary--
 
 ###
-POST https://drive-pc.quark.cn/1/clouddrive/file/download?pr=ucpro&fr=pc
-content-type: application/json;charset=UTF-8
-cookie: __pus=77641f2139b914c29ed2b0caf246723dAAQbjDyR/fi1Z9YqqWbfO2qPZYeRTrFSC2P30uuWJwtY2ZwwQTRsEPHJKc9nuPnrXfQxir+0N8K/mVfr7SIwGc2t;
-
-{"fids":["b3faf7f72ac64f94b4749588fc197816"]}
-
-
-###
-POST https://drive.quark.cn/1/clouddrive/file/download?pr=ucpro&fr=pc&ve=2.1.5
-content-type: application/json;charset=UTF-8
-cookie: __pus=77641f2139b914c29ed2b0caf246723dAAQbjDyR/fi1Z9YqqWbfO2qPZYeRTrFSC2P30uuWJwtY2ZwwQTRsEPHJKc9nuPnrXfQxir+0N8K/mVfr7SIwGc2t;
-user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) quark-cloud-drive/2.5.20 Chrome/100.0.4896.160 Electron/18.3.5.4-b478491100 Safari/537.36 Channel/pckk_other_ch
-
-{"fids":["b3faf7f72ac64f94b4749588fc197816"]}
-
-###
-https://dl-pc-zb-cf.pds.quark.cn/KTb1G4Lr/623810984/645b44ef8d9c47afbd2f4947b4b89d098f725188/645b44ef1eb3ebc1a8b448eb992b0e9195dfb646?Expires=1684137387&OSSAccessKeyId=LTAIyYfxTqY7YZsg&Signature=M5X1La7lpOJLRGZioFIMHRujuPs%3D&x-oss-traffic-limit=503316480&response-content-disposition=attachment%3B%20filename%3DC%23%20Shell%20%28C%23%20Offline%20Compiler%29_2.5.16.apk&u5=489aa5c778a51f717585a253ce8290a1&callback=eyJjYWxsYmFja0JvZHlUeXBlIjoiYXBwbGljYXRpb24vanNvbiIsImNhbGxiYWNrU3RhZ2UiOiJiZWZvcmUtZXhlY3V0ZSIsImNhbGxiYWNrRmFpbHVyZUFjdGlvbiI6Imlnbm9yZSIsImNhbGxiYWNrVXJsIjoiaHR0cHM6Ly9hdXRoLWNkbi51Yy5jbi9vdXRlci9vc3MvY2hlY2twbGF5IiwiY2FsbGJhY2tCb2R5Ijoie1wiaG9zdFwiOiR7aHR0cEhlYWRlci5ob3N0fSxcInNpemVcIjoke3NpemV9LFwicmFuZ2VcIjoke2h0dHBIZWFkZXIucmFuZ2V9LFwicmVmZXJlclwiOiR7aHR0cEhlYWRlci5yZWZlcmVyfSxcImNvb2tpZVwiOiR7aHR0cEhlYWRlci5jb29raWV9LFwibWV0aG9kXCI6JHtodHRwSGVhZGVyLm1ldGhvZH0sXCJpcFwiOiR7Y2xpZW50SXB9LFwib2JqZWN0XCI6JHtvYmplY3R9LFwic3BcIjoke3g6c3B9LFwidG9rZW5cIjoke3g6dG9rZW59LFwidHRsXCI6JHt4OnR0bH0sXCJjbGllbnRfdG9rZW5cIjoke3F1ZXJ5U3RyaW5nLmNsaWVudF90b2tlbn19In0%3D&callback-var=eyJ4OnNwIjoiMzc4IiwieDp0b2tlbiI6IjItNDg5YWE1Yzc3OGE1MWY3MTc1ODVhMjUzY2U4MjkwYTEtOC0xLTIwNDgtNDNiNGMxMzk4NTBjNDkyZWFmMTIwNTA2MWI5NjZiYTEtYTk2MDhlNTFlMjUwMDJlNTkyODJkYzNmMjA3MGU0M2EiLCJ4OnR0bCI6IjIxNjAwIn0%3D
-cookie: __pus=77641f2139b914c29ed2b0caf246723dAAQbjDyR/fi1Z9YqqWbfO2qPZYeRTrFSC2P30uuWJwtY2ZwwQTRsEPHJKc9nuPnrXfQxir+0N8K/mVfr7SIwGc2t;
-user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) quark-cloud-drive/2.5.20 Chrome/100.0.4896.160 Electron/18.3.5.4-b478491100 Safari/537.36 Channel/pckk_other_ch
-
-
-### quark_pan
-# 我用夸克网盘分享了「C# Shell (C# Offline Compiler)_2.5.16.apk」，点击链接即可保存。打开「夸克APP」，无需下载在线播放视频，畅享原画5倍速，支持电视投屏。
-#链接：https://pan.quark.cn/s/8f816f506409
-# step1 获取stoken
-POST https://drive-pc.quark.cn/1/clouddrive/share/sharepage/token?pr=ucpro&fr=pc
-accept: application/json, text/plain, */*
-content-type: application/json
-
-{"pwd_id":"8f816f506409","passcode":""}
-
-### quark_pan
-# step2 获取fid
-https://drive-pc.quark.cn/1/clouddrive/share/sharepage/detail?pr=ucpro&fr=pc&pwd_id=8f816f506409&stoken=JX6p1XFG5hD2VaUJFxazvE72u9TuhcKiXd81%2BXaFFsI%3D&pdir_fid=0&force=0&_page=1&_size=50&_fetch_banner=1&_fetch_share=1&_fetch_total=1&_sort=file_type:asc,updated_at:desc
-
-
-### quark_pan
-https://drive-pc.quark.cn/1/clouddrive/auth/pc/flush?pr=ucpro&fr=pc
-cookie: __pus=77641f2139b914c29ed2b0caf246723dAAQbjDyR/fi1Z9YqqWbfO2qPZYeRTrFSC2P30uuWJwtY2ZwwQTRsEPHJKc9nuPnrXfQxir+0N8K/mVfr7SIwGc2t;
-
-
-###
-https://www.ecpan.cn/drive/fileextoverrid.do?chainUrlTemplate=https:%2F%2Fwww.ecpan.cn%2Fweb%2F%23%2FyunpanProxy%3Fpath%3D%252F%2523%252Fdrive%252Foutside&data=aa0cae0164d8885e6d35826b5b2901eckbWJBalM&parentId=-1
-
-###
 # @no-redirect
 GET http://127.0.0.1:6400/parser?url=https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=
 #                                    https://www.ecpan.cn/drive/fileextoverrid.do?chainUrlTemplate=https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=aa0cae0164d8885e6d35826b5b2901eckbWJBalM&parentId=-1
