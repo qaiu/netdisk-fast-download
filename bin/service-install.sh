@@ -1,4 +1,4 @@
-cp ./lz-api.service  /etc/systemd/system/
+cp ./netdisk-fast-download.service  /etc/systemd/system/
 
 # 重新加载 systemd
 systemctl daemon-reload
