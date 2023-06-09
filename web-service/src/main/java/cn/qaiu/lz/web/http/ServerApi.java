@@ -1,9 +1,6 @@
 package cn.qaiu.lz.web.http;
 
-import cn.qaiu.lz.common.util.CowTool;
-import cn.qaiu.lz.common.util.EcTool;
-import cn.qaiu.lz.common.util.LzTool;
-import cn.qaiu.lz.common.util.UcTool;
+import cn.qaiu.lz.common.util.*;
 import cn.qaiu.lz.web.model.SysUser;
 import cn.qaiu.lz.web.service.UserService;
 import cn.qaiu.vx.core.annotaions.RouteHandler;
@@ -74,8 +71,15 @@ public class ServerApi {
             }).onFailure(t -> {
                 promise.fail(t.fillInStackTrace());
             });
-        }  else if (url.contains(UcTool.FULL_URL_PREFIX)) {
+        }  else if (url.contains(UcTool.SHARE_URL_PREFIX)) {
             UcTool.parse(url, pwd).onSuccess(resUrl -> {
+                response.putHeader("location", resUrl).setStatusCode(302).end();
+                promise.complete();
+            }).onFailure(t -> {
+                promise.fail(t.fillInStackTrace());
+            });
+        } else if (url.contains(FjTool.SHARE_URL_PREFIX)) {
+            FjTool.parse(url).onSuccess(resUrl -> {
                 response.putHeader("location", resUrl).setStatusCode(302).end();
                 promise.complete();
             }).onFailure(t -> {
@@ -154,5 +158,20 @@ public class ServerApi {
             code = ids[1];
         }
         return UcTool.parse(id, code);
+    }
+
+    @RouteMapping(value = "/fj/:id", method = RouteMethod.GET)
+    public void fjParse(HttpServerResponse response, String id) {
+        FjTool.parse(id).onSuccess(resUrl -> {
+            response.putHeader("location", resUrl).setStatusCode(302).end();
+        }).onFailure(t -> {
+            response.putHeader(CONTENT_TYPE, "text/html;charset=utf-8");
+            response.end(t.getMessage());
+        });
+    }
+
+    @RouteMapping(value = "/json/fj/:id", method = RouteMethod.GET)
+    public Future<String> fjParseJson(HttpServerResponse response, String id) {
+        return FjTool.parse(id);
     }
 }
