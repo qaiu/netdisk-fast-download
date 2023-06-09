@@ -1,22 +1,40 @@
-###
+# 飞机盘分享URL=https://www.feijix.com/s/7jy0zlv
+
+### step1 获取fid
 # devType: 6
 # devModel: Chrome
 # uuid: M_S4dl58NrtLkHCxonmWc
 # extra: 2
 # timestamp: C421C95B7A6E20745D98DD462118EEDA
-# shareId: 146731
+# shareId: 146731 ==> decode(7jy0zlv)
 # type: 0
 # offset: 1
 # limit: 60
 # @no-cookie-jar
 POST https://api.feijipan.com/ws/recommend/list?devType=6&devModel=Chrome&extra=2&shareId=146731&type=0&offset=1&limit=60
 
-
-###
-https://api.feijipan.com/ws/file/redirect?downloadId=4703B103BD6871F83441233393695EF3&enable=1&devType=6&uuid=z1PkRuW9of6Lg6_Y_NiNK&timestamp=7FBE54506F49A38070E62936EA41D9B1&auth=159F4D596FC74050EACC77E2854CD2EDBF5F4A7B953DF72F95886E38F3DD9D3C
-
 # 654488C79332E7279F9A38367BD72D3B
 # 4703B103BD6871F83441233393695EF3
+# https://web.feejii.com/files/2023/05/27/6/3975316/1459088526174041?filename=nginx-release-1.21.6.zip
+
+### step2 获取下载直链Location
+# AES123-ECB-PKCS7
+# downloadId=fileIds| = 115206329|
+# timestamp=1686215935703  B4C5B9833113ACA41F16AABADE17349C
+# auth=115206329|1686215935703 = downloadId+timestamp
+
+https://api.feijipan.com/ws/file/redirect?downloadId=4703B103BD6871F83441233393695EF3&enable=1&devType=6&uuid=M_S4dl58NrtLkHCxonmWc&timestamp=B4C5B9833113ACA41F16AABADE17349C&auth=159F4D596FC74050EACC77E2854CD2ED3805DDAAF2AEA1EFC67BD687D22F19E3
 
 ###
-https://api.feijipan.com/ws/file/redirect?downloadId=4703B103BD6871F83441233393695EF3&enable=1&devType=6&uuid=M_S4dl58NrtLkHCxonmWc&timestamp=B4C5B9833113ACA41F16AABADE17349C&auth=159F4D596FC74050EACC77E2854CD2ED3805DDAAF2AEA1EFC67BD687D22F19E3
+# @no-redirect
+https://api.feijipan.com/ws/file/redirect?downloadId=4703B103BD6871F83441233393695EF3&enable=1&devType=6&uuid=M_S4dl58NrtLkHCxonmWc&timestamp=B3C7DBF6101393344EABFE1EEEAF8F91&auth=A872D9EB60313B2648F7F4233B3417FC5C7C136982E51B0D128EA7AF4EDC48F0
+# Location: https://web.feejii.com/ee433d6e5102ad79af58a2aa0e6cf758/1686279412/files/2023/05/27/6/3975316/1459088526174041?filename=nginx-release-1.21.6.zip
+# 11bc0a16dc31480812aa69bea1c20e2a ee433d6e5102ad79af58a2aa0e6cf758
+
+
+### 下载直链
+https://web.feejii.com/ee433d6e5102ad79af58a2aa0e6cf758/1686279412/files/2023/05/27/6/3975316/1459088526174041?filename=nginx-release-1.21.6.zip
+
+
+
+###

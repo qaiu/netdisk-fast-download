@@ -16,7 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 public class UcTool {
     private static final String API_URL_PREFIX = "https://pc-api.uc.cn/1/clouddrive/";
 
-    public static final String FULL_URL_PREFIX = "https://fast.uc.cn/s/";
+    public static final String SHARE_URL_PREFIX = "https://fast.uc.cn/s/";
 
     private static final String FIRST_REQUEST_URL = API_URL_PREFIX + "share/sharepage/token?entry=ft&fr=pc&pr" +
             "=UCBrowser";
@@ -27,11 +27,8 @@ public class UcTool {
     private static final String THIRD_REQUEST_URL = API_URL_PREFIX + "file/download?entry=ft&fr=pc&pr=UCBrowser";
 
     public static Future<String> parse(String data, String code) {
-        if (!data.startsWith(FULL_URL_PREFIX)) {
-            data = FULL_URL_PREFIX + data;
-        }
+        var dataKey = CommonUtils.parseURL(SHARE_URL_PREFIX, data);
         var passcode =  (code == null) ? "" : code;
-        var dataKey = data.substring(FULL_URL_PREFIX.length());
         Promise<String> promise = Promise.promise();
         var client = WebClient.create(VertxHolder.getVertxInstance());
         var jsonObject = JsonObject.of("share_for_transfer", true);

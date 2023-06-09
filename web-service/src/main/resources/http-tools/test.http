@@ -93,9 +93,9 @@ Content-Type: application/json
 < ./request-form-data.json
 --WebAppBoundary--
 
-###
+### https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
 # @no-redirect
-GET http://127.0.0.1:6400/parser?url=https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=
+GET http://127.0.0.1:6400/parser?url=https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
 #                                    https://www.ecpan.cn/drive/fileextoverrid.do?chainUrlTemplate=https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=aa0cae0164d8885e6d35826b5b2901eckbWJBalM&parentId=-1
 
 ###
@@ -127,3 +127,15 @@ action=downprocess&sign=AGYHOQk4BjdTWgQ7BzcGOlU_bATVSNQMxBDFQZgZoBj4HMFEgWnMOZ1I
 https://developer.lanzoug.com/file/?VDJbZVxtADFSWwY+U2YHa1FuU2tTYgBnBnUGZFNmWylSOVMpCTJQZQQhBSdQKQFkBjMOfAMyA21VPVs8V28BLVRkWyJcMAB6UjcGfVNlB29RZVN4U3YAawZxBiZTaVszUj5TYQkLUG0ENgVuUDUBMQZkDjsDbgMxVWBbZFc8ASZUMlt/XDwAZVIyBmFTNwc3UTtTYFM8ACQGcQZwUzJbaFJiUzYJZ1ArBGIFZlArATIGaQ4kAz8DMlVnWz9XMwE1VGZbOFw3AG1SPQY0UzcHMVFqUzdTbwBmBjEGMVNsW2NSM1MzCWxQNwRkBWVQNwEwBmQOPwNyA3tVO1stVy0BdVQnW2lccwA9UmAGbVM2BzZRPlNvUzgAOwY5BiZTe1szUj9TYQkyUDkEYwVjUDQBMAZsDiUDcgMnVTRbMVd8AT1UZVs6XDkAYVI0BmBTNQc/UTlTZVMqAHcGcQZ3UzJba1JkUzwJYVA0BGIFYVA0ATAGaw4tAykDaFUiW2BXOgExVGZbIlwzAGdSNgZ%2BUzYHMlE9U3hTOwA6
 ###
 https://developer.lanzoug.com/file/?VTNVa1tqAjMFDAM7BDEAbAE+U2tfbgZhBnVbOQUwVCYEb1IoAToCNwQhVnRXLlcyVWAEdl9uVzkEbFYxVm5VeVVlVSxbNwJ4BWADeAQyAGgBNVN4X3oGbQZxW3sFP1Q8BGhSYAEDAj8ENlY9VzJXZ1U3BDFfMldlBDFWaVY9VXJVM1VxWzsCZwVlA2QEYAAwAWtTYF8wBiIGcVstBWRUZwQ0UjcBbwJ5BGJWNVcsV2RVOgQuX2NXZgQ2VjJWMlVhVWdVNlswAm8FagMxBGAANgE6UzdfYwZgBjFbbAU6VGwEZVIyAWQCZQRkVjZXMFdmVTcENV8uVy8EalYgVixVIVUmVWdbdAI/BTcDaARhADEBblNvXzQGPQY5W3sFLVQ8BGlSYAE6AmsEY1Y2VztXY1U/BDFfM1dnBDRWZFYkVXpVc1VkW2oCIQVuA2QEZgA5AW5TZl8wBjYGMFtkBWFUcwRxUnUBKwJrBGNWNlc7V2NVPwQxXzJXZQQzVmdWLFUhVTxVcls7AmcFYgNnBH4AMwFoU2RfLgY1BjVbawV3VGIEPA==
+
+
+###
+# @no-redirect
+GET http://127.0.0.1:6400/parser?url=https://www.feijix.com/s/tIfhRqH
+
+###
+GET http://127.0.0.1:6400/json/fj/tIfhRqH
+
+###
+# @no-redirect
+GET http://127.0.0.1:6400/fj/tIfhRqH
