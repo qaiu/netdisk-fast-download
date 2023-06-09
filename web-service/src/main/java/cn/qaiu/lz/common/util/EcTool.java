@@ -14,7 +14,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class EcTool {
-    private static final String FULL_URL_PREFIX = "https://www.ecpan.cn/drive/fileextoverrid" +
+    private static final String SHARE_URL_PREFIX = "https://www.ecpan.cn/drive/fileextoverrid" +
             ".do?chainUrlTemplate=https:%2F%2Fwww.ecpan" +
             ".cn%2Fweb%2F%23%2FyunpanProxy%3Fpath%3D%252F%2523%252Fdrive%252Foutside&parentId=-1&data={dataKey}";
 
@@ -26,7 +26,7 @@ public class EcTool {
         Promise<String> promise = Promise.promise();
         WebClient client = WebClient.create(VertxHolder.getVertxInstance());
         // 第一次请求 获取文件信息
-        client.getAbs(UriTemplate.of(FULL_URL_PREFIX)).setTemplateParam("dataKey", dataKey).send().onSuccess(res -> {
+        client.getAbs(UriTemplate.of(SHARE_URL_PREFIX)).setTemplateParam("dataKey", dataKey).send().onSuccess(res -> {
                     JsonObject jsonObject = res.bodyAsJsonObject();
                     log.debug("ecPan get file info -> {}", jsonObject);
                     JsonObject fileInfo = jsonObject
