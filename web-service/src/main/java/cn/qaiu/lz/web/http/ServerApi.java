@@ -134,8 +134,8 @@ public class ServerApi {
     @RouteMapping(value = "/uc/:id", method = RouteMethod.GET)
     public void ucParse(HttpServerResponse response, String id) {
         String code = "";
-        if (id.contains("$")) {
-            String[] ids = id.split("\\$");
+        if (id.contains("@")) {
+            String[] ids = id.split("@");
             id = ids[0];
             code = ids[1];
         }
@@ -149,8 +149,8 @@ public class ServerApi {
     @RouteMapping(value = "/json/uc/:id", method = RouteMethod.GET)
     public Future<String> ucParseJson(String id) {
         String code = "";
-        if (id.contains("$")) {
-            String[] ids = id.split("\\$");
+        if (id.contains("@")) {
+            String[] ids = id.split("@");
             id = ids[0];
             code = ids[1];
         }
@@ -174,8 +174,8 @@ public class ServerApi {
     @RouteMapping(value = "/fc/:id", method = RouteMethod.GET)
     public void fcParse(HttpServerResponse response, String id) {
         String code = "";
-        if (id.contains("$")) {
-            String[] ids = id.split("\\$");
+        if (id.contains("@")) {
+            String[] ids = id.split("@");
             id = ids[0];
             code = ids[1];
         }
@@ -189,8 +189,8 @@ public class ServerApi {
     @RouteMapping(value = "/json/fc/:id", method = RouteMethod.GET)
     public Future<String> fcParseJson(HttpServerResponse response, String id) {
         String code = "";
-        if (id.contains("$")) {
-            String[] ids = id.split("\\$");
+        if (id.contains("@")) {
+            String[] ids = id.split("@");
             id = ids[0];
             code = ids[1];
         }
