@@ -149,6 +149,6 @@ GET http://127.0.0.1:6400/json/fc/30646fefc8bf936a4766ab8a5e
 
 ###
 # @no-redirect
-GET http://127.0.0.1:6400/fc/e5079007dc31226096628870c7$QAIU
+GET http://127.0.0.1:6400/fc/e5079007dc31226096628870c7@QAIU
 
 #https://v2.fangcloud.com/sharing/e5079007dc31226096628870c7

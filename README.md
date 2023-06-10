@@ -32,13 +32,13 @@ Core模块集成Vert.x实现类spring的注解式路由API
 API接口
 ```
 括号内是可选内容: 表示当带有分享密码时需要加上密码参数 
-parse接口加上参数pwd=密码;其他接口在分享Key后面加上$密码
+parse接口加上参数pwd=密码;其他接口在分享Key后面加上@密码
 
 1. 解析并自动302跳转 : 
     http(s)://you_host/parser?url=分享链接(&pwd=xxx)
-    http(s)://you_host/网盘标识/分享id($分享密码)
+    http(s)://you_host/网盘标识/分享id(@分享密码)
 2. 获取解析后的直链--JSON格式
-    http(s)://you_host/json/网盘标识/分享id($分享密码)
+    http(s)://you_host/json/网盘标识/分享id(@分享密码)
 3. 有些网盘的加密分享的密码可以忽略: 如移动云空间,小飞机网盘
 ```
 
@@ -64,7 +64,7 @@ GET http://127.0.0.1:6400/lz/ia2cntg
 # @no-redirect
 GET http://127.0.0.1:6400/cow/9a644fe3e3a748
 ### 360亿方云加密分享
-GET http://127.0.0.1:6400/json/fc/e5079007dc31226096628870c7$QAIU
+GET http://127.0.0.1:6400/json/fc/e5079007dc31226096628870c7@QAIU
 
 
 # 解析返回json直链
@@ -73,7 +73,7 @@ GET http://127.0.0.1:6400/json/lz/ia2cntg
 ### 奶牛快传普通分享
 GET http://127.0.0.1:6400/json/cow/9a644fe3e3a748
 ### 360亿方云加密分享
-GET http://127.0.0.1:6400/json/fc/e5079007dc31226096628870c7$QAIU
+GET http://127.0.0.1:6400/json/fc/e5079007dc31226096628870c7@QAIU
 
 
 ```
