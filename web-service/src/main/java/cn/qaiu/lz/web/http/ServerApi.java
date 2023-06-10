@@ -64,6 +64,11 @@ public class ServerApi {
                 response.putHeader("location", resUrl).setStatusCode(302).end();
                 promise.complete();
             }).onFailure(t -> promise.fail(t.fillInStackTrace()));
+        } else if (url.contains(YeTool.SHARE_URL_PREFIX)) {
+            YeTool.parse(url, pwd).onSuccess(resUrl -> {
+                response.putHeader("location", resUrl).setStatusCode(302).end();
+                promise.complete();
+            }).onFailure(t -> promise.fail(t.fillInStackTrace()));
         } else if (url.contains("lanzou")) {
             String urlDownload;
             try {
@@ -195,5 +200,31 @@ public class ServerApi {
             code = ids[1];
         }
         return FcTool.parse(id, code);
+    }
+
+    @RouteMapping(value = "/ye/:id", method = RouteMethod.GET)
+    public void YeParse(HttpServerResponse response, String id) {
+        String code = "";
+        if (id.contains("@")) {
+            String[] ids = id.split("@");
+            id = ids[0];
+            code = ids[1];
+        }
+        YeTool.parse(id, code).onSuccess(resUrl -> response.putHeader("location", resUrl)
+                .setStatusCode(302).end()).onFailure(t -> {
+            response.putHeader(CONTENT_TYPE, "text/html;charset=utf-8");
+            response.end(t.getMessage());
+        });
+    }
+
+    @RouteMapping(value = "/json/ye/:id", method = RouteMethod.GET)
+    public Future<String> YeParseJson(HttpServerResponse response, String id) {
+        String code = "";
+        if (id.contains("@")) {
+            String[] ids = id.split("@");
+            id = ids[0];
+            code = ids[1];
+        }
+        return YeTool.parse(id, code);
     }
 }

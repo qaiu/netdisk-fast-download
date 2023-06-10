@@ -1,0 +1,84 @@
+### 123网盘
+#  auto_redirect	0
+#  filename	libc++_shared.so
+#  r	L7PQ1A
+#  s	16864619537565b1bbecb509ef377f6e8487a6a99b
+#  t	1686461953
+#  v	5
+#  x-mf-biz-cid	4010bf7a-c68c-42d2-bdf4-13e2b5545904-a0d664
+# @no-redirect
+# @no-cookie-jar
+https://download-cdn.123pan.cn/123-670/af2b7957/1813857424-0/af2b7957d3f4062a06a7b9ef6a3d5a9e?t=1686461953&s=16864619537565b1bbecb509ef377f6e8487a6a99b&r=L7PQ1A&filename=libc%2B%2B_shared.so&auto_redirect=0
+
+
+
+### 获取下载
+# FileID S3keyFlag Size Etag
+
+# @no-redirect
+# @no-cookie-jar
+POST https://www.123pan.com/a/api/share/download/info
+Content-Type:application/json;charset=UTF-8
+
+{
+  "ShareKey": "iaKtVv-qOECd",
+  "FileID": 2193733,
+  "S3keyFlag": "1813857424-0",
+  "Size": 976880,
+  "Etag": "af2b7957d3f4062a06a7b9ef6a3d5a9e"
+}
+
+###
+POST https://www.123pan.com/a/api/share/download/info
+Content-Type:application/json;charset=UTF-8
+
+{
+  "res": {
+    "code": 0,
+    "message": "ok",
+    "data": {
+      "UserNickName": "15********0",
+      "UserID": 1815268665,
+      "ShareName": "libc++_shared.so",
+      "HasPwd": false,
+      "Expiration": "2099-01-01T00:00:00+08:00",
+      "CreateAt": "2023-06-10T13:36:44+08:00",
+      "Expired": false,
+      "ShareKey": "iaKtVv-qOECd",
+      "HeadImage": "https://thirdwx.qlogo.cn/mmopen/vi_32/0G2KQrJ4105icYkK0zBADdHhxyM2W7Q5jf0xh9OyfOM6INOaB3Mgov6CUjdibz43ZvhnZm2MLe8zgd1cZv4C72XQ/132",
+      "IsVip": false,
+      "DisplayStatus": 1
+    }
+  },
+  "reslist": {
+    "code": 0,
+    "message": "ok",
+    "data": {
+      "Next": "-1",
+      "Len": 1,
+      "IsFirst": true,
+      "Expired": false,
+      "InfoList": [
+        {
+          "FileId": 2193733,
+          "FileName": "libc++_shared.so",
+          "Type": 0,
+          "Size": 976880,
+          "ContentType": "0",
+          "S3KeyFlag": "1813857424-0",
+          "CreateAt": "2023-06-10T13:36:12+08:00",
+          "UpdateAt": "2023-06-10T13:36:44+08:00",
+          "Etag": "af2b7957d3f4062a06a7b9ef6a3d5a9e",
+          "DownloadUrl": "",
+          "Status": 5,
+          "ParentFileId": 0,
+          "Category": 0,
+          "PunishFlag": 0,
+          "StorageNode": "m0",
+          "checked": true
+        }
+      ]
+    }
+  },
+  "publicPath": "https://www.123pan.com/a/api/"
+}
