@@ -8,6 +8,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
@@ -106,12 +107,12 @@ public class LzTool {
     }
 
     public static void main(String[] args) {
-//        String key = "https://lanzoux.com/ia2cntg";
+//        String key = "https://wwsd.lanzoue.com/iNvid035jgcb";
         String key = "https://wwsd.lanzoue.com/icBp6qqj82b";
         String urlPrefix = "https://lanzoux.com";
         String code = "QAIU";
 
-        WebClient client = WebClient.create(Vertx.vertx());
+        WebClient client = WebClient.create(Vertx.vertx(), new WebClientOptions().setFollowRedirects(false));
         client.getAbs(key).send().onSuccess(res -> {
             String html = res.bodyAsString();
             // 匹配iframe
@@ -147,18 +148,28 @@ public class LzTool {
                 }
                 String sign = matcher2.group(1);
 
-                var userAgent2 = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like " +
+                var userAgent2 = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, " +
+                        "like " +
                         "Gecko) Chrome/111.0.0.0 Mobile Safari/537.36";
 
                 HttpRequest<Buffer> bufferHttpRequest = client.postAbs(urlPrefix + "/ajaxm.php");
-//                bufferHttpRequest.putHeader("User-Agent", userAgent2);
+                bufferHttpRequest.putHeader("User-Agent", userAgent2);
                 bufferHttpRequest.putHeader("referer", key);
+                bufferHttpRequest.putHeader("sec-ch-ua-platform", "Android");
+
+                bufferHttpRequest.putHeader("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
+                bufferHttpRequest.putHeader("sec-ch-ua-mobile", "sec-ch-ua-mobile");
                 bufferHttpRequest.sendForm(MultiMap.caseInsensitiveMultiMap()
                         .set("action", "downprocess")
                         .set("sign", sign).set("p", code)).onSuccess(res2 -> {
                     JsonObject urlJson = res2.bodyAsJsonObject();
                     System.out.println(urlJson);
-                    System.out.println(urlJson.getString("dom")+"/file/"+urlJson.getString("url"));
+                    String downUrl = urlJson.getString("dom") + "/file/" + urlJson.getString("url");
+                    System.out.println(downUrl);
+                    client.getAbs(downUrl).send().onSuccess(res3 -> {
+                        System.out.println(res3.headers());
+                        System.out.println(res3.bodyAsString());
+                    });
                 });
 
                 return;
