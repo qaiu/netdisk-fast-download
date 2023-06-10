@@ -42,8 +42,30 @@ public class ServerApi {
     @RouteMapping(value = "/parser", method = RouteMethod.GET)
     public Future<Void> parse(HttpServerResponse response, HttpServerRequest request, String url, String pwd) {
         Promise<Void> promise = Promise.promise();
-        if (url.contains("lanzou")) {
-            String urlDownload = null;
+        if (url.contains(EcTool.EC_HOST)) {
+            // 默认读取Url参数会被截断手动获取一下其他参数
+            String data = request.getParam("data");
+            EcTool.parse(data).onSuccess(resUrl -> {
+                response.putHeader("location", resUrl).setStatusCode(302).end();
+                promise.complete();
+            }).onFailure(t -> promise.fail(t.fillInStackTrace()));
+        } else if (url.contains(UcTool.SHARE_URL_PREFIX)) {
+            UcTool.parse(url, pwd).onSuccess(resUrl -> {
+                response.putHeader("location", resUrl).setStatusCode(302).end();
+                promise.complete();
+            }).onFailure(t -> promise.fail(t.fillInStackTrace()));
+        } else if (url.contains(FjTool.SHARE_URL_PREFIX)) {
+            FjTool.parse(url).onSuccess(resUrl -> {
+                response.putHeader("location", resUrl).setStatusCode(302).end();
+                promise.complete();
+            }).onFailure(t -> promise.fail(t.fillInStackTrace()));
+        } else if (url.contains(FcTool.SHARE_URL_PREFIX)) {
+            FcTool.parse(url, pwd).onSuccess(resUrl -> {
+                response.putHeader("location", resUrl).setStatusCode(302).end();
+                promise.complete();
+            }).onFailure(t -> promise.fail(t.fillInStackTrace()));
+        } else if (url.contains("lanzou")) {
+            String urlDownload;
             try {
                 urlDownload = LzTool.parse(url);
                 log.info("url = {}", urlDownload);
@@ -53,7 +75,7 @@ public class ServerApi {
                 promise.fail(e);
             }
         } else if (url.contains("cowtransfer.com")) {
-            String urlDownload = null;
+            String urlDownload;
             try {
                 urlDownload = CowTool.parse(url);
                 response.putHeader("location", urlDownload).setStatusCode(302).end();
@@ -62,29 +84,6 @@ public class ServerApi {
                 promise.fail(e);
             }
 
-        } else if (url.contains(EcTool.EC_HOST)) {
-            // 默认读取Url参数会被截断手动获取一下其他参数
-            String data = request.getParam("data");
-            EcTool.parse(data).onSuccess(resUrl -> {
-                response.putHeader("location", resUrl).setStatusCode(302).end();
-                promise.complete();
-            }).onFailure(t -> {
-                promise.fail(t.fillInStackTrace());
-            });
-        }  else if (url.contains(UcTool.SHARE_URL_PREFIX)) {
-            UcTool.parse(url, pwd).onSuccess(resUrl -> {
-                response.putHeader("location", resUrl).setStatusCode(302).end();
-                promise.complete();
-            }).onFailure(t -> {
-                promise.fail(t.fillInStackTrace());
-            });
-        } else if (url.contains(FjTool.SHARE_URL_PREFIX)) {
-            FjTool.parse(url).onSuccess(resUrl -> {
-                response.putHeader("location", resUrl).setStatusCode(302).end();
-                promise.complete();
-            }).onFailure(t -> {
-                promise.fail(t.fillInStackTrace());
-            });
         }
         return promise.future();
     }
@@ -120,9 +119,8 @@ public class ServerApi {
 
     @RouteMapping(value = "/ec/:id", method = RouteMethod.GET)
     public void ecParse(HttpServerResponse response, String id) {
-        EcTool.parse(id).onSuccess(resUrl -> {
-            response.putHeader("location", resUrl).setStatusCode(302).end();
-        }).onFailure(t -> {
+        EcTool.parse(id).onSuccess(resUrl -> response.putHeader("location", resUrl)
+                .setStatusCode(302).end()).onFailure(t -> {
             response.putHeader(CONTENT_TYPE, "text/html;charset=utf-8");
             response.end(t.getMessage());
         });
@@ -136,14 +134,13 @@ public class ServerApi {
     @RouteMapping(value = "/uc/:id", method = RouteMethod.GET)
     public void ucParse(HttpServerResponse response, String id) {
         String code = "";
-        if (id.contains("#")) {
-            String[] ids = id.split("#");
+        if (id.contains("$")) {
+            String[] ids = id.split("\\$");
             id = ids[0];
             code = ids[1];
         }
-        UcTool.parse(id, code).onSuccess(resUrl -> {
-            response.putHeader("location", resUrl).setStatusCode(302).end();
-        }).onFailure(t -> {
+        UcTool.parse(id, code).onSuccess(resUrl -> response.putHeader("location", resUrl)
+                .setStatusCode(302).end()).onFailure(t -> {
             response.putHeader(CONTENT_TYPE, "text/html;charset=utf-8");
             response.end(t.getMessage());
         });
@@ -152,8 +149,8 @@ public class ServerApi {
     @RouteMapping(value = "/json/uc/:id", method = RouteMethod.GET)
     public Future<String> ucParseJson(String id) {
         String code = "";
-        if (id.contains("#")) {
-            String[] ids = id.split("#");
+        if (id.contains("$")) {
+            String[] ids = id.split("\\$");
             id = ids[0];
             code = ids[1];
         }
@@ -162,9 +159,8 @@ public class ServerApi {
 
     @RouteMapping(value = "/fj/:id", method = RouteMethod.GET)
     public void fjParse(HttpServerResponse response, String id) {
-        FjTool.parse(id).onSuccess(resUrl -> {
-            response.putHeader("location", resUrl).setStatusCode(302).end();
-        }).onFailure(t -> {
+        FjTool.parse(id).onSuccess(resUrl -> response.putHeader("location", resUrl)
+                .setStatusCode(302).end()).onFailure(t -> {
             response.putHeader(CONTENT_TYPE, "text/html;charset=utf-8");
             response.end(t.getMessage());
         });
@@ -173,5 +169,31 @@ public class ServerApi {
     @RouteMapping(value = "/json/fj/:id", method = RouteMethod.GET)
     public Future<String> fjParseJson(HttpServerResponse response, String id) {
         return FjTool.parse(id);
+    }
+
+    @RouteMapping(value = "/fc/:id", method = RouteMethod.GET)
+    public void fcParse(HttpServerResponse response, String id) {
+        String code = "";
+        if (id.contains("$")) {
+            String[] ids = id.split("\\$");
+            id = ids[0];
+            code = ids[1];
+        }
+        FcTool.parse(id, code).onSuccess(resUrl -> response.putHeader("location", resUrl)
+                .setStatusCode(302).end()).onFailure(t -> {
+            response.putHeader(CONTENT_TYPE, "text/html;charset=utf-8");
+            response.end(t.getMessage());
+        });
+    }
+
+    @RouteMapping(value = "/json/fc/:id", method = RouteMethod.GET)
+    public Future<String> fcParseJson(HttpServerResponse response, String id) {
+        String code = "";
+        if (id.contains("$")) {
+            String[] ids = id.split("\\$");
+            id = ids[0];
+            code = ids[1];
+        }
+        return FcTool.parse(id, code);
     }
 }
