@@ -129,7 +129,7 @@ https://developer.lanzoug.com/file/?VDJbZVxtADFSWwY+U2YHa1FuU2tTYgBnBnUGZFNmWylS
 https://developer.lanzoug.com/file/?VTNVa1tqAjMFDAM7BDEAbAE+U2tfbgZhBnVbOQUwVCYEb1IoAToCNwQhVnRXLlcyVWAEdl9uVzkEbFYxVm5VeVVlVSxbNwJ4BWADeAQyAGgBNVN4X3oGbQZxW3sFP1Q8BGhSYAEDAj8ENlY9VzJXZ1U3BDFfMldlBDFWaVY9VXJVM1VxWzsCZwVlA2QEYAAwAWtTYF8wBiIGcVstBWRUZwQ0UjcBbwJ5BGJWNVcsV2RVOgQuX2NXZgQ2VjJWMlVhVWdVNlswAm8FagMxBGAANgE6UzdfYwZgBjFbbAU6VGwEZVIyAWQCZQRkVjZXMFdmVTcENV8uVy8EalYgVixVIVUmVWdbdAI/BTcDaARhADEBblNvXzQGPQY5W3sFLVQ8BGlSYAE6AmsEY1Y2VztXY1U/BDFfM1dnBDRWZFYkVXpVc1VkW2oCIQVuA2QEZgA5AW5TZl8wBjYGMFtkBWFUcwRxUnUBKwJrBGNWNlc7V2NVPwQxXzJXZQQzVmdWLFUhVTxVcls7AmcFYgNnBH4AMwFoU2RfLgY1BjVbawV3VGIEPA==
 
 
-###
+### 小飞机盘
 # @no-redirect
 GET http://127.0.0.1:6400/parser?url=https://www.feijix.com/s/tIfhRqH
 
@@ -139,3 +139,16 @@ GET http://127.0.0.1:6400/json/fj/tIfhRqH
 ###
 # @no-redirect
 GET http://127.0.0.1:6400/fj/tIfhRqH
+
+### 360亿方云
+# @no-redirect
+GET http://127.0.0.1:6400/parser?url=https://v2.fangcloud.com/sharing/e5079007dc31226096628870c7&pwd=QAIU
+
+###
+GET http://127.0.0.1:6400/json/fc/30646fefc8bf936a4766ab8a5e
+
+###
+# @no-redirect
+GET http://127.0.0.1:6400/fc/e5079007dc31226096628870c7$QAIU
+
+#https://v2.fangcloud.com/sharing/e5079007dc31226096628870c7

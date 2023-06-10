@@ -3,6 +3,7 @@ package cn.qaiu.lz.common.util;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -90,6 +91,7 @@ public class LzTool {
                 .headers();
         //得到重定向的地址进行重定向
         url = headers.get("Location");
+
         return url;
     }
 }
