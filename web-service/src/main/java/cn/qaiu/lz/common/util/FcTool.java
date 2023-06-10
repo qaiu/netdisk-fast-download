@@ -28,7 +28,7 @@ public class FcTool {
             "&scenario=share&unique_name={uname}";
 
     public static Future<String> parse(String data, String code) {
-        String dataKey = CommonUtils.parseURL(SHARE_URL_PREFIX, data);
+        String dataKey = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, data);
 
         Promise<String> promise = Promise.promise();
 

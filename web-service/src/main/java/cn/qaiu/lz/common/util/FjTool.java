@@ -28,7 +28,7 @@ public class FjTool {
             "&devType=6&uuid={uuid}&timestamp={ts}&auth={auth}";
 
     public static Future<String> parse(String data) {
-        String dataKey = CommonUtils.parseURL(SHARE_URL_PREFIX, data);
+        String dataKey = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, data);
 
         Promise<String> promise = Promise.promise();
         WebClient client = WebClient.create(VertxHolder.getVertxInstance(),

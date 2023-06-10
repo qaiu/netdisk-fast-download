@@ -152,3 +152,14 @@ GET http://127.0.0.1:6400/json/fc/30646fefc8bf936a4766ab8a5e
 GET http://127.0.0.1:6400/fc/e5079007dc31226096628870c7@QAIU
 
 #https://v2.fangcloud.com/sharing/e5079007dc31226096628870c7
+
+### 123
+GET http://127.0.0.1:6400/json/ye/iaKtVv-qOECd
+
+### 123
+# @no-redirect
+GET http://127.0.0.1:6400/ye/iaKtVv-qOECd@asdads
+
+### 123
+# @no-redirect
+GET http://127.0.0.1:6400/parser?url=https://www.123pan.com/s/iaKtVv-6OECd.html&pwd=DcGe
