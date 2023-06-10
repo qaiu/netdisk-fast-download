@@ -2,7 +2,6 @@ package cn.qaiu.lz.common.util;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
 
