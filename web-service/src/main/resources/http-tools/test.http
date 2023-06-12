@@ -16,7 +16,11 @@ GET http://127.0.0.1:6400/cow/9a644fe3e3a748
 
 ###
 # @no-redirect
-GET http://127.0.0.1:6400/lz/ia2cntg
+GET http://127.0.0.1:6400/lz/i6SqHmp1yfc
+
+###
+# @no-redirect
+GET http://127.0.0.1:6400/lz/icBp6qqj82b@QAIU
 
 ###
 GET http://127.0.0.1:6400/json/lz/ia2cntg
