@@ -38,15 +38,15 @@ API接口
 parse接口加上参数pwd=密码;其他接口在分享Key后面加上@密码
 
 1. 解析并自动302跳转 : 
-    http(s)://you_host/parser?url=分享链接(&pwd=xxx)
-    http(s)://you_host/网盘标识/分享id(@分享密码)
+    http(s)://your_hostname/parser?url=分享链接(&pwd=xxx)
+    http(s)://your_hostname/网盘标识/分享id(@分享密码)
 2. 获取解析后的直链--JSON格式
-    http(s)://you_host/json/网盘标识/分享id(@分享密码)
+    http(s)://your_hostname/json/网盘标识/分享id(@分享密码)
 3. 有些网盘的加密分享的密码可以忽略: 如移动云空间,小飞机网盘
 ```
 
 
-IDEA HttpClient示例:  
+IDEA HttpClient示例:
 ```
 # 解析并重定向到直链
 ### 蓝奏云普通分享
