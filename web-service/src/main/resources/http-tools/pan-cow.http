@@ -1,0 +1,60 @@
+
+###
+//https://cowtransfer.com/s/9a644fe3e3a748
+
+https://cowtransfer.com/core/api/transfer/share?uniqueUrl=9a644fe3e3a748
+
+###
+https://cowtransfer.com/core/api/transfer/share?uniqueUrl=e4f41b51b5da4f
+
+###
+https://cowtransfer.com/core/api/transfer/share/download?transferGuid=e4f41b51-b5da-4f60-9312-37aa10c0aad7&fileId=23861191276513345
+
+
+//https://download.cowcs.com/cowtransfer/cowtransfer/29188/db32e132e69f490eb4a343b398990f4b.docx?auth_key=1682111861-7b9579fbebb84aaba6bca368d083ab12-0-cbf009f3ffbcbb86191b8cdbc103abce&biz_type=1&business_code=COW_TRANSFER&channel_code=COW_CN_WEB&response-content-disposition=attachment%3B%20filename%3D05-CGB-DB-MENU-V1.02.docx%3Bfilename*%3Dutf-8%27%2705-CGB-DB-MENU-V1.02.docx&user_id=1023860921943729188&x-verify=1
+
+#V2 api
+###
+https://cowtransfer.com/core/api/dam/asset/files/download/23890683765739569/url/v2
+authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJndWlkIjoiMDc1OTMwNGItMDEwZS00MGJiLTlhNDUtZTczY2Q5ODYzMDQwIiwiZXhwIjoxNjgzNzkzOTExfQ.rE9z0vhogPjUC0I92MqU8U_PKe4j_mGn7lGgPFMGt5c
+
+###
+POST https://cowtransfer.com/api/user/emaillogin
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="email"
+
+111@sad.com
+--WebAppBoundary
+Content-Disposition: form-data; name="password"
+
+11111
+--WebAppBoundary--
+# eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJndWlkIjoiMDc1OTMwNGItMDEwZS00MGJiLTlhNDUtZTczY2Q5ODYzMDQwIiwiZXhwIjoxNjg0NDYyMjMzfQ.AeuB5-aQUlgudoLDRgvFodlHx2qKiPFx3BAqGA0R-eE
+# eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJndWlkIjoiMDc1OTMwNGItMDEwZS00MGJiLTlhNDUtZTczY2Q5ODYzMDQwIiwiZXhwIjoxNjg0NDYyMjMzfQ.AeuB5-aQUlgudoLDRgvFodlHx2qKiPFx3BAqGA0R-eE
+
+
+###
+POST https://cowtransfer.com/api/user/register/emailregistrationcheck
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="email"
+
+736226400@qq.com
+--WebAppBoundary
+Content-Disposition: form-data; name="joinProToken"
+
+
+--WebAppBoundary--
+
+
+
+###
+git filter-branch --force --index-filter 'git rm --cached --ignore-unmatch web-service/src/main/resources/http-tools/test.http' --prune-empty --tag-name-filter cat -- --all
+git push origin master --force
+rmdir .git/refs/original/
+git reflog expire --expire=now --all
+git gc --prune=now
+git gc --aggressive --prune=now
