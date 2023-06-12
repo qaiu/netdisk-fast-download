@@ -70,12 +70,11 @@ public class ServerApi {
                 promise.complete();
             }).onFailure(t -> promise.fail(t.fillInStackTrace()));
         } else if (url.contains("lanzou")) {
-            String urlDownload;
             try {
-                urlDownload = LzTool.parse(url);
-                log.info("url = {}", urlDownload);
-                response.putHeader("location", urlDownload).setStatusCode(302).end();
-                promise.complete();
+                LzTool.parse(url, pwd).onSuccess(resUrl -> {
+                    response.putHeader("location", resUrl).setStatusCode(302).end();
+                    promise.complete();
+                }).onFailure(t -> promise.fail(t.fillInStackTrace()));
             } catch (Exception e) {
                 promise.fail(e);
             }
@@ -94,11 +93,30 @@ public class ServerApi {
     }
 
     @RouteMapping(value = "/lz/:id", method = RouteMethod.GET)
-    public void lzParse(HttpServerResponse response, String id) throws Exception {
-        var url = "https://wwsd.lanzoue.com/" + id;
-        var urlDownload = LzTool.parse(url);
-        log.info("url = {}", urlDownload);
-        response.putHeader("location", urlDownload).setStatusCode(302).end();
+    public void lzParse(HttpServerResponse response, String id) {
+        String code = "";
+        if (id.contains("@")) {
+            String[] ids = id.split("@");
+            id = ids[0];
+            code = ids[1];
+        }
+        LzTool.parse(id, code).onSuccess(resUrl -> response.putHeader("location", resUrl)
+                .setStatusCode(302).end()).onFailure(t -> {
+            response.putHeader(CONTENT_TYPE, "text/html;charset=utf-8");
+            response.end(t.getMessage());
+        });
+    }
+
+
+    @RouteMapping(value = "/json/lz/:id", method = RouteMethod.GET)
+    public Future<String> lzParseJson(HttpServerResponse response, String id) {
+        String code = "";
+        if (id.contains("@")) {
+            String[] ids = id.split("@");
+            id = ids[0];
+            code = ids[1];
+        }
+        return LzTool.parse(id, code);
     }
 
     @RouteMapping(value = "/cow/:id", method = RouteMethod.GET)
@@ -106,14 +124,6 @@ public class ServerApi {
         var url = "https://cowtransfer.com/s/" + id;
         var urlDownload = CowTool.parse(url);
         response.putHeader("location", urlDownload).setStatusCode(302).end();
-    }
-
-    @RouteMapping(value = "/json/lz/:id", method = RouteMethod.GET)
-    public JsonResult<String> lzParseJson(HttpServerResponse response, String id) throws Exception {
-        var url = "https://wwsd.lanzoue.com/" + id;
-        var urlDownload = LzTool.parse(url);
-        log.info("url = {}", urlDownload);
-        return JsonResult.data(urlDownload);
     }
 
     @RouteMapping(value = "/json/cow/:id", method = RouteMethod.GET)
