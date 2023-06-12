@@ -1,5 +1,7 @@
-package cn.qaiu.lz.common.util;
+package cn.qaiu.lz.common.parser.impl;
 
+import cn.qaiu.lz.common.parser.IPanTool;
+import cn.qaiu.lz.common.util.CommonUtils;
 import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -17,14 +19,14 @@ import java.util.regex.Pattern;
 /**
  * 123网盘
  */
-public class YeTool {
+public class YeTool implements IPanTool {
     public static final String SHARE_URL_PREFIX = "https://www.123pan.com/s/";
     public static final String FIRST_REQUEST_URL = SHARE_URL_PREFIX + "{key}.html";
     private static final String GET_FILE_INFO_URL = "https://www.123pan.com/a/api/share/get?limit=100&next=1&orderBy" +
             "=file_name&orderDirection=asc&shareKey={shareKey}&SharePwd={pwd}&ParentFileId=0&Page=1&event" +
             "=homeListFile&operateType=1";
 
-    public static Future<String> parse(String data, String code) {
+    public Future<String> parse(String data, String code) {
 
         String dataKey = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, data);
         Promise<String> promise = Promise.promise();
