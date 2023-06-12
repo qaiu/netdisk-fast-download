@@ -1,4 +1,4 @@
-package cn.qaiu.lz.common.util;
+package cn.qaiu.lz.common.parser.impl;
 
 import io.vertx.core.Future;
 import io.vertx.core.Promise;

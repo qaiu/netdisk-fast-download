@@ -1,5 +1,6 @@
-package cn.qaiu.lz.common.util;
+package cn.qaiu.lz.common.parser.impl;
 
+import cn.qaiu.lz.common.parser.IPanTool;
 import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -18,11 +19,11 @@ import java.util.regex.Pattern;
  * @author QAIU
  * @version 1.0 update 2021/5/16 10:39
  */
-public class LzTool {
+public class LzTool implements IPanTool {
 
     public static final String SHARE_URL_PREFIX = "https://wwwa.lanzoui.com";
 
-    public static Future<String> parse(String data, String code) {
+    public Future<String> parse(String data, String code) {
         Promise<String> promise = Promise.promise();
         String key = data.indexOf('/') > 0 ? data : SHARE_URL_PREFIX + "/" + data;
 

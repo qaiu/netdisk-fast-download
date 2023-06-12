@@ -1,6 +1,7 @@
 package cn.qaiu.lz.web.http;
 
-import cn.qaiu.lz.common.util.*;
+import cn.qaiu.lz.common.parser.IPanTool;
+import cn.qaiu.lz.common.parser.impl.*;
 import cn.qaiu.lz.web.model.SysUser;
 import cn.qaiu.lz.web.service.UserService;
 import cn.qaiu.vx.core.annotaions.RouteHandler;
@@ -34,207 +35,50 @@ public class ServerApi {
         return userService.login(user);
     }
 
-    @RouteMapping(value = "/test2", method = RouteMethod.GET)
-    public JsonResult<String> test01() {
-        return JsonResult.data("ok");
-    }
-
     @RouteMapping(value = "/parser", method = RouteMethod.GET)
     public Future<Void> parse(HttpServerResponse response, HttpServerRequest request, String url, String pwd) {
-        Promise<Void> promise = Promise.promise();
-        if (url.contains(EcTool.EC_HOST)) {
-            // 默认读取Url参数会被截断手动获取一下其他参数
-            String data = request.getParam("data");
-            EcTool.parse(data).onSuccess(resUrl -> {
-                response.putHeader("location", resUrl).setStatusCode(302).end();
-                promise.complete();
-            }).onFailure(t -> promise.fail(t.fillInStackTrace()));
-        } else if (url.contains(UcTool.SHARE_URL_PREFIX)) {
-            UcTool.parse(url, pwd).onSuccess(resUrl -> {
-                response.putHeader("location", resUrl).setStatusCode(302).end();
-                promise.complete();
-            }).onFailure(t -> promise.fail(t.fillInStackTrace()));
-        } else if (url.contains(FjTool.SHARE_URL_PREFIX)) {
-            FjTool.parse(url).onSuccess(resUrl -> {
-                response.putHeader("location", resUrl).setStatusCode(302).end();
-                promise.complete();
-            }).onFailure(t -> promise.fail(t.fillInStackTrace()));
-        } else if (url.contains(FcTool.SHARE_URL_PREFIX)) {
-            FcTool.parse(url, pwd).onSuccess(resUrl -> {
-                response.putHeader("location", resUrl).setStatusCode(302).end();
-                promise.complete();
-            }).onFailure(t -> promise.fail(t.fillInStackTrace()));
-        } else if (url.contains(YeTool.SHARE_URL_PREFIX)) {
-            YeTool.parse(url, pwd).onSuccess(resUrl -> {
-                response.putHeader("location", resUrl).setStatusCode(302).end();
-                promise.complete();
-            }).onFailure(t -> promise.fail(t.fillInStackTrace()));
-        } else if (url.contains("lanzou")) {
-            try {
-                LzTool.parse(url, pwd).onSuccess(resUrl -> {
-                    response.putHeader("location", resUrl).setStatusCode(302).end();
-                    promise.complete();
-                }).onFailure(t -> promise.fail(t.fillInStackTrace()));
-            } catch (Exception e) {
-                promise.fail(e);
-            }
-        } else if (url.contains("cowtransfer.com")) {
-            String urlDownload;
-            try {
-                urlDownload = CowTool.parse(url);
-                response.putHeader("location", urlDownload).setStatusCode(302).end();
-                promise.complete();
-            } catch (Exception e) {
-                promise.fail(e);
-            }
 
+        Promise<Void> promise = Promise.promise();
+        if (url.contains(EcTool.SHARE_URL_PREFIX)) {
+            // 默认读取Url参数会被截断手动获取一下其他参数
+            url = EcTool.SHARE_URL_PREFIX + request.getParam("data");
+        }
+        try {
+            IPanTool.shareURLPrefixMatching(url).parse(url, pwd).onSuccess(resUrl -> {
+                response.putHeader("location", resUrl).setStatusCode(302).end();
+                promise.complete();
+            }).onFailure(t -> promise.fail(t.fillInStackTrace()));
+        } catch (Exception e) {
+            promise.fail(e);
         }
         return promise.future();
     }
 
-    @RouteMapping(value = "/lz/:id", method = RouteMethod.GET)
-    public void lzParse(HttpServerResponse response, String id) {
+
+    @RouteMapping(value = "/:type/:id", method = RouteMethod.GET)
+    public void YeParse(HttpServerResponse response, String type, String id) {
         String code = "";
         if (id.contains("@")) {
             String[] ids = id.split("@");
             id = ids[0];
             code = ids[1];
         }
-        LzTool.parse(id, code).onSuccess(resUrl -> response.putHeader("location", resUrl)
+
+        IPanTool.typeMatching(type).parse(id, code).onSuccess(resUrl -> response.putHeader("location", resUrl)
                 .setStatusCode(302).end()).onFailure(t -> {
             response.putHeader(CONTENT_TYPE, "text/html;charset=utf-8");
             response.end(t.getMessage());
         });
     }
 
-
-    @RouteMapping(value = "/json/lz/:id", method = RouteMethod.GET)
-    public Future<String> lzParseJson(HttpServerResponse response, String id) {
+    @RouteMapping(value = "/json/:type/:id", method = RouteMethod.GET)
+    public Future<String> YeParseJson(HttpServerResponse response, String type, String id) {
         String code = "";
         if (id.contains("@")) {
             String[] ids = id.split("@");
             id = ids[0];
             code = ids[1];
         }
-        return LzTool.parse(id, code);
-    }
-
-    @RouteMapping(value = "/cow/:id", method = RouteMethod.GET)
-    public void cowParse(HttpServerResponse response, String id) throws Exception {
-        var url = "https://cowtransfer.com/s/" + id;
-        var urlDownload = CowTool.parse(url);
-        response.putHeader("location", urlDownload).setStatusCode(302).end();
-    }
-
-    @RouteMapping(value = "/json/cow/:id", method = RouteMethod.GET)
-    public JsonResult<String> cowParseJson(HttpServerResponse response, String id) throws Exception {
-        var url = "https://cowtransfer.com/s/" + id;
-        return JsonResult.data(CowTool.parse(url));
-    }
-
-    @RouteMapping(value = "/ec/:id", method = RouteMethod.GET)
-    public void ecParse(HttpServerResponse response, String id) {
-        EcTool.parse(id).onSuccess(resUrl -> response.putHeader("location", resUrl)
-                .setStatusCode(302).end()).onFailure(t -> {
-            response.putHeader(CONTENT_TYPE, "text/html;charset=utf-8");
-            response.end(t.getMessage());
-        });
-    }
-
-    @RouteMapping(value = "/json/ec/:id", method = RouteMethod.GET)
-    public Future<String> ecParseJson(HttpServerResponse response, String id) {
-        return EcTool.parse(id);
-    }
-
-    @RouteMapping(value = "/uc/:id", method = RouteMethod.GET)
-    public void ucParse(HttpServerResponse response, String id) {
-        String code = "";
-        if (id.contains("@")) {
-            String[] ids = id.split("@");
-            id = ids[0];
-            code = ids[1];
-        }
-        UcTool.parse(id, code).onSuccess(resUrl -> response.putHeader("location", resUrl)
-                .setStatusCode(302).end()).onFailure(t -> {
-            response.putHeader(CONTENT_TYPE, "text/html;charset=utf-8");
-            response.end(t.getMessage());
-        });
-    }
-
-    @RouteMapping(value = "/json/uc/:id", method = RouteMethod.GET)
-    public Future<String> ucParseJson(String id) {
-        String code = "";
-        if (id.contains("@")) {
-            String[] ids = id.split("@");
-            id = ids[0];
-            code = ids[1];
-        }
-        return UcTool.parse(id, code);
-    }
-
-    @RouteMapping(value = "/fj/:id", method = RouteMethod.GET)
-    public void fjParse(HttpServerResponse response, String id) {
-        FjTool.parse(id).onSuccess(resUrl -> response.putHeader("location", resUrl)
-                .setStatusCode(302).end()).onFailure(t -> {
-            response.putHeader(CONTENT_TYPE, "text/html;charset=utf-8");
-            response.end(t.getMessage());
-        });
-    }
-
-    @RouteMapping(value = "/json/fj/:id", method = RouteMethod.GET)
-    public Future<String> fjParseJson(HttpServerResponse response, String id) {
-        return FjTool.parse(id);
-    }
-
-    @RouteMapping(value = "/fc/:id", method = RouteMethod.GET)
-    public void fcParse(HttpServerResponse response, String id) {
-        String code = "";
-        if (id.contains("@")) {
-            String[] ids = id.split("@");
-            id = ids[0];
-            code = ids[1];
-        }
-        FcTool.parse(id, code).onSuccess(resUrl -> response.putHeader("location", resUrl)
-                .setStatusCode(302).end()).onFailure(t -> {
-            response.putHeader(CONTENT_TYPE, "text/html;charset=utf-8");
-            response.end(t.getMessage());
-        });
-    }
-
-    @RouteMapping(value = "/json/fc/:id", method = RouteMethod.GET)
-    public Future<String> fcParseJson(HttpServerResponse response, String id) {
-        String code = "";
-        if (id.contains("@")) {
-            String[] ids = id.split("@");
-            id = ids[0];
-            code = ids[1];
-        }
-        return FcTool.parse(id, code);
-    }
-
-    @RouteMapping(value = "/ye/:id", method = RouteMethod.GET)
-    public void YeParse(HttpServerResponse response, String id) {
-        String code = "";
-        if (id.contains("@")) {
-            String[] ids = id.split("@");
-            id = ids[0];
-            code = ids[1];
-        }
-        YeTool.parse(id, code).onSuccess(resUrl -> response.putHeader("location", resUrl)
-                .setStatusCode(302).end()).onFailure(t -> {
-            response.putHeader(CONTENT_TYPE, "text/html;charset=utf-8");
-            response.end(t.getMessage());
-        });
-    }
-
-    @RouteMapping(value = "/json/ye/:id", method = RouteMethod.GET)
-    public Future<String> YeParseJson(HttpServerResponse response, String id) {
-        String code = "";
-        if (id.contains("@")) {
-            String[] ids = id.split("@");
-            id = ids[0];
-            code = ids[1];
-        }
-        return YeTool.parse(id, code);
+        return IPanTool.typeMatching(type).parse(id, code);
     }
 }
