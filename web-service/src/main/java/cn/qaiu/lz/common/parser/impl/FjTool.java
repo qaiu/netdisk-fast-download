@@ -1,5 +1,8 @@
-package cn.qaiu.lz.common.util;
+package cn.qaiu.lz.common.parser.impl;
 
+import cn.qaiu.lz.common.parser.IPanTool;
+import cn.qaiu.lz.common.util.AESUtils;
+import cn.qaiu.lz.common.util.CommonUtils;
 import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -16,7 +19,7 @@ import java.util.UUID;
  *
  * @version V016_230609
  */
-public class FjTool {
+public class FjTool implements IPanTool {
 
     public static final String SHARE_URL_PREFIX = "https://www.feijix.com/s/";
     private static final String API_URL_PREFIX = "https://api.feijipan.com/ws/";
@@ -27,7 +30,7 @@ public class FjTool {
     private static final String SECOND_REQUEST_URL = API_URL_PREFIX + "file/redirect?downloadId={fidEncode}&enable=1" +
             "&devType=6&uuid={uuid}&timestamp={ts}&auth={auth}";
 
-    public static Future<String> parse(String data) {
+    public Future<String> parse(String data, String code) {
         String dataKey = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, data);
 
         Promise<String> promise = Promise.promise();

@@ -10,9 +10,10 @@ GET http://127.0.0.1:6400/parser?url=https://lanzoux.com/iNvid035jgcb
 ###
 # @no-redirect
 GET http://127.0.0.1:6400/parser?url=https://cowtransfer.com/s/9a644fe3e3a748
+
 ###
 # @no-redirect
-GET http://127.0.0.1:6400/cow/9a644fe3e3a748
+GET http://127.0.0.1:6400/cow/e4f41b51b5da4f
 
 ###
 # @no-redirect
@@ -99,3 +100,6 @@ GET http://127.0.0.1:6400/ye/iaKtVv-qOECd@asdads
 ### 123
 # @no-redirect
 GET http://127.0.0.1:6400/parser?url=https://www.123pan.com/s/iaKtVv-6OECd.html&pwd=DcGe
+
+###
+POST http://127.0.0.1:6400/login1

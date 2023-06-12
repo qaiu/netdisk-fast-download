@@ -1,5 +1,7 @@
-package cn.qaiu.lz.common.util;
+package cn.qaiu.lz.common.parser.impl;
 
+import cn.qaiu.lz.common.parser.IPanTool;
+import cn.qaiu.lz.common.util.CommonUtils;
 import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -13,7 +15,7 @@ import lombok.extern.slf4j.Slf4j;
  * 移动云空间解析
  */
 @Slf4j
-public class UcTool {
+public class UcTool implements IPanTool {
     private static final String API_URL_PREFIX = "https://pc-api.uc.cn/1/clouddrive/";
 
     public static final String SHARE_URL_PREFIX = "https://fast.uc.cn/s/";
@@ -26,7 +28,7 @@ public class UcTool {
 
     private static final String THIRD_REQUEST_URL = API_URL_PREFIX + "file/download?entry=ft&fr=pc&pr=UCBrowser";
 
-    public static Future<String> parse(String data, String code) {
+    public Future<String> parse(String data, String code) {
         var dataKey = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, data);
         var passcode =  (code == null) ? "" : code;
         Promise<String> promise = Promise.promise();

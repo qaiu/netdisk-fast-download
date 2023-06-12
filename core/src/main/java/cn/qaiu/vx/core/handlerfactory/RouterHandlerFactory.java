@@ -78,7 +78,8 @@ public class RouterHandlerFactory implements BaseHttpApi {
                     ctx.request().path(), ctx.request().absoluteURI(), ctx.request().method());
             ctx.response().headers().add(ACCESS_CONTROL_ALLOW_ORIGIN, "*");
             ctx.response().headers().add(ACCESS_CONTROL_ALLOW_METHODS, "POST, GET, OPTIONS, PUT, DELETE, HEAD");
-            ctx.response().headers().add(ACCESS_CONTROL_ALLOW_HEADERS, "X-PINGOTHER, Origin,Content-Type, Accept, X-Requested-With, Dev, Authorization, Version, Token");
+            ctx.response().headers().add(ACCESS_CONTROL_ALLOW_HEADERS, "X-PINGOTHER, Origin,Content-Type, Accept, " +
+                    "X-Requested-With, Dev, Authorization, Version, Token");
             ctx.response().headers().add(ACCESS_CONTROL_MAX_AGE, "1728000");
             ctx.next();
         });
@@ -199,8 +200,8 @@ public class RouterHandlerFactory implements BaseHttpApi {
      */
     private String getRouteUrl(String methodName, String mapperValue) {
         String routeUrl;
-        if (mapperValue.startsWith("/:") || "/".equals(mapperValue)) {
-            routeUrl = (methodName + mapperValue);
+        if ("/".equals(mapperValue)) {
+            routeUrl = mapperValue;
         } else if (mapperValue.startsWith("/")) {
             routeUrl = mapperValue.substring(1);
         } else {
@@ -349,7 +350,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
                     ((Future<?>) data).onSuccess(res -> {
                         if (res instanceof JsonObject) {
                             fireJsonResponse(ctx, res);
-                        } else if (res != null){
+                        } else if (res != null) {
                             fireJsonResponse(ctx, JsonResult.data(res));
                         }
                     }).onFailure(e -> fireJsonResponse(ctx, JsonResult.error(e.getMessage())));
@@ -363,7 +364,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
             String err = e.getMessage();
             if (e.getCause() != null) {
                 if (e.getCause() instanceof InvocationTargetException) {
-                    err = ((InvocationTargetException)e.getCause()).getTargetException().getMessage();
+                    err = ((InvocationTargetException) e.getCause()).getTargetException().getMessage();
                 } else {
                     err = e.getCause().getMessage();
                 }

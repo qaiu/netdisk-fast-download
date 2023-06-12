@@ -1,5 +1,7 @@
-package cn.qaiu.lz.common.util;
+package cn.qaiu.lz.common.parser.impl;
 
+import cn.qaiu.lz.common.parser.IPanTool;
+import cn.qaiu.lz.common.util.CommonUtils;
 import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -20,14 +22,14 @@ import java.util.regex.Pattern;
 /**
  * 亿方云
  */
-public class FcTool {
+public class FcTool implements IPanTool {
 
     public static final String SHARE_URL_PREFIX = "https://v2.fangcloud.com/sharing/";
     public static final String SHARE_URL_PREFIX2 = "https://v2.fangcloud.cn/sharing/";
     private static final String DOWN_REQUEST_URL = "https://v2.fangcloud.cn/apps/files/download?file_id={fid}" +
             "&scenario=share&unique_name={uname}";
 
-    public static Future<String> parse(String data, String code) {
+    public Future<String> parse(String data, String code) {
         String dataKey = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, data);
 
         Promise<String> promise = Promise.promise();
