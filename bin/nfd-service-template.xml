@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<service>
+    <id>netdisk-fast-download</id>
+    <name>netdisk-fast-download</name>
+    <description>netdisk fast download service</description>
+    <executable>java</executable>
+    <arguments>-jar ${jar} -server -Xmx128m </arguments>
+    <logpath>${dd}\logs</logpath>
+    <log mode="roll-by-time">
+        <pattern>yyyyMMdd</pattern>
+    </log>
+</service>

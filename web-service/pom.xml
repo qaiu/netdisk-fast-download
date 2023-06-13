@@ -5,10 +5,10 @@
     <parent>
         <artifactId>netdisk-fast-download</artifactId>
         <groupId>cn.qaiu</groupId>
-        <version>0.1.3</version>
+        <version>0.1.5</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <version>0.1.3</version>
+    <version>0.1.5</version>
     <artifactId>web-service</artifactId>
 
     <properties>
@@ -50,11 +50,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.jsoup</groupId>
-            <artifactId>jsoup</artifactId>
-            <version>1.15.4</version>
-        </dependency>
-        <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-web-client</artifactId>
             <version>4.4.1</version>
@@ -63,7 +58,7 @@
         <dependency>
             <groupId>cn.qaiu</groupId>
             <artifactId>core-database</artifactId>
-            <version>0.1.3</version>
+            <version>0.1.5</version>
         </dependency>
 
 
