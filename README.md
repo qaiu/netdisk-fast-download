@@ -130,7 +130,7 @@ bash service-install.sh
 ```
 
 ## Windows服务部署
-1. 解压netdisk-fast-download-0.1.5-bin.zip
+1. 下载并解压releases版本netdisk-fast-download-0.1.5-bin.zip
 2. 进入netdisk-fast-download-0.1.5-bin目录
 3. 使用管理员权限运行nfd-service-install.bat
 如果不想使用服务运行可以直接运行run.bat
