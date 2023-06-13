@@ -55,16 +55,16 @@ public class ServerApi {
     }
 
 
-    @RouteMapping(value = "/:type/:id", method = RouteMethod.GET)
-    public void YeParse(HttpServerResponse response, String type, String id) {
+    @RouteMapping(value = "/:type/:key", method = RouteMethod.GET)
+    public void parse(HttpServerResponse response, String type, String key) {
         String code = "";
-        if (id.contains("@")) {
-            String[] ids = id.split("@");
-            id = ids[0];
-            code = ids[1];
+        if (key.contains("@")) {
+            String[] keys = key.split("@");
+            key = keys[0];
+            code = keys[1];
         }
 
-        IPanTool.typeMatching(type).parse(id, code).onSuccess(resUrl -> response.putHeader("location", resUrl)
+        IPanTool.typeMatching(type).parse(key, code).onSuccess(resUrl -> response.putHeader("location", resUrl)
                 .setStatusCode(302).end()).onFailure(t -> {
             response.putHeader(CONTENT_TYPE, "text/html;charset=utf-8");
             response.end(t.getMessage());
@@ -72,13 +72,13 @@ public class ServerApi {
     }
 
     @RouteMapping(value = "/json/:type/:id", method = RouteMethod.GET)
-    public Future<String> YeParseJson(HttpServerResponse response, String type, String id) {
+    public Future<String> parseJson(HttpServerResponse response, String type, String key) {
         String code = "";
-        if (id.contains("@")) {
-            String[] ids = id.split("@");
-            id = ids[0];
-            code = ids[1];
+        if (key.contains("@")) {
+            String[] keys = key.split("@");
+            key = keys[0];
+            code = keys[1];
         }
-        return IPanTool.typeMatching(type).parse(id, code);
+        return IPanTool.typeMatching(type).parse(key, code);
     }
 }
