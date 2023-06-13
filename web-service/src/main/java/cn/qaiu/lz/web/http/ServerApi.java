@@ -56,7 +56,7 @@ public class ServerApi {
 
 
     @RouteMapping(value = "/:type/:key", method = RouteMethod.GET)
-    public void parse(HttpServerResponse response, String type, String key) {
+    public void parseKey(HttpServerResponse response, String type, String key) {
         String code = "";
         if (key.contains("@")) {
             String[] keys = key.split("@");
@@ -71,8 +71,8 @@ public class ServerApi {
         });
     }
 
-    @RouteMapping(value = "/json/:type/:id", method = RouteMethod.GET)
-    public Future<String> parseJson(HttpServerResponse response, String type, String key) {
+    @RouteMapping(value = "/json/:type/:key", method = RouteMethod.GET)
+    public Future<String> parseKeyJson(HttpServerResponse response, String type, String key) {
         String code = "";
         if (key.contains("@")) {
             String[] keys = key.split("@");
