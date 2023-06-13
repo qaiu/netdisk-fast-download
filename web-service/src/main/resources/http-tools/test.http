@@ -32,12 +32,12 @@ GET http://127.0.0.1:6400/json/cow/9a644fe3e3a748
 
 ### https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
 # @no-redirect
-GET http://127.0.0.1:6400/parser?url=https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
+GET http://127.0.0.1:6400/parser?url=https://www.ecpan.cn/web//yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
 #                                    https://www.ecpan.cn/drive/fileextoverrid.do?chainUrlTemplate=https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=aa0cae0164d8885e6d35826b5b2901eckbWJBalM&parentId=-1
 
 ###
 # @no-redirect
-GET http://127.0.0.1:6400/ec/aa0cae0164d8885e6d35826b5b2901eckbWJBalM1
+GET http://127.0.0.1:6400/ec/81027a5c99af5b11ca004966c945cce6W9Bf2
 
 ###
 GET http://127.0.0.1:6400/json/ec/aa0cae0164d8885e6d35826b5b2901eckbWJBalM
