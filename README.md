@@ -128,6 +128,25 @@ unzip netdisk-fast-download-*-bin.zip
 cd netdisk-fast-download-*-bin
 bash service-install.sh
 ```
+服务相关命令:  
+1、查看服务状态  
+systemctl status netdisk-fast-download.service
+
+2、控制服务  
+启动服务  
+systemctl start netdisk-fast-download.service
+
+重启服务  
+systemctl restart netdisk-fast-download.service
+
+停止服务  
+systemctl stop netdisk-fast-download.service
+
+开机启动服务  
+systemctl enable netdisk-fast-download.servic
+
+停止开机启动  
+systemctl disable netdisk-fast-download.servic
 
 ## Windows服务部署
 1. 下载并解压releases版本netdisk-fast-download-0.1.5-bin.zip
