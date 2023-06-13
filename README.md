@@ -120,6 +120,7 @@ mvn package
 ```
 打包好的文件位于 web-service/target/netdisk-fast-download-x.x.x-bin.zip
 ## Linux服务部署
+> 注意: netdisk-fast-download.service中的ExecStart的路径改为实际路径
 ```shell
 cd ~
 wget -O netdisk-fast-download-0.1.5-bin.zip  https://github.com/qaiu/netdisk-fast-download/releases/download/0.1.5-releases/netdisk-fast-download-0.1.5-bin.zip
