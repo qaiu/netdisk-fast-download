@@ -35,14 +35,20 @@ Core模块集成Vert.x实现类spring的注解式路由API
 API接口
 ```
 括号内是可选内容: 表示当带有分享密码时需要加上密码参数 
-parse接口加上参数pwd=密码;其他接口在分享Key后面加上@密码
+parser接口可以直接解析分享链接: 加密分享需要加上参数pwd=密码; 
+其他接口在分享Key后面加上@密码;
 
 1. 解析并自动302跳转 : 
-    http(s)://your_hostname/parser?url=分享链接(&pwd=xxx)
-    http(s)://your_hostname/网盘标识/分享id(@分享密码)
+    http(s)://your_host/parser?url=分享链接(&pwd=xxx)
+    http(s)://your_host/网盘标识/分享id(@分享密码)
 2. 获取解析后的直链--JSON格式
-    http(s)://your_hostname/json/网盘标识/分享id(@分享密码)
-3. 有些网盘的加密分享的密码可以忽略: 如移动云空间,小飞机网盘
+    http(s)://your_host/json/网盘标识/分享id(@分享密码)
+3. 特别注意的地方: 
+  - 有些网盘的加密分享的密码可以忽略: 如移动云空间,小飞机网盘
+  - 移动云空间(ec)使用parser?url= 解析时因为分享链接比较特殊(链接带有参数且含有#符号)所以要么对#进行转义%23要么直接去掉# 或者URL直接是主机名+'/'跟一个data参数
+  比如 http://your_host/parser?url=https://www.ecpan.cn/web//yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
+      http://your_host/parser?url=https://www.ecpan.cn/web/%23/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
+      http://your_host/parser?url=https://www.ecpan.cn/&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
 ```
 
 
