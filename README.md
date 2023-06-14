@@ -8,7 +8,7 @@
 ## 网盘支持情况:
 `网盘名称(网盘标识):`
 
-- [蓝奏云 (lz)](https://pc.woozooo.com/){target="_blank"}
+- [蓝奏云 (lz)](https://pc.woozooo.com/)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
 - [奶牛快传 (cow)](https://cowtransfer.com/)
