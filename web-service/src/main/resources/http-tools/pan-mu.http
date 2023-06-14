@@ -1,0 +1,37 @@
+###
+POST https://service.tezign.com/transfer/share/download
+Content-Type: application/json;charset=UTF-8
+X-Transfer-Device:e2cc524f8cb
+X-Transfer-Sign:af6185237445665d8f84764791c376ed
+
+{"code":"a85hmqm1g"}
+
+
+###
+https://musetransfer.com/s/a85hmqm1g
+
+
+###
+
+
+
+
+https://musetransfer.com/s/81nq4gm8j ｜ 密码：3184请点击链接获取《无主题 - sdgsEasyManual.doc》, 有效期至2024年6月13日
+https://musetransfer.com/s/a85hmqm1g 请点击链接获取《111》, 有效期至2024年6月13日
+
+
+
+# a85hmqm1g
+# X-Transfer-Device:a14a17cc207
+# X-Transfer-Sign:fc29338ac476fb1bee7d2eb12bb30bca
+#
+# MD5(L3RyYW5zZmVyL3NoYXJlL2Rvd25sb2Fk|eyJjb2RlIjoiYTg1aG1xbTFnIn0=|a14a17cc207|)=fc29338ac476fb1bee7d2eb12bb30bca
+#
+# L3RyYW5zZmVyL3NoYXJlL2Rvd25sb2Fk|eyJjb2RlIjoiYTg1aG1xbTFnIn0=|a14a17cc207|
+#
+# L3RyYW5zZmVyL3NoYXJlL2Rvd25sb2Fk /transfer/share/download
+# eyJjb2RlIjoiYTg1aG1xbTFnIn0= {"code":"a85hmqm1g"}
+#
+# a14a17cc207 随机数
+#
+# ƒ u(t){var e="",n=t||11,u=(1+n)/2|0;(!o||i+u>c)&&(o=r(c),i=0);while(u--)e+=a[o[i++]];return e.substring(0,n)}
