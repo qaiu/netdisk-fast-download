@@ -1,43 +1,45 @@
 # netdisk-fast-download
 
-# 网盘快速下载器--直链解析
-
 [![Java CI with Maven](https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml/badge.svg)](https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml)
 [![jdk](https://img.shields.io/badge/jdk-%3E%3D17-blue)](https://www.oracle.com/cn/java/technologies/downloads/)
 [![vert.x](https://img.shields.io/badge/vert.x-4.4.1-blue)](https://vertx-china.github.io/)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/qaiu/netdisk-fast-download)](https://github.com/qaiu/netdisk-fast-download/releases/tag/0.1.5-releases)
-## 网盘支持情况:
 
+## 网盘支持情况:
 `网盘名称(网盘标识):`
 
-- 蓝奏云 (lz)
+- [蓝奏云 (lz)](https://pc.woozooo.com/)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
-- 奶牛快传 (cow)
+- [奶牛快传 (cow)](https://cowtransfer.com/)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
-- 移动云空间 (ec)
+- [移动云空间 (ec)](https://www.ecpan.cn/web)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
-- UC网盘 (uc)
+- [UC网盘 (uc)](https://fast.uc.cn/)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
-- 小飞机网盘 (fj)
+- [小飞机网盘 (fj)](https://www.feijipan.com/)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
-- 亿方云 (fc)
+- [亿方云 (fc)](https://www.fangcloud.com/)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
-- 123云盘 (ye)
+- [123云盘 (ye)](https://www.123pan.com/)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
-- 文叔叔 (ws)
-- 夸克网盘 (qk)
-- TODO
+- [文叔叔 (ws) 开发中](https://www.wenshushu.cn/)
+- [夸克网盘 (qk) 开发中](https://pan.quark.cn/)
 
-技术栈:
+**TODO:**
+  - 登录接口, 文件上传/下载/分享后端接口
+  - 短地址服务
+  - 前端界面(正则规划)
+
+**技术栈:**
 Jdk17+Vert.x4.4.1
-Core模块集成Vert.x实现类spring的注解式路由API
+Core模块集成Vert.x实现类似spring的注解式路由API
 
 API接口
 
@@ -48,9 +50,9 @@ parser接口可以直接解析分享链接: 加密分享需要加上参数pwd=�
 
 1. 解析并自动302跳转 : 
     http(s)://your_host/parser?url=分享链接(&pwd=xxx)
-    http(s)://your_host/网盘标识/分享id(@分享密码)
+    http(s)://your_host/网盘标识/分享key(@分享密码)
 2. 获取解析后的直链--JSON格式
-    http(s)://your_host/json/网盘标识/分享id(@分享密码)
+    http(s)://your_host/json/网盘标识/分享key(@分享密码)
 3. 特别注意的地方: 
   - 有些网盘的加密分享的密码可以忽略: 如移动云空间,小飞机网盘
   - 移动云空间(ec)使用parser?url= 解析时因为分享链接比较特殊(链接带有参数且含有#符号)所以要么对#进行转义%23要么直接去掉# 或者URL直接是主机名+'/'跟一个data参数
