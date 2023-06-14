@@ -5,7 +5,7 @@
 [![Java CI with Maven](https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml/badge.svg)](https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml)
 [![jdk](https://img.shields.io/badge/jdk-%3E%3D17-blue)](https://www.oracle.com/cn/java/technologies/downloads/)
 [![vert.x](https://img.shields.io/badge/vert.x-4.4.1-blue)](https://vertx-china.github.io/)
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/qaiu/netdisk-fast-download)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/qaiu/netdisk-fast-download)](https://github.com/qaiu/netdisk-fast-download/releases/tag/0.1.5-releases)
 ## 网盘支持情况:
 
 `网盘名称(网盘标识):`
