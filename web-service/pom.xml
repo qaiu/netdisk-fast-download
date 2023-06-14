@@ -133,8 +133,7 @@
                         </goals>
                         <configuration>
                             <!--打包时排除的依赖作用域-->
-                            <excludeScope>test</excludeScope>
-                            <excludeScope>provided</excludeScope>
+                            <includeScope>runtime</includeScope>
                             <outputDirectory>
                                 ${packageDirectory}/lib/
                             </outputDirectory>
