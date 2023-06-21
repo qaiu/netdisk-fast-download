@@ -21,6 +21,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
+import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.ext.web.handler.sockjs.SockJSHandlerOptions;
 import javassist.CtClass;
@@ -73,6 +74,19 @@ public class RouterHandlerFactory implements BaseHttpApi {
      */
     public Router createRouter() {
         Router router = Router.router(VertxHolder.getVertxInstance());
+
+        // 静态资源
+        String path = SharedDataUtil.getJsonConfig("server")
+                .getString("staticResourcePath");
+        if (!StringUtils.isEmpty(path)) {
+            // 静态资源
+            router.route("/*").handler(StaticHandler
+                    .create(path)
+                    .setCachingEnabled(true)
+                    .setDefaultContentEncoding("UTF-8"));
+        }
+
+
         router.route().handler(ctx -> {
             LOGGER.debug("The HTTP service request address information ===>path:{}, uri:{}, method:{}",
                     ctx.request().path(), ctx.request().absoluteURI(), ctx.request().method());
@@ -116,6 +130,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
                 .error("Method Not Allowed", 405)));
         router.errorHandler(404, ctx -> ctx.response().setStatusCode(404).setChunked(true)
                 .end("Internal server error: 404 not found"));
+
         return router;
     }
 
