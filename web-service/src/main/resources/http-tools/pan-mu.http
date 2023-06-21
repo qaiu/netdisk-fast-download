@@ -1,10 +1,18 @@
 ###
 POST https://service.tezign.com/transfer/share/download
 Content-Type: application/json;charset=UTF-8
-X-Transfer-Device:e2cc524f8cb
-X-Transfer-Sign:af6185237445665d8f84764791c376ed
+X-Transfer-Device:a14a17ccc07
+X-Transfer-Sign:bea1e0bece50692b5d062d6d809cdb75
 
 {"code":"a85hmqm1g"}
+
+###
+POST https://service.tezign.com/transfer/share/download
+Content-Type: application/json;charset=UTF-8
+X-Transfer-Device:xz9ynai8bi
+X-Transfer-Sign:923690974149080012f9eba9ddc0cd82
+
+{"code":"81nq4gm8j",  "pwd":"3184"}
 
 
 ###
@@ -16,8 +24,8 @@ https://musetransfer.com/s/a85hmqm1g
 
 
 
-https://musetransfer.com/s/81nq4gm8j ｜ 密码：3184请点击链接获取《无主题 - sdgsEasyManual.doc》, 有效期至2024年6月13日
-https://musetransfer.com/s/a85hmqm1g 请点击链接获取《111》, 有效期至2024年6月13日
+#https://musetransfer.com/s/81nq4gm8j ｜ 密码：3184请点击链接获取《无主题 - sdgsEasyManual.doc》, 有效期至2024年6月13日
+#https://musetransfer.com/s/a85hmqm1g 请点击链接获取《111》, 有效期至2024年6月13日
 
 
 
@@ -27,7 +35,7 @@ https://musetransfer.com/s/a85hmqm1g 请点击链接获取《111》, 有效期�
 #
 # MD5(L3RyYW5zZmVyL3NoYXJlL2Rvd25sb2Fk|eyJjb2RlIjoiYTg1aG1xbTFnIn0=|a14a17cc207|)=fc29338ac476fb1bee7d2eb12bb30bca
 #
-# L3RyYW5zZmVyL3NoYXJlL2Rvd25sb2Fk|eyJjb2RlIjoiYTg1aG1xbTFnIn0=|a14a17cc207|
+# L3RyYW5zZmVyL3NoYXJlL2Rvd25sb2Fk|eyJjb2RlIjoiODFucTRnbThqIn0=|8g54fpq1we|
 #
 # L3RyYW5zZmVyL3NoYXJlL2Rvd25sb2Fk /transfer/share/download
 # eyJjb2RlIjoiYTg1aG1xbTFnIn0= {"code":"a85hmqm1g"}
@@ -35,3 +43,14 @@ https://musetransfer.com/s/a85hmqm1g 请点击链接获取《111》, 有效期�
 # a14a17cc207 随机数
 #
 # ƒ u(t){var e="",n=t||11,u=(1+n)/2|0;(!o||i+u>c)&&(o=r(c),i=0);while(u--)e+=a[o[i++]];return e.substring(0,n)}
+# 'L3RyYW5zZmVyL3NoYXJlL2Rvd25sb2Fk|eyJjb2RlIjoiODFucTRnbThqIiwgICJwd2QiOiIzMTg0In0=|xz9ynai8bi|'
+
+###
+https://transfer.musecdn1.com/a85hmqm1g/d43a1b3baf646501368a7cc2a087ae8e.zip?auth_key=1686790800-YTg1aG1xbTFnOjE1OTU1NA-0-19b281e3e5fefedac6c57272deb6e747&response-content-type=application/octet-stream&response-content-disposition=attachment%3B%20filename%3D%22netdisk-fast-download-0.1.5-bin.zip%22%3B%20filename%2A%3DUTF-8%27%27netdisk-fast-download-0.1.5-bin.zip
+Referer:https://musetransfer.com/
+
+###
+# @no-cookie-jar
+# @no-redirect
+https://transfer.musecdn1.com/81nq4gm8j/2333dd8e48fbf52f787d633d506c2d8d.doc?auth_key=1686798000-ODFucTRnbThqOjE1OTU1NA-0-7f9f1174bf1cc9925ed5ad497c6344b8&response-content-type=application/octet-stream&response-content-disposition=attachment%3B%20filename%3D%22sdgsEasyManual.doc%22%3B%20filename%2A%3DUTF-8%27%27sdgsEasyManual.doc
+Referer:https://musetransfer.com/
