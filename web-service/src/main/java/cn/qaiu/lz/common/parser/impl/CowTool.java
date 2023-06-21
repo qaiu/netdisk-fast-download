@@ -2,6 +2,7 @@ package cn.qaiu.lz.common.parser.impl;
 
 import cn.qaiu.lz.common.parser.IPanTool;
 import cn.qaiu.lz.common.util.CommonUtils;
+import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -24,7 +25,7 @@ public class CowTool implements IPanTool {
 
     public Future<String> parse(String data, String code) {
         Promise<String> promise = Promise.promise();
-        WebClient client = WebClient.create(Vertx.vertx());
+        WebClient client = WebClient.create(VertxHolder.getVertxInstance());
         String key = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, data);
         client.getAbs(API_REQUEST_URL + "?uniqueUrl=" + key).send().onSuccess(res -> {
             JsonObject resJson = res.bodyAsJsonObject();
