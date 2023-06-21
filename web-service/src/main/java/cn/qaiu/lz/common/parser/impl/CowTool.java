@@ -5,7 +5,6 @@ import cn.qaiu.lz.common.util.CommonUtils;
 import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import lombok.extern.slf4j.Slf4j;
