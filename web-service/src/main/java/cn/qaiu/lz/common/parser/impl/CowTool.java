@@ -2,9 +2,9 @@ package cn.qaiu.lz.common.parser.impl;
 
 import cn.qaiu.lz.common.parser.IPanTool;
 import cn.qaiu.lz.common.util.CommonUtils;
+import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +24,7 @@ public class CowTool implements IPanTool {
 
     public Future<String> parse(String data, String code) {
         Promise<String> promise = Promise.promise();
-        WebClient client = WebClient.create(Vertx.vertx());
+        WebClient client = WebClient.create(VertxHolder.getVertxInstance());
         String key = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, data);
         client.getAbs(API_REQUEST_URL + "?uniqueUrl=" + key).send().onSuccess(res -> {
             JsonObject resJson = res.bodyAsJsonObject();
@@ -44,10 +44,12 @@ public class CowTool implements IPanTool {
                         }
                     } else {
                         log.error("cow parse fail: {}; json: {}", url2, res2Json);
+                        promise.fail("cow parse fail: " + url2 + "; json:" + res2Json);
                     }
                 });
             } else {
                 log.error("cow parse fail: {}; json: {}", key, resJson);
+                promise.fail("cow parse fail: " + key + "; json:" + resJson);
             }
         });
         return promise.future();

@@ -10,7 +10,7 @@ import io.vertx.core.json.JsonObject;
  * 程序入口
  * <br>Create date 2021-05-08 13:00:01
  *
- * @author qiu
+ * @author qaiu
  */
 public class AppMain {
 
