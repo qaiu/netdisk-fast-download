@@ -28,3 +28,14 @@ server-name: Vert.x-proxy-server(v4.1.2)
 #    sock:
 #      - path: /real/
 #        origin: 127.0.0.1:8088
+
+
+#proxy:
+#  - listen: 8085
+#    static:
+#      path: /mu-down
+#      #      add-headers:
+#      #        x-token: ABC
+#      root: webroot/mu-down/
+#      index: index.html
+

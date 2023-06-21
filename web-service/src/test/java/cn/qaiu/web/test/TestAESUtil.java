@@ -54,4 +54,12 @@ public class TestAESUtil {
     public void testTs() {
         System.out.println(System.currentTimeMillis());
     }
+
+    @Test
+    public void testRandom() {
+        System.out.println(AESUtils.getRandomString());
+        System.out.println(AESUtils.getRandomString());
+        System.out.println(AESUtils.getRandomString());
+        System.out.println(AESUtils.getRandomString());
+    }
 }
