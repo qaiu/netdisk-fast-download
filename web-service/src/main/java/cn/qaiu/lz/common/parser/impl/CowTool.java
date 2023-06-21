@@ -44,10 +44,12 @@ public class CowTool implements IPanTool {
                         }
                     } else {
                         log.error("cow parse fail: {}; json: {}", url2, res2Json);
+                        promise.fail("cow parse fail: " + url2 + "; json:" + res2Json);
                     }
                 });
             } else {
                 log.error("cow parse fail: {}; json: {}", key, resJson);
+                promise.fail("cow parse fail: " + key + "; json:" + resJson);
             }
         });
         return promise.future();
