@@ -2,12 +2,14 @@ package cn.qaiu.lz.common.parser.impl;
 
 import cn.qaiu.lz.common.parser.IPanTool;
 import cn.qaiu.lz.common.util.CommonUtils;
+import cn.qaiu.lz.common.util.PanExceptionUtils;
 import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.uritemplate.UriTemplate;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import java.net.MalformedURLException;
@@ -19,6 +21,7 @@ import java.util.regex.Pattern;
 /**
  * 123网盘
  */
+@Slf4j
 public class YeTool implements IPanTool {
     public static final String SHARE_URL_PREFIX = "https://www.123pan.com/s/";
     public static final String FIRST_REQUEST_URL = SHARE_URL_PREFIX + "{key}.html";
@@ -39,7 +42,7 @@ public class YeTool implements IPanTool {
             Matcher matcher = compile.matcher(html);
 
             if (!matcher.find()) {
-                System.out.println("err");
+                promise.fail(html + "\n Ye: " + dataKey + " 正则匹配失败");
                 return;
             }
             String fileInfoString = matcher.group(1);
@@ -48,7 +51,7 @@ public class YeTool implements IPanTool {
             JsonObject resListJson = fileInfoJson.getJsonObject("reslist");
 
             if (resJson == null || resJson.getInteger("code") != 0) {
-                promise.fail(dataKey + " 解析到异常JSON: "+resJson);
+                promise.fail(dataKey + " 解析到异常JSON: " + resJson);
                 return;
             }
             String shareKey = resJson.getJsonObject("data").getString("ShareKey");
@@ -61,13 +64,14 @@ public class YeTool implements IPanTool {
                             .send().onSuccess(res2 -> {
                                 JsonObject infoJson = res2.bodyAsJsonObject();
                                 if (infoJson.getInteger("code") != 0) {
+                                    promise.fail("Ye: " + dataKey + " 状态码异常" + infoJson);
                                     return;
                                 }
                                 JsonObject getFileInfoJson =
                                         infoJson.getJsonObject("data").getJsonArray("InfoList").getJsonObject(0);
                                 getFileInfoJson.put("ShareKey", shareKey);
                                 getDownUrl(promise, client, getFileInfoJson);
-                            });
+                            }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Ye", dataKey, t)));
                 } else {
                     promise.fail(dataKey + " 该分享需要密码");
                 }
@@ -77,13 +81,13 @@ public class YeTool implements IPanTool {
             JsonObject reqBodyJson = resListJson.getJsonObject("data").getJsonArray("InfoList").getJsonObject(0);
             reqBodyJson.put("ShareKey", shareKey);
             getDownUrl(promise, client, reqBodyJson);
-        });
+        }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Ye", dataKey, t)));
 
         return promise.future();
     }
 
     private static void getDownUrl(Promise<String> promise, WebClient client, JsonObject reqBodyJson) {
-        System.out.println(reqBodyJson);
+        log.info(reqBodyJson.encodePrettily());
         client.postAbs("https://www.123pan.com/a/api/share/download/info").sendJsonObject(reqBodyJson).onSuccess(res2 -> {
             JsonObject downURLJson = res2.bodyAsJsonObject();
             System.out.println(downURLJson);
@@ -99,6 +103,6 @@ public class YeTool implements IPanTool {
             } catch (MalformedURLException e) {
                 promise.fail("urlParams解析异常" + e.getMessage());
             }
-        });
+        }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Ye", reqBodyJson.encodePrettily(), t)));
     }
 }

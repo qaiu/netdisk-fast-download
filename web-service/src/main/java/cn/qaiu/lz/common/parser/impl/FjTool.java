@@ -3,6 +3,7 @@ package cn.qaiu.lz.common.parser.impl;
 import cn.qaiu.lz.common.parser.IPanTool;
 import cn.qaiu.lz.common.util.AESUtils;
 import cn.qaiu.lz.common.util.CommonUtils;
+import cn.qaiu.lz.common.util.PanExceptionUtils;
 import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -70,8 +71,8 @@ public class FjTool implements IPanTool {
                             return;
                         }
                         promise.complete(headers.get("Location"));
-                    });
-        });
+                    }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Fj", dataKey, t)));
+        }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Fj", dataKey, t)));
 
         return promise.future();
     }
