@@ -2,6 +2,6 @@
 active: dev
 # 框架版本号 和主版本号
 version_vertx: 4.4.1
-version_app: 0.1.5
+version_app: 0.1.6
 # 公司名称 -> LOGO版权文字
 copyright: QAIU
