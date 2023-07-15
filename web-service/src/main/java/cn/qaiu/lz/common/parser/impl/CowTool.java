@@ -2,6 +2,7 @@ package cn.qaiu.lz.common.parser.impl;
 
 import cn.qaiu.lz.common.parser.IPanTool;
 import cn.qaiu.lz.common.util.CommonUtils;
+import cn.qaiu.lz.common.util.PanExceptionUtils;
 import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -41,17 +42,21 @@ public class CowTool implements IPanTool {
                         if (StringUtils.isNotEmpty(downloadUrl)) {
                             log.info("cow parse success: {}", downloadUrl);
                             promise.complete(downloadUrl);
+                            return;
                         }
-                    } else {
-                        log.error("cow parse fail: {}; json: {}", url2, res2Json);
-                        promise.fail("cow parse fail: " + url2 + "; json:" + res2Json);
+
+                        log.error("cow parse fail: {}; downloadUrl is empty", url2);
+                        promise.fail("cow parse fail: " + url2 + "; downloadUrl is empty");
+                        return;
                     }
+                    log.error("cow parse fail: {}; json: {}", url2, res2Json);
+                    promise.fail("cow parse fail: " + url2 + "; json:" + res2Json);
                 });
-            } else {
-                log.error("cow parse fail: {}; json: {}", key, resJson);
-                promise.fail("cow parse fail: " + key + "; json:" + resJson);
+                return;
             }
-        });
+            log.error("cow parse fail: {}; json: {}", key, resJson);
+            promise.fail("cow parse fail: " + key + "; json:" + resJson);
+        }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Cow", key, t)));;
         return promise.future();
     }
 

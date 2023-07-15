@@ -63,7 +63,7 @@ public final class Deploy {
         var activeMode = conf.getString("active");
         if ("dev".equals(activeMode)) {
             LOGGER.info("---------------> development environment <--------------\n");
-            System.setProperty("vertxweb.environment","dev");
+            System.setProperty("vertxweb.environment", "dev");
         } else {
             LOGGER.info("---------------> Production environment <--------------\n");
         }
@@ -109,7 +109,14 @@ public final class Deploy {
         LOGGER.info("配置读取成功");
         customConfig = globalConfig.getJsonObject(ConfigConstant.CUSTOM);
 
-        var vertxOptions = new VertxOptions(globalConfig.getJsonObject(ConfigConstant.VERTX));
+        JsonObject vertxConfig = globalConfig.getJsonObject(ConfigConstant.VERTX);
+        Integer vertxConfigELPS = vertxConfig.getInteger(ConfigConstant.EVENT_LOOP_POOL_SIZE);
+        var vertxOptions = vertxConfigELPS == 0 ?
+                new VertxOptions() : new VertxOptions(vertxConfig);
+
+        LOGGER.info("vertxConfigEventLoopPoolSize: {}, eventLoopPoolSize: {}, workerPoolSize: {}", vertxConfigELPS,
+                vertxOptions.getEventLoopPoolSize(),
+                vertxOptions.getWorkerPoolSize());
         var vertx = Vertx.vertx(vertxOptions);
         VertxHolder.init(vertx);
         //配置保存在共享数据中
@@ -123,6 +130,7 @@ public final class Deploy {
             bch.complete("other handle complete");
         });
 
+        // 部署 路由、异步service、反向代理 服务
         var future1 = vertx.deployVerticle(RouterVerticle.class, getWorkDeploymentOptions("Router"));
         var future2 = vertx.deployVerticle(ServiceVerticle.class, getWorkDeploymentOptions("Service"));
         var future3 = vertx.deployVerticle(ReverseProxyVerticle.class, getWorkDeploymentOptions("proxy"));

@@ -7,7 +7,6 @@ import cn.qaiu.lz.web.service.UserService;
 import cn.qaiu.vx.core.annotaions.RouteHandler;
 import cn.qaiu.vx.core.annotaions.RouteMapping;
 import cn.qaiu.vx.core.enums.RouteMethod;
-import cn.qaiu.vx.core.model.JsonResult;
 import cn.qaiu.vx.core.util.AsyncServiceUtil;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;

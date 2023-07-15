@@ -2,6 +2,7 @@ package cn.qaiu.lz.common.parser.impl;
 
 import cn.qaiu.lz.common.parser.IPanTool;
 import cn.qaiu.lz.common.util.CommonUtils;
+import cn.qaiu.lz.common.util.PanExceptionUtils;
 import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -20,7 +21,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 亿方云
+ * 360亿方云
  */
 public class FcTool implements IPanTool {
 
@@ -58,15 +59,15 @@ public class FcTool implements IPanTool {
                     if (res2.statusCode() == 302) {
                         sClient.getAbs(res2.getHeader("Location")).send().onSuccess(res3 -> {
                             getDownURL(dataKey, promise, res3, sClient);
-                        });
-                    } else {
-                        promise.fail(SHARE_URL_PREFIX + " 密码跳转后获取重定向失败 \n" + html);
+                        }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Fc", dataKey, t)));
+                        return;
                     }
-                });
+                    promise.fail(SHARE_URL_PREFIX + " 密码跳转后获取重定向失败 \n" + html);
+                }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Fc", dataKey, t)));
                 return;
             }
             getDownURL(dataKey, promise, res, sClient);
-        });
+        }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Fc", dataKey, t)));
         return promise.future();
     }
 
@@ -102,6 +103,6 @@ public class FcTool implements IPanTool {
                         return;
                     }
                     promise.complete(resJson.getString("download_url"));
-                });
+                }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Fc", dataKey, t)));
     }
 }
