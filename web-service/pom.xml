@@ -5,10 +5,10 @@
     <parent>
         <artifactId>netdisk-fast-download</artifactId>
         <groupId>cn.qaiu</groupId>
-        <version>0.1.5</version>
+        <version>0.1.6</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <version>0.1.5</version>
+    <version>0.1.6</version>
     <artifactId>web-service</artifactId>
 
     <properties>
@@ -58,7 +58,7 @@
         <dependency>
             <groupId>cn.qaiu</groupId>
             <artifactId>core-database</artifactId>
-            <version>0.1.5</version>
+            <version>0.1.6</version>
         </dependency>
 
 

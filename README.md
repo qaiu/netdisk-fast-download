@@ -3,7 +3,7 @@
 [![Java CI with Maven](https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml/badge.svg)](https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml)
 [![jdk](https://img.shields.io/badge/jdk-%3E%3D17-blue)](https://www.oracle.com/cn/java/technologies/downloads/)
 [![vert.x](https://img.shields.io/badge/vert.x-4.4.1-blue)](https://vertx-china.github.io/)
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/qaiu/netdisk-fast-download)](https://github.com/qaiu/netdisk-fast-download/releases/tag/0.1.5-releases)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/qaiu/netdisk-fast-download)](https://github.com/qaiu/netdisk-fast-download/releases/tag/0.1.6-releases)
 
 ## 网盘支持情况:
 `网盘名称(网盘标识):`
@@ -127,7 +127,7 @@ mvn package
 > 注意: netdisk-fast-download.service中的ExecStart的路径改为实际路径
 ```shell
 cd ~
-wget -O netdisk-fast-download-0.1.5-bin.zip  https://github.com/qaiu/netdisk-fast-download/releases/download/0.1.5-releases/netdisk-fast-download-0.1.5-bin.zip
+wget -O netdisk-fast-download-0.1.6-bin.zip  https://github.com/qaiu/netdisk-fast-download/releases/download/0.1.6-releases/netdisk-fast-download-0.1.6-bin.zip
 unzip netdisk-fast-download-*-bin.zip 
 cd netdisk-fast-download-*-bin
 bash service-install.sh
@@ -153,8 +153,8 @@ systemctl enable netdisk-fast-download.servic
 systemctl disable netdisk-fast-download.servic
 
 ## Windows服务部署
-1. 下载并解压releases版本netdisk-fast-download-0.1.5-bin.zip
-2. 进入netdisk-fast-download-0.1.5-bin目录
+1. 下载并解压releases版本netdisk-fast-download-0.1.6-bin.zip
+2. 进入netdisk-fast-download-0.1.6-bin目录
 3. 使用管理员权限运行nfd-service-install.bat
 如果不想使用服务运行可以直接运行run.bat
 
