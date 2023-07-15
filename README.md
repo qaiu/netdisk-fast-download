@@ -157,6 +157,6 @@ systemctl disable netdisk-fast-download.servic
 2. 进入netdisk-fast-download-0.1.6-bin目录
 3. 使用管理员权限运行nfd-service-install.bat
 如果不想使用服务运行可以直接运行run.bat
-
+> 注意: 如果jdk环境变量的java版本不是17请修改nfd-service-template.xml中的java命令的路径改为实际路径
 ## Docker部署
 TODO
