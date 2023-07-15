@@ -2,6 +2,7 @@ package cn.qaiu.lz.common.parser.impl;
 
 import cn.qaiu.lz.common.parser.IPanTool;
 import cn.qaiu.lz.common.util.CommonUtils;
+import cn.qaiu.lz.common.util.PanExceptionUtils;
 import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -35,32 +36,28 @@ public class EcTool implements IPanTool {
                     JsonObject fileInfo = jsonObject
                             .getJsonObject("var")
                             .getJsonObject("chainFileInfo");
-                    if (!fileInfo.containsKey("errMesg")) {
-                        JsonObject cloudpFile = fileInfo.getJsonObject("cloudpFile");
-                        JsonArray fileIdList = JsonArray.of(cloudpFile);
-                        // 构造请求JSON {"extCodeFlag":0,"isIp":0}
-                        JsonObject requestBodyJson = JsonObject.of("extCodeFlag", 0, "isIp", 0);
-                        requestBodyJson.put("shareId", Integer.parseInt(fileInfo.getString("shareId"))); // 注意shareId
-                        // 数据类型
-                        requestBodyJson.put("groupId", cloudpFile.getString("groupId"));
-                        requestBodyJson.put("fileIdList", fileInfo.getJsonArray("cloudpFileList"));
-
-                        // 第二次请求 获取下载链接
-                        client.postAbs(DOWNLOAD_REQUEST_URL)
-                                .sendJsonObject(requestBodyJson).onSuccess(res2 -> {
-                                    JsonObject jsonRes = res2.bodyAsJsonObject();
-                                    log.debug("ecPan get download url -> {}", res2.body().toString());
-                                    promise.complete(jsonRes.getJsonObject("var").getString("downloadUrl"));
-                                }).onFailure(t -> promise.fail(new RuntimeException("解析异常: key = " + dataKey, t.fillInStackTrace())));
-
-                    } else {
+                    if (fileInfo.containsKey("errMesg")) {
                         promise.fail(new RuntimeException(DOWNLOAD_REQUEST_URL + " 解析失败: "
                                 + fileInfo.getString("errMesg")) + " key = " + dataKey);
+                        return;
                     }
+                    JsonObject cloudpFile = fileInfo.getJsonObject("cloudpFile");
+                    JsonArray fileIdList = JsonArray.of(cloudpFile);
+                    // 构造请求JSON {"extCodeFlag":0,"isIp":0}
+                    JsonObject requestBodyJson = JsonObject.of("extCodeFlag", 0, "isIp", 0);
+                    requestBodyJson.put("shareId", Integer.parseInt(fileInfo.getString("shareId"))); // 注意shareId
+                    // 数据类型
+                    requestBodyJson.put("groupId", cloudpFile.getString("groupId"));
+                    requestBodyJson.put("fileIdList", fileInfo.getJsonArray("cloudpFileList"));
+
+                    // 第二次请求 获取下载链接
+                    client.postAbs(DOWNLOAD_REQUEST_URL).sendJsonObject(requestBodyJson).onSuccess(res2 -> {
+                        JsonObject jsonRes = res2.bodyAsJsonObject();
+                        log.debug("ecPan get download url -> {}", res2.body().toString());
+                        promise.complete(jsonRes.getJsonObject("var").getString("downloadUrl"));
+                    }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Ec", dataKey, t)));
                 }
-        ).onFailure(t -> {
-            promise.fail(new RuntimeException("解析异常: key = " + dataKey, t.fillInStackTrace()));
-        });
+        ).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Ec", dataKey, t)));;
         return promise.future();
     }
 }

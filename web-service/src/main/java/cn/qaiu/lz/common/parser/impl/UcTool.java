@@ -2,6 +2,7 @@ package cn.qaiu.lz.common.parser.impl;
 
 import cn.qaiu.lz.common.parser.IPanTool;
 import cn.qaiu.lz.common.util.CommonUtils;
+import cn.qaiu.lz.common.util.PanExceptionUtils;
 import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -12,7 +13,7 @@ import io.vertx.uritemplate.UriTemplate;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 移动云空间解析
+ * UC网盘解析
  */
 @Slf4j
 public class UcTool implements IPanTool {
@@ -74,13 +75,11 @@ public class UcTool implements IPanTool {
                                                 return;
                                             }
                                             promise.complete(resJson3.getJsonArray("data").getJsonObject(0).getString("download_url"));
-                                        })
-                                        .onFailure(t -> promise
-                                                .fail(new RuntimeException("解析异常: ", t.fillInStackTrace())));
+                                        }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Uc", dataKey, t)));
 
                             }).onFailure(t -> promise.fail(new RuntimeException("解析异常: ", t.fillInStackTrace())));
                 }
-        ).onFailure(t -> promise.fail(new RuntimeException("解析异常: key = " + dataKey, t.fillInStackTrace())));
+        ).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Uc", dataKey, t)));
         return promise.future();
     }
 }

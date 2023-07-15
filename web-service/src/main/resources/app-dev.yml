@@ -10,25 +10,29 @@ server:
 # 反向代理服务器配置路径(不用加后缀)
 proxyConf: server-proxy
 
+# vertx线程配置 事件循环线程配置为0: eventLoopPoolSize将会采用默认配置(CPU核心*2) workerPoolSize将会采用默认20
 vertx:
-  eventLoopPoolSize: 8
-  workerPoolSize: 20
+  eventLoopPoolSize: 0
+  workerPoolSize: 0
+
 custom:
-  asyncServiceInstances: 8
+  # 异步服务线程数
+  asyncServiceInstances: 4
+  # server路由(controller层)所在包路径
   routerLocations: cn.qaiu.lz.web.http
+  # 拦截器包路径
   interceptorClassPath: cn.qaiu.lz.common.interceptorImpl.DefaultInterceptor
+  # server层包路径
   handlerLocations: cn.qaiu.lz.web.service
+  # 匹配规则
   ignoresReg:
     - .*/login$
     - .*/test.*$
+  # 实体类包路径匹配正则
   entityPackagesReg:
     - ^cn\.qaiu\.lz\.web\.model\..*
-  errorPage404: /index.html
-  indexPage: /test2
-  sharedLogin: true
-lzConfig:
-  config: '111'
 
+# 数据源配置
 dataSource:
   provider_class: io.vertx.ext.jdbc.spi.impl.HikariCPDataSourceProvider
   jdbcUrl: jdbc:h2:tcp://127.0.0.1:9095/./db/myData;MODE=MySQL;DATABASE_TO_LOWER=FALSE

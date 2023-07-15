@@ -1,11 +1,11 @@
 package cn.qaiu.lz.common.parser.impl;
 
 import cn.qaiu.lz.common.parser.IPanTool;
+import cn.qaiu.lz.common.util.PanExceptionUtils;
 import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
@@ -32,11 +32,11 @@ public class LzTool implements IPanTool {
         client.getAbs(key).send().onSuccess(res -> {
             String html = res.bodyAsString();
             // 匹配iframe
-            Pattern compile = Pattern.compile("src=\"(/fn\\?[a-zA-Z0-9_+/=]{16,})\"");
+            Pattern compile = Pattern.compile("src=\"(/fn\\?[a-zA-Z\\d_+/=]{16,})\"");
             Matcher matcher = compile.matcher(html);
             if (!matcher.find()) {
                 // 没有Iframe说明是加密分享, 匹配sign通过密码请求下载页面
-                Pattern compile2 = Pattern.compile("sign=([0-9a-zA-Z_]{16,})");
+                Pattern compile2 = Pattern.compile("sign=(\\w{16,})");
                 Matcher matcher2 = compile2.matcher(html);
                 if (!matcher2.find()) {
                     promise.fail(key + ": sign正则匹配失败, 可能分享已失效: " + html);
@@ -50,15 +50,15 @@ public class LzTool implements IPanTool {
             client.getAbs(SHARE_URL_PREFIX + iframePath).send().onSuccess(res2 -> {
                 String html2 = res2.bodyAsString();
                 System.out.println(html);
-                Matcher matcher2 = Pattern.compile("'sign'\s*:\s*'([0-9a-zA-Z_]+)'").matcher(html2);
+                Matcher matcher2 = Pattern.compile("'sign'\s*:\s*'(\\w+)'").matcher(html2);
                 if (!matcher2.find()) {
                     promise.fail(SHARE_URL_PREFIX + iframePath + " -> " + key + ": sign正则匹配失败, 可能分享已失效: " + html2);
                     return;
                 }
                 String sign = matcher2.group(1);
                 getDownURL(promise, code, key, client, sign);
-            });
-        });
+            }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Lz", key, t)));
+        }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Lz", key, t)));
         return promise.future();
     }
 
@@ -83,9 +83,9 @@ public class LzTool implements IPanTool {
                 return;
             }
             String downUrl = urlJson.getString("dom") + "/file/" + urlJson.getString("url");
-            client.getAbs(downUrl).putHeaders(headers).send().onSuccess(res3 -> {
-                promise.complete(res3.headers().get("Location"));
-            });
-        });
+            client.getAbs(downUrl).putHeaders(headers).send()
+                    .onSuccess(res3 -> promise.complete(res3.headers().get("Location")))
+                    .onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Lz", key, t)));
+        }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Lz", key, t)));
     }
 }
