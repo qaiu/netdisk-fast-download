@@ -57,9 +57,9 @@ public class FcTool implements IPanTool {
                         .set("requesttoken", token)
                         .set("password", code)).onSuccess(res2 -> {
                     if (res2.statusCode() == 302) {
-                        sClient.getAbs(res2.getHeader("Location")).send().onSuccess(res3 -> {
-                            getDownURL(dataKey, promise, res3, sClient);
-                        }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Fc", dataKey, t)));
+                        sClient.getAbs(res2.getHeader("Location")).send().onSuccess(res3 ->
+                                getDownURL(dataKey, promise, res3, sClient))
+                                .onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Fc", dataKey, t)));
                         return;
                     }
                     promise.fail(SHARE_URL_PREFIX + " 密码跳转后获取重定向失败 \n" + html);
@@ -71,7 +71,7 @@ public class FcTool implements IPanTool {
         return promise.future();
     }
 
-    private static void getDownURL(String dataKey, Promise<String> promise, HttpResponse<Buffer> res,
+    private void getDownURL(String dataKey, Promise<String> promise, HttpResponse<Buffer> res,
                                    WebClientSession sClient) {
         // 从HTML中找到文件id
         String html = res.bodyAsString();
