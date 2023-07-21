@@ -62,7 +62,7 @@ public class LzTool implements IPanTool {
         return promise.future();
     }
 
-    private static void getDownURL(Promise<String> promise, String code, String key, WebClient client, String sign) {
+    private void getDownURL(Promise<String> promise, String code, String key, WebClient client, String sign) {
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         var userAgent2 = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, " +
                 "like " +
