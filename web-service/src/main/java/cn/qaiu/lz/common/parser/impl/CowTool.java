@@ -56,7 +56,7 @@ public class CowTool implements IPanTool {
             }
             log.error("cow parse fail: {}; json: {}", key, resJson);
             promise.fail("cow parse fail: " + key + "; json:" + resJson);
-        }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Cow", key, t)));;
+        }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Cow", key, t)));
         return promise.future();
     }
 
