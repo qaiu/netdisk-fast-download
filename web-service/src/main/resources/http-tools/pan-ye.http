@@ -82,3 +82,26 @@ Content-Type:application/json;charset=UTF-8
   },
   "publicPath": "https://www.123pan.com/a/api/"
 }
+
+
+###
+https://www.123pan.com/b/api/share/get?limit=100&next=1&orderBy=file_name&orderDirection=asc&shareKey=iaKtVv-6OECd&SharePwd=DcGe&ParentFileId=0&Page=1&event=homeListFile&operateType=1&auth-key=1689990170-3703305-62c1030a465013b7c18eddb49156b67b
+
+
+# 23/07/22 123pan添加header
+###
+POST https://www.123pan.com/b/api/share/download/info?auth-key=1689996626-2926572-49f4cde9a911469869ee264cb6ae8426
+App-Version:3
+Platform:web
+
+{"ShareKey":"iaKtVv-6OECd","FileID":2193732,"S3keyFlag":"1811834632-0","Size":4203111,"Etag":"69c94adbc0b9190cf23c4e958d8c7c53"}
+
+
+
+
+###
+
+https://www.123pan.com/a/api/share/get?limit=100&next=1&orderBy=file_name&orderDirection=asc&shareKey=iaKtVv-6OECd&SharePwd=DcGe&ParentFileId=0&Page=1&event=homeListFile&operateType=1
+
+
+
