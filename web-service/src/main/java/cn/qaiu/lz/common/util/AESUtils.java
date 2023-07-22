@@ -4,11 +4,14 @@ import org.apache.commons.lang3.StringUtils;
 
 import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.util.Date;
 import java.util.HexFormat;
 import java.util.Random;
 
@@ -257,5 +260,31 @@ public class AESUtils {
     }
 
 
+    //=============================== 123pan加密相关 ===============================
+
+    public static String getMD5Str(String str) {
+        byte[] digest;
+        try {
+            MessageDigest md5 = MessageDigest.getInstance("md5");
+            digest = md5.digest(str.getBytes(StandardCharsets.UTF_8));
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+        //16是表示转换为16进制数
+        return new BigInteger(1, digest).toString(16);
+    }
+
+    public static String getAuthKey() {
+        String _0x2207af = "/b/api/share/download/info";
+        String _0x467baa = "web";
+        int _0x4965f1 = 3;
+
+        String _0x430930 = String.valueOf(Math.round(0x989680 * Math.random()));
+        String _0x53928f = String.valueOf(new Date().getTime() / 0x3e8);
+        String _0x49ec94 = getMD5Str(_0x53928f + "|" + _0x430930 + "|" + _0x2207af + "|" + _0x467baa + "|" + _0x4965f1
+                + "|8-8D$sL8gPjom7bk#cY");
+
+        return _0x53928f + "-" + _0x430930 + "-" + _0x49ec94;
+    }
 
 }
