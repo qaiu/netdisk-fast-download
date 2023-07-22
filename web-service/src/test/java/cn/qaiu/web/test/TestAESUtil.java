@@ -62,4 +62,19 @@ public class TestAESUtil {
         System.out.println(AESUtils.getRandomString());
         System.out.println(AESUtils.getRandomString());
     }
+
+    @Test
+    public void testKeyAuth(){
+        System.out.println(AESUtils.getAuthKey());
+        System.out.println(AESUtils.getAuthKey());
+        System.out.println(AESUtils.getAuthKey());
+    }
+
+
+    @Test
+    public void testAES2() throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException,
+            BadPaddingException, InvalidKeyException {
+        System.out.println(AESUtils.encryptBase64ByAES("AAAAA", "123123"));
+        System.out.println(AESUtils.encryptBase64ByAES("AAAAA", AESUtils.generateKey("123123")));
+    }
 }

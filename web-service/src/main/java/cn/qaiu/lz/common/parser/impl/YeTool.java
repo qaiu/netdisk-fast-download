@@ -1,6 +1,7 @@
 package cn.qaiu.lz.common.parser.impl;
 
 import cn.qaiu.lz.common.parser.IPanTool;
+import cn.qaiu.lz.common.util.AESUtils;
 import cn.qaiu.lz.common.util.CommonUtils;
 import cn.qaiu.lz.common.util.PanExceptionUtils;
 import cn.qaiu.vx.core.util.VertxHolder;
@@ -28,6 +29,8 @@ public class YeTool implements IPanTool {
     private static final String GET_FILE_INFO_URL = "https://www.123pan.com/a/api/share/get?limit=100&next=1&orderBy" +
             "=file_name&orderDirection=asc&shareKey={shareKey}&SharePwd={pwd}&ParentFileId=0&Page=1&event" +
             "=homeListFile&operateType=1";
+
+    private static final String DOWNLOAD_API_URL = "https://www.123pan.com/b/api/share/download/info?auth-key={authKey}";
 
     public Future<String> parse(String data, String code) {
 
@@ -88,21 +91,39 @@ public class YeTool implements IPanTool {
 
     private static void getDownUrl(Promise<String> promise, WebClient client, JsonObject reqBodyJson) {
         log.info(reqBodyJson.encodePrettily());
-        client.postAbs("https://www.123pan.com/a/api/share/download/info").sendJsonObject(reqBodyJson).onSuccess(res2 -> {
-            JsonObject downURLJson = res2.bodyAsJsonObject();
-            System.out.println(downURLJson);
-            if (downURLJson.getInteger("code") != 0) {
-                return;
-            }
-            String downURL = downURLJson.getJsonObject("data").getString("DownloadURL");
-            try {
-                Map<String, String> urlParams = CommonUtils.getURLParams(downURL);
-                String params = urlParams.get("params");
-                byte[] decodeByte = Base64.getDecoder().decode(params);
-                promise.complete(new String(decodeByte));
-            } catch (MalformedURLException e) {
-                promise.fail("urlParams解析异常" + e.getMessage());
-            }
-        }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Ye", reqBodyJson.encodePrettily(), t)));
+        client.postAbs(UriTemplate.of(DOWNLOAD_API_URL))
+                .setTemplateParam("authKey", AESUtils.getAuthKey())
+                .putHeader("Platform", "web")
+                .putHeader("App-Version", "3")
+                .sendJsonObject(reqBodyJson).onSuccess(res2 -> {
+                    JsonObject downURLJson = res2.bodyAsJsonObject();
+
+                    if (downURLJson.getInteger("code") != 0) {
+                        promise.fail("Ye: downURLJson返回值异常->" + downURLJson);
+                        return;
+                    }
+                    String downURL = downURLJson.getJsonObject("data").getString("DownloadURL");
+                    try {
+                        Map<String, String> urlParams = CommonUtils.getURLParams(downURL);
+                        String params = urlParams.get("params");
+                        byte[] decodeByte = Base64.getDecoder().decode(params);
+                        String downUrl2 = new String(decodeByte);
+
+                        // 获取直链
+                        client.getAbs(downUrl2).send().onSuccess(res3 -> {
+                            JsonObject res3Json = res3.bodyAsJsonObject();
+                            if (res3Json.getInteger("code") != 0) {
+                                promise.fail("Ye: downUrl2返回值异常->" + res3Json);
+                                return;
+                            }
+                            promise.complete(res3Json.getJsonObject("data").getString("redirect_url"));
+
+                        }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Ye",
+                                reqBodyJson.encodePrettily(), t)));
+
+                    } catch (MalformedURLException e) {
+                        promise.fail("urlParams解析异常" + e.getMessage());
+                    }
+                }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Ye", reqBodyJson.encodePrettily(), t)));
     }
 }
