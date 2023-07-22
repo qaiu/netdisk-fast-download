@@ -114,6 +114,12 @@ GET http://127.0.0.1:6400/json/fc/e5079007dc31226096628870c7@QAIU
 
 # 打包部署
 
+## JDK下载
+[阿里jdk17(Dragonwell17-windows-x86)](https://lz.qaiu.top/ye/iaKtVv-hbECd)
+[阿里jdk17(Dragonwell17-linux-x86)](https://lz.qaiu.top/ye/iaKtVv-AbECd)
+[阿里jdk17(Dragonwell17-linux-aarch64)](https://lz.qaiu.top/ye/iaKtVv-HbECd)
+
+
 ## 开发和打包
 
 ```shell
@@ -158,5 +164,6 @@ systemctl disable netdisk-fast-download.servic
 3. 使用管理员权限运行nfd-service-install.bat
 如果不想使用服务运行可以直接运行run.bat
 > 注意: 如果jdk环境变量的java版本不是17请修改nfd-service-template.xml中的java命令的路径改为实际路径
+
 ## Docker部署
 TODO
