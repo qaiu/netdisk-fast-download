@@ -6,6 +6,7 @@
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/qaiu/netdisk-fast-download)](https://github.com/qaiu/netdisk-fast-download/releases/tag/0.1.6-releases)
 
 ## 网盘支持情况:
+> 20230722 UC网盘解析失效，需要登录
 `网盘名称(网盘标识):`
 
 - [蓝奏云 (lz)](https://pc.woozooo.com/)
@@ -17,7 +18,7 @@
 - [移动云空间 (ec)](https://www.ecpan.cn/web)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
-- [UC网盘 (uc)](https://fast.uc.cn/)
+- [UC网盘 (uc)似乎已经失效，需要登录](https://fast.uc.cn/)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
 - [小飞机网盘 (fj)](https://www.feijipan.com/)
