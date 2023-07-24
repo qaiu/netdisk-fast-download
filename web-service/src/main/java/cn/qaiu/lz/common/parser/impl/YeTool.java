@@ -99,8 +99,8 @@ public class YeTool implements IPanTool {
         JsonObject jsonObject = new JsonObject();
         // {"ShareKey":"iaKtVv-6OECd","FileID":2193732,"S3keyFlag":"1811834632-0","Size":4203111,"Etag":"69c94adbc0b9190cf23c4e958d8c7c53"}
         jsonObject.put("ShareKey", reqBodyJson.getString("ShareKey"));
-        jsonObject.put("FileID", reqBodyJson.getInteger("FileID"));
-        jsonObject.put("S3keyFlag", reqBodyJson.getString("S3keyFlag"));
+        jsonObject.put("FileID", reqBodyJson.getInteger("FileId"));
+        jsonObject.put("S3keyFlag", reqBodyJson.getString("S3KeyFlag"));
         jsonObject.put("Size", reqBodyJson.getInteger("Size"));
         jsonObject.put("Etag", reqBodyJson.getString("Etag"));
         client.postAbs(UriTemplate.of(DOWNLOAD_API_URL))
