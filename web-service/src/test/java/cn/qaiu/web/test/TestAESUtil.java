@@ -65,9 +65,9 @@ public class TestAESUtil {
 
     @Test
     public void testKeyAuth(){
-        System.out.println(AESUtils.getAuthKey());
-        System.out.println(AESUtils.getAuthKey());
-        System.out.println(AESUtils.getAuthKey());
+        System.out.println(AESUtils.getAuthKey("/b/api/share/download/info"));
+        System.out.println(AESUtils.getAuthKey("/b/api/share/download/info"));
+        System.out.println(AESUtils.getAuthKey("/b/api/share/get"));
     }
 
 

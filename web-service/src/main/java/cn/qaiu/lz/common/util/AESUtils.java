@@ -274,8 +274,7 @@ public class AESUtils {
         return new BigInteger(1, digest).toString(16);
     }
 
-    public static String getAuthKey() {
-        String _0x2207af = "/b/api/share/download/info";
+    public static String getAuthKey(String _0x2207af) {
         String _0x467baa = "web";
         int _0x4965f1 = 3;
 

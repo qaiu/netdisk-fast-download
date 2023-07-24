@@ -37,9 +37,9 @@ Accept: application/json, text/plain, */*
 ### 获取下载文件URL
 POST https://www.wenshushu.cn/ap/dl/sign
 Accept: application/json, text/plain, */*
-X-Token:wss:bekzdwsfwwf
+X-Token:wss:br57uq0qg03
 
-{"ufileid":"bekoe5n508z","consumeCode":0,"type":1}
+{"ufileid":"br4t1rst6xb","consumeCode":0,"type":1}
 
 ###
 # {
@@ -49,5 +49,5 @@ X-Token:wss:bekzdwsfwwf
 #    "url": "https://down.wss.show/zkrk4th/9/yj/9yjvzkrk4th?cdn_sign=1686211254-31-0-6edd2e228a030be23210158daeb2c4a1&exp=4800&response-content-disposition=attachment%3B%20filename%3D%22supervision.sql%22%3B%20filename%2A%3Dutf-8%27%27supervision.sql",
 
 ### 直接下载
-https://down.wss.show/zkrk4th/9/yj/9yjvzkrk4th?cdn_sign=1686211254-31-0-6edd2e228a030be23210158daeb2c4a1&exp=4800&response-content-disposition=attachment%3B%20filename%3D%22supervision.sql%22%3B%20filename%2A%3Dutf-8%27%27supervision.sql
+https://down.wss.show/zkrk4th/9/yj/9yjvzkrk4th?cdn_sign=1690012643-63-0-f7761ba9a500a0b300a3b5573693f9ce&exp=4800&response-content-disposition=attachment%3B%20filename%3D%22supervision.sql%22%3B%20filename%2A%3Dutf-8%27%27supervision.sql
 
