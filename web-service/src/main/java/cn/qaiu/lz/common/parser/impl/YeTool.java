@@ -26,9 +26,11 @@ import java.util.regex.Pattern;
 public class YeTool implements IPanTool {
     public static final String SHARE_URL_PREFIX = "https://www.123pan.com/s/";
     public static final String FIRST_REQUEST_URL = SHARE_URL_PREFIX + "{key}.html";
-    private static final String GET_FILE_INFO_URL = "https://www.123pan.com/a/api/share/get?limit=100&next=1&orderBy" +
-            "=file_name&orderDirection=asc&shareKey={shareKey}&SharePwd={pwd}&ParentFileId=0&Page=1&event" +
-            "=homeListFile&operateType=1";
+//    private static final String GET_FILE_INFO_URL = "https://www.123pan.com/a/api/share/get?limit=100&next=1&orderBy" +
+//            "=file_name&orderDirection=asc&shareKey={shareKey}&SharePwd={pwd}&ParentFileId=0&Page=1&event" +
+//            "=homeListFile&operateType=1";
+    private static final String GET_FILE_INFO_URL="https://www.123pan.com/b/api/share/get?limit=100&next=1&orderBy=file_name&orderDirection=asc" +
+            "&shareKey={shareKey}&SharePwd={pwd}&ParentFileId=0&Page=1&event=homeListFile&operateType=1&auth-key={authKey}";
 
     private static final String DOWNLOAD_API_URL = "https://www.123pan.com/b/api/share/download/info?auth-key={authKey}";
 
@@ -64,6 +66,9 @@ public class YeTool implements IPanTool {
                     client.getAbs(UriTemplate.of(GET_FILE_INFO_URL))
                             .setTemplateParam("shareKey", shareKey)
                             .setTemplateParam("pwd", code)
+                            .setTemplateParam("authKey", AESUtils.getAuthKey("/b/api/share/get"))
+                            .putHeader("Platform", "web")
+                            .putHeader("App-Version", "3")
                             .send().onSuccess(res2 -> {
                                 JsonObject infoJson = res2.bodyAsJsonObject();
                                 if (infoJson.getInteger("code") != 0) {
@@ -91,15 +96,27 @@ public class YeTool implements IPanTool {
 
     private static void getDownUrl(Promise<String> promise, WebClient client, JsonObject reqBodyJson) {
         log.info(reqBodyJson.encodePrettily());
+        JsonObject jsonObject = new JsonObject();
+        // {"ShareKey":"iaKtVv-6OECd","FileID":2193732,"S3keyFlag":"1811834632-0","Size":4203111,"Etag":"69c94adbc0b9190cf23c4e958d8c7c53"}
+        jsonObject.put("ShareKey", reqBodyJson.getString("ShareKey"));
+        jsonObject.put("FileID", reqBodyJson.getInteger("FileID"));
+        jsonObject.put("S3keyFlag", reqBodyJson.getString("S3keyFlag"));
+        jsonObject.put("Size", reqBodyJson.getInteger("Size"));
+        jsonObject.put("Etag", reqBodyJson.getString("Etag"));
         client.postAbs(UriTemplate.of(DOWNLOAD_API_URL))
-                .setTemplateParam("authKey", AESUtils.getAuthKey())
+                .setTemplateParam("authKey", AESUtils.getAuthKey("/b/api/share/download/info"))
                 .putHeader("Platform", "web")
                 .putHeader("App-Version", "3")
-                .sendJsonObject(reqBodyJson).onSuccess(res2 -> {
+                .sendJsonObject(jsonObject).onSuccess(res2 -> {
                     JsonObject downURLJson = res2.bodyAsJsonObject();
 
-                    if (downURLJson.getInteger("code") != 0) {
-                        promise.fail("Ye: downURLJson返回值异常->" + downURLJson);
+                    try {
+                        if (downURLJson.getInteger("code") != 0) {
+                            promise.fail("Ye: downURLJson返回值异常->" + downURLJson);
+                            return;
+                        }
+                    } catch(Exception ignored) {
+                        promise.fail("Ye: downURLJson格式异常->" + downURLJson);
                         return;
                     }
                     String downURL = downURLJson.getJsonObject("data").getString("DownloadURL");
@@ -112,10 +129,16 @@ public class YeTool implements IPanTool {
                         // 获取直链
                         client.getAbs(downUrl2).send().onSuccess(res3 -> {
                             JsonObject res3Json = res3.bodyAsJsonObject();
-                            if (res3Json.getInteger("code") != 0) {
-                                promise.fail("Ye: downUrl2返回值异常->" + res3Json);
+                            try {
+                                if (res3Json.getInteger("code") != 0) {
+                                    promise.fail("Ye: downUrl2返回值异常->" + res3Json);
+                                    return;
+                                }
+                            } catch(Exception ignored) {
+                                promise.fail("Ye: downUrl2格式异常->" + downURLJson);
                                 return;
                             }
+
                             promise.complete(res3Json.getJsonObject("data").getString("redirect_url"));
 
                         }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Ye",
