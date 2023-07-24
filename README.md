@@ -6,6 +6,9 @@
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/qaiu/netdisk-fast-download)](https://github.com/qaiu/netdisk-fast-download/releases/tag/0.1.6-releases)
 
 ## 网盘支持情况:
+> 20230722 UC网盘解析失效，需要登录
+
+
 `网盘名称(网盘标识):`
 
 - [蓝奏云 (lz)](https://pc.woozooo.com/)
@@ -17,7 +20,7 @@
 - [移动云空间 (ec)](https://www.ecpan.cn/web)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
-- [UC网盘 (uc)](https://fast.uc.cn/)
+- [UC网盘 (uc)似乎已经失效，需要登录](https://fast.uc.cn/)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
 - [小飞机网盘 (fj)](https://www.feijipan.com/)
@@ -105,7 +108,7 @@ GET http://127.0.0.1:6400/json/fc/e5079007dc31226096628870c7@QAIU
 | 蓝奏云        | √                      | √        | 不限空间      | 100M    | TODO |
 | 奶牛快传       | √                      | X        | 10G       | 不限大小    | TODO |
 | 移动云空间      | √                      | √(密码可忽略) | 5G(个人)    | 不限大小    | TODO |
-| UC网盘       | √                      | √        | 10G       | 不限大小    | TODO |
+| UC网盘       | 需要登录                      | √        | 10G       | 不限大小    | TODO |
 | 小飞机网盘      | √                      | √(密码可忽略) | 10G       | 不限大小    | TODO |
 | 360亿方云     | √(试用账号有时间限制企业版需要599续费) | √(密码可忽略) | 100G(须实名) | 不限大小    | TODO |
 | 123云盘      | √                      | √        | 2T        | 100G    | TODO |
@@ -113,6 +116,12 @@ GET http://127.0.0.1:6400/json/fc/e5079007dc31226096628870c7@QAIU
 | 夸克网盘(TODO) | 需要登录                   | √        | 10G       | 不限大小    | TODO |
 
 # 打包部署
+
+## JDK下载
+- [阿里jdk17(Dragonwell17-windows-x86)](https://lz.qaiu.top/ye/iaKtVv-hbECd)
+- [阿里jdk17(Dragonwell17-linux-x86)](https://lz.qaiu.top/ye/iaKtVv-AbECd)
+- [阿里jdk17(Dragonwell17-linux-aarch64)](https://lz.qaiu.top/ye/iaKtVv-HbECd)
+
 
 ## 开发和打包
 
@@ -158,5 +167,6 @@ systemctl disable netdisk-fast-download.servic
 3. 使用管理员权限运行nfd-service-install.bat
 如果不想使用服务运行可以直接运行run.bat
 > 注意: 如果jdk环境变量的java版本不是17请修改nfd-service-template.xml中的java命令的路径改为实际路径
+
 ## Docker部署
 TODO
