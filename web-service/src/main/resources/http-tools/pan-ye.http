@@ -104,4 +104,18 @@ Platform:web
 https://www.123pan.com/a/api/share/get?limit=100&next=1&orderBy=file_name&orderDirection=asc&shareKey=iaKtVv-6OECd&SharePwd=DcGe&ParentFileId=0&Page=1&event=homeListFile&operateType=1
 
 
+###
+POST https://www.123pan.com/b/api/share/download/info?1091802552=1690430466-4809035-157589386
+App-Version:3
+Platform:web
 
+{"ShareKey":"iaKtVv-6OECd","FileID":2193732,"S3keyFlag":"1811834632-0","Size":4203111,"Etag":"69c94adbc0b9190cf23c4e958d8c7c53"}
+
+###
+POST https://www.123pan.com/b/api/share/statistics?1091802552=1690430466-4809035-157589386
+App-Version:3
+Platform:web
+
+{"ShareKey":"iaKtVv-6OECd","behavior":1}
+
+### eaefamemdead
