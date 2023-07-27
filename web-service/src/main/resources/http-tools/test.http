@@ -82,6 +82,8 @@ GET http://127.0.0.1:6400/fc/e5079007dc31226096628870c7@QAIU
 GET http://127.0.0.1:6400/json/ye/iaKtVv-ICECd
 ### 123
 GET http://127.0.0.1:6400/json/ye/iaKtVv-6OECd@DcGe
+### 123
+GET https://lz.qaiu.top/json/ye/iaKtVv-6OECd@DcGe
 
 ### 123
 # @no-redirect
@@ -93,3 +95,5 @@ GET http://127.0.0.1:6400/parser?url=https://www.123pan.com/s/iaKtVv-6OECd.html&
 
 ###
 POST http://127.0.0.1:6400/login1
+
+
