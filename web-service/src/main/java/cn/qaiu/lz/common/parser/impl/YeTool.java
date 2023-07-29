@@ -1,8 +1,8 @@
 package cn.qaiu.lz.common.parser.impl;
 
 import cn.qaiu.lz.common.parser.IPanTool;
-import cn.qaiu.lz.common.util.AESUtils;
 import cn.qaiu.lz.common.util.CommonUtils;
+import cn.qaiu.lz.common.util.JsExecUtils;
 import cn.qaiu.lz.common.util.PanExceptionUtils;
 import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
@@ -12,7 +12,10 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.uritemplate.UriTemplate;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.openjdk.nashorn.api.scripting.ScriptObjectMirror;
 
+import javax.script.ScriptException;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.Base64;
 import java.util.Map;
@@ -26,13 +29,19 @@ import java.util.regex.Pattern;
 public class YeTool implements IPanTool {
     public static final String SHARE_URL_PREFIX = "https://www.123pan.com/s/";
     public static final String FIRST_REQUEST_URL = SHARE_URL_PREFIX + "{key}.html";
-//    private static final String GET_FILE_INFO_URL = "https://www.123pan.com/a/api/share/get?limit=100&next=1&orderBy" +
-//            "=file_name&orderDirection=asc&shareKey={shareKey}&SharePwd={pwd}&ParentFileId=0&Page=1&event" +
-//            "=homeListFile&operateType=1";
-    private static final String GET_FILE_INFO_URL="https://www.123pan.com/b/api/share/get?limit=100&next=1&orderBy=file_name&orderDirection=asc" +
-            "&shareKey={shareKey}&SharePwd={pwd}&ParentFileId=0&Page=1&event=homeListFile&operateType=1&auth-key={authKey}";
+/*
+    private static final String GET_FILE_INFO_URL = "https://www.123pan.com/a/api/share/get?limit=100&next=1&orderBy" +
+            "=file_name&orderDirection=asc&shareKey={shareKey}&SharePwd={pwd}&ParentFileId=0&Page=1&event" +
+            "=homeListFile&operateType=1";
+    private static final String GET_FILE_INFO_URL="https://www.123pan
+    .com/b/api/share/get?limit=100&next=1&orderBy=file_name&orderDirection=asc" +
+            "&shareKey={shareKey}&SharePwd={pwd}&ParentFileId=0&Page=1&event=homeListFile&operateType=1&auth-key
+            ={authKey}";
+*/
 
-    private static final String DOWNLOAD_API_URL = "https://www.123pan.com/b/api/share/download/info?auth-key={authKey}";
+    private static final String GET_FILE_INFO_URL="https://www.123pan.com/b/api/share/get?limit=100&next=1&orderBy=file_name&orderDirection=asc" +
+            "&shareKey={shareKey}&SharePwd={pwd}&ParentFileId=0&Page=1&event=homeListFile&operateType=1";
+    private static final String DOWNLOAD_API_URL = "https://www.123pan.com/b/api/share/download/info?{authK}={authV}";
 
     public Future<String> parse(String data, String code) {
 
@@ -66,7 +75,7 @@ public class YeTool implements IPanTool {
                     client.getAbs(UriTemplate.of(GET_FILE_INFO_URL))
                             .setTemplateParam("shareKey", shareKey)
                             .setTemplateParam("pwd", code)
-                            .setTemplateParam("authKey", AESUtils.getAuthKey("/b/api/share/get"))
+                            // .setTemplateParam("authKey", AESUtils.getAuthKey("/b/api/share/get"))
                             .putHeader("Platform", "web")
                             .putHeader("App-Version", "3")
                             .send().onSuccess(res2 -> {
@@ -103,8 +112,23 @@ public class YeTool implements IPanTool {
         jsonObject.put("S3keyFlag", reqBodyJson.getString("S3KeyFlag"));
         jsonObject.put("Size", reqBodyJson.getInteger("Size"));
         jsonObject.put("Etag", reqBodyJson.getString("Etag"));
+
+        // 调用JS文件获取签名
+        ScriptObjectMirror getSign;
+        try {
+            getSign = JsExecUtils.executeJs("getSign", "/b/api/share/download/info");
+        } catch (ScriptException | IOException | NoSuchMethodException e) {
+            promise.fail(e);
+            return;
+        }
+        if (getSign == null) {
+            promise.fail("getSign failed");
+            return;
+        }
+
         client.postAbs(UriTemplate.of(DOWNLOAD_API_URL))
-                .setTemplateParam("authKey", AESUtils.getAuthKey("/b/api/share/download/info"))
+                .setTemplateParam("authK", getSign.get("0").toString())
+                .setTemplateParam("authV", getSign.get("1").toString())
                 .putHeader("Platform", "web")
                 .putHeader("App-Version", "3")
                 .sendJsonObject(jsonObject).onSuccess(res2 -> {
