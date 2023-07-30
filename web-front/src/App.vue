@@ -7,7 +7,7 @@
             <el-avatar :size="150" :src="avatar"></el-avatar>
           </div>
         </div>
-        <h1 style="text-align: center;">netdisk-fast-download网盘直链解析</h1>
+        <h3 style="text-align: center;">netdisk-fast-download网盘直链解析</h3>
         <div class="typo">
           <p><strong>项目地址 </strong><a href="https://github.com/qaiu/netdisk-fast-download" target="_blank"
                                       rel="nofollow"><u>点我跳转</u></a></p>
@@ -24,11 +24,11 @@
               <el-button slot="append" @click="onSubmit">解析</el-button>
             </el-input>
             <el-input placeholder="请输入密码" v-model="password" id="url" lass="input-with-select"></el-input>
-            <el-input placeholder="解析地址" v-value="link" id="url" lass="input-with-select">
+            <el-input placeholder="解析地址" :value="getLink" id="url" lass="input-with-select">
               <el-button slot="append"  v-clipboard:copy="getLink"
                          v-clipboard:success="onCopy"
                          v-clipboard:error="onError">点我复制</el-button>
-            </el-input>
+           </el-input>
           </div>
           <div v-show="respData" style="margin-top: 10px">
             <strong>解析结果: </strong>
@@ -125,7 +125,7 @@ export default {
       this.isLoading = true
       this.downUrl = ''
       this.respData = ''
-      this.getLink = `http://127.0.0.1:6400/json/parser?url=${this.link}`
+      this.getLink = location.protocol + "//" +  location.hostname + `:6400/json/parser?url=${this.link}`
       if (this.password) {
         this.getLink += `&pwd=${this.password}`
       }
