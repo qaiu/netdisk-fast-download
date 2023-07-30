@@ -117,11 +117,11 @@ GET http://127.0.0.1:6400/json/fc/e5079007dc31226096628870c7@QAIU
 
 # 打包部署
 
-## JDK下载
+## JDK下载（lz.qaiu.top提供直链云解析服务）
 - [阿里jdk17(Dragonwell17-windows-x86)](https://lz.qaiu.top/ye/iaKtVv-hbECd)
 - [阿里jdk17(Dragonwell17-linux-x86)](https://lz.qaiu.top/ye/iaKtVv-AbECd)
 - [阿里jdk17(Dragonwell17-linux-aarch64)](https://lz.qaiu.top/ye/iaKtVv-HbECd)
-
+- [123云盘解析有效性测试用-阿里jdk17(Dragonwell17-linux-aarch64)](https://lz.qaiu.top/json/ye/iaKtVv-HbECd)
 
 ## 开发和打包
 
