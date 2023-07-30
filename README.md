@@ -63,6 +63,17 @@ parser接口可以直接解析分享链接: 加密分享需要加上参数pwd=�
       http://your_host/parser?url=https://www.ecpan.cn/web/%23/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
       http://your_host/parser?url=https://www.ecpan.cn/&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
 ```
+json返回数据格式示例:  
+```json
+{
+    "code": 200,
+    "msg": "success",
+    "success": true,
+    "count": 0,
+    "data": "https://下载链接",
+    "timestamp": 1690733953927
+}
+```
 
 IDEA HttpClient示例:
 
@@ -117,11 +128,11 @@ GET http://127.0.0.1:6400/json/fc/e5079007dc31226096628870c7@QAIU
 
 # 打包部署
 
-## JDK下载
+## JDK下载（lz.qaiu.top提供直链云解析服务）
 - [阿里jdk17(Dragonwell17-windows-x86)](https://lz.qaiu.top/ye/iaKtVv-hbECd)
 - [阿里jdk17(Dragonwell17-linux-x86)](https://lz.qaiu.top/ye/iaKtVv-AbECd)
 - [阿里jdk17(Dragonwell17-linux-aarch64)](https://lz.qaiu.top/ye/iaKtVv-HbECd)
-
+- [123云盘解析有效性测试用-阿里jdk17(Dragonwell17-linux-aarch64)](https://lz.qaiu.top/json/ye/iaKtVv-HbECd)
 
 ## 开发和打包
 
