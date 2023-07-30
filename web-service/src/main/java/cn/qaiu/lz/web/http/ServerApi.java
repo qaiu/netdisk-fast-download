@@ -34,7 +34,7 @@ public class ServerApi {
         return userService.login(user);
     }
 
-    @RouteMapping(value = "/parser", method = RouteMethod.GET)
+    @RouteMapping(value = "/parser", method = RouteMethod.GET, order = 4)
     public Future<Void> parse(HttpServerResponse response, HttpServerRequest request, String url, String pwd) {
 
         Promise<Void> promise = Promise.promise();
@@ -53,8 +53,17 @@ public class ServerApi {
         return promise.future();
     }
 
+    @RouteMapping(value = "/json/parser", method = RouteMethod.GET, order = 3)
+    public Future<String> parseJson(HttpServerResponse response, HttpServerRequest request, String url, String pwd) {
+        if (url.contains(EcTool.SHARE_URL_PREFIX)) {
+            // 默认读取Url参数会被截断手动获取一下其他参数
+            url = EcTool.SHARE_URL_PREFIX + request.getParam("data");
+        }
+        return IPanTool.shareURLPrefixMatching(url).parse(url, pwd);
+    }
 
-    @RouteMapping(value = "/:type/:key", method = RouteMethod.GET)
+
+    @RouteMapping(value = "/:type/:key", method = RouteMethod.GET, order = 1)
     public void parseKey(HttpServerResponse response, String type, String key) {
         String code = "";
         if (key.contains("@")) {
@@ -70,7 +79,7 @@ public class ServerApi {
         });
     }
 
-    @RouteMapping(value = "/json/:type/:key", method = RouteMethod.GET)
+    @RouteMapping(value = "/json/:type/:key", method = RouteMethod.GET, order = 2)
     public Future<String> parseKeyJson(HttpServerResponse response, String type, String key) {
         String code = "";
         if (key.contains("@")) {
