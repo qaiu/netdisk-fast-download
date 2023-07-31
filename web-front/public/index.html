@@ -1,170 +1,166 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-
+<html lang="zh-cn">
 <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Netdisk fast download</title>
-    <meta name="keywords"
-          content="">
-    <meta name="description"
-          content="">
-    <style>
-        .page-loading-wrap {
-            padding: 120px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-        }
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Netdisk fast download</title>
+  <meta name="keywords"
+        content="Netdisk fast download,网盘直链解析工具">
+  <meta name="description"
+        content="Netdisk fast download 网盘直链解析工具">
 
-        .la-timer,
-        .la-timer>div {
-            position: relative;
-            -webkit-box-sizing: border-box;
-            -moz-box-sizing: border-box;
-            box-sizing: border-box;
-        }
+  <style>
+      .page-loading-wrap {
+          padding: 120px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          flex-direction: column;
+      }
 
-        .la-timer {
-            display: block;
-            font-size: 0;
-            color: #fff;
-        }
+      .la-timer,
+      .la-timer>div {
+          position: relative;
+          -webkit-box-sizing: border-box;
+          -moz-box-sizing: border-box;
+          box-sizing: border-box;
+      }
 
-        .la-timer.la-dark {
-            color: #333;
-        }
+      .la-timer {
+          display: block;
+          font-size: 0;
+          color: #fff;
+      }
 
-        .la-timer>div {
-            display: inline-block;
-            float: none;
-            background-color: currentColor;
-            border: 0 solid currentColor;
-        }
+      .la-timer.la-dark {
+          color: #333;
+      }
 
-        .la-timer {
-            width: 32px;
-            height: 32px;
-        }
+      .la-timer>div {
+          display: inline-block;
+          float: none;
+          background-color: currentColor;
+          border: 0 solid currentColor;
+      }
 
-        .la-timer>div {
-            width: 32px;
-            height: 32px;
-            background: transparent;
-            border-width: 2px;
-            border-radius: 100%;
-        }
+      .la-timer {
+          width: 32px;
+          height: 32px;
+      }
 
-        .la-timer>div:before,
-        .la-timer>div:after {
-            position: absolute;
-            top: 14px;
-            left: 14px;
-            display: block;
-            width: 2px;
-            margin-top: -1px;
-            margin-left: -1px;
-            content: "";
-            background: currentColor;
-            border-radius: 2px;
-            -webkit-transform-origin: 1px 1px 0;
-            -moz-transform-origin: 1px 1px 0;
-            -ms-transform-origin: 1px 1px 0;
-            -o-transform-origin: 1px 1px 0;
-            transform-origin: 1px 1px 0;
-            -webkit-animation: timer-loader 1250ms infinite linear;
-            -moz-animation: timer-loader 1250ms infinite linear;
-            -o-animation: timer-loader 1250ms infinite linear;
-            animation: timer-loader 1250ms infinite linear;
-            -webkit-animation-delay: -625ms;
-            -moz-animation-delay: -625ms;
-            -o-animation-delay: -625ms;
-            animation-delay: -625ms;
-        }
+      .la-timer>div {
+          width: 32px;
+          height: 32px;
+          background: transparent;
+          border-width: 2px;
+          border-radius: 100%;
+      }
 
-        .la-timer>div:before {
-            height: 12px;
-        }
+      .la-timer>div:before,
+      .la-timer>div:after {
+          position: absolute;
+          top: 14px;
+          left: 14px;
+          display: block;
+          width: 2px;
+          margin-top: -1px;
+          margin-left: -1px;
+          content: "";
+          background: currentColor;
+          border-radius: 2px;
+          -webkit-transform-origin: 1px 1px 0;
+          -moz-transform-origin: 1px 1px 0;
+          -ms-transform-origin: 1px 1px 0;
+          -o-transform-origin: 1px 1px 0;
+          transform-origin: 1px 1px 0;
+          -webkit-animation: timer-loader 1250ms infinite linear;
+          -moz-animation: timer-loader 1250ms infinite linear;
+          -o-animation: timer-loader 1250ms infinite linear;
+          animation: timer-loader 1250ms infinite linear;
+          -webkit-animation-delay: -625ms;
+          -moz-animation-delay: -625ms;
+          -o-animation-delay: -625ms;
+          animation-delay: -625ms;
+      }
 
-        .la-timer>div:after {
-            height: 8px;
-            -webkit-animation-duration: 15s;
-            -moz-animation-duration: 15s;
-            -o-animation-duration: 15s;
-            animation-duration: 15s;
-            -webkit-animation-delay: -7.5s;
-            -moz-animation-delay: -7.5s;
-            -o-animation-delay: -7.5s;
-            animation-delay: -7.5s;
-        }
+      .la-timer>div:before {
+          height: 12px;
+      }
 
-        @-webkit-keyframes timer-loader {
-            0% {
-                -webkit-transform: rotate(0deg);
-                transform: rotate(0deg);
-            }
+      .la-timer>div:after {
+          height: 8px;
+          -webkit-animation-duration: 15s;
+          -moz-animation-duration: 15s;
+          -o-animation-duration: 15s;
+          animation-duration: 15s;
+          -webkit-animation-delay: -7.5s;
+          -moz-animation-delay: -7.5s;
+          -o-animation-delay: -7.5s;
+          animation-delay: -7.5s;
+      }
 
-            100% {
-                -webkit-transform: rotate(360deg);
-                transform: rotate(360deg);
-            }
-        }
+      @-webkit-keyframes timer-loader {
+          0% {
+              -webkit-transform: rotate(0deg);
+              transform: rotate(0deg);
+          }
 
-        @-moz-keyframes timer-loader {
-            0% {
-                -moz-transform: rotate(0deg);
-                transform: rotate(0deg);
-            }
+          100% {
+              -webkit-transform: rotate(360deg);
+              transform: rotate(360deg);
+          }
+      }
 
-            100% {
-                -moz-transform: rotate(360deg);
-                transform: rotate(360deg);
-            }
-        }
+      @-moz-keyframes timer-loader {
+          0% {
+              -moz-transform: rotate(0deg);
+              transform: rotate(0deg);
+          }
 
-        @-o-keyframes timer-loader {
-            0% {
-                -o-transform: rotate(0deg);
-                transform: rotate(0deg);
-            }
+          100% {
+              -moz-transform: rotate(360deg);
+              transform: rotate(360deg);
+          }
+      }
 
-            100% {
-                -o-transform: rotate(360deg);
-                transform: rotate(360deg);
-            }
-        }
+      @-o-keyframes timer-loader {
+          0% {
+              -o-transform: rotate(0deg);
+              transform: rotate(0deg);
+          }
 
-        @keyframes timer-loader {
-            0% {
-                -webkit-transform: rotate(0deg);
-                -moz-transform: rotate(0deg);
-                -o-transform: rotate(0deg);
-                transform: rotate(0deg);
-            }
+          100% {
+              -o-transform: rotate(360deg);
+              transform: rotate(360deg);
+          }
+      }
 
-            100% {
-                -webkit-transform: rotate(360deg);
-                -moz-transform: rotate(360deg);
-                -o-transform: rotate(360deg);
-                transform: rotate(360deg);
-            }
-        }
+      @keyframes timer-loader {
+          0% {
+              -webkit-transform: rotate(0deg);
+              -moz-transform: rotate(0deg);
+              -o-transform: rotate(0deg);
+              transform: rotate(0deg);
+          }
 
-
-    </style>
+          100% {
+              -webkit-transform: rotate(360deg);
+              -moz-transform: rotate(360deg);
+              -o-transform: rotate(360deg);
+              transform: rotate(360deg);
+          }
+      }
+  </style>
 </head>
-
 <body>
-
 <div id="app">
-    <div class="page-loading-wrap">
-      <div style="color: #4e9ff5" class="la-timer">
-        <div></div>
-      </div>
-      <h4 style="margin-top:20px;font-size:14px;font-weight:400;color: #515a6e;">正在加载资源...</h4>
+  <div class="page-loading-wrap">
+    <div style="color: #4e9ff5" class="la-timer">
+      <div></div>
     </div>
+    <h4 style="margin-top:20px;font-size:14px;font-weight:400;color: #515a6e;">正在加载资源...</h4>
+  </div>
 </div>
-<!-- built files will be auto injected -->
 </body>
 </html>

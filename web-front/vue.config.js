@@ -1,9 +1,5 @@
-const { defineConfig } = require('@vue/cli-service')
+
 const path = require("path");
-module.exports = defineConfig({
-  transpileDependencies: true,
-  lintOnSave: false
-})
 
 function resolve(dir) {
   return path.join(__dirname, dir)
@@ -12,6 +8,8 @@ const CompressionPlugin = require('compression-webpack-plugin');
 const FileManagerPlugin = require('filemanager-webpack-plugin')
 
 module.exports = {
+  transpileDependencies: true,
+  lintOnSave: false,
   outputDir: 'nfd-front',
   devServer: {
     host: '127.0.0.1',
