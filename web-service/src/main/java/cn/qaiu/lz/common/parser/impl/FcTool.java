@@ -25,12 +25,14 @@ import java.util.regex.Pattern;
  */
 public class FcTool implements IPanTool {
 
+    public static final String SHARE_URL_PREFIX0 = "https://v2.fangcloud.com/s";
     public static final String SHARE_URL_PREFIX = "https://v2.fangcloud.com/sharing/";
     public static final String SHARE_URL_PREFIX2 = "https://v2.fangcloud.cn/sharing/";
     private static final String DOWN_REQUEST_URL = "https://v2.fangcloud.cn/apps/files/download?file_id={fid}" +
             "&scenario=share&unique_name={uname}";
 
     public Future<String> parse(String data, String code) {
+        data = data.replace("share","sharing");
         String dataKey = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, data);
 
         Promise<String> promise = Promise.promise();

@@ -65,7 +65,7 @@ GET http://127.0.0.1:6400/fj/tIfhRqH
 
 ### 360亿方云
 # @no-redirect
-GET http://127.0.0.1:6400/parser?url=https://v2.fangcloud.com/sharing/e5079007dc31226096628870c7&pwd=QAIU
+GET http://127.0.0.1:6400/parser?url=https://v2.fangcloud.com/share/2f238f7714cf61cdc631d23d18
 
 ### 360亿方云
 GET http://127.0.0.1:6400/json/fc/30646fefc8bf936a4766ab8a5e
