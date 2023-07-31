@@ -9,8 +9,8 @@
         </div>
         <h3 style="text-align: center;">NFD网盘直链解析(API演示)</h3>
         <div class="typo">
-          <p><strong>项目地址 </strong><a href="https://github.com/qaiu/netdisk-fast-download" target="_blank"
-                                          rel="nofollow"><u>点我跳转</u></a></p>
+          <p><strong>项目GitHub </strong><a href="https://github.com/qaiu/netdisk-fast-download" target="_blank"
+                                          rel="nofollow"><u>netdisk-fast-download</u></a></p>
           <p><strong>当前页面修改自开源项目</strong><a href="https://github.com/HurryBy/CloudDiskAnalysis" target="_blank"
                                           rel="nofollow"><u>CloudDiskAnalysis</u></a></p>
           <p><strong>目前支持 </strong>已支持蓝奏云/奶牛快传/移动云云空间/UC网盘(暂时失效)/小飞机盘/亿方云/123云盘</p>
