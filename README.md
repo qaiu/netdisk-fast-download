@@ -55,6 +55,7 @@ parser接口可以直接解析分享链接: 加密分享需要加上参数pwd=�
     http(s)://your_host/parser?url=分享链接(&pwd=xxx)
     http(s)://your_host/网盘标识/分享key(@分享密码)
 2. 获取解析后的直链--JSON格式
+    http(s)://your_host/json/parser?url=分享链接(&pwd=xxx)
     http(s)://your_host/json/网盘标识/分享key(@分享密码)
 3. 特别注意的地方: 
   - 有些网盘的加密分享的密码可以忽略: 如移动云空间,小飞机网盘
