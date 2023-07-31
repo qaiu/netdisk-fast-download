@@ -23,7 +23,10 @@
     "@vue/cli-service": "~5.0.0",
     "eslint": "^7.32.0",
     "eslint-plugin-vue": "^8.0.3",
-    "vue-template-compiler": "^2.6.14"
+    "vue-template-compiler": "^2.6.14",
+
+    "compression-webpack-plugin": "^6.1.1",
+    "filemanager-webpack-plugin": "2.0.5"
   },
   "eslintConfig": {
     "root": true,
