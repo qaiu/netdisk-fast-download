@@ -11,6 +11,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.uritemplate.UriTemplate;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.openjdk.nashorn.api.scripting.ScriptObjectMirror;
 
@@ -39,7 +40,8 @@ public class YeTool implements IPanTool {
             ={authKey}";
 */
 
-    private static final String GET_FILE_INFO_URL="https://www.123pan.com/b/api/share/get?limit=100&next=1&orderBy=file_name&orderDirection=asc" +
+    private static final String GET_FILE_INFO_URL = "https://www.123pan.com/b/api/share/get?limit=100&next=1&orderBy" +
+            "=file_name&orderDirection=asc" +
             "&shareKey={shareKey}&SharePwd={pwd}&ParentFileId=0&Page=1&event=homeListFile&operateType=1";
     private static final String DOWNLOAD_API_URL = "https://www.123pan.com/b/api/share/download/info?{authK}={authV}";
 
@@ -106,7 +108,8 @@ public class YeTool implements IPanTool {
     private static void getDownUrl(Promise<String> promise, WebClient client, JsonObject reqBodyJson) {
         log.info(reqBodyJson.encodePrettily());
         JsonObject jsonObject = new JsonObject();
-        // {"ShareKey":"iaKtVv-6OECd","FileID":2193732,"S3keyFlag":"1811834632-0","Size":4203111,"Etag":"69c94adbc0b9190cf23c4e958d8c7c53"}
+        // {"ShareKey":"iaKtVv-6OECd","FileID":2193732,"S3keyFlag":"1811834632-0","Size":4203111,
+        // "Etag":"69c94adbc0b9190cf23c4e958d8c7c53"}
         jsonObject.put("ShareKey", reqBodyJson.getString("ShareKey"));
         jsonObject.put("FileID", reqBodyJson.getInteger("FileId"));
         jsonObject.put("S3keyFlag", reqBodyJson.getString("S3KeyFlag"));
@@ -122,9 +125,10 @@ public class YeTool implements IPanTool {
             return;
         }
         if (getSign == null) {
-            promise.fail("getSign failed");
+            promise.fail(ArrayUtils.toString(getSign));
             return;
         }
+        log.info("ye getSign: {}={}", getSign.get("0").toString(), getSign.get("1").toString());
 
         client.postAbs(UriTemplate.of(DOWNLOAD_API_URL))
                 .setTemplateParam("authK", getSign.get("0").toString())
@@ -139,7 +143,7 @@ public class YeTool implements IPanTool {
                             promise.fail("Ye: downURLJson返回值异常->" + downURLJson);
                             return;
                         }
-                    } catch(Exception ignored) {
+                    } catch (Exception ignored) {
                         promise.fail("Ye: downURLJson格式异常->" + downURLJson);
                         return;
                     }
@@ -158,7 +162,7 @@ public class YeTool implements IPanTool {
                                     promise.fail("Ye: downUrl2返回值异常->" + res3Json);
                                     return;
                                 }
-                            } catch(Exception ignored) {
+                            } catch (Exception ignored) {
                                 promise.fail("Ye: downUrl2格式异常->" + downURLJson);
                                 return;
                             }
@@ -171,6 +175,7 @@ public class YeTool implements IPanTool {
                     } catch (MalformedURLException e) {
                         promise.fail("urlParams解析异常" + e.getMessage());
                     }
-                }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Ye", reqBodyJson.encodePrettily(), t)));
+                }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Ye",
+                        reqBodyJson.encodePrettily(), t)));
     }
 }

@@ -7,30 +7,29 @@
             <el-avatar :size="150" :src="avatar"></el-avatar>
           </div>
         </div>
-        <h3 style="text-align: center;">netdisk-fast-download网盘直链解析</h3>
+        <h3 style="text-align: center;">NFD网盘直链解析(API演示)</h3>
         <div class="typo">
           <p><strong>项目地址 </strong><a href="https://github.com/qaiu/netdisk-fast-download" target="_blank"
-                                      rel="nofollow"><u>点我跳转</u></a></p>
+                                          rel="nofollow"><u>点我跳转</u></a></p>
+          <p><strong>当前页面修改自开源项目</strong><a href="https://github.com/HurryBy/CloudDiskAnalysis" target="_blank"
+                                          rel="nofollow"><u>CloudDiskAnalysis</u></a></p>
           <p><strong>目前支持 </strong>已支持蓝奏云/奶牛快传/移动云云空间/UC网盘(暂时失效)/小飞机盘/亿方云/123云盘</p>
         </div>
         <hr>
         <div class="main" v-loading="isLoading">
           <div class="grid-content">
             <el-input placeholder="请粘贴分享链接" v-model="link" id="url" lass="input-with-select">
-              <el-select v-model="select" slot="prepend" placeholder="">
-                <el-option v-for="item in panList" :key="item.value" :value="item.value" :label="item.name"
-                           :disabled="item.disabled"/>
-              </el-select>
+              <strong slot="prepend">分享链接</strong>
               <el-button slot="append" @click="onSubmit">解析</el-button>
             </el-input>
             <el-input placeholder="请输入密码" v-model="password" id="url" lass="input-with-select"></el-input>
-            <el-input placeholder="解析地址" :value="getLink" id="url" lass="input-with-select">
-              <el-button slot="append"  v-clipboard:copy="getLink"
+            <el-input v-show="respData.data" placeholder="解析地址" :value="getLink2" id="url" lass="input-with-select">
+              <el-button slot="append"  v-clipboard:copy="getLink2"
                          v-clipboard:success="onCopy"
                          v-clipboard:error="onError">点我复制</el-button>
            </el-input>
           </div>
-          <div v-show="respData" style="margin-top: 10px">
+          <div v-show="respData.code" style="margin-top: 10px">
             <strong>解析结果: </strong>
             <json-viewer
               :value="respData"
@@ -69,11 +68,11 @@ UC网盘 (uc)似乎已经失效，需要登录
  登录, 上传, 下载, 分享
  直链解析
 123云盘 (ye)
- 登录, 上传, 下载,
+ 登录, 上传, 下载,, 分享
  */
 export default {
   name: 'App',
-  data: function () {
+  data() {
     return {
       link: "",
       password: "",
@@ -81,7 +80,7 @@ export default {
       downUrl: null,
       avatar: "https://q2.qlogo.cn/headimg_dl?dst_uin=736226400&spec=640",
       select: "lz",
-      respData: null,
+      respData: {},
       panList: [
         {
           name: "蓝奏云",
@@ -113,7 +112,8 @@ export default {
           value: 'ye'
         },
       ],
-      getLink: ''
+      getLink: '',
+      getLink2: ''
     }
   },
   methods: {
@@ -124,24 +124,24 @@ export default {
       }
       this.isLoading = true
       this.downUrl = ''
-      this.respData = ''
-      this.getLink = location.protocol + "//" +  location.hostname + `:6400/json/parser?url=${this.link}`
+      this.respData = {}
+      this.getLink2 = `${location.protocol}//${location.host}/parser?url=${this.link}`
+      // this.getLink = `${location.protocol}//${location.host}/api/json/parser?url=${this.link}`
+      this.getLink = `${location.protocol}//${location.host}/json/parser?url=${this.link}`
       if (this.password) {
         this.getLink += `&pwd=${this.password}`
       }
       axios.get(this.getLink).then(
         response => {
+          this.isLoading = false
+          this.respData = response.data
           if (response.data.code === 200) {
             this.$message({
               message: response.data.msg,
               type: 'success'
             })
-            this.isLoading = false
             this.downUrl = response.data.data
-            this.respData = response.data
           } else {
-            this.isLoading = false
-            this.respData = response.data
             this.$message.error(response.data.msg)
           }
         },
@@ -150,9 +150,6 @@ export default {
           this.$message.error(error.message)
         }
       )
-    },
-    downloadFile(downloadUrl) {
-      window.location.href = downloadUrl
     },
     onCopy(){
       this.$message.success('复制成功')
@@ -225,17 +222,6 @@ body:before {
 .download button {
   margin-right: 0.5em;
   margin-left: 0.5em;
-}
-
-
-.item {
-  padding: 5px;
-  break-inside: avoid;
-}
-
-.item img {
-  width: 100%;
-  margin-bottom: 10px;
 }
 
 .typo {
