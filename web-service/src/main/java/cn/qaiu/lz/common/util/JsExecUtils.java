@@ -31,7 +31,6 @@ public class JsExecUtils {
             throw new ScriptException("js resource path is null");
         }
         String path = resource.getPath();
-        System.out.println(path);
         String reader = path + JS_PATH;
         FileReader fReader = new FileReader(reader);
         engine.eval(fReader);
