@@ -27,7 +27,7 @@ public interface IPanTool {
             return new CowTool();
         } else if (url.startsWith(EcTool.SHARE_URL_PREFIX)) {
             return new EcTool();
-        } else if (url.startsWith(FcTool.SHARE_URL_PREFIX)) {
+        } else if (url.startsWith(FcTool.SHARE_URL_PREFIX0)) {
             return new FcTool();
         } else if (url.startsWith(UcTool.SHARE_URL_PREFIX)) {
             return new UcTool();
