@@ -91,7 +91,7 @@ GET http://127.0.0.1:6400/ye/iaKtVv-qOECd
 
 ### 123
 # @no-redirect
-GET http://127.0.0.1:6400/parser?url=https://www.123pan.com/s/iaKtVv-6OECd.html&pwd=DcGe
+GET http://127.0.0.1:6400/parser?url=https://www.123pan.com/s/iaKtVv-6OECd.html&pwd=DcGeasd
 
 ###
 POST http://127.0.0.1:6400/login1
