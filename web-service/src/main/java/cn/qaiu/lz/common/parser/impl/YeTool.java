@@ -4,8 +4,6 @@ import cn.qaiu.lz.common.parser.IPanTool;
 import cn.qaiu.lz.common.parser.PanBase;
 import cn.qaiu.lz.common.util.CommonUtils;
 import cn.qaiu.lz.common.util.JsExecUtils;
-import cn.qaiu.lz.common.util.PanExceptionUtils;
-import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
@@ -26,15 +24,6 @@ public class YeTool extends PanBase implements IPanTool {
 
     public static final String SHARE_URL_PREFIX = "https://www.123pan.com/s/";
     public static final String FIRST_REQUEST_URL = SHARE_URL_PREFIX + "{key}.html";
-/*
-    private static final String GET_FILE_INFO_URL = "https://www.123pan.com/a/api/share/get?limit=100&next=1&orderBy" +
-            "=file_name&orderDirection=asc&shareKey={shareKey}&SharePwd={pwd}&ParentFileId=0&Page=1&event" +
-            "=homeListFile&operateType=1";
-    private static final String GET_FILE_INFO_URL="https://www.123pan
-    .com/b/api/share/get?limit=100&next=1&orderBy=file_name&orderDirection=asc" +
-            "&shareKey={shareKey}&SharePwd={pwd}&ParentFileId=0&Page=1&event=homeListFile&operateType=1&auth-key
-            ={authKey}";
-*/
 
     private static final String GET_FILE_INFO_URL = "https://www.123pan.com/b/api/share/get?limit=100&next=1&orderBy" +
             "=file_name&orderDirection=asc" +
@@ -48,7 +37,6 @@ public class YeTool extends PanBase implements IPanTool {
     public Future<String> parse() {
 
         String dataKey = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, key);
-        WebClient client = WebClient.create(VertxHolder.getVertxInstance());
 
         client.getAbs(UriTemplate.of(FIRST_REQUEST_URL)).setTemplateParam("key", dataKey).send().onSuccess(res -> {
 
@@ -89,9 +77,9 @@ public class YeTool extends PanBase implements IPanTool {
                                         infoJson.getJsonObject("data").getJsonArray("InfoList").getJsonObject(0);
                                 getFileInfoJson.put("ShareKey", shareKey);
                                 getDownUrl(client, getFileInfoJson);
-                            }).onFailure(this.handleFail("获取文件信息失败"));
+                            }).onFailure(this.handleFail(GET_FILE_INFO_URL));
                 } else {
-                    fail(dataKey + " 该分享需要密码");
+                    fail("该分享[{}]需要密码",dataKey);
                 }
                 return;
             }
@@ -99,7 +87,7 @@ public class YeTool extends PanBase implements IPanTool {
             JsonObject reqBodyJson = resListJson.getJsonObject("data").getJsonArray("InfoList").getJsonObject(0);
             reqBodyJson.put("ShareKey", shareKey);
             getDownUrl(client, reqBodyJson);
-        }).onFailure(this.handleFail(""));
+        }).onFailure(this.handleFail(FIRST_REQUEST_URL));
 
         return promise.future();
     }
@@ -169,6 +157,6 @@ public class YeTool extends PanBase implements IPanTool {
                     } catch (MalformedURLException e) {
                         fail("urlParams解析异常" + e.getMessage());
                     }
-                }).onFailure(this::handleFail);
+                }).onFailure(this.handleFail(DOWNLOAD_API_URL));
     }
 }

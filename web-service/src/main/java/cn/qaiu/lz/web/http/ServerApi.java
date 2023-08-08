@@ -43,7 +43,7 @@ public class ServerApi {
             url = EcTool.SHARE_URL_PREFIX + request.getParam("data");
         }
         try {
-            IPanTool.shareURLPrefixMatching(url).parse(url, pwd).onSuccess(resUrl -> {
+            IPanTool.shareURLPrefixMatching(url, pwd).parse().onSuccess(resUrl -> {
                 response.putHeader("location", resUrl).setStatusCode(302).end();
                 promise.complete();
             }).onFailure(t -> promise.fail(t.fillInStackTrace()));
@@ -59,7 +59,7 @@ public class ServerApi {
             // 默认读取Url参数会被截断手动获取一下其他参数
             url = EcTool.SHARE_URL_PREFIX + request.getParam("data");
         }
-        return IPanTool.shareURLPrefixMatching(url).parse(url, pwd);
+        return IPanTool.shareURLPrefixMatching(url, pwd).parse();
     }
 
 
@@ -72,7 +72,7 @@ public class ServerApi {
             code = keys[1];
         }
 
-        IPanTool.typeMatching(type).parse(key, code).onSuccess(resUrl -> response.putHeader("location", resUrl)
+        IPanTool.typeMatching(type, key, code).parse().onSuccess(resUrl -> response.putHeader("location", resUrl)
                 .setStatusCode(302).end()).onFailure(t -> {
             response.putHeader(CONTENT_TYPE, "text/html;charset=utf-8");
             response.end(t.getMessage());
@@ -87,6 +87,6 @@ public class ServerApi {
             key = keys[0];
             code = keys[1];
         }
-        return IPanTool.typeMatching(type).parse(key, code);
+        return IPanTool.typeMatching(type, key, code).parse();
     }
 }
