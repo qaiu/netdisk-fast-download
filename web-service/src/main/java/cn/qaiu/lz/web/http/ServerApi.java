@@ -54,7 +54,7 @@ public class ServerApi {
     }
 
     @RouteMapping(value = "/json/parser", method = RouteMethod.GET, order = 3)
-    public Future<String> parseJson(HttpServerResponse response, HttpServerRequest request, String url, String pwd) {
+    public Future<String> parseJson(HttpServerRequest request, String url, String pwd) {
         if (url.contains(EcTool.SHARE_URL_PREFIX)) {
             // 默认读取Url参数会被截断手动获取一下其他参数
             url = EcTool.SHARE_URL_PREFIX + request.getParam("data");
@@ -80,7 +80,7 @@ public class ServerApi {
     }
 
     @RouteMapping(value = "/json/:type/:key", method = RouteMethod.GET, order = 2)
-    public Future<String> parseKeyJson(HttpServerResponse response, String type, String key) {
+    public Future<String> parseKeyJson(String type, String key) {
         String code = "";
         if (key.contains("@")) {
             String[] keys = key.split("@");

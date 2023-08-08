@@ -12,8 +12,10 @@ import io.vertx.ext.web.RoutingContext;
 public interface Interceptor {
 
     default Handler<RoutingContext> doHandle() {
-        return this::handle;
+        return this::beforeHandle;
     }
 
-    void handle(RoutingContext context);
+    void beforeHandle(RoutingContext context);
+
+    void afterHandle(RoutingContext context);
 }
