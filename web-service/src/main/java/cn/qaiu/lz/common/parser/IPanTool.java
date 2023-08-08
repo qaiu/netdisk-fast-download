@@ -8,15 +8,15 @@ public interface IPanTool {
 
     static IPanTool typeMatching(String type, String key, String pwd) {
         return switch (type) {
-            case "lz" -> new LzTool();
-            case "cow" -> new CowTool();
-            case "ec" -> new EcTool();
-            case "fc" -> new FcTool();
-            case "uc" -> new UcTool();
+            case "lz" -> new LzTool(key, pwd);
+            case "cow" -> new CowTool(key, pwd);
+            case "ec" -> new EcTool(key, pwd);
+            case "fc" -> new FcTool(key, pwd);
+            case "uc" -> new UcTool(key, pwd);
             case "ye" -> new YeTool(key, pwd);
-            case "fj" -> new FjTool();
+            case "fj" -> new FjTool(key, pwd);
             default -> {
-                throw new IllegalArgumentException("未知分享类型");
+                throw new UnsupportedOperationException("未知分享类型");
             }
         };
     }
@@ -24,22 +24,22 @@ public interface IPanTool {
     static IPanTool shareURLPrefixMatching(String url, String pwd) {
 
         if (url.startsWith(CowTool.SHARE_URL_PREFIX)) {
-            return new CowTool();
+            return new CowTool(url, pwd);
         } else if (url.startsWith(EcTool.SHARE_URL_PREFIX)) {
-            return new EcTool();
+            return new EcTool(url, pwd);
         } else if (url.startsWith(FcTool.SHARE_URL_PREFIX0)) {
-            return new FcTool();
+            return new FcTool(url, pwd);
         } else if (url.startsWith(UcTool.SHARE_URL_PREFIX)) {
-            return new UcTool();
+            return new UcTool(url, pwd);
         } else if (url.startsWith(YeTool.SHARE_URL_PREFIX)) {
             return new YeTool(url, pwd);
         } else if (url.startsWith(FjTool.SHARE_URL_PREFIX)) {
-            return new FjTool();
+            return new FjTool(url, pwd);
         } else if (url.contains("lanzou")) {
-            return new LzTool();
+            return new LzTool(url, pwd);
         }
 
-        throw new IllegalArgumentException("未知分享类型");
+        throw new UnsupportedOperationException("未知分享类型");
     }
 
 }
