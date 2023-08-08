@@ -7,6 +7,7 @@ import cn.qaiu.vx.core.verticle.ReverseProxyVerticle;
 import cn.qaiu.vx.core.verticle.RouterVerticle;
 import cn.qaiu.vx.core.verticle.ServiceVerticle;
 import io.vertx.core.*;
+import io.vertx.core.impl.launcher.commands.VersionCommand;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.shareddata.LocalMap;
 import org.slf4j.Logger;
@@ -95,7 +96,7 @@ public final class Deploy {
 
         System.out.printf(logoTemplete,
                 conf.getString("version_app"),
-                conf.getString("version_vertx"),
+                VersionCommand.getVersion(),
                 conf.getString("copyright"),
                 year
         );
