@@ -119,8 +119,3 @@ Platform:web
 {"ShareKey":"iaKtVv-6OECd","behavior":1}
 
 ### eaefamemdead
-POST https://www.123pan.com/a/api/share/download/info?598392083=1691599441-4130548-2079498810
-App-Version:3
-Platform:web
-
-{"ShareKey":"iaKtVv-ICECd","FileID":2169781,"S3keyFlag":"1815268665-0","Size":163708684,"Etag":"e7f288198505ae4481d638f1f42f1477"}

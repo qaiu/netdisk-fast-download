@@ -43,7 +43,7 @@ public class ServerApi {
             url = EcTool.SHARE_URL_PREFIX + request.getParam("data");
         }
         try {
-            IPanTool.shareURLPrefixMatching(url).parse(url, pwd).onSuccess(resUrl -> {
+            IPanTool.shareURLPrefixMatching(url, pwd).parse().onSuccess(resUrl -> {
                 response.putHeader("location", resUrl).setStatusCode(302).end();
                 promise.complete();
             }).onFailure(t -> promise.fail(t.fillInStackTrace()));
@@ -54,12 +54,12 @@ public class ServerApi {
     }
 
     @RouteMapping(value = "/json/parser", method = RouteMethod.GET, order = 3)
-    public Future<String> parseJson(HttpServerResponse response, HttpServerRequest request, String url, String pwd) {
+    public Future<String> parseJson(HttpServerRequest request, String url, String pwd) {
         if (url.contains(EcTool.SHARE_URL_PREFIX)) {
             // 默认读取Url参数会被截断手动获取一下其他参数
             url = EcTool.SHARE_URL_PREFIX + request.getParam("data");
         }
-        return IPanTool.shareURLPrefixMatching(url).parse(url, pwd);
+        return IPanTool.shareURLPrefixMatching(url, pwd).parse();
     }
 
 
@@ -72,7 +72,7 @@ public class ServerApi {
             code = keys[1];
         }
 
-        IPanTool.typeMatching(type).parse(key, code).onSuccess(resUrl -> response.putHeader("location", resUrl)
+        IPanTool.typeMatching(type, key, code).parse().onSuccess(resUrl -> response.putHeader("location", resUrl)
                 .setStatusCode(302).end()).onFailure(t -> {
             response.putHeader(CONTENT_TYPE, "text/html;charset=utf-8");
             response.end(t.getMessage());
@@ -80,13 +80,13 @@ public class ServerApi {
     }
 
     @RouteMapping(value = "/json/:type/:key", method = RouteMethod.GET, order = 2)
-    public Future<String> parseKeyJson(HttpServerResponse response, String type, String key) {
+    public Future<String> parseKeyJson(String type, String key) {
         String code = "";
         if (key.contains("@")) {
             String[] keys = key.split("@");
             key = keys[0];
             code = keys[1];
         }
-        return IPanTool.typeMatching(type).parse(key, code);
+        return IPanTool.typeMatching(type, key, code).parse();
     }
 }
