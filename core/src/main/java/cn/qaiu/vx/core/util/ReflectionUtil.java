@@ -70,11 +70,11 @@ public final class ReflectionUtil {
         // 发现注解api层 没有继承父类时 这里反射一直有问题(Scanner SubTypesScanner was not configured)
         // 因此这里需要手动配置各种Scanner扫描器 -- https://blog.csdn.net/qq_29499107/article/details/106889781
         configurationBuilder.setScanners(
-                Scanners.SubTypes.filterResultsBy(s -> true), //允许getAllTypes获取所有Object的子类, 不设置为false则 getAllTypes 会报错.默认为true.
+                new SubTypesScanner(false), //允许getAllTypes获取所有Object的子类, 不设置为false则 getAllTypes 会报错.默认为true.
                 new MethodParameterNamesScanner(), //设置方法参数名称 扫描器,否则调用getConstructorParamNames 会报错
-                Scanners.MethodsAnnotated, //设置方法注解 扫描器, 否则getConstructorsAnnotatedWith,getMethodsAnnotatedWith 会报错
+                new MethodAnnotationsScanner(), //设置方法注解 扫描器, 否则getConstructorsAnnotatedWith,getMethodsAnnotatedWith 会报错
                 new MemberUsageScanner(),  //设置 member 扫描器,否则 getMethodUsage 会报错, 不推荐使用,有可能会报错 Caused by: java.lang.ClassCastException: javassist.bytecode.InterfaceMethodrefInfo cannot be cast to javassist.bytecode.MethodrefInfo
-                Scanners.TypesAnnotated //设置类注解 扫描器 ,否则 getTypesAnnotatedWith 会报错
+                new TypeAnnotationsScanner() //设置类注解 扫描器 ,否则 getTypesAnnotatedWith 会报错
         );
 
         configurationBuilder.filterInputsBy(filterBuilder);
