@@ -1,7 +1,6 @@
 # 要激活的配置: dev--连接本地数据库; prod连接线上数据库
 active: dev
-# 框架版本号 和主版本号
-version_vertx: 4.4.1
+# 版本号
 version_app: 0.1.6
 # 公司名称 -> LOGO版权文字
 copyright: QAIU
