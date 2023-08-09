@@ -1,17 +1,22 @@
 package cn.qaiu.lz.common.parser.impl;
 
 import cn.qaiu.lz.common.parser.IPanTool;
-import cn.qaiu.lz.common.parser.PanBase;
 import cn.qaiu.lz.common.util.CommonUtils;
+import cn.qaiu.lz.common.util.PanExceptionUtils;
+import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.WebClient;
 import io.vertx.uritemplate.UriTemplate;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * UC网盘解析
  */
-public class UcTool extends PanBase implements IPanTool {
+@Slf4j
+public class UcTool implements IPanTool {
     private static final String API_URL_PREFIX = "https://pc-api.uc.cn/1/clouddrive/";
 
     public static final String SHARE_URL_PREFIX = "https://fast.uc.cn/s/";
@@ -24,13 +29,11 @@ public class UcTool extends PanBase implements IPanTool {
 
     private static final String THIRD_REQUEST_URL = API_URL_PREFIX + "file/download?entry=ft&fr=pc&pr=UCBrowser";
 
-    public UcTool(String key, String pwd) {
-        super(key, pwd);
-    }
-
-    public Future<String> parse() {
-        var dataKey = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, key);
-        var passcode =  (pwd == null) ? "" : pwd;
+    public Future<String> parse(String data, String code) {
+        var dataKey = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, data);
+        var passcode =  (code == null) ? "" : code;
+        Promise<String> promise = Promise.promise();
+        var client = WebClient.create(VertxHolder.getVertxInstance());
         var jsonObject = JsonObject.of("share_for_transfer", true);
         jsonObject.put("pwd_id", dataKey);
         jsonObject.put("passcode", passcode);
@@ -39,7 +42,7 @@ public class UcTool extends PanBase implements IPanTool {
                     log.debug("第一阶段 {}", res.body());
                     var resJson = res.bodyAsJsonObject();
                     if (resJson.getInteger("code") != 0) {
-                        fail(FIRST_REQUEST_URL + " 返回异常: " + resJson);
+                        promise.fail(FIRST_REQUEST_URL + " 返回异常: " + resJson);
                         return;
                     }
                     var stoken = resJson.getJsonObject("data").getString("stoken");
@@ -52,7 +55,7 @@ public class UcTool extends PanBase implements IPanTool {
                                 log.debug("第二阶段 {}", res2.body());
                                 JsonObject resJson2 = res2.bodyAsJsonObject();
                                 if (resJson2.getInteger("code") != 0) {
-                                    fail(FIRST_REQUEST_URL + " 返回异常: " + resJson2);
+                                    promise.fail(FIRST_REQUEST_URL + " 返回异常: " + resJson2);
                                     return;
                                 }
                                 // 文件信息
@@ -68,15 +71,15 @@ public class UcTool extends PanBase implements IPanTool {
                                             log.debug("第三阶段 {}", res3.body());
                                             var resJson3 = res3.bodyAsJsonObject();
                                             if (resJson3.getInteger("code") != 0) {
-                                                fail(FIRST_REQUEST_URL + " 返回异常: " + resJson2);
+                                                promise.fail(FIRST_REQUEST_URL + " 返回异常: " + resJson2);
                                                 return;
                                             }
                                             promise.complete(resJson3.getJsonArray("data").getJsonObject(0).getString("download_url"));
-                                        }).onFailure(handleFail(THIRD_REQUEST_URL));
+                                        }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Uc", dataKey, t)));
 
-                            }).onFailure(handleFail(SECOND_REQUEST_URL));
+                            }).onFailure(t -> promise.fail(new RuntimeException("解析异常: ", t.fillInStackTrace())));
                 }
-        ).onFailure(handleFail(FIRST_REQUEST_URL));
+        ).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Uc", dataKey, t)));
         return promise.future();
     }
 }
