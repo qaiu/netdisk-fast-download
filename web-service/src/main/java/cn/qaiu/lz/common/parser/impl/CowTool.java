@@ -1,10 +1,14 @@
 package cn.qaiu.lz.common.parser.impl;
 
 import cn.qaiu.lz.common.parser.IPanTool;
-import cn.qaiu.lz.common.parser.PanBase;
 import cn.qaiu.lz.common.util.CommonUtils;
+import cn.qaiu.lz.common.util.PanExceptionUtils;
+import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.WebClient;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -13,19 +17,17 @@ import org.apache.commons.lang3.StringUtils;
  * @author <a href="https://qaiu.top">QAIU</a>
  * @date 2023/4/21 21:19
  */
-public class CowTool extends PanBase implements IPanTool {
+@Slf4j
+public class CowTool implements IPanTool {
 
     private static final String API_REQUEST_URL = "https://cowtransfer.com/core/api/transfer/share";
     public static final String SHARE_URL_PREFIX = "https://cowtransfer.com/s/";
 
-    public CowTool(String key, String pwd) {
-        super(key, pwd);
-    }
-
-    public Future<String> parse() {
-        key = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, key);
-        String url = API_REQUEST_URL + "?uniqueUrl=" + key;
-        client.getAbs(url).send().onSuccess(res -> {
+    public Future<String> parse(String data, String code) {
+        Promise<String> promise = Promise.promise();
+        WebClient client = WebClient.create(VertxHolder.getVertxInstance());
+        String key = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, data);
+        client.getAbs(API_REQUEST_URL + "?uniqueUrl=" + key).send().onSuccess(res -> {
             JsonObject resJson = res.bodyAsJsonObject();
             if ("success".equals(resJson.getString("message")) && resJson.containsKey("data")) {
                 JsonObject dataJson = resJson.getJsonObject("data");
@@ -42,15 +44,19 @@ public class CowTool extends PanBase implements IPanTool {
                             promise.complete(downloadUrl);
                             return;
                         }
-                        fail("cow parse fail: {}; downloadUrl is empty", url2);
+
+                        log.error("cow parse fail: {}; downloadUrl is empty", url2);
+                        promise.fail("cow parse fail: " + url2 + "; downloadUrl is empty");
                         return;
                     }
-                    fail("cow parse fail: {}; json: {}", url2, res2Json);
-                }).onFailure(handleFail(url2));
+                    log.error("cow parse fail: {}; json: {}", url2, res2Json);
+                    promise.fail("cow parse fail: " + url2 + "; json:" + res2Json);
+                });
                 return;
             }
-            fail("cow parse fail: {}; json: {}", key, resJson);
-        }).onFailure(handleFail(url));
+            log.error("cow parse fail: {}; json: {}", key, resJson);
+            promise.fail("cow parse fail: " + key + "; json:" + resJson);
+        }).onFailure(t -> promise.fail(PanExceptionUtils.fillRunTimeException("Cow", key, t)));
         return promise.future();
     }
 

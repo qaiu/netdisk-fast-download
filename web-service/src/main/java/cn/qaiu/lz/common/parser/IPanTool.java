@@ -4,42 +4,42 @@ import cn.qaiu.lz.common.parser.impl.*;
 import io.vertx.core.Future;
 
 public interface IPanTool {
-    Future<String> parse();
+    Future<String> parse(String data, String code);
 
-    static IPanTool typeMatching(String type, String key, String pwd) {
+    static IPanTool typeMatching(String type) {
         return switch (type) {
-            case "lz" -> new LzTool(key, pwd);
-            case "cow" -> new CowTool(key, pwd);
-            case "ec" -> new EcTool(key, pwd);
-            case "fc" -> new FcTool(key, pwd);
-            case "uc" -> new UcTool(key, pwd);
-            case "ye" -> new YeTool(key, pwd);
-            case "fj" -> new FjTool(key, pwd);
+            case "lz" -> new LzTool();
+            case "cow" -> new CowTool();
+            case "ec" -> new EcTool();
+            case "fc" -> new FcTool();
+            case "uc" -> new UcTool();
+            case "ye" -> new YeTool();
+            case "fj" -> new FjTool();
             default -> {
-                throw new UnsupportedOperationException("未知分享类型");
+                throw new IllegalArgumentException("未知分享类型");
             }
         };
     }
 
-    static IPanTool shareURLPrefixMatching(String url, String pwd) {
+    static IPanTool shareURLPrefixMatching(String url) {
 
         if (url.startsWith(CowTool.SHARE_URL_PREFIX)) {
-            return new CowTool(url, pwd);
+            return new CowTool();
         } else if (url.startsWith(EcTool.SHARE_URL_PREFIX)) {
-            return new EcTool(url, pwd);
+            return new EcTool();
         } else if (url.startsWith(FcTool.SHARE_URL_PREFIX0)) {
-            return new FcTool(url, pwd);
+            return new FcTool();
         } else if (url.startsWith(UcTool.SHARE_URL_PREFIX)) {
-            return new UcTool(url, pwd);
+            return new UcTool();
         } else if (url.startsWith(YeTool.SHARE_URL_PREFIX)) {
-            return new YeTool(url, pwd);
+            return new YeTool();
         } else if (url.startsWith(FjTool.SHARE_URL_PREFIX)) {
-            return new FjTool(url, pwd);
+            return new FjTool();
         } else if (url.contains("lanzou")) {
-            return new LzTool(url, pwd);
+            return new LzTool();
         }
 
-        throw new UnsupportedOperationException("未知分享类型");
+        throw new IllegalArgumentException("未知分享类型");
     }
 
 }
