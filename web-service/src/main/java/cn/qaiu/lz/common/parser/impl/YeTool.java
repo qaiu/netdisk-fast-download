@@ -40,10 +40,10 @@ public class YeTool implements IPanTool {
             ={authKey}";
 */
 
-    private static final String GET_FILE_INFO_URL = "https://www.123pan.com/b/api/share/get?limit=100&next=1&orderBy" +
+    private static final String GET_FILE_INFO_URL = "https://www.123pan.com/a/api/share/get?limit=100&next=1&orderBy" +
             "=file_name&orderDirection=asc" +
             "&shareKey={shareKey}&SharePwd={pwd}&ParentFileId=0&Page=1&event=homeListFile&operateType=1";
-    private static final String DOWNLOAD_API_URL = "https://www.123pan.com/b/api/share/download/info?{authK}={authV}";
+    private static final String DOWNLOAD_API_URL = "https://www.123pan.com/a/api/share/download/info?{authK}={authV}";
 
     public Future<String> parse(String data, String code) {
 
@@ -119,7 +119,7 @@ public class YeTool implements IPanTool {
         // 调用JS文件获取签名
         ScriptObjectMirror getSign;
         try {
-            getSign = JsExecUtils.executeJs("getSign", "/b/api/share/download/info");
+            getSign = JsExecUtils.executeJs("getSign", "/a/api/share/download/info");
         } catch (ScriptException | IOException | NoSuchMethodException e) {
             promise.fail(e);
             return;
