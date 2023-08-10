@@ -36,7 +36,7 @@ public class SharedDataUtil {
         return getJsonConfig("customConfig").getJsonObject(key);
     }
 
-    public static String getJsonStringForCustomConfig(String key) {
+    public static String getStringForCustomConfig(String key) {
         return getJsonConfig("customConfig").getString(key);
     }
 

@@ -3,7 +3,6 @@ package cn.qaiu.vx.core.verticle;
 import cn.qaiu.vx.core.annotaions.Service;
 import cn.qaiu.vx.core.base.BaseAsyncService;
 import cn.qaiu.vx.core.util.ReflectionUtil;
-import cn.qaiu.vx.core.util.SharedDataUtil;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.serviceproxy.ServiceBinder;
@@ -27,8 +26,7 @@ public class ServiceVerticle extends AbstractVerticle {
     private static final Set<Class<?>> handlers;
 
     static {
-        String handlerLocations = SharedDataUtil.getJsonStringForCustomConfig("handlerLocations");
-        Reflections reflections = ReflectionUtil.getReflections(handlerLocations);
+        Reflections reflections = ReflectionUtil.getReflections();
         handlers = reflections.getTypesAnnotatedWith(Service.class);
     }
 

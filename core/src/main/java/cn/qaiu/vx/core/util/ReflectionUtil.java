@@ -24,6 +24,8 @@ import java.net.URL;
 import java.text.ParseException;
 import java.util.*;
 
+import static cn.qaiu.vx.core.util.ConfigConstant.BASE_LOCATIONS;
+
 /**
  * 基于org.reflection和javassist的反射工具包
  * 通过包扫描实现路由地址的注解映射
@@ -32,6 +34,16 @@ import java.util.*;
  * @author <a href="https://qaiu.top">QAIU</a>
  */
 public final class ReflectionUtil {
+
+
+    /**
+     * 以默认配置的基础包路径获取反射器
+     *
+     * @return Reflections object
+     */
+    public static Reflections getReflections() {
+        return getReflections(SharedDataUtil.getStringForCustomConfig(BASE_LOCATIONS));
+    }
 
     /**
      * 获取反射器
@@ -48,6 +60,7 @@ public final class ReflectionUtil {
         } else {
             packageAddressList = Collections.singletonList(packageAddress);
         }
+
         return getReflections(packageAddressList);
     }
 
@@ -70,10 +83,11 @@ public final class ReflectionUtil {
         // 发现注解api层 没有继承父类时 这里反射一直有问题(Scanner SubTypesScanner was not configured)
         // 因此这里需要手动配置各种Scanner扫描器 -- https://blog.csdn.net/qq_29499107/article/details/106889781
         configurationBuilder.setScanners(
-                Scanners.SubTypes.filterResultsBy(s -> true), //允许getAllTypes获取所有Object的子类, 不设置为false则 getAllTypes 会报错.默认为true.
+                Scanners.SubTypes.filterResultsBy(s -> true), //允许getAllTypes获取所有Object的子类, 不设置为false则 getAllTypes
+                // 会报错.默认为true.
                 new MethodParameterNamesScanner(), //设置方法参数名称 扫描器,否则调用getConstructorParamNames 会报错
                 Scanners.MethodsAnnotated, //设置方法注解 扫描器, 否则getConstructorsAnnotatedWith,getMethodsAnnotatedWith 会报错
-                new MemberUsageScanner(),  //设置 member 扫描器,否则 getMethodUsage 会报错, 不推荐使用,有可能会报错 Caused by: java.lang.ClassCastException: javassist.bytecode.InterfaceMethodrefInfo cannot be cast to javassist.bytecode.MethodrefInfo
+                new MemberUsageScanner(),  //设置 member 扫描器,否则 getMethodUsage 会报错
                 Scanners.TypesAnnotated //设置类注解 扫描器 ,否则 getTypesAnnotatedWith 会报错
         );
 
@@ -98,7 +112,8 @@ public final class ReflectionUtil {
             MethodInfo methodInfo = cm.getMethodInfo();
             CtClass[] parameterTypes = cm.getParameterTypes();
             CodeAttribute codeAttribute = methodInfo.getCodeAttribute();
-            LocalVariableAttribute attr = (LocalVariableAttribute) codeAttribute.getAttribute(LocalVariableAttribute.tag);
+            LocalVariableAttribute attr =
+                    (LocalVariableAttribute) codeAttribute.getAttribute(LocalVariableAttribute.tag);
 
             boolean flag = true;
             boolean flag2 = cm.getModifiers() - 1 != AccessFlag.STATIC;
@@ -110,7 +125,8 @@ public final class ReflectionUtil {
                     continue;
                 }
                 flag = false;
-                paramMap.put(attr.variableName(j + (flag2 ? 1 : 0)), Pair.of(parameterAnnotations[j - k], parameterTypes[j - k]));
+                paramMap.put(attr.variableName(j + (flag2 ? 1 : 0)), Pair.of(parameterAnnotations[j - k],
+                        parameterTypes[j - k]));
             }
         } catch (NotFoundException e) {
             e.printStackTrace();
@@ -214,7 +230,8 @@ public final class ReflectionUtil {
         if (ctClass.isPrimitive() || "java.util.Date".equals(ctClass.getName())) {
             return true;
         }
-        return ctClass.getName().matches("^java\\.lang\\.((Boolean)|(Character)|(Byte)|(Short)|(Integer)|(Long)|(Float)|(Double)|(String))$");
+        return ctClass.getName().matches("^java\\.lang\\.((Boolean)|(Character)|(Byte)|(Short)|(Integer)|(Long)|" +
+                "(Float)|(Double)|(String))$");
     }
 
     /**
@@ -238,7 +255,8 @@ public final class ReflectionUtil {
      * @throws InstantiationException    InstantiationException
      * @throws IllegalAccessException    IllegalAccessException
      */
-    public static <T> T newWithNoParam(Class<T> handler) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+    public static <T> T newWithNoParam(Class<T> handler) throws NoSuchMethodException, InvocationTargetException,
+            InstantiationException, IllegalAccessException {
         return handler.getConstructor().newInstance();
     }
 

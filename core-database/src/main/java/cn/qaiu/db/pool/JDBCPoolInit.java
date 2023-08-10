@@ -92,7 +92,7 @@ public class JDBCPoolInit {
     private void poolInitExecute(Promise<String> promise) {
         // 初始化连接池
         pool = JDBCPool.pool(vertx, dbConfig);
-        CreateTable.createTable(pool, dbConfig.getString("tableClassPath"));
+        CreateTable.createTable(pool);
         promise.complete("init jdbc pool success");
 
     }
