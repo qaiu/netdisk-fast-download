@@ -6,6 +6,7 @@ import cn.qaiu.vx.core.annotaions.RouteMapping;
 import cn.qaiu.vx.core.annotaions.SockRouteMapper;
 import cn.qaiu.vx.core.base.BaseHttpApi;
 import cn.qaiu.vx.core.enums.MIMEType;
+import cn.qaiu.vx.core.interceptor.Interceptor;
 import cn.qaiu.vx.core.model.JsonResult;
 import cn.qaiu.vx.core.util.*;
 import io.vertx.core.Future;
@@ -62,10 +63,9 @@ public class RouterHandlerFactory implements BaseHttpApi {
 
     private final String gatewayPrefix;
 
-    public RouterHandlerFactory(String routerScanAddress, String gatewayPrefix) {
-        Objects.requireNonNull(routerScanAddress, "The router package address scan is empty.");
+    public RouterHandlerFactory(String gatewayPrefix) {
         Objects.requireNonNull(gatewayPrefix, "The gateway prefix is empty.");
-        reflections = ReflectionUtil.getReflections(routerScanAddress);
+        reflections = ReflectionUtil.getReflections();
         this.gatewayPrefix = gatewayPrefix;
     }
 
@@ -234,10 +234,8 @@ public class RouterHandlerFactory implements BaseHttpApi {
     private Handler<RoutingContext> getInterceptor() throws Throwable {
         // 配置拦截
         Class<?> interceptorClass = Class.forName(SharedDataUtil.getValueForCustomConfig("interceptorClassPath"));
-        Object handleInstance = ReflectionUtil.newWithNoParam(interceptorClass);
-        Method doHandle = interceptorClass.getMethod("doHandle");
-        // 反射调用
-        return CastUtil.cast(ReflectionUtil.invoke(doHandle, handleInstance));
+        Interceptor handleInstance = (Interceptor)ReflectionUtil.newWithNoParam(interceptorClass);
+        return handleInstance.doHandle();
     }
 
     /**

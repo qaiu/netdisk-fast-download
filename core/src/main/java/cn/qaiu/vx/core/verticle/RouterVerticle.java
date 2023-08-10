@@ -23,7 +23,6 @@ public class RouterVerticle extends AbstractVerticle {
 
     private static final int port = SharedDataUtil.getValueForServerConfig("port");
     private static final Router router = new RouterHandlerFactory(
-            SharedDataUtil.getJsonStringForCustomConfig("routerLocations"),
             SharedDataUtil.getJsonStringForServerConfig("contextPath")).createRouter();
 
     private static final JsonObject globalConfig = SharedDataUtil.getJsonConfig("globalConfig");
