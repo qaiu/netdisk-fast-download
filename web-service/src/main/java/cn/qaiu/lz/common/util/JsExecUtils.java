@@ -6,7 +6,6 @@ import javax.script.Invocable;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
@@ -18,7 +17,7 @@ import java.net.URL;
  */
 public class JsExecUtils {
     private static final String JS_PATH = "/js/ye123.js";
-    private static Invocable inv;
+    private static final Invocable inv;
 
     // 初始化脚本引擎
     static {

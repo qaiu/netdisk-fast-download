@@ -20,6 +20,7 @@
         <slf4j.version>2.0.5</slf4j.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
         <jackson.version>2.14.2</jackson.version>
+        <logback.version>1.4.6</logback.version>
     </properties>
 
     <dependencyManagement>
@@ -39,7 +40,7 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.4.6</version>
+            <version>${logback.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
