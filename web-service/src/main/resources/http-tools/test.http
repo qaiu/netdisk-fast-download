@@ -28,6 +28,10 @@ GET http://127.0.0.1:6400/cow/e4f41b51b5da4f
 # @no-redirect
 GET http://127.0.0.1:6400/parser?url=https://cowtransfer.com/s/9a644fe3e3a748
 
+### 奶牛
+# @no-redirect
+GET http://127.0.0.1:6400/parser?url=https://goldrepo.cowtransfer.com/s/026a638795634b
+
 ### 移动云空间 https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
 # @no-redirect
 GET http://127.0.0.1:6400/parser?url=https://www.ecpan.cn/web//yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
@@ -94,6 +98,6 @@ GET http://127.0.0.1:6400/ye/iaKtVv-qOECd
 GET http://127.0.0.1:6400/parser?url=https://www.123pan.com/s/iaKtVv-6OECd.html&pwd=DcGe
 
 ###
-POST http://127.0.0.1:6400/login1
+POST http://127.0.0.1:6400/login
 
 

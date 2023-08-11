@@ -23,6 +23,8 @@ public class LzTool extends PanBase implements IPanTool {
 
     public static final String SHARE_URL_PREFIX = "https://wwwa.lanzoui.com";
 
+    public static final String LINK_KEY = "lanzou";
+
     public LzTool(String key, String pwd) {
         super(key, pwd);
     }

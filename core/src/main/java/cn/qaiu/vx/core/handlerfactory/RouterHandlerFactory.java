@@ -23,6 +23,7 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
+import io.vertx.ext.web.handler.TimeoutHandler;
 import io.vertx.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.ext.web.handler.sockjs.SockJSHandlerOptions;
 import javassist.CtClass;
@@ -39,6 +40,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static cn.qaiu.vx.core.util.ConfigConstant.ROUTE_TIME_OUT;
 import static io.vertx.core.http.HttpHeaders.*;
 
 /**
@@ -173,6 +175,8 @@ public class RouterHandlerFactory implements BaseHttpApi {
                     route.consumes(mineType);
                 }
 
+                // 设置默认超时
+                route.handler(TimeoutHandler.create(SharedDataUtil.getCustomConfig().getInteger(ROUTE_TIME_OUT)));
                 // 先执行拦截方法, 再进入业务请求
                 route.handler(interceptor);
                 route.handler(ctx -> handlerMethod(instance, method, ctx)).failureHandler(ctx -> {

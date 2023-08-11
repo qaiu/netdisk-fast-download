@@ -1,7 +1,7 @@
 package cn.qaiu.lz.web.http;
 
 import cn.qaiu.lz.common.parser.IPanTool;
-import cn.qaiu.lz.common.parser.impl.*;
+import cn.qaiu.lz.common.parser.impl.EcTool;
 import cn.qaiu.lz.web.model.SysUser;
 import cn.qaiu.lz.web.service.UserService;
 import cn.qaiu.vx.core.annotaions.RouteHandler;
