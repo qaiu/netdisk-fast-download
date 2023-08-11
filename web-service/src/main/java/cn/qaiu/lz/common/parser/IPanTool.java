@@ -23,7 +23,7 @@ public interface IPanTool {
 
     static IPanTool shareURLPrefixMatching(String url, String pwd) {
 
-        if (url.startsWith(CowTool.SHARE_URL_PREFIX)) {
+        if (url.contains(CowTool.LINK_KEY)) {
             return new CowTool(url, pwd);
         } else if (url.startsWith(EcTool.SHARE_URL_PREFIX)) {
             return new EcTool(url, pwd);
@@ -35,7 +35,7 @@ public interface IPanTool {
             return new YeTool(url, pwd);
         } else if (url.startsWith(FjTool.SHARE_URL_PREFIX)) {
             return new FjTool(url, pwd);
-        } else if (url.contains("lanzou")) {
+        } else if (url.contains(LzTool.LINK_KEY)) {
             return new LzTool(url, pwd);
         }
 

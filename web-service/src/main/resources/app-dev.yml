@@ -20,6 +20,8 @@ custom:
   asyncServiceInstances: 4
   # server路由(controller层)所在包路径
   baseLocations: cn.qaiu.lz
+  # 路由处理默认超时时间(毫秒)
+  routeTimeOut: 15000
   # 拦截器包路径
   interceptorClassPath: cn.qaiu.lz.common.interceptorImpl.DefaultInterceptor
   # 拦截器匹配规则
