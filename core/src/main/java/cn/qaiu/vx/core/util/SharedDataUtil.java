@@ -32,8 +32,8 @@ public class SharedDataUtil {
         return (JsonObject) localMap.get(key);
     }
 
-    public static JsonObject getJsonObjectForCustomConfig(String key) {
-        return getJsonConfig("customConfig").getJsonObject(key);
+    public static JsonObject getCustomConfig() {
+        return getJsonConfig("customConfig");
     }
 
     public static String getStringForCustomConfig(String key) {

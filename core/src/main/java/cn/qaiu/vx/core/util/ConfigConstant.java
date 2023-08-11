@@ -10,6 +10,7 @@ public interface ConfigConstant {
     String CUSTOM_CONFIG = "customConfig";
     String ASYNC_SERVICE_INSTANCES = "asyncServiceInstances";
     String IGNORES_REG="ignoresReg";
-
     String BASE_LOCATIONS="baseLocations";
+
+    String ROUTE_TIME_OUT="routeTimeOut";
 }
