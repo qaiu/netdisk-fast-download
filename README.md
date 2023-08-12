@@ -1,4 +1,5 @@
-# netdisk-fast-download云盘解析服务(nfd云解析)
+# netdisk-fast-download
+云盘解析服务 (nfd云解析)
 预览地址 https://lz.qaiu.top
 
 [![Java CI with Maven](https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml/badge.svg)](https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml)
@@ -7,7 +8,7 @@
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/qaiu/netdisk-fast-download)](https://github.com/qaiu/netdisk-fast-download/releases/tag/0.1.6-releases)
 
 ## 项目介绍
-网盘直链解析工具能把网盘分享下载链接转化为直链，支持天翼189云盘和360网盘，支持私密分享。
+网盘直链解析工具能把网盘分享下载链接转化为直链，已支持蓝奏云/奶牛快传/移动云云空间/小飞机盘/亿方云/123云盘等，支持私密分享。
 
 ## 应用场景：
 1. 游戏：使用本站工具可自动生成高速直流下载器，用于游戏客户端自动化高速下载安装、更新等。
