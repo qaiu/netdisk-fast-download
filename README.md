@@ -1,10 +1,19 @@
-# netdisk-fast-download
+# netdisk-fast-download云盘解析服务(nfd云解析)
 预览地址 https://lz.qaiu.top
 
 [![Java CI with Maven](https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml/badge.svg)](https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml)
 [![jdk](https://img.shields.io/badge/jdk-%3E%3D17-blue)](https://www.oracle.com/cn/java/technologies/downloads/)
 [![vert.x](https://img.shields.io/badge/vert.x-4.4.1-blue)](https://vertx-china.github.io/)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/qaiu/netdisk-fast-download)](https://github.com/qaiu/netdisk-fast-download/releases/tag/0.1.6-releases)
+
+## 项目介绍
+网盘直链解析工具能把网盘分享下载链接转化为直链，支持天翼189云盘和360网盘，支持私密分享。
+
+## 应用场景：
+1. 游戏：使用本站工具可自动生成高速直流下载器，用于游戏客户端自动化高速下载安装、更新等。(需本站下载器配合试用)
+2. 下载：可根据网盘分享的地址解析为直链，方便放到自己网站上供用户下载，节约服务器带宽和磁盘。
+3. 音视频：可解析为音视频直链，可直接在网页上播放，高清，高速，节约服务器带宽和磁盘。
+4. 图床：可支持图床。
 
 ## 网盘支持情况:
 > 20230722 UC网盘解析失效，需要登录
