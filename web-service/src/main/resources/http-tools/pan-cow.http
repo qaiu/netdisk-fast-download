@@ -46,15 +46,14 @@ Content-Disposition: form-data; name="email"
 --WebAppBoundary
 Content-Disposition: form-data; name="joinProToken"
 
-
 --WebAppBoundary--
 
+###
 
+https://cowtransfer.com/core/api/transfer/share/download?transferGuid=eb9df924-7b29-496b-8147-96762fc81d28&title=spring-play
 
 ###
-git filter-branch --force --index-filter 'git rm --cached --ignore-unmatch web-service/src/main/resources/http-tools/test.http' --prune-empty --tag-name-filter cat -- --all
-git push origin master --force
-rmdir .git/refs/original/
-git reflog expire --expire=now --all
-git gc --prune=now
-git gc --aggressive --prune=now
+https://cowtransfer.com/core/api/transfer/share/download?transferGuid=
+
+###
+https://cowtransfer.com/core/api/transfer/share/download?transferGuid=eb9df924-7b29-496b-8147-96762fc81d28

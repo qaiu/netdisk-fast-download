@@ -24,4 +24,13 @@ https://developer.lanzoug.com/file/?VDJbZVxtADFSWwY+U2YHa1FuU2tTYgBnBnUGZFNmWylS
 ###
 https://developer.lanzoug.com/file/?VTNVa1tqAjMFDAM7BDEAbAE+U2tfbgZhBnVbOQUwVCYEb1IoAToCNwQhVnRXLlcyVWAEdl9uVzkEbFYxVm5VeVVlVSxbNwJ4BWADeAQyAGgBNVN4X3oGbQZxW3sFP1Q8BGhSYAEDAj8ENlY9VzJXZ1U3BDFfMldlBDFWaVY9VXJVM1VxWzsCZwVlA2QEYAAwAWtTYF8wBiIGcVstBWRUZwQ0UjcBbwJ5BGJWNVcsV2RVOgQuX2NXZgQ2VjJWMlVhVWdVNlswAm8FagMxBGAANgE6UzdfYwZgBjFbbAU6VGwEZVIyAWQCZQRkVjZXMFdmVTcENV8uVy8EalYgVixVIVUmVWdbdAI/BTcDaARhADEBblNvXzQGPQY5W3sFLVQ8BGlSYAE6AmsEY1Y2VztXY1U/BDFfM1dnBDRWZFYkVXpVc1VkW2oCIQVuA2QEZgA5AW5TZl8wBjYGMFtkBWFUcwRxUnUBKwJrBGNWNlc7V2NVPwQxXzJXZQQzVmdWLFUhVTxVcls7AmcFYgNnBH4AMwFoU2RfLgY1BjVbawV3VGIEPA==
 
+### 20230819新规则
+POST /ajaxm.php
 
+#		var wsk_sign = 'c20230818';
+#		var aihidcms = 'J5Nh';
+#		var iucjdsd = '';
+#		var ws_sign = 'c20230818';
+#		var sasign = 'AGZQbgk4UGEDCgo1ATEGOlY_aBTlSNVRiV2gEMlA1WmkBJ1R3AWFUMVY2VDsDZQE0Vj4CMgNsADdXZw_c_c';
+#		var ajaxdata = '?ctdf';
+data : { 'action':'downprocess','signs':ajaxdata,'sign':sasign,'websign':iucjdsd,'websignkey':aihidcms,'ves':1 }
