@@ -157,8 +157,8 @@ public class CreateTable {
         return sql.substring(0, sql.length() - 1) + ");\r\n";
     }
 
-    public static void createTable(JDBCPool pool, String tableClassPath) {
-        Set<Class<?>> tableClassList = ReflectionUtil.getReflections(tableClassPath).getTypesAnnotatedWith(Table.class);
+    public static void createTable(JDBCPool pool) {
+        Set<Class<?>> tableClassList = ReflectionUtil.getReflections().getTypesAnnotatedWith(Table.class);
         if (tableClassList.isEmpty()) LOGGER.info("Table model class not fount");
         tableClassList.forEach(clazz -> {
             String createTableSQL = getCreateTableSQL(clazz);

@@ -7,6 +7,8 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.ext.web.RoutingContext;
 import lombok.extern.slf4j.Slf4j;
 
+import static cn.qaiu.vx.core.util.ConfigConstant.IGNORES_REG;
+
 /**
  * 默认拦截器实现
  * 校验用户是否合法 <br>
@@ -15,7 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DefaultInterceptor implements Interceptor, BaseHttpApi {
 
-    private final JsonArray ignores = SharedDataUtil.getJsonArrayForCustomConfig("ignoresReg");
+
+    protected final JsonArray ignores = SharedDataUtil.getJsonArrayForCustomConfig(IGNORES_REG);
 
     @Override
     public void beforeHandle(RoutingContext ctx) {
@@ -23,7 +26,7 @@ public class DefaultInterceptor implements Interceptor, BaseHttpApi {
     }
 
     @Override
-    public void afterHandle(RoutingContext context) {
+    public void afterHandle(RoutingContext ctx) {
 
     }
 }

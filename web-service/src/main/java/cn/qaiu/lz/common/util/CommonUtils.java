@@ -8,11 +8,15 @@ import java.util.Map;
 public class CommonUtils {
 
     public static String adaptShortPaths(String urlPrefix, String url) {
-        if (!url.startsWith(urlPrefix)) {
-            url = urlPrefix + url;
-        }
         if (url.endsWith(".html")) {
             url = url.substring(0, url.length() - 5);
+        }
+        String prefix = "https://";
+        if (!url.startsWith(urlPrefix) && url.startsWith(prefix)) {
+            urlPrefix = urlPrefix.substring(prefix.length());
+            return url.substring(url.indexOf(urlPrefix) + urlPrefix.length());
+        } else if (!url.startsWith(urlPrefix)) {
+            url = urlPrefix + url;
         }
         return url.substring(urlPrefix.length());
     }

@@ -18,6 +18,8 @@ public class CowTool extends PanBase implements IPanTool {
     private static final String API_REQUEST_URL = "https://cowtransfer.com/core/api/transfer/share";
     public static final String SHARE_URL_PREFIX = "https://cowtransfer.com/s/";
 
+    public static final String LINK_KEY = "cowtransfer.com/s/";
+
     public CowTool(String key, String pwd) {
         super(key, pwd);
     }
@@ -30,8 +32,16 @@ public class CowTool extends PanBase implements IPanTool {
             if ("success".equals(resJson.getString("message")) && resJson.containsKey("data")) {
                 JsonObject dataJson = resJson.getJsonObject("data");
                 String guid = dataJson.getString("guid");
-                String fileId = dataJson.getJsonObject("firstFile").getString("id");
-                String url2 = API_REQUEST_URL + "/download?transferGuid=" + guid + "&fileId=" + fileId;
+                StringBuilder url2Build = new StringBuilder(API_REQUEST_URL + "/download?transferGuid=" + guid);
+                if (dataJson.getBoolean("zipDownload")) {
+                    // &title=xxx
+                    JsonObject firstFolder = dataJson.getJsonObject("firstFolder");
+                    url2Build.append("&title=").append(firstFolder.getString("title"));
+                } else {
+                    String fileId = dataJson.getJsonObject("firstFile").getString("id");
+                    url2Build.append("&fileId=").append(fileId);
+                }
+                String url2 = url2Build.toString();
                 client.getAbs(url2).send().onSuccess(res2 -> {
                     JsonObject res2Json = res2.bodyAsJsonObject();
                     if ("success".equals(res2Json.getString("message")) && res2Json.containsKey("data")) {

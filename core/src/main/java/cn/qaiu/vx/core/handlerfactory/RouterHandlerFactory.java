@@ -6,6 +6,7 @@ import cn.qaiu.vx.core.annotaions.RouteMapping;
 import cn.qaiu.vx.core.annotaions.SockRouteMapper;
 import cn.qaiu.vx.core.base.BaseHttpApi;
 import cn.qaiu.vx.core.enums.MIMEType;
+import cn.qaiu.vx.core.interceptor.Interceptor;
 import cn.qaiu.vx.core.model.JsonResult;
 import cn.qaiu.vx.core.util.*;
 import io.vertx.core.Future;
@@ -22,6 +23,7 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
+import io.vertx.ext.web.handler.TimeoutHandler;
 import io.vertx.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.ext.web.handler.sockjs.SockJSHandlerOptions;
 import javassist.CtClass;
@@ -38,6 +40,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static cn.qaiu.vx.core.util.ConfigConstant.ROUTE_TIME_OUT;
 import static io.vertx.core.http.HttpHeaders.*;
 
 /**
@@ -62,10 +65,9 @@ public class RouterHandlerFactory implements BaseHttpApi {
 
     private final String gatewayPrefix;
 
-    public RouterHandlerFactory(String routerScanAddress, String gatewayPrefix) {
-        Objects.requireNonNull(routerScanAddress, "The router package address scan is empty.");
+    public RouterHandlerFactory(String gatewayPrefix) {
         Objects.requireNonNull(gatewayPrefix, "The gateway prefix is empty.");
-        reflections = ReflectionUtil.getReflections(routerScanAddress);
+        reflections = ReflectionUtil.getReflections();
         this.gatewayPrefix = gatewayPrefix;
     }
 
@@ -173,6 +175,8 @@ public class RouterHandlerFactory implements BaseHttpApi {
                     route.consumes(mineType);
                 }
 
+                // 设置默认超时
+                route.handler(TimeoutHandler.create(SharedDataUtil.getCustomConfig().getInteger(ROUTE_TIME_OUT)));
                 // 先执行拦截方法, 再进入业务请求
                 route.handler(interceptor);
                 route.handler(ctx -> handlerMethod(instance, method, ctx)).failureHandler(ctx -> {
@@ -234,10 +238,8 @@ public class RouterHandlerFactory implements BaseHttpApi {
     private Handler<RoutingContext> getInterceptor() throws Throwable {
         // 配置拦截
         Class<?> interceptorClass = Class.forName(SharedDataUtil.getValueForCustomConfig("interceptorClassPath"));
-        Object handleInstance = ReflectionUtil.newWithNoParam(interceptorClass);
-        Method doHandle = interceptorClass.getMethod("doHandle");
-        // 反射调用
-        return CastUtil.cast(ReflectionUtil.invoke(doHandle, handleInstance));
+        Interceptor handleInstance = (Interceptor)ReflectionUtil.newWithNoParam(interceptorClass);
+        return handleInstance.doHandle();
     }
 
     /**
