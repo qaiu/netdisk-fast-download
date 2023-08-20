@@ -1,4 +1,4 @@
-package cn.qaiu.vx.core.util;
+package cn.qaiu.lz.common.util;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -30,6 +30,8 @@ public class SnowflakeIdWorker {
 
     // ==============================Fields===========================================
 
+    //开始时间截 (2021-01-01)
+    private static final long EPOCH = 1609459200000L;
     /**
      * 机器id所占的位数
      */
@@ -133,9 +135,7 @@ public class SnowflakeIdWorker {
         //时间截向左移22位(5+5+12)
         long timestampLeftShift = sequenceBits + workerIdBits + datacenterIdBits;
 
-        //开始时间截 (2021-01-01)
-        long twepoch = 1609459200000L;
-        return ((timestamp - twepoch) << timestampLeftShift) //
+        return ((timestamp - EPOCH) << timestampLeftShift) //
                 | (datacenterId << datacenterIdShift) //
                 | (workerId << sequenceBits) //
                 | sequence;
@@ -219,25 +219,5 @@ public class SnowflakeIdWorker {
             snowflakeIdWorkerCluster = new SnowflakeIdWorker(workerId, datacenterId);
         }
         return snowflakeIdWorkerCluster;
-    }
-    //==============================Test=============================================
-
-    /**
-     * 测试
-     */
-    public static void main(String[] args) {
-        final SnowflakeIdWorker snowflakeIdWorkerCluster = idWorkerCluster(0, 1);
-        final SnowflakeIdWorker idWorker = idWorker();
-        for (int i = 0; i < 100; i++) {
-            long id = idWorker.nextId();
-            System.out.println(Long.toBinaryString(id));
-            System.out.println(id);
-            System.out.println("------------");
-            id = snowflakeIdWorkerCluster.nextId();
-            System.out.println(Long.toBinaryString(id));
-            System.out.println(id);
-            System.out.println("------------\n");
-        }
-
     }
 }

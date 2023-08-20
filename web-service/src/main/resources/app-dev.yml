@@ -19,18 +19,20 @@ custom:
   # 异步服务线程数
   asyncServiceInstances: 4
   # server路由(controller层)所在包路径
-  routerLocations: cn.qaiu.lz.web.http
+  baseLocations: cn.qaiu.lz
+  # 路由处理默认超时时间(毫秒)
+  routeTimeOut: 15000
   # 拦截器包路径
   interceptorClassPath: cn.qaiu.lz.common.interceptorImpl.DefaultInterceptor
-  # server层包路径
-  handlerLocations: cn.qaiu.lz.web.service
-  # 匹配规则
+  # 拦截器匹配规则
   ignoresReg:
     - .*/login$
     - .*/test.*$
-  # 实体类包路径匹配正则
+
+  # 参数注入的实体类包路径匹配正则 (防止同名类引发歧义)
   entityPackagesReg:
     - ^cn\.qaiu\.lz\.web\.model\..*
+
 
 # 数据源配置
 dataSource:
