@@ -65,7 +65,8 @@ public class LzTool extends PanBase implements IPanTool {
      */
 
     /**
-     * 解析器
+     * 蓝奏云解析器
+     *
      * @return url String
      */
     @SuppressWarnings("unchecked")
@@ -79,20 +80,25 @@ public class LzTool extends PanBase implements IPanTool {
             // 匹配iframe
             Pattern compile = Pattern.compile("src=\"(/fn\\?[a-zA-Z\\d_+/=]{16,})\"");
             Matcher matcher = compile.matcher(html);
+            // 没有Iframe说明是加密分享, 匹配sign通过密码请求下载页面
             if (!matcher.find()) {
-                // 没有Iframe说明是加密分享, 匹配sign通过密码请求下载页面
-                // 去TMD正则
+                // 处理一下JS
                 String jsText = getJsText(html);
-                try {
-                    ScriptObjectMirror scriptMirror = JsExecUtils.executeDynamicJs(jsText, "down_p");
-                    System.out.println(scriptMirror);
 
+                if (jsText == null) {
+                    fail(SHARE_URL_PREFIX + " -> " + sUrl + ": js脚本匹配失败, 可能分享已失效");
+                    return;
+                }
+
+                jsText = jsText.replace("document.getElementById('pwd').value", "\"" + pwd + "\"");
+                jsText = jsText.substring(0, jsText.indexOf("document.getElementById('rpt')"));
+                try {
+                    ScriptObjectMirror scriptObjectMirror = JsExecUtils.executeDynamicJs(jsText, "down_p");
+                    getDownURL(promise, sUrl, client, (Map<String, String>) scriptObjectMirror.get("data"));
                 } catch (ScriptException | NoSuchMethodException e) {
                     fail(e, "js引擎执行失败");
                     return;
                 }
-
-//                getDownURL(promise, sUrl, client, sign);
                 return;
             }
             String iframePath = matcher.group(1);
@@ -103,7 +109,7 @@ public class LzTool extends PanBase implements IPanTool {
                 // Matcher matcher2 = Pattern.compile("'sign'\s*:\s*'(\\w+)'").matcher(html2);
                 String jsText = getJsText(html2);
                 if (jsText == null) {
-                    fail(SHARE_URL_PREFIX + iframePath + " -> " + sUrl + ": sign正则匹配失败, 可能分享已失效");
+                    fail(SHARE_URL_PREFIX + iframePath + " -> " + sUrl + ": js脚本匹配失败, 可能分享已失效");
                     return;
                 }
                 try {
@@ -131,8 +137,8 @@ public class LzTool extends PanBase implements IPanTool {
 
     private void getDownURL(Promise<String> promise, String key, WebClient client, Map<String, ?> signMap) {
         MultiMap map = MultiMap.caseInsensitiveMultiMap();
-        signMap.forEach((k,v)->{
-            map.set(k,v.toString());
+        signMap.forEach((k, v) -> {
+            map.set(k, v.toString());
         });
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         var userAgent2 = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, " +
