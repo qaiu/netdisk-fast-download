@@ -33,42 +33,6 @@ public class LzTool extends PanBase implements IPanTool {
         super(key, pwd);
     }
 
-    /*
-		var wsk_sign = 'c20230818';
-		var aihidcms = 'Fn5L';
-		var iucjdsd = '';
-		var ws_sign = 'c20230818';
-		var sasign = 'B2EBPw8_bBDVRWFdoAzMGOlI5ATwEbVFgV2NVZwVhATYILld0WjoAZQhoVDsEYlZjBm4BNgVoVGcHMQ_c_c';
-		var ajaxdata = '?ctdf';
-		$.ajax({
-			type : 'post',
-			url : '/ajaxm.php',
-			//b data : { 'action':'downprocess','signs':ajaxdata,'sign':'w},
-			data : { 'action':'downprocess','signs':ajaxdata,'sign':sasign,'websign':iucjdsd,'websignkey':aihidcms,'ves':1 },
-			//b data : { 'action':'downprocess','signs':ajaxdata,'sign':'','websign':ws_sign,'websignkey':wsk_sign,'ves':1 },
-			dataType : 'json',
-			success:function(msg){
-				var date = msg;
-				if(date.zt == '1'){
-										$("#tourl").html("<a href="+date.dom+"/file/"+ date.url +" target=_blank rel=noreferrer><span class=txt>电信下载</span><span class='txt txtc'>联通下载</span><span class=txt>普通下载</span></a>");
-					setTimeout('$("#outime").css("display","block");',1800000);
-									}else{
-					$("#tourl").html("网页超时，请刷新");
-				};
-
-			},
-			error:function(){
-				$("#tourl").html("获取失败，请刷新");
-			}
-
-		});
-     */
-
-    /**
-     * 蓝奏云解析器
-     *
-     * @return url String
-     */
     @SuppressWarnings("unchecked")
     public Future<String> parse() {
         String sUrl = key.startsWith("https://") ? key : SHARE_URL_PREFIX + "/" + key;
