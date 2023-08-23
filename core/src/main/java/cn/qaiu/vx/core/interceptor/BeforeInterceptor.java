@@ -4,18 +4,16 @@ import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 
 /**
- * 拦截器接口
- * <br>Create date 2021-05-06 09:20:37
+ * 前置拦截器接口
  *
  * @author <a href="https://qaiu.top">QAIU</a>
  */
-public interface Interceptor {
+public interface BeforeInterceptor {
 
     default Handler<RoutingContext> doHandle() {
-        return this::beforeHandle;
+        return this::handle;
     }
 
-    void beforeHandle(RoutingContext context);
+    void handle(RoutingContext context);
 
-    void afterHandle(RoutingContext context);
 }

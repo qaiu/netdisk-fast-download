@@ -15,6 +15,7 @@ public interface IPanTool {
             case "uc" -> new UcTool(key, pwd);
             case "ye" -> new YeTool(key, pwd);
             case "fj" -> new FjTool(key, pwd);
+            case "qk" -> new QkTool(key, pwd);
             default -> {
                 throw new UnsupportedOperationException("未知分享类型");
             }
