@@ -51,6 +51,12 @@ public class TestAESUtil {
     }
 
     @Test
+    public void test00() throws IllegalBlockSizeException, NoSuchPaddingException, BadPaddingException,
+            NoSuchAlgorithmException, InvalidKeyException {
+        System.out.println(AESUtils.decryptByBase64AES(AESUtils.CIPHER_AES2, AESUtils.CIPHER_AES));
+    }
+
+    @Test
     public void testTs() {
         System.out.println(System.currentTimeMillis());
     }

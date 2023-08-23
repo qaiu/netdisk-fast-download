@@ -1,12 +1,9 @@
 package cn.qaiu.vx.core.handlerfactory;
 
-import cn.qaiu.vx.core.annotaions.DateFormat;
-import cn.qaiu.vx.core.annotaions.RouteHandler;
-import cn.qaiu.vx.core.annotaions.RouteMapping;
-import cn.qaiu.vx.core.annotaions.SockRouteMapper;
+import cn.qaiu.vx.core.annotaions.*;
 import cn.qaiu.vx.core.base.BaseHttpApi;
-import cn.qaiu.vx.core.enums.MIMEType;
-import cn.qaiu.vx.core.interceptor.Interceptor;
+import cn.qaiu.vx.core.interceptor.AfterInterceptor;
+import cn.qaiu.vx.core.interceptor.BeforeInterceptor;
 import cn.qaiu.vx.core.model.JsonResult;
 import cn.qaiu.vx.core.util.*;
 import io.vertx.core.Future;
@@ -75,21 +72,22 @@ public class RouterHandlerFactory implements BaseHttpApi {
      * 开始扫描并注册handler
      */
     public Router createRouter() {
-        Router router = Router.router(VertxHolder.getVertxInstance());
+        // 主路由
+        Router mainRouter = Router.router(VertxHolder.getVertxInstance());
 
         // 静态资源
         String path = SharedDataUtil.getJsonConfig("server")
                 .getString("staticResourcePath");
         if (!StringUtils.isEmpty(path)) {
             // 静态资源
-            router.route("/*").handler(StaticHandler
+            mainRouter.route("/*").handler(StaticHandler
                     .create(path)
                     .setCachingEnabled(true)
                     .setDefaultContentEncoding("UTF-8"));
         }
 
 
-        router.route().handler(ctx -> {
+        mainRouter.route().handler(ctx -> {
             LOGGER.debug("The HTTP service request address information ===>path:{}, uri:{}, method:{}",
                     ctx.request().path(), ctx.request().absoluteURI(), ctx.request().method());
             ctx.response().headers().add(ACCESS_CONTROL_ALLOW_ORIGIN, "*");
@@ -100,11 +98,15 @@ public class RouterHandlerFactory implements BaseHttpApi {
             ctx.next();
         });
         // 添加跨域的方法
-        router.route().handler(CorsHandler.create().addRelativeOrigin(".*").allowCredentials(true).allowedMethods(httpMethods));
+        mainRouter.route().handler(CorsHandler.create().addRelativeOrigin(".*").allowCredentials(true).allowedMethods(httpMethods));
 
         // 配置文件上传路径
-        router.route().handler(BodyHandler.create().setUploadsDirectory("uploads"));
+        mainRouter.route().handler(BodyHandler.create().setUploadsDirectory("uploads"));
 
+        // 拦截器
+        Set<Handler<RoutingContext>> interceptorSet = getInterceptorSet();
+        Route route0 = mainRouter.route("/*");
+        interceptorSet.forEach(route0::handler);
 
         try {
             Set<Class<?>> handlers = reflections.getTypesAnnotatedWith(RouteHandler.class);
@@ -118,7 +120,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
             for (Class<?> handler : sortedHandlers) {
                 try {
                     // 注册请求处理方法
-                    registerNewHandler(router, handler);
+                    registerNewHandler(mainRouter, handler);
                 } catch (Throwable e) {
                     LOGGER.error("Error register {}, Error details：", handler, e.getCause());
 
@@ -128,12 +130,12 @@ public class RouterHandlerFactory implements BaseHttpApi {
             LOGGER.error("Manually Register Handler Fail, Error details：" + e.getMessage());
         }
         // 错误请求处理
-        router.errorHandler(405, ctx -> fireJsonResponse(ctx, JsonResult
+        mainRouter.errorHandler(405, ctx -> fireJsonResponse(ctx, JsonResult
                 .error("Method Not Allowed", 405)));
-        router.errorHandler(404, ctx -> ctx.response().setStatusCode(404).setChunked(true)
+        mainRouter.errorHandler(404, ctx -> ctx.response().setStatusCode(404).setChunked(true)
                 .end("Internal server error: 404 not found"));
 
-        return router;
+        return mainRouter;
     }
 
     /**
@@ -157,8 +159,6 @@ public class RouterHandlerFactory implements BaseHttpApi {
                 method -> method.isAnnotationPresent(SockRouteMapper.class)
         ).toList());
 
-        // 拦截器
-        Handler<RoutingContext> interceptor = getInterceptor();
         // 依次注册处理方法
         for (Method method : methodList) {
             if (method.isAnnotationPresent(RouteMapping.class)) {
@@ -177,8 +177,6 @@ public class RouterHandlerFactory implements BaseHttpApi {
 
                 // 设置默认超时
                 route.handler(TimeoutHandler.create(SharedDataUtil.getCustomConfig().getInteger(ROUTE_TIME_OUT)));
-                // 先执行拦截方法, 再进入业务请求
-                route.handler(interceptor);
                 route.handler(ctx -> handlerMethod(instance, method, ctx)).failureHandler(ctx -> {
                     if (ctx.response().ended()) return;
                     ctx.failure().printStackTrace();
@@ -235,11 +233,9 @@ public class RouterHandlerFactory implements BaseHttpApi {
      * @return Handler
      * @throws Throwable Throwable
      */
-    private Handler<RoutingContext> getInterceptor() throws Throwable {
+    private Set<Handler<RoutingContext>> getInterceptorSet() {
         // 配置拦截
-        Class<?> interceptorClass = Class.forName(SharedDataUtil.getValueForCustomConfig("interceptorClassPath"));
-        Interceptor handleInstance = (Interceptor)ReflectionUtil.newWithNoParam(interceptorClass);
-        return handleInstance.doHandle();
+        return getBeforeInterceptor().stream().map(BeforeInterceptor::doHandle).collect(Collectors.toSet());
     }
 
     /**
@@ -369,11 +365,13 @@ public class RouterHandlerFactory implements BaseHttpApi {
                             fireJsonResponse(ctx, res);
                         } else if (res != null) {
                             fireJsonResponse(ctx, JsonResult.data(res));
+                        } else {
+                            handleAfterInterceptor(ctx, null);
                         }
+
                     }).onFailure(e -> fireJsonResponse(ctx, JsonResult.error(e.getMessage())));
                 } else {
-                    ctx.response().headers().set(CONTENT_TYPE, MIMEType.TEXT_HTML.getValue());
-                    ctx.end(data.toString());
+                    fireTextResponse(ctx, data.toString());
                 }
             }
         } catch (Throwable e) {
@@ -403,5 +401,24 @@ public class RouterHandlerFactory implements BaseHttpApi {
             }
         }
         return fmt;
+    }
+
+    @Override
+    public Set<AfterInterceptor> getAfterInterceptor() {
+        Set<Class<? extends AfterInterceptor>> afterInterceptorClassSet =
+                reflections.getSubTypesOf(AfterInterceptor.class);
+        if (afterInterceptorClassSet == null) {
+            return null;
+        }
+        return CommonUtil.sortClassSet(afterInterceptorClassSet);
+    }
+
+    private Set<BeforeInterceptor> getBeforeInterceptor() {
+        Set<Class<? extends BeforeInterceptor>> interceptorClassSet =
+                reflections.getSubTypesOf(BeforeInterceptor.class);
+        if (interceptorClassSet == null) {
+            return new HashSet<>();
+        }
+        return CommonUtil.sortClassSet(interceptorClassSet);
     }
 }
