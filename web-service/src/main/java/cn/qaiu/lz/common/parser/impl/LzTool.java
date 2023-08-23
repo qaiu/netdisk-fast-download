@@ -90,7 +90,7 @@ public class LzTool extends PanBase implements IPanTool {
     private String getJsText(String html) {
         String jsTagStart = "<script type=\"text/javascript\">";
         String jsTagEnd = "</script>";
-        int index = html.indexOf(jsTagStart);
+        int index = html.lastIndexOf(jsTagStart);
         if (index == -1) {
             return null;
         }

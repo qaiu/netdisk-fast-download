@@ -82,7 +82,7 @@ public final class Deploy {
         var calendar = Calendar.getInstance();
         calendar.setTime(new Date());
         var year = calendar.get(Calendar.YEAR);
-        var logoTemplete = """
+        var logoTemplate = """
 
                 Web Server powered by:\s
                  ____   ____              _              _    _   \s
@@ -95,7 +95,7 @@ public final class Deploy {
 
                 """;
 
-        System.out.printf(logoTemplete,
+        System.out.printf(logoTemplate,
                 conf.getString("version_app"),
                 VersionCommand.getVersion(),
                 conf.getString("copyright"),

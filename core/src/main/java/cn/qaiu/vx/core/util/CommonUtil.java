@@ -1,5 +1,6 @@
 package cn.qaiu.vx.core.util;
 
+import cn.qaiu.vx.core.annotaions.HandleSortFilter;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import org.apache.commons.beanutils.ConvertUtils;
@@ -15,6 +16,8 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * CommonUtil
@@ -70,10 +73,11 @@ public class CommonUtil {
         } catch (UnknownHostException e) {
             return false;
         }
-        try(Socket ignored =  new Socket(Address, port)) {
-             //建立一个Socket连接
+        try (Socket ignored = new Socket(Address, port)) {
+            //建立一个Socket连接
             flag = true;
-        } catch (IOException ignoredException) {}
+        } catch (IOException ignoredException) {
+        }
         return flag;
     }
 
@@ -125,5 +129,33 @@ public class CommonUtil {
         Map<String, Object> map = entries.getMap();
         LocalConstant.put(configName, map);
         LOGGER.info("读取配置{}成功", configName);
+    }
+
+    public static <T> Set<T> sortClassSet(Set<Class<? extends T>> set) {
+        return set.stream().filter(c1 -> {
+            HandleSortFilter s1 = c1.getAnnotation(HandleSortFilter.class);
+            if (s1 != null) {
+                return s1.value() > 0;
+            } else {
+                return true;
+            }
+        }).sorted((c1, c2) -> {
+            HandleSortFilter s1 = c1.getAnnotation(HandleSortFilter.class);
+            HandleSortFilter s2 = c2.getAnnotation(HandleSortFilter.class);
+            int n1 = 0, n2 = 0;
+            if (s1 != null) {
+                n1 = s1.value();
+            }
+            if (s2 != null) {
+                n2 = s2.value();
+            }
+            return n1 - n2;
+        }).map(c -> {
+            try {
+                return ReflectionUtil.newWithNoParam(c);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }).collect(Collectors.toSet());
     }
 }

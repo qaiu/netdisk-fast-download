@@ -8,6 +8,7 @@ import cn.qaiu.vx.core.annotaions.RouteHandler;
 import cn.qaiu.vx.core.annotaions.RouteMapping;
 import cn.qaiu.vx.core.enums.RouteMethod;
 import cn.qaiu.vx.core.util.AsyncServiceUtil;
+import cn.qaiu.vx.core.util.ResponseUtil;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServerRequest;
@@ -44,8 +45,7 @@ public class ServerApi {
         }
         try {
             IPanTool.shareURLPrefixMatching(url, pwd).parse().onSuccess(resUrl -> {
-                response.putHeader("location", resUrl).setStatusCode(302).end();
-                promise.complete();
+                ResponseUtil.redirect(response, resUrl, promise);
             }).onFailure(t -> promise.fail(t.fillInStackTrace()));
         } catch (Exception e) {
             promise.fail(e);
@@ -72,8 +72,7 @@ public class ServerApi {
             code = keys[1];
         }
 
-        IPanTool.typeMatching(type, key, code).parse().onSuccess(resUrl -> response.putHeader("location", resUrl)
-                .setStatusCode(302).end()).onFailure(t -> {
+        IPanTool.typeMatching(type, key, code).parse().onSuccess(resUrl -> ResponseUtil.redirect(response, resUrl)).onFailure(t -> {
             response.putHeader(CONTENT_TYPE, "text/html;charset=utf-8");
             response.end(t.getMessage());
         });
