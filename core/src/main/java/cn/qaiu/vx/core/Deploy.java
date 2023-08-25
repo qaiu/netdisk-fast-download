@@ -44,6 +44,11 @@ public final class Deploy {
         return INSTANCE;
     }
 
+    /**
+     *
+     * @param args 启动参数
+     * @param handle 启动完成后回调处理函数
+     */
     public void start(String[] args, Handler<JsonObject> handle) {
         this.mainThread = Thread.currentThread();
         this.handle = handle;

@@ -1,11 +1,14 @@
 package cn.qaiu.vx.core.handlerfactory;
 
-import cn.qaiu.vx.core.annotaions.*;
+import cn.qaiu.vx.core.annotaions.DateFormat;
+import cn.qaiu.vx.core.annotaions.RouteHandler;
+import cn.qaiu.vx.core.annotaions.RouteMapping;
+import cn.qaiu.vx.core.annotaions.SockRouteMapper;
 import cn.qaiu.vx.core.base.BaseHttpApi;
-import cn.qaiu.vx.core.interceptor.AfterInterceptor;
 import cn.qaiu.vx.core.interceptor.BeforeInterceptor;
 import cn.qaiu.vx.core.model.JsonResult;
 import cn.qaiu.vx.core.util.*;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
@@ -17,16 +20,12 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.BodyHandler;
-import io.vertx.ext.web.handler.CorsHandler;
-import io.vertx.ext.web.handler.StaticHandler;
-import io.vertx.ext.web.handler.TimeoutHandler;
+import io.vertx.ext.web.handler.*;
 import io.vertx.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.ext.web.handler.sockjs.SockJSHandlerOptions;
 import javassist.CtClass;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,14 +56,11 @@ public class RouterHandlerFactory implements BaseHttpApi {
         add(HttpMethod.DELETE);
         add(HttpMethod.HEAD);
     }};
-    // 需要扫描注册的Router路径
-    private static volatile Reflections reflections;
 
     private final String gatewayPrefix;
 
     public RouterHandlerFactory(String gatewayPrefix) {
         Objects.requireNonNull(gatewayPrefix, "The gateway prefix is empty.");
-        reflections = ReflectionUtil.getReflections();
         this.gatewayPrefix = gatewayPrefix;
     }
 
@@ -130,7 +126,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
             LOGGER.error("Manually Register Handler Fail, Error details：" + e.getMessage());
         }
         // 错误请求处理
-        mainRouter.errorHandler(405, ctx -> fireJsonResponse(ctx, JsonResult
+        mainRouter.errorHandler(405, ctx -> doFireJsonResultResponse(ctx, JsonResult
                 .error("Method Not Allowed", 405)));
         mainRouter.errorHandler(404, ctx -> ctx.response().setStatusCode(404).setChunked(true)
                 .end("Internal server error: 404 not found"));
@@ -165,7 +161,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
                 // 普通路由
                 RouteMapping mapping = method.getAnnotation(RouteMapping.class);
                 HttpMethod routeMethod = HttpMethod.valueOf(mapping.method().name());
-                String routeUrl = getRouteUrl(method.getName(), mapping.value());
+                String routeUrl = getRouteUrl(mapping.value());
                 String url = root.concat(routeUrl);
                 // 匹配方法
                 Route route = router.route(routeMethod, url);
@@ -177,15 +173,16 @@ public class RouterHandlerFactory implements BaseHttpApi {
 
                 // 设置默认超时
                 route.handler(TimeoutHandler.create(SharedDataUtil.getCustomConfig().getInteger(ROUTE_TIME_OUT)));
+                route.handler(ResponseTimeHandler.create());
                 route.handler(ctx -> handlerMethod(instance, method, ctx)).failureHandler(ctx -> {
                     if (ctx.response().ended()) return;
                     ctx.failure().printStackTrace();
-                    fireJsonResponse(ctx, JsonResult.error(ctx.failure().getMessage(), 500));
+                    doFireJsonResultResponse(ctx, JsonResult.error(ctx.failure().getMessage(), 500));
                 });
             } else if (method.isAnnotationPresent(SockRouteMapper.class)) {
                 // websocket 基于sockJs
                 SockRouteMapper mapping = method.getAnnotation(SockRouteMapper.class);
-                String routeUrl = getRouteUrl(method.getName(), mapping.value());
+                String routeUrl = getRouteUrl(mapping.value());
                 String url = root.concat(routeUrl);
                 LOGGER.info("Register New Websocket Handler -> {}", url);
                 SockJSHandlerOptions options = new SockJSHandlerOptions()
@@ -212,10 +209,9 @@ public class RouterHandlerFactory implements BaseHttpApi {
     /**
      * 获取并处理路由URL分隔符
      *
-     * @param methodName 路由method
      * @return String
      */
-    private String getRouteUrl(String methodName, String mapperValue) {
+    private String getRouteUrl(String mapperValue) {
         String routeUrl;
         if ("/".equals(mapperValue)) {
             routeUrl = mapperValue;
@@ -231,7 +227,6 @@ public class RouterHandlerFactory implements BaseHttpApi {
      * 配置拦截
      *
      * @return Handler
-     * @throws Throwable Throwable
      */
     private Set<Handler<RoutingContext>> getInterceptorSet() {
         // 配置拦截
@@ -257,7 +252,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
         if (handler.isAnnotationPresent(RouteHandler.class)) {
             RouteHandler routeHandler = handler.getAnnotation(RouteHandler.class);
             String value = routeHandler.value();
-            root += ("/".equals(value) ? "" : value);
+            root += (value.startsWith("/") ? value.substring(1) : value);
         }
         if (!root.endsWith("/")) {
             root = root + "/";
@@ -300,37 +295,12 @@ public class RouterHandlerFactory implements BaseHttpApi {
             });
         }
 
-        final MultiMap queryParams = ctx.queryParams();
-        if ("POST".equals(ctx.request().method().name())) {
-            queryParams.addAll(ctx.request().params());
-        }
-
         JsonArray entityPackagesReg = SharedDataUtil.getJsonArrayForCustomConfig("entityPackagesReg");
-        // 绑定get或post请求头的请求参数
-        methodParametersTemp.forEach((k, v) -> {
-            if (ReflectionUtil.isBasicType(v.getRight())) {
-                String fmt = getFmt(v.getLeft(), v.getRight());
-                String value = queryParams.get(k);
-                parameterValueList.put(k, ReflectionUtil.conversion(v.getRight(), value, fmt));
-            } else if (RoutingContext.class.getName().equals(v.getRight().getName())) {
-                parameterValueList.put(k, ctx);
-            } else if (HttpServerRequest.class.getName().equals(v.getRight().getName())) {
-                parameterValueList.put(k, ctx.request());
-            } else if (HttpServerResponse.class.getName().equals(v.getRight().getName())) {
-                parameterValueList.put(k, ctx.response());
-            } else if (CommonUtil.matchRegList(entityPackagesReg.getList(), v.getRight().getName())) {
-                // 绑定实体类
-                try {
-                    Class<?> aClass = Class.forName(v.getRight().getName());
-                    Object entity = ParamUtil.multiMapToEntity(queryParams, aClass);
-                    parameterValueList.put(k, entity);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
+
+        final MultiMap queryParams = ctx.queryParams();
         // 解析body-json参数
-        if ("application/json".equals(ctx.parsedHeaders().contentType().value()) && ctx.body().asJsonObject() != null) {
+        if (HttpHeaderValues.APPLICATION_JSON.toString().equals(ctx.parsedHeaders().contentType().value())
+                && ctx.body().asJsonObject() != null) {
             JsonObject body = ctx.body().asJsonObject();
             if (body != null) {
                 methodParametersTemp.forEach((k, v) -> {
@@ -350,28 +320,66 @@ public class RouterHandlerFactory implements BaseHttpApi {
                     }
                 });
             }
+        } else if (ctx.body() != null) {
+            queryParams.addAll(ParamUtil.paramsToMap(ctx.body().asString()));
         }
+
+        // 解析其他参数
+        if ("POST".equals(ctx.request().method().name())) {
+            queryParams.addAll(ctx.request().params());
+        }
+        // 绑定get或post请求头的请求参数
+        methodParametersTemp.forEach((k, v) -> {
+            if (ReflectionUtil.isBasicType(v.getRight())) {
+                String fmt = getFmt(v.getLeft(), v.getRight());
+                String value = queryParams.get(k);
+                parameterValueList.put(k, ReflectionUtil.conversion(v.getRight(), value, fmt));
+            } else if (RoutingContext.class.getName().equals(v.getRight().getName())) {
+                parameterValueList.put(k, ctx);
+            } else if (HttpServerRequest.class.getName().equals(v.getRight().getName())) {
+                parameterValueList.put(k, ctx.request());
+            } else if (HttpServerResponse.class.getName().equals(v.getRight().getName())) {
+                parameterValueList.put(k, ctx.response());
+            } else if (parameterValueList.get(k) == null
+                    && CommonUtil.matchRegList(entityPackagesReg.getList(), v.getRight().getName())) {
+                // 绑定实体类
+                try {
+                    Class<?> aClass = Class.forName(v.getRight().getName());
+                    Object entity = ParamUtil.multiMapToEntity(queryParams, aClass);
+                    parameterValueList.put(k, entity);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
         // 调用handle 获取响应对象
         Object[] parameterValueArray = parameterValueList.values().toArray(new Object[0]);
         try {
             // 反射调用
             Object data = ReflectionUtil.invokeWithArguments(method, instance, parameterValueArray);
             if (data != null) {
+
                 if (data instanceof JsonResult) {
-                    fireJsonResponse(ctx, data);
+                    doFireJsonResultResponse(ctx, (JsonResult<?>) data);
+                }
+                if (data instanceof JsonObject) {
+                    doFireJsonObjectResponse(ctx, ((JsonObject) data));
                 } else if (data instanceof Future) { // 处理异步响应
                     ((Future<?>) data).onSuccess(res -> {
+                        if (res instanceof JsonResult) {
+                            doFireJsonResultResponse(ctx, (JsonResult<?>) res);
+                        }
                         if (res instanceof JsonObject) {
-                            fireJsonResponse(ctx, res);
+                            doFireJsonObjectResponse(ctx, ((JsonObject) res));
                         } else if (res != null) {
-                            fireJsonResponse(ctx, JsonResult.data(res));
+                            doFireJsonResultResponse(ctx, JsonResult.data(res));
                         } else {
                             handleAfterInterceptor(ctx, null);
                         }
 
-                    }).onFailure(e -> fireJsonResponse(ctx, JsonResult.error(e.getMessage())));
+                    }).onFailure(e -> doFireJsonResultResponse(ctx, JsonResult.error(e.getMessage())));
                 } else {
-                    fireTextResponse(ctx, data.toString());
+                    doFireJsonResultResponse(ctx, JsonResult.data(data));
                 }
             }
         } catch (Throwable e) {
@@ -384,7 +392,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
                     err = e.getCause().getMessage();
                 }
             }
-            fireJsonResponse(ctx, JsonResult.error(err));
+            doFireJsonResultResponse(ctx, JsonResult.error(err));
         }
     }
 
@@ -401,16 +409,6 @@ public class RouterHandlerFactory implements BaseHttpApi {
             }
         }
         return fmt;
-    }
-
-    @Override
-    public Set<AfterInterceptor> getAfterInterceptor() {
-        Set<Class<? extends AfterInterceptor>> afterInterceptorClassSet =
-                reflections.getSubTypesOf(AfterInterceptor.class);
-        if (afterInterceptorClassSet == null) {
-            return null;
-        }
-        return CommonUtil.sortClassSet(afterInterceptorClassSet);
     }
 
     private Set<BeforeInterceptor> getBeforeInterceptor() {

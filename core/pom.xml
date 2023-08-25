@@ -5,22 +5,14 @@
     <parent>
         <artifactId>netdisk-fast-download</artifactId>
         <groupId>cn.qaiu</groupId>
-        <version>0.1.6</version>
+        <version>0.1.7</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <version>1.0.8</version>
     <artifactId>core</artifactId>
 
     <properties>
-        <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <vertx.version>4.4.1</vertx.version>
-        <org.reflections.version>0.10.2</org.reflections.version>
-        <lombok.version>1.18.12</lombok.version>
-        <slf4j.version>2.0.5</slf4j.version>
-        <commons-lang3.version>3.12.0</commons-lang3.version>
-        <jackson.version>2.14.2</jackson.version>
-        <logback.version>1.4.6</logback.version>
     </properties>
 
     <dependencyManagement>
@@ -91,6 +83,12 @@
             <artifactId>jackson-databind</artifactId>
             <version>${jackson.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+
 
     </dependencies>
 

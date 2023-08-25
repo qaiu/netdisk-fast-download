@@ -98,6 +98,8 @@ GET http://127.0.0.1:6400/ye/iaKtVv-qOECd
 GET http://127.0.0.1:6400/parser?url=https://www.123pan.com/s/iaKtVv-6OECd.html&pwd=DcGe
 
 ###
-POST http://127.0.0.1:6400/login
+GET http://127.0.0.1:6400/v2/statisticsInfo
 
+###
+POST http://127.0.0.1:6400/v2/login?username=asd
 

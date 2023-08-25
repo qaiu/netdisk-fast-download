@@ -5,19 +5,17 @@
     <parent>
         <artifactId>netdisk-fast-download</artifactId>
         <groupId>cn.qaiu</groupId>
-        <version>0.1.6</version>
+        <version>0.1.7</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <version>0.1.6</version>
+    <version>0.1.7</version>
     <artifactId>web-service</artifactId>
 
     <properties>
         <packageDirectory>${project.basedir}/target/package</packageDirectory>
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <slf4j.version>2.0.5</slf4j.version>
-        <vertx-jooq.version>6.1.0</vertx-jooq.version>
-        <finalName>netdisk-fast-download-${project.version}</finalName>
+        <finalName>netdisk-fast-download</finalName>
     </properties>
 
     <dependencies>
@@ -36,12 +34,22 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.4.6</version>
+            <version>${logback.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>cn.qaiu</groupId>
+            <artifactId>core-database</artifactId>
+            <version>0.1.7</version>
+        </dependency>
+        <dependency>
+            <groupId>cn.qaiu</groupId>
+            <artifactId>parser</artifactId>
+            <version>0.1.7</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -52,14 +60,9 @@
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-web-client</artifactId>
-            <version>4.4.1</version>
+            <version>${vertx.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>cn.qaiu</groupId>
-            <artifactId>core-database</artifactId>
-            <version>0.1.6</version>
-        </dependency>
         <!-- https://mvnrepository.com/artifact/org.openjdk.nashorn/nashorn-core -->
         <dependency>
             <groupId>org.openjdk.nashorn</groupId>
@@ -105,6 +108,8 @@
                         <exclude>*.**</exclude>
                         <exclude>*/*.xml</exclude>
                         <exclude>conf/**</exclude>
+                        <exclude>js/**</exclude>
+                        <exclude>http-tools/**</exclude>
                     </excludes>
                     <archive>
                         <manifest>

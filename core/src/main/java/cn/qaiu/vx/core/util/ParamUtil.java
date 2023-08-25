@@ -27,12 +27,12 @@ public final class ParamUtil {
         return map;
     }
 
-    public static <T> T multiMapToEntity(MultiMap multiMap,Class<T> tClass) throws NoSuchMethodException {
-        Map<String,String> map = multiMapToMap(multiMap);
+    public static <T> T multiMapToEntity(MultiMap multiMap, Class<T> tClass) throws NoSuchMethodException {
+        Map<String, String> map = multiMapToMap(multiMap);
         T obj = null;
         try {
             obj = tClass.getDeclaredConstructor().newInstance();
-            BeanUtils.populate(obj,map);
+            BeanUtils.populate(obj, map);
         } catch (InstantiationException | IllegalAccessException e) {
             e.printStackTrace();
             LOGGER.error("实例化异常");
@@ -42,4 +42,21 @@ public final class ParamUtil {
         }
         return obj;
     }
+
+    public static MultiMap paramsToMap(String paramString) {
+        MultiMap entries = MultiMap.caseInsensitiveMultiMap();
+        if (paramString == null) return entries;
+        String[] params = paramString.split("&");
+        if (params.length == 0) return entries;
+        for (String param : params) {
+            String[] kv = param.split("=");
+            if (kv.length == 2) {
+                entries.set(kv[0], kv[1]);
+            } else {
+                entries.set(kv[0], "");
+            }
+        }
+        return entries;
+    }
+
 }

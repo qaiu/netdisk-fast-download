@@ -7,20 +7,31 @@
     <groupId>cn.qaiu</groupId>
     <artifactId>netdisk-fast-download</artifactId>
     <packaging>pom</packaging>
-    <version>0.1.6</version>
+    <version>0.1.7</version>
 
     <modules>
         <module>core</module>
         <module>web-service</module>
         <module>core-database</module>
+        <module>parser</module>
     </modules>
 
     <properties>
+        <java.version>17</java.version>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <packageDirectory>${project.basedir}/web-service/target/package</packageDirectory>
+
+        <slf4j.version>2.0.5</slf4j.version>
+        <vertx.version>4.4.1</vertx.version>
+        <org.reflections.version>0.10.2</org.reflections.version>
+        <lombok.version>1.18.12</lombok.version>
+        <slf4j.version>2.0.5</slf4j.version>
+        <commons-lang3.version>3.12.0</commons-lang3.version>
+        <jackson.version>2.14.2</jackson.version>
+        <logback.version>1.4.7</logback.version>
     </properties>
 
     <build>
@@ -105,14 +116,7 @@
                     <!--<failOnError>false</failOnError>-->
                     <!--当配置true时,只清理filesets里的文件,构建目录中得文件不被清理.默认是flase.-->
                     <excludeDefaultDirectories>false</excludeDefaultDirectories>
-                    <filesets>
-                        <fileset>
-                            <!--要清理的目录位置-->
-                            <directory>${project.basedir}/logs</directory>
-                            <!--是否跟随符号链接 (symbolic links)-->
-                            <followSymlinks>false</followSymlinks>
-                        </fileset>
-                    </filesets>
+
                 </configuration>
             </plugin>
         </plugins>
