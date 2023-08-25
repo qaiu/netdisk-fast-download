@@ -179,7 +179,7 @@ export default {
       axios.get(this.node2Ip + 'v2/statisticsInfo').then(
         response => {
           if (response.data.success) {
-            this.node1Info = response.data.data
+            this.node2Info = response.data.data
           }
         })
     }
