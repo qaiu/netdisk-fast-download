@@ -10,10 +10,16 @@
         <h3 style="text-align: center;">NFD网盘直链解析(API演示)</h3>
         <div class="typo">
           <p><strong>项目GitHub </strong><a href="https://github.com/qaiu/netdisk-fast-download" target="_blank"
-                                          rel="nofollow"><u>netdisk-fast-download</u></a></p>
-          <p><strong>当前页面修改自开源项目</strong><a href="https://github.com/HurryBy/CloudDiskAnalysis" target="_blank"
-                                          rel="nofollow"><u>CloudDiskAnalysis</u></a></p>
+                                            rel="nofollow"><u>netdisk-fast-download</u></a></p>
+          <p><strong>当前页面修改自开源项目</strong><a href="https://github.com/HurryBy/CloudDiskAnalysis"
+                                                       target="_blank"
+                                                       rel="nofollow"><u>CloudDiskAnalysis</u></a></p>
           <p><strong>目前支持 </strong>已支持蓝奏云/奶牛快传/移动云云空间/UC网盘(暂时失效)/小飞机盘/亿方云/123云盘</p>
+          <p>
+            <el-button><strong @click="getInfo">刷新API调用统计</strong></el-button>
+          </p>
+          <p>节点1: 成功:{{ node1Info.success }},失败:{{ node1Info.fail }},总数:{{ node1Info.total }}</p>
+          <p>节点2: 成功:{{ node2Info.success }},失败:{{ node2Info.fail }},总数:{{ node2Info.total }}</p>
         </div>
         <hr>
         <div class="main" v-loading="isLoading">
@@ -24,10 +30,11 @@
             </el-input>
             <el-input placeholder="请输入密码" v-model="password" id="url" lass="input-with-select"></el-input>
             <el-input v-show="respData.data" placeholder="解析地址" :value="getLink2" id="url" lass="input-with-select">
-              <el-button slot="append"  v-clipboard:copy="getLink2"
+              <el-button slot="append" v-clipboard:copy="getLink2"
                          v-clipboard:success="onCopy"
-                         v-clipboard:error="onError">点我复制</el-button>
-           </el-input>
+                         v-clipboard:error="onError">点我复制
+              </el-button>
+            </el-input>
           </div>
           <div v-show="respData.code" style="margin-top: 10px">
             <strong>解析结果: </strong>
@@ -113,7 +120,11 @@ export default {
         },
       ],
       getLink: '',
-      getLink2: ''
+      getLink2: '',
+      node1Ip: 'http://140.249.188.241:8400/',
+      node2Ip: 'http://47.93.26.218:6400/',
+      node1Info: {},
+      node2Info: {},
     }
   },
   methods: {
@@ -151,12 +162,30 @@ export default {
         }
       )
     },
-    onCopy(){
+    onCopy() {
       this.$message.success('复制成功')
     },
-    onError(){
+    onError() {
       this.$message.error('复制失败')
+    },
+    getInfo() {
+      // 初始化统计信息
+      axios.get(this.node1Ip + 'v2/statisticsInfo').then(
+        response => {
+          if (response.data.success) {
+            this.node1Info = response.data.data
+          }
+        })
+      axios.get(this.node2Ip + 'v2/statisticsInfo').then(
+        response => {
+          if (response.data.success) {
+            this.node1Info = response.data.data
+          }
+        })
     }
+  },
+  mounted() {
+    this.getInfo()
   }
 }
 </script>
