@@ -1,12 +1,16 @@
 package cn.qaiu.vx.core.base;
 
 import cn.qaiu.vx.core.interceptor.AfterInterceptor;
+import cn.qaiu.vx.core.model.JsonResult;
+import cn.qaiu.vx.core.util.CommonUtil;
+import cn.qaiu.vx.core.util.ReflectionUtil;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import org.reflections.Reflections;
 
 import java.util.Set;
 
-import static io.vertx.core.http.HttpHeaders.CONTENT_TYPE;
+import static cn.qaiu.vx.core.util.ResponseUtil.*;
 
 /**
  * 统一响应处理
@@ -16,43 +20,43 @@ import static io.vertx.core.http.HttpHeaders.CONTENT_TYPE;
  */
 public interface BaseHttpApi {
 
-    default Set<AfterInterceptor> getAfterInterceptor() {
-        return null;
-    }
+    // 需要扫描注册的Router路径
+    Reflections reflections = ReflectionUtil.getReflections();
 
-    default void fireJsonResponse(RoutingContext ctx, JsonObject jsonResult) {
-        ctx.response().putHeader(CONTENT_TYPE, "application/json; charset=utf-8")
-                .setStatusCode(200)
-                .end(jsonResult.encode());
-    }
-
-    default <T> void fireJsonResponse(RoutingContext ctx, T jsonResult) {
-        JsonObject jsonObject = JsonObject.mapFrom(jsonResult);
+    default void doFireJsonObjectResponse(RoutingContext ctx, JsonObject jsonObject) {
         if (!ctx.response().ended()) {
-            fireJsonResponse(ctx, jsonObject);
+            fireJsonObjectResponse(ctx, jsonObject);
         }
         handleAfterInterceptor(ctx, jsonObject);
     }
 
-    default void handleAfterInterceptor(RoutingContext ctx, JsonObject jsonObject){
+
+    default <T> void doFireJsonResultResponse(RoutingContext ctx, JsonResult<T> jsonResult) {
+        if (!ctx.response().ended()) {
+            fireJsonResultResponse(ctx, jsonResult);
+        }
+        handleAfterInterceptor(ctx, jsonResult.toJsonObject());
+    }
+
+
+    default Set<AfterInterceptor> getAfterInterceptor() {
+
+        Set<Class<? extends AfterInterceptor>> afterInterceptorClassSet =
+                reflections.getSubTypesOf(AfterInterceptor.class);
+        if (afterInterceptorClassSet == null) {
+            return null;
+        }
+        return CommonUtil.sortClassSet(afterInterceptorClassSet);
+    }
+
+    default void handleAfterInterceptor(RoutingContext ctx, JsonObject jsonObject) {
         Set<AfterInterceptor> afterInterceptor = getAfterInterceptor();
         if (afterInterceptor != null) {
-            afterInterceptor.forEach(ai -> ai.handle(ctx.request(), jsonObject));
+            afterInterceptor.forEach(ai -> ai.handle(ctx, jsonObject));
         }
         if (!ctx.response().ended()) {
-            fireJsonResponse(ctx, "handleAfterInterceptor end.");
+            fireTextResponse(ctx, "handleAfterInterceptor: response not end");
         }
     }
 
-    default void fireTextResponse(RoutingContext ctx, String text) {
-        ctx.response().putHeader(CONTENT_TYPE, "text/html; charset=utf-8").end(text);
-        Set<AfterInterceptor> afterInterceptor = getAfterInterceptor();
-        if (afterInterceptor != null) {
-            afterInterceptor.forEach(ai -> ai.handle(ctx.request(), new JsonObject().put("text", text)));
-        }
-    }
-
-    default void sendError(int statusCode, RoutingContext ctx) {
-        ctx.response().setStatusCode(statusCode).end();
-    }
 }

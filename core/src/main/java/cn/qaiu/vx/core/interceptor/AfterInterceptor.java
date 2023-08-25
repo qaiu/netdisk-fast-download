@@ -1,7 +1,7 @@
 package cn.qaiu.vx.core.interceptor;
 
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
 
 /**
  * 后置拦截器接口
@@ -10,6 +10,6 @@ import io.vertx.core.json.JsonObject;
  */
 public interface AfterInterceptor {
 
-    void handle(HttpServerRequest request, JsonObject responseData);
+    void handle(RoutingContext ctx, JsonObject responseData);
 
 }

@@ -17,13 +17,13 @@ import java.util.concurrent.TimeUnit;
 public class UserServiceImpl implements UserService {
 
     @Override
-    public Future<String> login(SysUser user) {
+    public Future<SysUser> login(SysUser user) {
 
         try {
-            TimeUnit.SECONDS.sleep(6);
+            TimeUnit.SECONDS.sleep(2);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        return Future.succeededFuture("111");
+        return Future.succeededFuture(user);
     }
 }

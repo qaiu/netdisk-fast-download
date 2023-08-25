@@ -13,5 +13,5 @@ import io.vertx.core.Future;
  */
 @ProxyGen
 public interface UserService extends BaseAsyncService {
-    Future<String> login(SysUser user);
+    Future<SysUser> login(SysUser user);
 }

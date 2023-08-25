@@ -5,7 +5,7 @@
     <parent>
         <artifactId>netdisk-fast-download</artifactId>
         <groupId>cn.qaiu</groupId>
-        <version>0.1.6</version>
+        <version>0.1.7</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 

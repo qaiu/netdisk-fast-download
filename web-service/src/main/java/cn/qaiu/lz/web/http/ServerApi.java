@@ -1,21 +1,16 @@
 package cn.qaiu.lz.web.http;
 
-import cn.qaiu.lz.common.parser.IPanTool;
-import cn.qaiu.lz.common.parser.impl.EcTool;
-import cn.qaiu.lz.web.model.SysUser;
-import cn.qaiu.lz.web.service.UserService;
+import cn.qaiu.parser.IPanTool;
+import cn.qaiu.parser.impl.EcTool;
 import cn.qaiu.vx.core.annotaions.RouteHandler;
 import cn.qaiu.vx.core.annotaions.RouteMapping;
 import cn.qaiu.vx.core.enums.RouteMethod;
-import cn.qaiu.vx.core.util.AsyncServiceUtil;
 import cn.qaiu.vx.core.util.ResponseUtil;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import lombok.extern.slf4j.Slf4j;
-
-import static io.vertx.core.http.HttpHeaders.CONTENT_TYPE;
 
 /**
  * 服务API
@@ -27,14 +22,6 @@ import static io.vertx.core.http.HttpHeaders.CONTENT_TYPE;
 @RouteHandler("/")
 public class ServerApi {
 
-    private final UserService userService = AsyncServiceUtil.getAsyncServiceInstance(UserService.class);
-
-    @RouteMapping(value = "/login", method = RouteMethod.POST)
-    public Future<String> login(SysUser user) {
-        log.info("<------- login: {}", user.getUsername());
-        return userService.login(user);
-    }
-
     @RouteMapping(value = "/parser", method = RouteMethod.GET, order = 4)
     public Future<Void> parse(HttpServerResponse response, HttpServerRequest request, String url, String pwd) {
 
@@ -43,13 +30,9 @@ public class ServerApi {
             // 默认读取Url参数会被截断手动获取一下其他参数
             url = EcTool.SHARE_URL_PREFIX + request.getParam("data");
         }
-        try {
-            IPanTool.shareURLPrefixMatching(url, pwd).parse().onSuccess(resUrl -> {
-                ResponseUtil.redirect(response, resUrl, promise);
-            }).onFailure(t -> promise.fail(t.fillInStackTrace()));
-        } catch (Exception e) {
-            promise.fail(e);
-        }
+        IPanTool.shareURLPrefixMatching(url, pwd).parse().onSuccess(resUrl -> {
+            ResponseUtil.redirect(response, resUrl, promise);
+        }).onFailure(t -> promise.fail(t.fillInStackTrace()));
         return promise.future();
     }
 
@@ -64,7 +47,8 @@ public class ServerApi {
 
 
     @RouteMapping(value = "/:type/:key", method = RouteMethod.GET, order = 1)
-    public void parseKey(HttpServerResponse response, String type, String key) {
+    public Future<Void> parseKey(HttpServerResponse response, String type, String key) {
+        Promise<Void> promise = Promise.promise();
         String code = "";
         if (key.contains("@")) {
             String[] keys = key.split("@");
@@ -72,10 +56,10 @@ public class ServerApi {
             code = keys[1];
         }
 
-        IPanTool.typeMatching(type, key, code).parse().onSuccess(resUrl -> ResponseUtil.redirect(response, resUrl)).onFailure(t -> {
-            response.putHeader(CONTENT_TYPE, "text/html;charset=utf-8");
-            response.end(t.getMessage());
-        });
+        IPanTool.typeMatching(type, key, code).parse()
+                .onSuccess(resUrl -> ResponseUtil.redirect(response, resUrl, promise))
+                .onFailure(t -> promise.fail(t.fillInStackTrace()));
+        return promise.future();
     }
 
     @RouteMapping(value = "/json/:type/:key", method = RouteMethod.GET, order = 2)

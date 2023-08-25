@@ -1,12 +1,19 @@
 package cn.qaiu.lz.web.service.impl;
 
+import cn.qaiu.db.pool.JDBCPoolInit;
 import cn.qaiu.lz.common.model.UserInfo;
 import cn.qaiu.lz.web.service.DbService;
+import cn.qaiu.lz.web.model.StatisticsInfo;
 import cn.qaiu.vx.core.annotaions.Service;
 import cn.qaiu.vx.core.model.JsonResult;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
+import io.vertx.jdbcclient.JDBCPool;
+import io.vertx.sqlclient.templates.SqlTemplate;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.HashMap;
 
 /**
  * lz-web
@@ -34,5 +41,26 @@ public class DbServiceImpl implements DbService {
 //        log.info("say ok2 -> " + context.get("username"));
 //        log.info("--> {}", holder.toString());
         return Future.succeededFuture(JsonObject.mapFrom(JsonResult.data("Hi: " + data)));
+    }
+
+    @Override
+    public Future<StatisticsInfo> getStatisticsInfo() {
+        JDBCPool client = JDBCPoolInit.instance().getPool();
+        Promise<StatisticsInfo> promise = Promise.promise();
+        String sql = """
+                select COUNT(CASE "code" WHEN 500 THEN "code" END ) "fail",
+                       COUNT(CASE "code" WHEN 200 THEN "code" END ) "success",
+                       count(1) "total"
+                from "t_parser_log_info"
+                """;
+        SqlTemplate.forQuery(client, sql).mapTo(StatisticsInfo.class).execute(new HashMap<>()).onSuccess(row -> {
+            StatisticsInfo info;
+            if ((info = row.iterator().next()) != null) {
+                promise.complete(info);
+            } else {
+                promise.fail("t_parser_log_info查询为空");
+            }
+        }).onFailure(promise::fail);
+        return promise.future();
     }
 }

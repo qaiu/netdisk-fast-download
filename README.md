@@ -158,9 +158,9 @@ mvn package
 > 注意: netdisk-fast-download.service中的ExecStart的路径改为实际路径
 ```shell
 cd ~
-wget -O netdisk-fast-download-0.1.6-bin.zip  https://github.com/qaiu/netdisk-fast-download/releases/download/0.1.6-releases/netdisk-fast-download-0.1.6-bin.zip
-unzip netdisk-fast-download-*-bin.zip 
-cd netdisk-fast-download-*-bin
+wget -O netdisk-fast-download.zip  https://github.com/qaiu/netdisk-fast-download/releases/download/0.1.7/netdisk-fast-download.zip
+unzip netdisk-fast-download.zip 
+cd netdisk-fast-download
 bash service-install.sh
 ```
 服务相关命令:  
@@ -184,8 +184,8 @@ systemctl enable netdisk-fast-download.servic
 systemctl disable netdisk-fast-download.servic
 
 ## Windows服务部署
-1. 下载并解压releases版本netdisk-fast-download-0.1.6-bin.zip
-2. 进入netdisk-fast-download-0.1.6-bin目录
+1. 下载并解压releases版本netdisk-fast-download.zip
+2. 进入netdisk-fast-download下的bin目录
 3. 使用管理员权限运行nfd-service-install.bat
 如果不想使用服务运行可以直接运行run.bat
 > 注意: 如果jdk环境变量的java版本不是17请修改nfd-service-template.xml中的java命令的路径改为实际路径

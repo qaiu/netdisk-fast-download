@@ -38,6 +38,7 @@ public class CreateTable {
         javaProperty2SqlColumnMap.put(Boolean.class, "BOOLEAN");
         javaProperty2SqlColumnMap.put(String.class, "VARCHAR");
         javaProperty2SqlColumnMap.put(java.util.Date.class, "TIMESTAMP");
+        javaProperty2SqlColumnMap.put(java.time.LocalDateTime.class, "TIMESTAMP");
         javaProperty2SqlColumnMap.put(java.sql.Timestamp.class, "TIMESTAMP");
         javaProperty2SqlColumnMap.put(java.sql.Date.class, "DATE");
         javaProperty2SqlColumnMap.put(java.sql.Time.class, "TIME");

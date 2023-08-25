@@ -16,14 +16,12 @@ import static cn.qaiu.vx.core.util.ConfigConstant.IGNORES_REG;
 @HandleSortFilter(1)
 public class DefaultInterceptor implements BeforeInterceptor {
 
-
     protected final JsonArray ignores = SharedDataUtil.getJsonArrayForCustomConfig(IGNORES_REG);
 
     @Override
     public void handle(RoutingContext ctx) {
-        System.out.println("进入前置拦截器->" + ctx.request().path());
-
-        ctx.next();
+        System.out.println("进入前置拦截器1->" + ctx.request().path());
+        doNext(ctx);
     }
 
 }
