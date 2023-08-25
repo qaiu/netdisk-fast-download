@@ -10,6 +10,7 @@ import javassist.bytecode.LocalVariableAttribute;
 import javassist.bytecode.MethodInfo;
 import org.junit.Test;
 
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -82,4 +83,14 @@ public class Test02 {
         System.out.println(map);
 
     }
+
+
+    @Test
+    public void test4() {
+        LocalDateTime parse = LocalDateTime.parse((String) "2022-01-01T11:22:00");
+        System.out.println(parse);
+
+    }
+
+
 }

@@ -38,3 +38,4 @@ gradlew
 gradlew.bat
 unused.txt
 /web-service/src/main/generated/
+/db

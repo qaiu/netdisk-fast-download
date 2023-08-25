@@ -7,7 +7,7 @@ pushd %~dp0
 set MY_DIR=%~dp0
 set MY_DIR=%MY_DIR:~0,-1%
 
-for /f "delims=X" %%i in ('dir /b %MY_DIR%\netdisk-fast-download-*.jar') do (
+for /f "delims=X" %%i in ('dir /b %MY_DIR%\netdisk-fast-download.jar') do (
     set LAUNCH_JAR=%MY_DIR%\%%i
 )
 

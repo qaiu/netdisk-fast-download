@@ -96,7 +96,7 @@ public class SnowflakeIdWorker {
      *
      * @return SnowflakeId
      */
-    public synchronized long nextId() {
+    public synchronized Long nextId() {
         long timestamp = timeGen();
 
         //如果当前时间小于上一次ID生成的时间戳，说明系统时钟回退过这个时候应当抛出异常
@@ -212,6 +212,14 @@ public class SnowflakeIdWorker {
 
     synchronized public static SnowflakeIdWorker idWorker() {
         return snowflakeIdWorker;
+    }
+
+    synchronized public static Long getLongId() {
+        return snowflakeIdWorker.nextId();
+    }
+
+    synchronized public static String getStringId() {
+        return snowflakeIdWorker.nextId().toString();
     }
 
     synchronized public static SnowflakeIdWorker idWorkerCluster(long workerId, long datacenterId) {

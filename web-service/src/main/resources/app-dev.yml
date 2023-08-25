@@ -5,7 +5,7 @@ server:
   # 使用静态页面
   enableStaticHtmlService: false
   # 使用数据库
-  enableDatabase: false
+  enableDatabase: true
   staticResourcePath: webroot/
 # 反向代理服务器配置路径(不用加后缀)
 proxyConf: server-proxy
@@ -22,11 +22,9 @@ custom:
   baseLocations: cn.qaiu.lz
   # 路由处理默认超时时间(毫秒)
   routeTimeOut: 15000
-  # 拦截器包路径
-  interceptorClassPath: cn.qaiu.lz.common.interceptorImpl.DefaultInterceptor
   # 拦截器匹配规则
   ignoresReg:
-    - .*/login$
+    - /v2/statisticsInfo
     - .*/test.*$
 
   # 参数注入的实体类包路径匹配正则 (防止同名类引发歧义)
@@ -37,11 +35,7 @@ custom:
 # 数据源配置
 dataSource:
   provider_class: io.vertx.ext.jdbc.spi.impl.HikariCPDataSourceProvider
-  jdbcUrl: jdbc:h2:tcp://127.0.0.1:9095/./db/myData;MODE=MySQL;DATABASE_TO_LOWER=FALSE
+  jdbcUrl: jdbc:h2:tcp://127.0.0.1:9095/./db/myData;MODE=MySQL;DATABASE_TO_UPPER=FALSE
   driverClassName: org.h2.Driver
   username: root
   password: '123456'
-  tableClassPath: cn.qaiu.lz.web.model
-
-cowConfig:
-  config: '111'
