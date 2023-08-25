@@ -153,13 +153,13 @@ mvn clean
 mvn package
 
 ```
-打包好的文件位于 web-service/target/netdisk-fast-download-x.x.x-bin.zip
+打包好的文件位于 web-service/target/netdisk-fast-download-bin.zip
 ## Linux服务部署
 > 注意: netdisk-fast-download.service中的ExecStart的路径改为实际路径
 ```shell
 cd ~
 wget -O netdisk-fast-download.zip  https://github.com/qaiu/netdisk-fast-download/releases/download/0.1.7/netdisk-fast-download.zip
-unzip netdisk-fast-download.zip 
+unzip netdisk-fast-download-bin.zip 
 cd netdisk-fast-download
 bash service-install.sh
 ```
@@ -184,11 +184,11 @@ systemctl enable netdisk-fast-download.servic
 systemctl disable netdisk-fast-download.servic
 
 ## Windows服务部署
-1. 下载并解压releases版本netdisk-fast-download.zip
+1. 下载并解压releases版本netdisk-fast-download-bin.zip
 2. 进入netdisk-fast-download下的bin目录
 3. 使用管理员权限运行nfd-service-install.bat
 如果不想使用服务运行可以直接运行run.bat
 > 注意: 如果jdk环境变量的java版本不是17请修改nfd-service-template.xml中的java命令的路径改为实际路径
 
 ## Docker部署
-TODO
+TODO ver 0.1.8
