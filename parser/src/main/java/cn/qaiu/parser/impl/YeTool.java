@@ -100,7 +100,7 @@ public class YeTool extends PanBase implements IPanTool {
         jsonObject.put("ShareKey", reqBodyJson.getString("ShareKey"));
         jsonObject.put("FileID", reqBodyJson.getInteger("FileId"));
         jsonObject.put("S3keyFlag", reqBodyJson.getString("S3KeyFlag"));
-        jsonObject.put("Size", reqBodyJson.getInteger("Size"));
+        jsonObject.put("Size", reqBodyJson.getLong("Size"));
         jsonObject.put("Etag", reqBodyJson.getString("Etag"));
 
         // 调用JS文件获取签名

@@ -121,8 +121,6 @@ export default {
       ],
       getLink: '',
       getLink2: '',
-      node1Ip: 'http://140.249.188.241:8400/',
-      node2Ip: 'http://47.93.26.218:6400/',
       node1Info: {},
       node2Info: {},
     }
@@ -170,13 +168,13 @@ export default {
     },
     getInfo() {
       // 初始化统计信息
-      axios.get(this.node1Ip + 'v2/statisticsInfo').then(
+      axios.get('/n1/statisticsInfo').then(
         response => {
           if (response.data.success) {
             this.node1Info = response.data.data
           }
         })
-      axios.get(this.node2Ip + 'v2/statisticsInfo').then(
+      axios.get('/n2/statisticsInfo').then(
         response => {
           if (response.data.success) {
             this.node2Info = response.data.data
