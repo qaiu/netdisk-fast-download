@@ -112,9 +112,7 @@ public class LzTool extends PanBase implements IPanTool {
         headers.set("sec-ch-ua-mobile", "sec-ch-ua-mobile");
 
         String url = SHARE_URL_PREFIX + "/ajaxm.php";
-        client.postAbs(url).putHeaders(headers).sendForm(MultiMap
-                .caseInsensitiveMultiMap()
-                .setAll(map)).onSuccess(res2 -> {
+        client.postAbs(url).putHeaders(headers).sendForm(map).onSuccess(res2 -> {
             JsonObject urlJson = res2.bodyAsJsonObject();
             if (urlJson.getInteger("zt") != 1) {
                 fail(urlJson.getString("inf"));
