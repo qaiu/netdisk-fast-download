@@ -19,10 +19,12 @@ GET http://127.0.0.1:6400/json/lz/ia2cntg
 
 ### 奶牛
 GET http://127.0.0.1:6400/json/cow/9a644fe3e3a748
+Referer: https://cowtransfer.com/
 
 ### 奶牛
 # @no-redirect
 GET http://127.0.0.1:6400/cow/e4f41b51b5da4f
+Referer: https://cowtransfer.com/
 
 ### 奶牛
 # @no-redirect
@@ -95,8 +97,16 @@ GET http://127.0.0.1:6400/ye/iaKtVv-qOECd
 
 ### 123
 # @no-redirect
+GET http://127.0.0.1:6400/ye/Ev1lVv-t3SY3
+
+### 123
+# @no-redirect
 GET http://127.0.0.1:6400/parser?url=https://www.123pan.com/s/iaKtVv-6OECd.html&pwd=DcGe
 
+
+### 123
+# @no-redirect
+GET http://127.0.0.1:6400/parser?url=https://www.123pan.com/s/zF07Vv-WkHWd.html&pwd=bios
 ###
 GET http://127.0.0.1:6400/v2/statisticsInfo
 
