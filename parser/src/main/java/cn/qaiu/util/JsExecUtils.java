@@ -46,7 +46,7 @@ public class JsExecUtils {
             NoSuchMethodException {
         ScriptEngineManager engineManager = new ScriptEngineManager();
         ScriptEngine engine = engineManager.getEngineByName("JavaScript"); // 得到脚本引擎
-        engine.eval(JsContent.lz);
+        engine.eval(JsContent.lz + "\n" + jsText);
         Invocable inv = (Invocable) engine;
         //调用js中的函数
         if (StringUtils.isNotEmpty(funName)) {
