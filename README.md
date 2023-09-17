@@ -1,6 +1,7 @@
 # netdisk-fast-download
 云盘解析服务 (nfd云解析)
 预览地址 https://lz.qaiu.top
+注意: lz.qaiu.top因解析量过大IP已被123和小飞机禁止访问
 
 [![Java CI with Maven](https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml/badge.svg)](https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml)
 [![jdk](https://img.shields.io/badge/jdk-%3E%3D17-blue)](https://www.oracle.com/cn/java/technologies/downloads/)
