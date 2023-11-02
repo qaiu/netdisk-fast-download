@@ -20,6 +20,7 @@ import java.util.UUID;
 public class FjTool extends PanBase implements IPanTool {
 
     public static final String SHARE_URL_PREFIX = "https://www.feijix.com/s/";
+    public static final String SHARE_URL_PREFIX2 = "https://share.feijipan.com/s/";
     private static final String API_URL_PREFIX = "https://api.feijipan.com/ws/";
 
     private static final String FIRST_REQUEST_URL = API_URL_PREFIX + "recommend/list?devType=6&devModel=Chrome&extra" +
@@ -33,7 +34,12 @@ public class FjTool extends PanBase implements IPanTool {
     }
 
     public Future<String> parse() {
-        String dataKey = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, key);
+        String dataKey;
+        if (key.startsWith(SHARE_URL_PREFIX2)) {
+            dataKey = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX2, key);
+        } else {
+            dataKey = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, key);
+        }
 
         WebClient client = clientNoRedirects;
         String shareId = String.valueOf(AESUtils.idEncrypt(dataKey));
