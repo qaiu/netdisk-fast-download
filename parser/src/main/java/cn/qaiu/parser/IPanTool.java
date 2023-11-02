@@ -34,7 +34,7 @@ public interface IPanTool {
             return new UcTool(url, pwd);
         } else if (url.startsWith(YeTool.SHARE_URL_PREFIX)) {
             return new YeTool(url, pwd);
-        } else if (url.startsWith(FjTool.SHARE_URL_PREFIX)) {
+        } else if (url.startsWith(FjTool.SHARE_URL_PREFIX) || url.startsWith(FjTool.SHARE_URL_PREFIX2)) {
             return new FjTool(url, pwd);
         } else if (url.contains(LzTool.LINK_KEY)) {
             return new LzTool(url, pwd);
