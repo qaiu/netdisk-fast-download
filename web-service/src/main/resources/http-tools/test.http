@@ -58,9 +58,9 @@ GET http://127.0.0.1:6400/json/uc/33197dd53ace4
 GET http://127.0.0.1:6400/parser?url=https://fast.uc.cn/s/33197dd53ace4
 
 
-### 小飞机盘
+### 小飞机盘https://share.feijipan.com/s/nMtCOXL
 # @no-redirect
-GET http://127.0.0.1:6400/parser?url=https://www.feijix.com/s/tIfhRqH
+GET http://127.0.0.1:6400/parser?url=https://share.feijipan.com/s/nMtCOXL
 
 ### 小飞机盘
 GET http://127.0.0.1:6400/json/fj/tIfhRqH
