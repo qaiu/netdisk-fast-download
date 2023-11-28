@@ -1,0 +1,79 @@
+// 联想乐云(联想云服务)
+
+### 第一步 https://lecloud.lenovo.com/share/4DANWdRQsHHyiFB4a
+POST https://lecloud.lenovo.com/share/api/clouddiskapi/share/public/v1/shareInfo
+Content-Type:application/json;charset=UTF-8
+
+{"shareId":"4DANWdRQsHHyiFB4a1","password":"","directoryId":"-1"}
+
+### res
+#{
+#  "result": true,
+#  "data": {
+#    "senderUserName": "7362264*****.com",
+#    "validSecondsLeft": -1,
+#    "memo": "",
+#    "passwordVerified": true,
+#    "files": [
+#      {
+#        "fileType": 99,
+#        "fileId": 12298705,
+#        "fileName": "classes.dex",
+#        "fileSize": 8909208
+#      }
+#    ]
+#  }
+#}
+
+#{
+#  "result": false,
+#  "errcode": "SHARE_ID_INVALID",
+#  "errmsg": "分享ID无效"
+#}
+
+###
+# @name 第二步
+POST https://lecloud.lenovo.com/share/api/clouddiskapi/share/public/v1/packageDownloadWithFileIds
+Content-Type:application/json;charset=UTF-8
+
+{"fileIds":[12299013],"shareId":"2RkKbLP9BrppS9b43","browserId":"asdddsad"}
+
+###
+#{
+#  "result": true,
+#  "data": {
+#    "downloadUrl": "https://pimapi.lenovomm.com/clouddiskapi/v1/shareRedirect?si=12299012&dk=b9d2870c001b56f6b23f6036fd049b237b3b3d47c0dbd30513ddaa7137cd64c9&pk=5a69c8b5f3835171b01ad866241de857d02c8b6e4985e51d652ab1bf331a3ae0&pc=true&ot=ali&ob=sync-cloud-disk&ok=649599424036290560.zip&fn=c4droid_aarch64_gcc11_new.zip&ds=140596045&dc=1&bi=asdddsad&ri=&ts=1701156293620&sn=b9dd3816eb1fd7743f5fa904986c15cb36fd9c08b4fbe0d94d198bd2bbf7c5be"
+#  }
+#}
+
+#{
+#  "result": false,
+#  "errcode": "FILE_NOT_EXIST",
+#  "errmsg": "文件不存在"
+#}
+
+###
+# @name 第三步
+# @no-redirect
+https://pimapi.lenovomm.com/clouddiskapi/v1/shareRedirect?si=12298704&dk=ad0ef0fe93134baf6850294701e96986b1b933231c346589ccd635520908ebec&pk=ef45aa4d25c1dcecb631b3394f51539d59cb35c6a40c3911df8ba431ba2a3244&pc=true&ot=ali&ob=sync-cloud-disk&ok=649593714557087744.dex&fn=classes.dex&ds=8909208&dc=1&bi=18175394-7437-4eca-8c55-40b73fc70186&ri=&ts=1701148198092&sn=30589173efacb5b493fd47e0f134309ab598252951a5a82d8292011e626b5c26
+
+###
+https://lecloud4.lenovomm.cn/dlserver/fileman/ali/sync-cloud-disk/649593714557087744.dex?KEY1=7be0212f4bd3155951942d9d62b8dfd9&KEY2=65681948&order=0&uuid=96b1edd21f4e441ca3d305e86ba714c6&cMD5=false&sorder=0&group=&ts=1701148232156&cpn=-1&cid=3b9aca4b3b9aca4c&__bc=10007&__cid=3b9aca4b3b9aca4c&__ip=60.216.19.75&__ept=1&dck=1&fn=classes.dex
+
+
+### https://lecloud.lenovo.com/share/2RkKbLP9BrppS9b43（密码：ex2b）
+POST https://lecloud.lenovo.com/share/api/clouddiskapi/share/public/v1/shareInfo
+Content-Type:application/json;charset=UTF-8
+
+{"shareId":"2RkKbLP9BrppS9b43","password":"ex2b","directoryId":"-1"}
+
+### 错误Result
+#{
+#  "result": true,
+#  "data": {
+#    "senderUserName": "7362264*****.com",
+#    "validSecondsLeft": -1,
+#    "memo": "tttttt",
+#    "passwordVerified": false
+#  }
+#}
