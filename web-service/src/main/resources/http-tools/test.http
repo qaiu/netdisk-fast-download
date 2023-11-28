@@ -107,9 +107,30 @@ GET http://127.0.0.1:6400/parser?url=https://www.123pan.com/s/iaKtVv-6OECd.html&
 ### 123
 # @no-redirect
 GET http://127.0.0.1:6400/parser?url=https://www.123pan.com/s/zF07Vv-WkHWd.html&pwd=bios
+
+
+### 联想乐云
+# @no-redirect
+GET http://127.0.0.1:6400/parser?url=https://lecloud.lenovo.com/share/4DANWdRQsHHyiFB4a
+
+### 联想乐云
+# @no-redirect
+GET http://127.0.0.1:6400/le/4DANWdRQsHHyiFB4a
+
+### 联想乐云
+# @no-redirect
+GET http://127.0.0.1:6400/le/2RkKbLP9BrppS9b43@ex2b
+
+### 联想乐云
+GET http://127.0.0.1:6400/json/le/2RkKbLP9BrppS9b43@ex2b
+
+
 ###
 GET http://127.0.0.1:6400/v2/statisticsInfo
 
 ###
 POST http://127.0.0.1:6400/v2/login?username=asd
+
+
+
 

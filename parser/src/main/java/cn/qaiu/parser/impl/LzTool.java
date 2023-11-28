@@ -5,7 +5,6 @@ import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.JsExecUtils;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import org.openjdk.nashorn.api.scripting.ScriptObjectMirror;
@@ -55,7 +54,7 @@ public class LzTool extends PanBase implements IPanTool {
                 jsText = jsText.substring(0, jsText.indexOf("document.getElementById('rpt')"));
                 try {
                     ScriptObjectMirror scriptObjectMirror = JsExecUtils.executeDynamicJs(jsText, "down_p");
-                    getDownURL(promise, sUrl, client, (Map<String, String>) scriptObjectMirror.get("data"));
+                    getDownURL(sUrl, client, (Map<String, String>) scriptObjectMirror.get("data"));
                 } catch (ScriptException | NoSuchMethodException e) {
                     fail(e, "js引擎执行失败");
                     return;
@@ -75,7 +74,7 @@ public class LzTool extends PanBase implements IPanTool {
                 }
                 try {
                     ScriptObjectMirror scriptObjectMirror = JsExecUtils.executeDynamicJs(jsText, null);
-                    getDownURL(promise, sUrl, client, (Map<String, String>) scriptObjectMirror.get("data"));
+                    getDownURL(sUrl, client, (Map<String, String>) scriptObjectMirror.get("data"));
                 } catch (ScriptException | NoSuchMethodException e) {
                     fail(e, "js引擎执行失败");
                 }
@@ -96,7 +95,7 @@ public class LzTool extends PanBase implements IPanTool {
         return html.substring(startPos, endPos);
     }
 
-    private void getDownURL(Promise<String> promise, String key, WebClient client, Map<String, ?> signMap) {
+    private void getDownURL(String key, WebClient client, Map<String, ?> signMap) {
         MultiMap map = MultiMap.caseInsensitiveMultiMap();
         signMap.forEach((k, v) -> {
             map.set(k, v.toString());
