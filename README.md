@@ -1,4 +1,4 @@
-# netdisk-fast-download
+![image](https://github.com/qaiu/netdisk-fast-download/assets/29825328/a0d99e08-494c-406b-8a15-e396224a1b70)# netdisk-fast-download
 云盘解析服务 (nfd云解析)
 预览地址 https://lz.qaiu.top  
 注意: lz.qaiu.top因解析量过大IP已被123和小飞机禁止访问,
@@ -199,9 +199,11 @@ systemctl disable netdisk-fast-download.servic
 - 日志优化
 
 ## 支持该项目
-本项目长期维护如果觉得有帮助, 可以请作者喝杯咖啡, 感谢支持
-支付宝发大额红包了...就这几天, 不要错过哦
-![b5c3ce9e03c773e66ff26dee771ce97](https://github.com/qaiu/netdisk-fast-download/assets/29825328/3ec9756c-80bd-4f75-8d75-a10288bce18b)
+本项目长期维护如果觉得有帮助, 可以请作者喝杯咖啡, 感谢支持  
+支付宝发大额红包了...就这几天, 不要错过哦  
+![image](https://github.com/qaiu/netdisk-fast-download/assets/29825328/54276aee-cc3f-4ebd-8973-2e15f6295819)
+
+[手机端支付宝打赏跳转链接](https://qr.alipay.com/fkx01882dnoxxtjenhlxt53)
 
 
 
