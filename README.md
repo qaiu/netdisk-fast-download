@@ -198,3 +198,11 @@ systemctl disable netdisk-fast-download.servic
 - 直链缓存
 - 日志优化
 
+## 支持该项目
+本项目长期维护如果觉得有帮助, 可以请作者喝杯咖啡, 感谢支持
+支付宝发大额红包了...就这几天, 不要错过哦
+![b5c3ce9e03c773e66ff26dee771ce97](https://github.com/qaiu/netdisk-fast-download/assets/29825328/3ec9756c-80bd-4f75-8d75-a10288bce18b)
+
+
+
+
