@@ -1,4 +1,3 @@
-![image](https://github.com/qaiu/netdisk-fast-download/assets/29825328/a0d99e08-494c-406b-8a15-e396224a1b70)# netdisk-fast-download
 云盘解析服务 (nfd云解析)
 预览地址 https://lz.qaiu.top  
 注意: lz.qaiu.top因解析量过大IP已被123和小飞机禁止访问,
