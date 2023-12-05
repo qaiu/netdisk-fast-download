@@ -2,7 +2,7 @@
 云盘解析服务 (nfd云解析)
 预览地址 https://lz.qaiu.top  
 注意: lz.qaiu.top因解析量过大IP已被123和小飞机禁止访问,
-请不要过度依赖预览地址服务，建议本地搭建或者自己服务器搭建
+请不要过度依赖预览地址服务，建议本地搭建或者云服务器自行搭建
 
 [![Java CI with Maven](https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml/badge.svg)](https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml)
 [![jdk](https://img.shields.io/badge/jdk-%3E%3D17-blue)](https://www.oracle.com/cn/java/technologies/downloads/)
@@ -191,5 +191,10 @@ systemctl disable netdisk-fast-download.servic
 如果不想使用服务运行可以直接运行run.bat
 > 注意: 如果jdk环境变量的java版本不是17请修改nfd-service-template.xml中的java命令的路径改为实际路径
 
-## Docker部署
-TODO ver 0.1.8
+## 0.1.8 开发计划
+- Docker部署
+- 联想乐云解析支持
+- CLoudreve解析解析
+- 直链缓存
+- 日志优化
+
