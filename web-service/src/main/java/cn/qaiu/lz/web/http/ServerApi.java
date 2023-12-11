@@ -2,6 +2,7 @@ package cn.qaiu.lz.web.http;
 
 import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.impl.EcTool;
+import cn.qaiu.parser.impl.QQTool;
 import cn.qaiu.vx.core.annotaions.RouteHandler;
 import cn.qaiu.vx.core.annotaions.RouteMapping;
 import cn.qaiu.vx.core.enums.RouteMethod;
@@ -29,6 +30,12 @@ public class ServerApi {
         if (url.contains(EcTool.SHARE_URL_PREFIX)) {
             // 默认读取Url参数会被截断手动获取一下其他参数
             url = EcTool.SHARE_URL_PREFIX + request.getParam("data");
+        }
+        if (url.contains(QQTool.SHARE_URL_PREFIX)) {
+            // 默认读取Url参数会被截断手动获取一下其他参数
+            url = url + "&key=" + request.getParam("key") +
+                "&code=" + request.getParam("code") + "&k=" + request.getParam("k") +
+                "&fweb=" + request.getParam("fweb") + "&cl=" + request.getParam("cl");
         }
         IPanTool.shareURLPrefixMatching(url, pwd).parse().onSuccess(resUrl -> {
             ResponseUtil.redirect(response, resUrl, promise);

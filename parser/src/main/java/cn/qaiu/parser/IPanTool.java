@@ -7,6 +7,7 @@ public interface IPanTool {
     Future<String> parse();
 
     static IPanTool typeMatching(String type, String key, String pwd) {
+        System.out.println(">>>>>>>> type: " + type + "\nkey: " + key + "\n pwd: " + pwd);
         return switch (type) {
             case "lz" -> new LzTool(key, pwd);
             case "cow" -> new CowTool(key, pwd);
@@ -17,6 +18,7 @@ public interface IPanTool {
             case "fj" -> new FjTool(key, pwd);
             case "qk" -> new QkTool(key, pwd);
             case "le" -> new LeTool(key, pwd);
+            case "qq" -> new QQTool(key, pwd);
             default -> {
                 throw new UnsupportedOperationException("未知分享类型");
             }
@@ -41,6 +43,8 @@ public interface IPanTool {
             return new LzTool(url, pwd);
         } else if (url.startsWith(LeTool.SHARE_URL_PREFIX)) {
             return new LeTool(url, pwd);
+        } else if (url.contains(QQTool.SHARE_URL_PREFIX)) {
+            return new QQTool(url, pwd);
         }
 
         throw new UnsupportedOperationException("未知分享类型");
