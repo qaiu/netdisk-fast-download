@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.management.ManagementFactory;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.TimeZone;
 import java.util.concurrent.locks.LockSupport;
 
 import static cn.qaiu.vx.core.util.ConfigConstant.*;
@@ -56,6 +57,9 @@ public final class Deploy {
             // 启动参数dev或者prod
             path.append("-").append(args[0]);
         }
+
+        // 设置时区
+        TimeZone.setDefault(TimeZone.getTimeZone("Asia/Shanghai"));
 
         // 读取yml配置
         ConfigUtil.readYamlConfig(path.toString(), tempVertx)
