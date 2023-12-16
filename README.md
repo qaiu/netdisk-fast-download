@@ -1,5 +1,5 @@
 云盘解析服务 (nfd云解析)
-预览地址 https://lz.qaiu.top  
+预览地址 https://lz.qaiu.top
 注意: lz.qaiu.top因解析量过大IP已被123和小飞机禁止访问,
 请不要过度依赖预览地址服务，建议本地搭建或者云服务器自行搭建
 
@@ -15,9 +15,9 @@
 *重要声明：本项目仅供学习参考；请不要将此项目用于任何商业用途，否则可能带来严重的后果。*
 
 ## 网盘支持情况:
-> 20230905 奶牛云直链做了防盗链，需加入请求头：Referer: https://cowtransfer.com/  
-> 20230824 123云盘解析大文件(>100MB)失效，需要登录  
-> 20230722 UC网盘解析失效，需要登录  
+> 20230905 奶牛云直链做了防盗链，需加入请求头：Referer: https://cowtransfer.com/
+> 20230824 123云盘解析大文件(>100MB)失效，需要登录
+> 20230722 UC网盘解析失效，需要登录
 
 `网盘名称(网盘标识):`
 
@@ -43,6 +43,11 @@
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
 - [文叔叔 (ws) 开发中](https://www.wenshushu.cn/)
+  - [ ]  登录, 上传, 下载, 分享
+  - [X]  直链解析
+- [QQ邮箱 (qq) 开发中](https://wx.mail.qq.com/)
+  - [ ]  登录, 上传, 下载, 分享
+  - [X]  直链解析(用户无法直接使用直链)
 - [夸克网盘 (qk) 开发中](https://pan.quark.cn/)
 
 **TODO:**
@@ -57,24 +62,24 @@ Core模块集成Vert.x实现类似spring的注解式路由API
 API接口
 
 ```
-网盘标识参考上面网盘支持情况, 括号内是可选内容: 表示当带有分享密码时需要加上密码参数 
-parser接口可以直接解析分享链接: 加密分享需要加上参数pwd=密码; 
+网盘标识参考上面网盘支持情况, 括号内是可选内容: 表示当带有分享密码时需要加上密码参数
+parser接口可以直接解析分享链接: 加密分享需要加上参数pwd=密码;
 其他接口在分享Key后面加上@密码;
 
-1. 解析并自动302跳转 : 
+1. 解析并自动302跳转 :
     http(s)://your_host/parser?url=分享链接(&pwd=xxx)
     http(s)://your_host/网盘标识/分享key(@分享密码)
 2. 获取解析后的直链--JSON格式
     http(s)://your_host/json/parser?url=分享链接(&pwd=xxx)
     http(s)://your_host/json/网盘标识/分享key(@分享密码)
-3. 特别注意的地方: 
+3. 特别注意的地方:
   - 有些网盘的加密分享的密码可以忽略: 如移动云空间,小飞机网盘
   - 移动云空间(ec)使用parser?url= 解析时因为分享链接比较特殊(链接带有参数且含有#符号)所以要么对#进行转义%23要么直接去掉# 或者URL直接是主机名+'/'跟一个data参数
   比如 http://your_host/parser?url=https://www.ecpan.cn/web//yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
       http://your_host/parser?url=https://www.ecpan.cn/web/%23/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
       http://your_host/parser?url=https://www.ecpan.cn/&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
 ```
-json返回数据格式示例:  
+json返回数据格式示例:
 ```json
 {
     "code": 200,
@@ -148,8 +153,8 @@ GET http://127.0.0.1:6400/json/fc/e5079007dc31226096628870c7@QAIU
 ## 开发和打包
 
 ```shell
-# 环境要求: Jdk17 + maven; 
-mvn clean 
+# 环境要求: Jdk17 + maven;
+mvn clean
 mvn package
 
 ```
@@ -159,28 +164,28 @@ mvn package
 ```shell
 cd ~
 wget -O netdisk-fast-download.zip  https://github.com/qaiu/netdisk-fast-download/releases/download/0.1.7/netdisk-fast-download.zip
-unzip netdisk-fast-download-bin.zip 
+unzip netdisk-fast-download-bin.zip
 cd netdisk-fast-download
 bash service-install.sh
 ```
-服务相关命令:  
-1、查看服务状态  
+服务相关命令:
+1、查看服务状态
 systemctl status netdisk-fast-download.service
 
-2、控制服务  
-启动服务  
+2、控制服务
+启动服务
 systemctl start netdisk-fast-download.service
 
-重启服务  
+重启服务
 systemctl restart netdisk-fast-download.service
 
-停止服务  
+停止服务
 systemctl stop netdisk-fast-download.service
 
-开机启动服务  
+开机启动服务
 systemctl enable netdisk-fast-download.servic
 
-停止开机启动  
+停止开机启动
 systemctl disable netdisk-fast-download.servic
 
 ## Windows服务部署
@@ -203,8 +208,8 @@ systemctl disable netdisk-fast-download.servic
 
 
 ## 支持该项目
-本项目长期维护如果觉得有帮助, 可以请作者喝杯咖啡, 感谢支持  
-支付宝发大额红包了...就这几天, 不要错过哦  
+本项目长期维护如果觉得有帮助, 可以请作者喝杯咖啡, 感谢支持
+支付宝发大额红包了...就这几天, 不要错过哦
 ![image](https://github.com/qaiu/netdisk-fast-download/assets/29825328/54276aee-cc3f-4ebd-8973-2e15f6295819)
 
 [手机端支付宝打赏跳转链接](https://qr.alipay.com/fkx01882dnoxxtjenhlxt53)
