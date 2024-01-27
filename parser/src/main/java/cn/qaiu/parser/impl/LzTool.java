@@ -18,11 +18,10 @@ import java.util.regex.Pattern;
  * 蓝奏云解析工具
  *
  * @author QAIU
- * @version 1.0 update 2021/5/16 10:39
  */
 public class LzTool extends PanBase implements IPanTool {
 
-    public static final String SHARE_URL_PREFIX = "https://wwwa.lanzoui.com";
+    public static final String SHARE_URL_PREFIX = "https://wwwa.lanzoux.com";
 
     public static final String LINK_KEY = "lanzou";
 
