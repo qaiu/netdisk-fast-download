@@ -19,6 +19,7 @@ public interface IPanTool {
             case "le" -> new LeTool(key, pwd);
             case "ws" -> new WsTool(key, pwd);
             case "qq" -> new QQTool(key, pwd);
+            case "iz" -> new IzTool(key, pwd);
             default -> {
                 throw new UnsupportedOperationException("未知分享类型");
             }
@@ -39,6 +40,8 @@ public interface IPanTool {
             return new YeTool(url, pwd);
         } else if (url.startsWith(FjTool.SHARE_URL_PREFIX) || url.startsWith(FjTool.SHARE_URL_PREFIX2)) {
             return new FjTool(url, pwd);
+        } else if (url.startsWith(IzTool.SHARE_URL_PREFIX)) {
+            return new IzTool(url, pwd);
         } else if (url.contains(LzTool.LINK_KEY)) {
             return new LzTool(url, pwd);
         } else if (url.startsWith(LeTool.SHARE_URL_PREFIX)) {

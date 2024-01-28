@@ -1,0 +1,18 @@
+###
+POST https://api.ilanzou.com/unproved/recommend/list?shareId=26216
+
+
+###
+#@no-redirect
+https://api.ilanzou.com/unproved/file/redirect?downloadId=DC3D647979EE315935D1687834F05914&enable=1&devType=6&uuid=46vk1ImPHKt1Mr2cRu5wA&timestamp=B11E6A597CB93B55D87A338AEDDFBE45&auth=8BF7415F1AA0BB02278336F3C11EBD0B25654EAAB68588D5E8C4974ACAD88935
+
+###
+#@no-redirect
+https://api.ilanzou.com/unproved/file/redirect?downloadId=DC3D647979EE315935D1687834F05914&enable=1&devType=6&uuid=46vk1ImPHKt1Mr2cRu5wA&timestamp=90A417B68D70B35311FACC72EEE63291&auth=849E8A34873CA37147A5FE110912FCBF836D8BD5D37626FBCBD8A3F6F42A7A8B
+
+
+
+###
+#@no-redirect
+https://dl.lanosso.com/disk/2024/01/28/9/14733029/1706414002788330.gz?attname=testgles.c&sign=9ef76e9a270dbe5e9401c8f4c2ae0d68&t=65b5f826
+
