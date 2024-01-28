@@ -24,7 +24,7 @@
 - [蓝奏云 (lz)](https://pc.woozooo.com/)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
-- [蓝奏云优享 (iz)](https://https://www.ilanzou.com/)
+- [蓝奏云优享 (iz)](https://www.ilanzou.com/)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
 - [奶牛快传 (cow)](https://cowtransfer.com/)
