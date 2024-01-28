@@ -50,6 +50,12 @@ public class TestAESUtil {
         Assert.assertEquals(146731, AESUtils.idEncrypt("7jy0zlv"));
     }
 
+    // 蓝奏优享
+    @Test
+    public void testIzIdDecode() {
+        Assert.assertEquals(26216, AESUtils.idEncryptIz("lGFndCM"));
+    }
+
     @Test
     public void test00() throws IllegalBlockSizeException, NoSuchPaddingException, BadPaddingException,
             NoSuchAlgorithmException, InvalidKeyException {

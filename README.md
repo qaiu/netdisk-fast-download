@@ -9,7 +9,7 @@
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/qaiu/netdisk-fast-download)](https://github.com/qaiu/netdisk-fast-download/releases/tag/0.1.6-releases)
 
 ## 项目介绍
-网盘直链解析工具能把网盘分享下载链接转化为直链，已支持蓝奏云/奶牛快传/移动云云空间/小飞机盘/亿方云/123云盘等，支持私密分享。
+网盘直链解析工具能把网盘分享下载链接转化为直链，已支持蓝奏云/蓝奏云优享/奶牛快传/移动云云空间/小飞机盘/亿方云/123云盘等，支持私密分享。
 
 
 *重要声明：本项目仅供学习参考；请不要将此项目用于任何商业用途，否则可能带来严重的后果。*
@@ -22,6 +22,9 @@
 `网盘名称(网盘标识):`
 
 - [蓝奏云 (lz)](https://pc.woozooo.com/)
+  - [ ]  登录, 上传, 下载, 分享
+  - [X]  直链解析
+- [蓝奏云优享 (iz)](https://https://www.ilanzou.com/)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
 - [奶牛快传 (cow)](https://cowtransfer.com/)
