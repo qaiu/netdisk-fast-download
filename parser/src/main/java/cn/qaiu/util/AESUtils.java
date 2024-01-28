@@ -34,7 +34,10 @@ public class AESUtils {
 
     public static final String CIPHER_AES2 = "YbQHZqK/PdQql2+7ATcPQHREAxt0Hn0Ob9v317QirZM=";
 
+    public static final String CIPHER_AES2_IZ = "1uQFS3sNeHd/bCrmrQpflXREAxt0Hn0Ob9v317QirZM=";
+
     public static final String CIPHER_AES0;
+    public static final String CIPHER_AES0_IZ;
 
     /**
      * 秘钥长度
@@ -59,6 +62,7 @@ public class AESUtils {
     static {
         try {
             CIPHER_AES0 = decryptByBase64AES(CIPHER_AES2, CIPHER_AES);
+            CIPHER_AES0_IZ = decryptByBase64AES(CIPHER_AES2_IZ, CIPHER_AES);
         } catch (IllegalBlockSizeException | BadPaddingException | NoSuchPaddingException | NoSuchAlgorithmException |
                  InvalidKeyException e) {
             throw new RuntimeException(e);
@@ -154,6 +158,15 @@ public class AESUtils {
         }
     }
 
+    public static String encrypt2HexIz(String source) {
+        try {
+            return encryptHexByAES(source, CIPHER_AES0_IZ);
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeyException | IllegalBlockSizeException |
+                 BadPaddingException e) {
+            throw new RuntimeException("加密失败: "+ e.getMessage());
+        }
+    }
+
     /**
      * AES解密
      *
@@ -214,10 +227,14 @@ public class AESUtils {
             'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o',
             'p', 'q', 'r', 's', 't', 'u', 'L', 'R', 'S', 'I',
             'J', 'K'};
-
-    private static int decodeChar(char c) {
-        for (int i = 0; i < array.length; i++) {
-            if (c == array[i]) {
+    private static final char[] arrayIz =
+            {'Y', 'y', '0', 'Z', 'z', 'N', 'n', 'M', 'I', '6', 'm', 'W', 'w', '1', 'X', 'x', 'L', 'l', 'K', '7', 'k',
+                    'i', 'U', 'u', '2', 'V', 'v', 'J', 'j', '8', 'G', 'g', 'F', 'S', 's', '3', 'T', 't', 'H', 'h',
+                    'f', 'E', 'e', 'D', 'Q', 'q', '4', 'R', 'r', '9', 'd', 'a', 'C', 'c', 'B', 'O', 'o', '5', 'P',
+                    'p', 'b', 'A'};
+    private static int decodeChar(char c, char[] keys) {
+        for (int i = 0; i < keys.length; i++) {
+            if (c == keys[i]) {
                 return i;
             }
         }
@@ -226,20 +243,45 @@ public class AESUtils {
 
     // id解密
     public static int idEncrypt(String str) {
+        return idEncrypt0(str, array, 2, 2);
+    }
+
+    // ================================蓝奏优享版Id解密========================================== //
+    public static int idEncryptIz(String str) {
+//        idEncrypt(e) {
+//            let t = 1
+//                    , n = 0;
+//            if ("" != e && e.length > 4) {
+//                let r;
+//                e = e.substring(3, e.length - 1);
+//                for (let v = 0; v < e.length; v++)
+//                    r = e.charAt(e.length - v - 1),
+//                            n += this.decodeChar(r) * t,
+//                            t *= 62
+//            }
+//            return n
+//        },
+
+        return idEncrypt0(str, arrayIz, 3, 1);
+    }
+
+    public static int idEncrypt0(String str, char[] keys, int x1, int x2) {
         // 倍数
         int multiple = 1;
         int result = 0;
         if (StringUtils.isNotEmpty(str) && str.length() > 4) {
-            str = str.substring(2, str.length() - 2);
+            str = str.substring(x1, str.length() - x2);
             char c;
             for (int i = 0; i < str.length(); i++) {
                 c = str.charAt(str.length() - i - 1);
-                result += decodeChar(c) * multiple;
+                result += decodeChar(c, keys) * multiple;
                 multiple = multiple * 62;
             }
         }
         return result;
     }
+
+
 
     // ========================== musetransfer加密相关 ===========================
 
