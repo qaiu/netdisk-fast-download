@@ -172,10 +172,10 @@ cd netdisk-fast-download
 bash service-install.sh
 ```
 服务相关命令:  
-1. 查看服务状态  
-`systemctl status netdisk-fast-download.service`
 
-2. 控制服务  
+查看服务状态  
+`systemctl status netdisk-fast-download.service`
+ 
 启动服务
 `systemctl start netdisk-fast-download.service`
 
