@@ -212,8 +212,7 @@ bash service-install.sh
 
 ## 0.1.8 开发计划
 - Docker部署
-- 联想乐云解析支持
-- CLoudreve解析解析
+- 联想乐云解析
 - 直链缓存
 - 日志优化
 
