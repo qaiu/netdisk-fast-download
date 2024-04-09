@@ -17,7 +17,7 @@ public class WebClientExample {
         WebClient client = WebClient.create(vertx);
 
         MultipartForm form = new MultipartFormImpl()
-                .attribute("email", "736226400@qq.com")
+                .attribute("email", "")
                 .attribute("password", "");
 
         client.postAbs("https://cowtransfer.com/api/user/emaillogin")

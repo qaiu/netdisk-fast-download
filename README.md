@@ -178,7 +178,7 @@ mvn package
 > 注意: netdisk-fast-download.service中的ExecStart的路径改为实际路径
 ```shell
 cd ~
-wget -O netdisk-fast-download.zip  https://github.com/qaiu/netdisk-fast-download/releases/download/0.1.7/netdisk-fast-download.zip
+wget -O netdisk-fast-download.zip  https://github.com/qaiu/netdisk-fast-download/releases/download/0.1.7-release-fixed2/netdisk-fast-download-bin-fixed2.zip
 unzip netdisk-fast-download-bin.zip
 cd netdisk-fast-download
 bash service-install.sh
