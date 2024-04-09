@@ -25,6 +25,10 @@ GET http://127.0.0.1:6400/json/iz/lGFndCM
 
 ###
 GET http://127.0.0.1:6400/json/parser?url=https://www.ilanzou.com/s/lGFndCM
+###
+GET http://127.0.0.1:6400/json/parser?url=https://www.ilanzou.com/s/6XwnC4X
+###
+GET http://127.0.0.1:6400/json/parser?url=https://www.ilanzou.com/s/zHkna1S
 
 ### 奶牛
 GET http://127.0.0.1:6400/json/cow/9a644fe3e3a748
@@ -71,8 +75,13 @@ GET http://127.0.0.1:6400/parser?url=https://fast.uc.cn/s/33197dd53ace4
 # @no-redirect
 GET http://127.0.0.1:6400/parser?url=https://share.feijipan.com/s/nMtCOXL
 
+### 小飞机盘 https://share.feijipan.com/s/laUshYGk
+# @no-redirect
+GET http://127.0.0.1:6400/parser?url=https://share.feijipan.com/s/laUshYGk
 ### 小飞机盘
 GET http://127.0.0.1:6400/json/fj/tIfhRqH
+### 小飞机盘 https://share.feijipan.com/s/7jy0zlv
+GET http://127.0.0.1:6400/json/fj/7jy0zlv
 
 ### 小飞机盘
 # @no-redirect
@@ -133,6 +142,11 @@ GET http://127.0.0.1:6400/le/2RkKbLP9BrppS9b43@ex2b
 ### 联想乐云
 GET http://127.0.0.1:6400/json/le/2RkKbLP9BrppS9b43@ex2b
 
+### Cloudreve
+GET http://127.0.0.1:6400/json/ce/https_pan.huang1111.cn_s_wDz5TK
+
+### Cloudreve
+GET http://127.0.0.1:6400/json/parser?url=https://pan.huang1111.cn/s/g31PcQ&pwd=qaiu
 
 ###
 GET http://127.0.0.1:6400/v2/statisticsInfo

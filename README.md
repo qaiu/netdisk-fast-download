@@ -1,15 +1,15 @@
 云盘解析服务 (nfd云解析)
-预览地址 https://lz.qaiu.top
-注意: lz.qaiu.top因解析量过大IP已被123和小飞机禁止访问,
-请不要过度依赖预览地址服务，建议本地搭建或者云服务器自行搭建
+预览地址 https://lz.qaiu.top  
+**注意: 请不要过度依赖lz.qaiu.top预览地址服务，建议本地搭建或者云服务器自行搭建。
+解析次数过多IP会被部分网盘厂商限制，不推荐做公共解析。**
 
 [![Java CI with Maven](https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml/badge.svg)](https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml)
 [![jdk](https://img.shields.io/badge/jdk-%3E%3D17-blue)](https://www.oracle.com/cn/java/technologies/downloads/)
-[![vert.x](https://img.shields.io/badge/vert.x-4.5.0-blue)](https://vertx-china.github.io/)
+[![vert.x](https://img.shields.io/badge/vert.x-4.5.6-blue)](https://vertx-china.github.io/)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/qaiu/netdisk-fast-download)](https://github.com/qaiu/netdisk-fast-download/releases/tag/0.1.6-releases)
 
 ## 项目介绍
-网盘直链解析工具能把网盘分享下载链接转化为直链，已支持蓝奏云/蓝奏云优享/奶牛快传/移动云云空间/小飞机盘/亿方云/123云盘等，支持私密分享。
+网盘直链解析工具能把网盘分享下载链接转化为直链，已支持蓝奏云/蓝奏云优享/奶牛快传/移动云云空间/小飞机盘/亿方云/123云盘/Cloudreve等，支持加密分享。
 
 
 *重要声明：本项目仅供学习参考；请不要将此项目用于任何商业用途，否则可能带来严重的后果。*
@@ -33,9 +33,6 @@
 - [移动云空间 (ec)](https://www.ecpan.cn/web)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
-- [UC网盘 (uc)似乎已经失效，需要登录](https://fast.uc.cn/)
-  - [ ]  登录, 上传, 下载, 分享
-  - [X]  直链解析
 - [小飞机网盘 (fj)](https://www.feijipan.com/)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
@@ -45,42 +42,57 @@
 - [123云盘 (ye)](https://www.123pan.com/)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
-- [文叔叔 (ws) 开发中](https://www.wenshushu.cn/)
+- [文叔叔 (ws)](https://www.wenshushu.cn/)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
-- [QQ邮箱 (qq) 开发中](https://wx.mail.qq.com/)
+- [Cloudreve自建网盘 (ce)](https://github.com/cloudreve/Cloudreve)
+  - [ ]  登录, 上传, 下载, 分享
+  - [X]  直链解析
+- [QQ邮箱 (qq) 暂不可用-存在cookie问题](https://wx.mail.qq.com/)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析(用户无法直接使用直链)
-- [夸克网盘 (qk) 开发中](https://pan.quark.cn/)
+- [夸克网盘 (qk) 寄了](https://pan.quark.cn/)
+- [UC网盘 (uc) 寄了](https://fast.uc.cn/)
 
 **TODO:**
   - 登录接口, 文件上传/下载/分享后端接口
   - 短地址服务
   - 前端界面(建设中...)
 
-**技术栈:**
-Jdk17+Vert.x4.4.1
-Core模块集成Vert.x实现类似spring的注解式路由API
+### API接口说明
+your_host指的是您的域名或者IP，实际使用时替换为实际域名或者IP。    
+解析方式分为两种类型直接跳转下载链接和获取下载链接(JSON),每一种都提供了两种接口形式parser和网盘标志/分享key拼接的短地址（标志短链），所有规则参考示例。
+- 通用接口: `/parser?url=分享链接`，加密分享需要加上参数pwd=密码;
+- 标志短链: `/网盘标识/分享key` 在分享Key后面加上@密码;
+- 直链JSON: `通用接口`和`标志短链`前加上`/json` 加密分享的密码规则同上;
+- 网盘标识参考上面网盘支持情况
+- 括号内是可选内容: 表示当带有分享密码时需要加上密码参数
+- 移动云空间,小飞机网盘的加密分享的密码可以忽略
 
-API接口
-
+规则示例: 
 ```
-网盘标识参考上面网盘支持情况, 括号内是可选内容: 表示当带有分享密码时需要加上密码参数
-parser接口可以直接解析分享链接: 加密分享需要加上参数pwd=密码;
-其他接口在分享Key后面加上@密码;
 
 1. 解析并自动302跳转 :
-    http(s)://your_host/parser?url=分享链接(&pwd=xxx)
-    http(s)://your_host/网盘标识/分享key(@分享密码)
+    http://your_host/parser?url=分享链接(&pwd=xxx)
+    http://your_host/网盘标识/分享key(@分享密码)
 2. 获取解析后的直链--JSON格式
-    http(s)://your_host/json/parser?url=分享链接(&pwd=xxx)
-    http(s)://your_host/json/网盘标识/分享key(@分享密码)
-3. 特别注意的地方:
-  - 有些网盘的加密分享的密码可以忽略: 如移动云空间,小飞机网盘
-  - 移动云空间(ec)使用parser?url= 解析时因为分享链接比较特殊(链接带有参数且含有#符号)所以要么对#进行转义%23要么直接去掉# 或者URL直接是主机名+'/'跟一个data参数
+    http://your_host/json/parser?url=分享链接(&pwd=xxx)
+    http://your_host/json/网盘标识/分享key(@分享密码)
+3. 需要特殊处理的网盘分享:
+  1. 移动云空间(ec)使用parser?url= 解析时因为分享链接比较特殊(链接带有参数且含有#符号)所以要么对#进行转义%23要么直接去掉# 或者URL直接是主机名+'/'跟一个data参数
   比如 http://your_host/parser?url=https://www.ecpan.cn/web//yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
       http://your_host/parser?url=https://www.ecpan.cn/web/%23/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
       http://your_host/parser?url=https://www.ecpan.cn/&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
+      
+  2. Cloudreve自建网盘解析规则: 
+    1. 标志短链: 根据网盘使用https和http选择 http://your_host/ce/https_网盘域名_s_wDz5TK 或 http://your_host/ce/http_网盘域名_s_wDz5TK
+    网盘域名指的是Cloudreve搭建网盘的主域名比如pan.huang1111.cn，如果存在子路径需要将/替换为_，是否存在子路径看分享链接格式是否是：//网盘域名/子路径/s/xxx，一般不存在子路径：网盘域名/s/xxx，
+    比如: http://127.0.0.1:6400/ce/https_pan.huang1111.cn_s_wDz5TK
+    2. parser接口 -> http://your_host/parser?url=分享链接(&pwd=xxx)
+    比如: http://127.0.0.1:6400/parser?url=https://pan.huang1111.cn/s/wDz5TK
+
+
+
 ```
 json返回数据格式示例:
 ```json
@@ -205,6 +217,12 @@ bash service-install.sh
 - 直链缓存
 - 日志优化
 
+
+**技术栈:**
+Jdk17+Vert.x4.4.1
+Core模块集成Vert.x实现类似spring的注解式路由API
+
+
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=qaiu/netdisk-fast-download&type=Date)](https://star-history.com/#qaiu/netdisk-fast-download&Date)
@@ -212,7 +230,6 @@ bash service-install.sh
 
 ## 支持该项目
 本项目长期维护如果觉得有帮助, 可以请作者喝杯咖啡, 感谢支持
-支付宝发大额红包了...就这几天, 不要错过哦
 ![image](https://github.com/qaiu/netdisk-fast-download/assets/29825328/54276aee-cc3f-4ebd-8973-2e15f6295819)
 
 [手机端支付宝打赏跳转链接](https://qr.alipay.com/fkx01882dnoxxtjenhlxt53)

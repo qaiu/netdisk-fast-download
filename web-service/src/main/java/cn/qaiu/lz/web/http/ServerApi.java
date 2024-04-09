@@ -37,9 +37,9 @@ public class ServerApi {
                 "&code=" + request.getParam("code") + "&k=" + request.getParam("k") +
                 "&fweb=" + request.getParam("fweb") + "&cl=" + request.getParam("cl");
         }
-        IPanTool.shareURLPrefixMatching(url, pwd).parse().onSuccess(resUrl -> {
-            ResponseUtil.redirect(response, resUrl, promise);
-        }).onFailure(t -> promise.fail(t.fillInStackTrace()));
+        IPanTool.shareURLPrefixMatching(url, pwd).parse()
+                .onSuccess(resUrl -> ResponseUtil.redirect(response, resUrl, promise))
+                .onFailure(t -> promise.fail(t.fillInStackTrace()));
         return promise.future();
     }
 
@@ -52,6 +52,16 @@ public class ServerApi {
         return IPanTool.shareURLPrefixMatching(url, pwd).parse();
     }
 
+    @RouteMapping(value = "/json/:type/:key", method = RouteMethod.GET, order = 2)
+    public Future<String> parseKeyJson(String type, String key) {
+        String code = "";
+        if (key.contains("@")) {
+            String[] keys = key.split("@");
+            key = keys[0];
+            code = keys[1];
+        }
+        return IPanTool.typeMatching(type, key, code).parse();
+    }
 
     @RouteMapping(value = "/:type/:key", method = RouteMethod.GET, order = 1)
     public Future<Void> parseKey(HttpServerResponse response, String type, String key) {
@@ -69,14 +79,4 @@ public class ServerApi {
         return promise.future();
     }
 
-    @RouteMapping(value = "/json/:type/:key", method = RouteMethod.GET, order = 2)
-    public Future<String> parseKeyJson(String type, String key) {
-        String code = "";
-        if (key.contains("@")) {
-            String[] keys = key.split("@");
-            key = keys[0];
-            code = keys[1];
-        }
-        return IPanTool.typeMatching(type, key, code).parse();
-    }
 }

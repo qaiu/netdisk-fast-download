@@ -20,6 +20,7 @@ public interface IPanTool {
             case "ws" -> new WsTool(key, pwd);
             case "qq" -> new QQTool(key, pwd);
             case "iz" -> new IzTool(key, pwd);
+            case "ce" -> new CeTool(key, pwd);
             default -> {
                 throw new UnsupportedOperationException("未知分享类型");
             }
@@ -50,6 +51,9 @@ public interface IPanTool {
             return new WsTool(url, pwd);
         } else if (url.contains(QQTool.SHARE_URL_PREFIX)) {
             return new QQTool(url, pwd);
+        } else if (url.contains("/s/")) {
+            // Cloudreve 网盘通用解析
+            return new CeTool(url, pwd);
         }
 
         throw new UnsupportedOperationException("未知分享类型");
