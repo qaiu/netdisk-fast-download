@@ -13,9 +13,8 @@ import io.vertx.uritemplate.UriTemplate;
 import java.util.UUID;
 
 /**
- * 小飞机网盘
+ * 蓝奏云优享
  *
- * @version V016_230609
  */
 public class IzTool extends PanBase implements IPanTool {
 
@@ -51,12 +50,15 @@ public class IzTool extends PanBase implements IPanTool {
                 return;
             }
             // 文件Id
-            String fileId = resJson.getJsonArray("list").getJsonObject(0).getString("fileIds");
+            JsonObject fileInfo = resJson.getJsonArray("list").getJsonObject(0);
+            String fileId = fileInfo.getString("fileIds");
+            String userId = fileInfo.getString("userId");
             // 其他参数
             long nowTs = System.currentTimeMillis();
             String tsEncode = AESUtils.encrypt2HexIz(Long.toString(nowTs));
             String uuid = UUID.randomUUID().toString();
-            String fidEncode = AESUtils.encrypt2HexIz(fileId + "|");
+//            String fidEncode = AESUtils.encrypt2HexIz(fileId + "|");
+            String fidEncode = AESUtils.encrypt2HexIz(fileId + "|" + userId);
             String auth = AESUtils.encrypt2HexIz(fileId + "|" + nowTs);
             // 第二次请求
             client.getAbs(UriTemplate.of(SECOND_REQUEST_URL))

@@ -11,7 +11,7 @@
 # offset: 1
 # limit: 60
 # @no-cookie-jar
-POST https://api.feijipan.com/ws/recommend/list?devType=6&devModel=Chrome&extra=2&shareId=193186&type=0&offset=1&limit=60
+POST https://api.feijipan.com/ws/recommend/list?devType=6&devModel=Chrome&extra=2&shareId=146731&type=0&offset=1&limit=60
 
 # 654488C79332E7279F9A38367BD72D3B
 # 4703B103BD6871F83441233393695EF3
@@ -37,4 +37,25 @@ https://web.feejii.com/ee433d6e5102ad79af58a2aa0e6cf758/1686279412/files/2023/05
 
 
 
+### 7jy0zlv
+https://api.feijipan.com/ws/recommend/list?devType=6&devModel=Chrome&extra=2&shareId=146731
+
 ###
+# @no-redirect
+https://api.feijipan.com/ws/file/redirect?downloadId=4703B103BD6871F83441233393695EF3&enable=1&devType=6&uuid=ZIdOV27C5dHvd3aUUXoiP&timestamp=4FDB14DD6441E581458CD2750EAF188A&auth=42965E158C74872285C5A3F545118CAAF417B148DBEEBF90B0969E08950830E5
+Referer: https://share.feijipan.com/
+
+###
+# @no-redirect
+https://api.feijipan.com/ws/file/redirect?uuid=6591af86-5464-4c8d-a100-44f6cb859e9b&devType=6&devCode=6591af86-5464-4c8d-a100-44f6cb859e9b&devModel=chrome&devVersion=122&appVersion=&timestamp=77d605733113552383e2626fe134cfc3&appToken=9a253a6202bc1095030a8e8d76fe7f38-1&enable=1&downloadId=79d91c3dc8b578d4c69b04b8251f04e029de3c08240dc9ceab77f7f656cbba23&auth=ccfd80a4787abfb1b86970902e3156ff155ae85ef80ebd661d3bc33de20659a1
+Referer: https://share.feijipan.com/
+
+
+###
+POST https://api.feijipan.com/ws/login?uuid=6591af86-5464-4c8d-a100-44f6cb859e9b&devType=6&devCode=6591af86-5464-4c8d-a100-44f6cb859e9b&devModel=chrome&devVersion=122&appVersion=&timestamp=2e6932b46c0bc20d9cbcdb6c5f0e9bee&appToken=&extra=2
+Accept:application/json, text/plain, */*
+Content-Type:application/json
+Origin:https://www.feijipan.com
+Referer:https://www.feijipan.com/
+
+{"loginName":"15687886400","loginPwd":"4458225ff"}

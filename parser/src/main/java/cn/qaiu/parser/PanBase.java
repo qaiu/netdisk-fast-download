@@ -6,6 +6,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
+import io.vertx.ext.web.client.WebClientSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,6 +23,11 @@ public abstract class PanBase {
      * Http client
      */
     protected WebClient client = WebClient.create(WebClientVertxInit.get());
+
+    /**
+     * Http client session (会话管理, 带cookie请求)
+     */
+    protected WebClientSession clientSession = WebClientSession.create(client);
 
     /**
      * Http client 不自动跳转

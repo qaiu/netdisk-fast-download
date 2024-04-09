@@ -20,7 +20,8 @@ import java.util.UUID;
 public class FjTool extends PanBase implements IPanTool {
 
     public static final String SHARE_URL_PREFIX = "https://www.feijix.com/s/";
-    public static final String SHARE_URL_PREFIX2 = "https://share.feijipan.com/s/";
+    public static final String REFERER_URL = "https://share.feijipan.com/";
+    public static final String SHARE_URL_PREFIX2 = REFERER_URL + "s/";
     private static final String API_URL_PREFIX = "https://api.feijipan.com/ws/";
 
     private static final String FIRST_REQUEST_URL = API_URL_PREFIX + "recommend/list?devType=6&devModel=Chrome&extra" +
@@ -57,15 +58,21 @@ public class FjTool extends PanBase implements IPanTool {
                 return;
             }
             // 文件Id
-            String fileId = resJson.getJsonArray("list").getJsonObject(0).getString("fileIds");
+            JsonObject fileInfo = resJson.getJsonArray("list").getJsonObject(0);
+            String fileId = fileInfo.getString("fileIds");
+            String userId = fileInfo.getString("userId");
             // 其他参数
             long nowTs = System.currentTimeMillis();
             String tsEncode = AESUtils.encrypt2Hex(Long.toString(nowTs));
             String uuid = UUID.randomUUID().toString();
             String fidEncode = AESUtils.encrypt2Hex(fileId + "|");
             String auth = AESUtils.encrypt2Hex(fileId + "|" + nowTs);
+
+            MultiMap headers0 = MultiMap.caseInsensitiveMultiMap();
+            headers0.set("referer", REFERER_URL);
             // 第二次请求
             client.getAbs(UriTemplate.of(SECOND_REQUEST_URL))
+                    .putHeaders(headers0)
                     .setTemplateParam("fidEncode", fidEncode)
                     .setTemplateParam("uuid", uuid)
                     .setTemplateParam("ts", tsEncode)

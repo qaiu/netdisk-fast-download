@@ -7,6 +7,12 @@ import java.util.Map;
 
 public class CommonUtils {
 
+    /**
+     * 获取分享key 比如: https://www.ilanzou.com/s/xxx -> xxx
+     * @param urlPrefix 不包含key的URL前缀
+     * @param url 完整URL
+     * @return 分享key
+     */
     public static String adaptShortPaths(String urlPrefix, String url) {
         if (url.endsWith(".html")) {
             url = url.substring(0, url.length() - 5);
