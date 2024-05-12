@@ -30,7 +30,7 @@
 - [奶牛快传 (cow)](https://cowtransfer.com/)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
-- [移动云空间 (ec)](https://www.ecpan.cn/web)
+- [移动云云空间 (ec)](https://www.ecpan.cn/web)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
 - [小飞机网盘 (fj)](https://www.feijipan.com/)
@@ -67,7 +67,7 @@ your_host指的是您的域名或者IP，实际使用时替换为实际域名或
 - 直链JSON: `通用接口`和`标志短链`前加上`/json` 加密分享的密码规则同上;
 - 网盘标识参考上面网盘支持情况
 - 括号内是可选内容: 表示当带有分享密码时需要加上密码参数
-- 移动云空间,小飞机网盘的加密分享的密码可以忽略
+- 移动云云空间,小飞机网盘的加密分享的密码可以忽略
 - 移动云空间分享key取分享链接中的data参数,比如`&data=xxx`的参数就是xxx
 
 规则示例: 
@@ -80,7 +80,7 @@ your_host指的是您的域名或者IP，实际使用时替换为实际域名或
     http://your_host/json/parser?url=分享链接(&pwd=xxx)
     http://your_host/json/网盘标识/分享key(@分享密码)
 3. 需要特殊处理的网盘分享:
-  1. 移动云空间(ec)使用parser?url= 解析时因为分享链接比较特殊(链接带有参数且含有#符号)所以要么对#进行转义%23要么直接去掉# 或者URL直接是主机名+'/'跟一个data参数
+  1. 移动云云空间(ec)使用parser?url= 解析时因为分享链接比较特殊(链接带有参数且含有#符号)所以要么对#进行转义%23要么直接去掉# 或者URL直接是主机名+'/'跟一个data参数
   比如 http://your_host/parser?url=https://www.ecpan.cn/web//yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
       http://your_host/parser?url=https://www.ecpan.cn/web/%23/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
       http://your_host/parser?url=https://www.ecpan.cn/&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
@@ -146,17 +146,17 @@ GET http://127.0.0.1:6400/json/fc/e5079007dc31226096628870c7@QAIU
 # 网盘对比
 
 
-| 网盘名称       | 可直接下载分享                | 加密分享     | 初始网盘空间    | 单文件大小限制         | 登录接口 |
-|------------|------------------------|----------|-----------|-----------------|------|
-| 蓝奏云        | √                      | √        | 不限空间      | 100M            | TODO |
-| 奶牛快传       | √                      | X        | 10G       | 不限大小            | TODO |
-| 移动云空间      | √                      | √(密码可忽略) | 5G(个人)    | 不限大小            | TODO |
-| UC网盘       | 需要登录                   | √        | 10G       | 不限大小            | TODO |
-| 小飞机网盘      | √                      | √(密码可忽略) | 10G       | 不限大小            | TODO |
-| 360亿方云     | √(试用账号有时间限制企业版需要599续费) | √(密码可忽略) | 100G(须实名) | 不限大小            | TODO |
-| 123云盘      | √                      | √        | 2T        | 100G（>100M需要登录） | TODO |
-| 文叔叔(TODO)  | √(注意有时间限制)             | √        | 10G       | 5GB             | TODO |
-| 夸克网盘(TODO) | 需要登录                   | √        | 10G       | 不限大小            | TODO |
+| 网盘名称        | 免登陆下载分享 | 加密分享     | 初始网盘空间    | 单文件大小限制         |
+|-------------|---------|----------|-----------|-----------------|
+| 蓝奏云         | √       | √        | 不限空间      | 100M            | 
+| 奶牛快传        | √       | X        | 10G       | 不限大小            | 
+| 移动云云空间(个人版) | √       | √(密码可忽略) | 5G(个人)    | 不限大小            |
+| 小飞机网盘       | √       | √(密码可忽略) | 10G       | 不限大小            | 
+| 360亿方云      | √       | √(密码可忽略) | 100G(须实名) | 不限大小            | 
+| 123云盘       | √       | √        | 2T        | 100G（>100M需要登录） | 
+| 文叔叔         | √       | √        | 10G       | 5GB             | 
+| 夸克网盘        | x       | √        | 10G       | 不限大小            | 
+| UC网盘        | x       | √        | 10G       | 不限大小            | 
 
 # 打包部署
 
@@ -164,7 +164,7 @@ GET http://127.0.0.1:6400/json/fc/e5079007dc31226096628870c7@QAIU
 - [阿里jdk17(Dragonwell17-windows-x86)](https://lz.qaiu.top/ec/e957acef36ce89e1053979672a90d219n)
 - [阿里jdk17(Dragonwell17-linux-x86)](https://lz.qaiu.top/ec/6ebc9f2e0bbd53b4c4d5b11013f40a80NHvcYU)
 - [阿里jdk17(Dragonwell17-linux-aarch64)](https://lz.qaiu.top/ec/d14c2d06296f61b52a876b525265e0f8tzxTc5)
-- [解析有效性测试-移动云空间-阿里jdk17-linux-x86](https://lz.qaiu.top/json/ec/6ebc9f2e0bbd53b4c4d5b11013f40a80NHvcYU)
+- [解析有效性测试-移动云云空间-阿里jdk17-linux-x86](https://lz.qaiu.top/json/ec/6ebc9f2e0bbd53b4c4d5b11013f40a80NHvcYU)
 
 ## 开发和打包
 

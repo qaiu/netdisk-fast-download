@@ -246,6 +246,7 @@ public class AESUtils {
         return idEncrypt0(str, array, 2, 2);
     }
 
+
     // ================================蓝奏优享版Id解密========================================== //
     public static int idEncryptIz(String str) {
 //        idEncrypt(e) {

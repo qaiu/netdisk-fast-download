@@ -13,7 +13,7 @@ import io.vertx.uritemplate.UriTemplate;
  */
 public class EcTool extends PanBase implements IPanTool {
     private static final String FIRST_REQUEST_URL = "https://www.ecpan.cn/drive/fileextoverrid" +
-            ".do?chainUrlTemplate=https:%2F%2Fwww.ecpan" +
+            ".do?extractionCode={extractionCode}&chainUrlTemplate=https:%2F%2Fwww.ecpan" +
             ".cn%2Fweb%2F%23%2FyunpanProxy%3Fpath%3D%252F%2523%252Fdrive%252Foutside&parentId=-1&data={dataKey}";
 
     private static final String DOWNLOAD_REQUEST_URL = "https://www.ecpan.cn/drive/sharedownload.do";
@@ -27,7 +27,11 @@ public class EcTool extends PanBase implements IPanTool {
     public Future<String> parse() {
         String dataKey = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, key);
         // 第一次请求 获取文件信息
-        client.getAbs(UriTemplate.of(FIRST_REQUEST_URL)).setTemplateParam("dataKey", dataKey).send().onSuccess(res -> {
+        client.getAbs(UriTemplate.of(FIRST_REQUEST_URL))
+                .setTemplateParam("dataKey", dataKey)
+                .setTemplateParam("extractionCode", pwd == null ? "" : pwd)
+                .send()
+                .onSuccess(res -> {
                     JsonObject jsonObject = res.bodyAsJsonObject();
                     log.debug("ecPan get file info -> {}", jsonObject);
                     JsonObject fileInfo = jsonObject
@@ -37,6 +41,11 @@ public class EcTool extends PanBase implements IPanTool {
                         fail("{} 解析失败:{} key = {}", FIRST_REQUEST_URL, fileInfo.getString("errMesg"), dataKey);
                         return;
                     }
+                    if (!fileInfo.containsKey("cloudpFile")) {
+                        fail("{} 解析失败:cloudpFile不存在 key = {}", FIRST_REQUEST_URL, dataKey);
+                        return;
+                    }
+
                     JsonObject cloudpFile = fileInfo.getJsonObject("cloudpFile");
                     JsonArray fileIdList = JsonArray.of(cloudpFile);
                     // 构造请求JSON {"extCodeFlag":0,"isIp":0}
