@@ -30,14 +30,14 @@ GET http://127.0.0.1:6400/json/parser?url=https://www.ilanzou.com/s/6XwnC4X
 ###
 GET http://127.0.0.1:6400/json/parser?url=https://www.ilanzou.com/s/zHkna1S
 
-### 奶牛
+### 奶牛 https://cowtransfer.com/s/9a644fe3e3a748
 GET http://127.0.0.1:6400/json/cow/9a644fe3e3a748
 Referer: https://cowtransfer.com/
 
 ### 奶牛
 # @no-redirect
 GET http://127.0.0.1:6400/cow/e4f41b51b5da4f
-Referer: https://cowtransfer.com/
+
 
 ### 奶牛
 # @no-redirect
@@ -55,8 +55,13 @@ GET http://127.0.0.1:6400/parser?url=https://www.ecpan.cn/web//yunpanProxy?path=
 # @no-redirect
 GET http://127.0.0.1:6400/ec/81027a5c99af5b11ca004966c945cce6W9Bf2
 
+### https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=4b3d786755688b85c6eb0c04b9124f4dalzdaJpXHx&isShare=1 密码 T6O1RC
+GET http://127.0.0.1:6400/json/ec/4b3d786755688b85c6eb0c04b9124f4dalzdaJpXHx@T6O1RC
+
 ###
-GET http://127.0.0.1:6400/json/ec/aa0cae0164d8885e6d35826b5b2901eckbWJBalM
+#@no-redirect
+GET http://127.0.0.1:6400/parser?url=https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=4b3d786755688b85c6eb0c04b9124f4dalzdaJpXHx&isShare=1&pwd=T6O1RC
+
 
 
 ### UC网盘
@@ -86,8 +91,11 @@ GET http://127.0.0.1:6400/json/fj/7jy0zlv
 ### 小飞机盘
 # @no-redirect
 GET http://127.0.0.1:6400/fj/tIfhRqH
+### 小飞机盘 https://share.feijipan.com/s/nMtCOXL
+# @no-redirect
+GET http://127.0.0.1:6400/fj/nMtCOXL
 
-### 360亿方云
+### 360亿方云 https://v2.fangcloud.com/sharing/fb54bdf03c66c04334fe3687a3
 # @no-redirect
 GET http://127.0.0.1:6400/parser?url=https://v2.fangcloud.com/sharing/fb54bdf03c66c04334fe3687a3
 
@@ -117,9 +125,9 @@ GET http://127.0.0.1:6400/ye/iaKtVv-qOECd
 # @no-redirect
 GET http://127.0.0.1:6400/ye/Ev1lVv-t3SY3
 
-### 123
+### 123 https://www.123pan.com/s/iaKtVv-6OECd.html
 # @no-redirect
-GET http://127.0.0.1:6400/parser?url=https://www.123pan.com/s/iaKtVv-6OECd.html&pwd=DcGe
+GET http://127.0.0.1:6400/json/parser?url=https://www.123pan.com/s/iaKtVv-6OECd.html&pwd=DcGe
 
 
 ### 123
@@ -142,10 +150,13 @@ GET http://127.0.0.1:6400/le/2RkKbLP9BrppS9b43@ex2b
 ### 联想乐云
 GET http://127.0.0.1:6400/json/le/2RkKbLP9BrppS9b43@ex2b
 
+### 文叔叔
+GET http://127.0.0.1:6400/json/parser?url=https://f.ws59.cn/f/e3peohu6192
+
 ### Cloudreve
 GET http://127.0.0.1:6400/json/ce/https_pan.huang1111.cn_s_wDz5TK
 
-### Cloudreve
+### Cloudreve https://pan.huang1111.cn/s/g31PcQ
 GET http://127.0.0.1:6400/json/parser?url=https://pan.huang1111.cn/s/g31PcQ&pwd=qaiu
 
 ###

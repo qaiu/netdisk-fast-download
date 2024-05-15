@@ -26,7 +26,6 @@ public class WsTool extends PanBase implements IPanTool {
         super(key, pwd);
     }
 
-    @SuppressWarnings("unchecked")
     public Future<String> parse() {
 
         WebClient httpClient = this.client;

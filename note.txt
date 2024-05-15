@@ -1,0 +1,24 @@
+直链缓存设计
+     每个网盘对应的标准分享URL如下
+
+蓝奏云 (lz)          https://lanzoux.com/{shareKey}
+蓝奏云优享 (iz)       https://www.ilanzou.com/s/{shareKey}
+奶牛快传 (cow)        https://cowtransfer.com/s/{shareKey}
+移动云云空间 (ec)     https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data={shareKey}&isShare=1
+小飞机网盘 (fj)       https://share.feijipan.com/s/{shareKey}
+亿方云 (fc)           https://v2.fangcloud.com/sharing/{shareKey}
+123云盘 (ye)         https://www.123pan.com/s/{shareKey}.html
+文叔叔 (ws)          https://f.ws59.cn/f/{shareKey}
+联想乐云 (le)         https://lecloud.lenovo.com/share/{shareKey}
+
+私有化网盘需要自己的域名也就是origin地址.
+Cloudreve自建网盘 (ce) {origin}/s/{shareKey}
+
+分享URL -> 类型+key
+类型+key -> 标准分享URL
+
+缓存key -> 下载URL
+分享链接 -> add 网盘类型 pwd origin(私有化) -> 直链
+
+
+https://f.ws59.cn/f/e3peohu6192
