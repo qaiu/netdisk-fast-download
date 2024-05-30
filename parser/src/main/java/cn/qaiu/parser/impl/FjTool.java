@@ -50,7 +50,8 @@ public class FjTool extends PanBase implements IPanTool {
             dataKey = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, key);
         }
 
-        String shareId = String.valueOf(AESUtils.idEncrypt(dataKey));
+        // 240530 此处shareId又改为了原始的shareId, nm玩呢?
+        String shareId = dataKey; // String.valueOf(AESUtils.idEncrypt(dataKey));
         long nowTs = System.currentTimeMillis();
         String tsEncode = AESUtils.encrypt2Hex(Long.toString(nowTs));
         String uuid = UUIDUtil.fjUuid(); // 也可以使用 UUID.randomUUID().toString()
@@ -61,7 +62,7 @@ public class FjTool extends PanBase implements IPanTool {
                 .setTemplateParam("ts", tsEncode)
                 .send().onSuccess(r0 -> { // 忽略res
 
-                    long nowTs0 = System.currentTimeMillis();
+                    // long nowTs0 = System.currentTimeMillis();
                     String tsEncode0 = AESUtils.encrypt2Hex(Long.toString(nowTs));
                     // 第一次请求 获取文件信息
                     // POST https://api.feijipan.com/ws/recommend/list?devType=6&devModel=Chrome&extra=2&shareId=146731&type=0&offset=1&limit=60
