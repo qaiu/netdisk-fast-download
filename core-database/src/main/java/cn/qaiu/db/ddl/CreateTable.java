@@ -1,5 +1,6 @@
 package cn.qaiu.db.ddl;
 
+import cn.qaiu.db.pool.JDBCType;
 import cn.qaiu.vx.core.util.ReflectionUtil;
 import io.vertx.codegen.format.CamelCase;
 import io.vertx.codegen.format.Case;
@@ -65,7 +66,9 @@ public class CreateTable {
         }
     }
 
-    public static String getCreateTableSQL(Class<?> clz) {
+    public static String getCreateTableSQL(Class<?> clz, JDBCType type) {
+        String quotationMarks = type == JDBCType.H2DB ? "\"" : "`";
+        String endStr = type == JDBCType.H2DB ? ");" : ")ENGINE=InnoDB DEFAULT CHARSET=utf8;";
         // 判断类上是否有次注解
         String primaryKey = null; // 主键
         String tableName = null; // 表名
@@ -93,7 +96,7 @@ public class CreateTable {
         int[] decimalSize = {22, 2};
         int varcharSize = 255;
         StringBuilder sb = new StringBuilder(50);
-        sb.append("CREATE TABLE IF NOT EXISTS \"").append(tableName).append("\" ( \r\n ");
+        sb.append("CREATE TABLE IF NOT EXISTS ").append(quotationMarks).append(tableName).append(quotationMarks).append(" ( \r\n ");
         boolean firstId = true;
         for (Field f : fields) {
             Class<?> paramType = f.getType();
@@ -114,7 +117,7 @@ public class CreateTable {
                 decimalSize = fieldAnnotation.decimalSize();
                 varcharSize = fieldAnnotation.varcharSize();
             }
-            sb.append("\"").append(column).append("\"");
+            sb.append(quotationMarks).append(column).append(quotationMarks);
             sb.append(" ").append(sqlType);
             // 添加类型长度
             if (sqlType.equals("DECIMAL")) {
@@ -155,17 +158,20 @@ public class CreateTable {
         //去掉最后一个逗号
         int lastIndex = sql.lastIndexOf(",");
         sql = sql.substring(0, lastIndex) + sql.substring(lastIndex + 1);
-        return sql.substring(0, sql.length() - 1) + ");\r\n";
+        return sql.substring(0, sql.length() - 1) + endStr;
     }
 
-    public static void createTable(JDBCPool pool) {
+    public static void createTable(JDBCPool pool, JDBCType type) {
         Set<Class<?>> tableClassList = ReflectionUtil.getReflections().getTypesAnnotatedWith(Table.class);
         if (tableClassList.isEmpty()) LOGGER.info("Table model class not fount");
         tableClassList.forEach(clazz -> {
-            String createTableSQL = getCreateTableSQL(clazz);
+            String createTableSQL = getCreateTableSQL(clazz, type);
+
             pool.query(createTableSQL).execute().onSuccess(
-                    rs -> LOGGER.info("\n" + createTableSQL + "create table --> ok")
-            ).onFailure(Throwable::printStackTrace);
+                    rs -> LOGGER.info("table auto generate:\n" + createTableSQL)
+            ).onFailure(e -> {
+                LOGGER.error(e.getMessage() + "  SQL: \n" + createTableSQL);
+            });
         });
     }
 }

@@ -83,14 +83,10 @@ GET http://127.0.0.1:6400/parser?url=https://share.feijipan.com/s/nMtCOXL
 ### 小飞机盘 https://share.feijipan.com/s/laUshYGk
 # @no-redirect
 GET http://127.0.0.1:6400/parser?url=https://share.feijipan.com/s/laUshYGk
-### 小飞机盘
+### 小飞机盘 tIfhRqH
 GET http://127.0.0.1:6400/json/fj/tIfhRqH
 ### 小飞机盘 https://share.feijipan.com/s/7jy0zlv
 GET http://127.0.0.1:6400/json/fj/7jy0zlv
-
-### 小飞机盘
-# @no-redirect
-GET http://127.0.0.1:6400/fj/tIfhRqH
 ### 小飞机盘 https://share.feijipan.com/s/nMtCOXL
 # @no-redirect
 GET http://127.0.0.1:6400/fj/nMtCOXL

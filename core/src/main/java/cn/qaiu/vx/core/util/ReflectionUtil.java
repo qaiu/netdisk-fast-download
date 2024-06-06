@@ -5,12 +5,13 @@ import javassist.bytecode.AccessFlag;
 import javassist.bytecode.CodeAttribute;
 import javassist.bytecode.LocalVariableAttribute;
 import javassist.bytecode.MethodInfo;
-import org.apache.commons.beanutils.ConversionException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.reflections.Reflections;
-import org.reflections.scanners.*;
+import org.reflections.scanners.MemberUsageScanner;
+import org.reflections.scanners.MethodParameterNamesScanner;
+import org.reflections.scanners.Scanners;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
 import org.reflections.util.FilterBuilder;
@@ -185,10 +186,10 @@ public final class ReflectionUtil {
                     return DateUtils.parseDate(value, fmt);
                 } catch (ParseException e) {
                     e.printStackTrace();
-                    throw new ConversionException("无法将格式化日期");
+                    throw new RuntimeException("无法将格式化日期");
                 }
             default:
-                throw new ConversionException("无法将String类型" + value + "转为[" + name + "]");
+                throw new RuntimeException("无法将String类型" + value + "转为[" + name + "]");
         }
     }
 
@@ -200,7 +201,7 @@ public final class ReflectionUtil {
      * @return Array
      */
     public static Object conversionArray(CtClass ctClass, String value) {
-        if (!isBasicTypeArray(ctClass)) throw new ConversionException("无法解析数组");
+        if (!isBasicTypeArray(ctClass)) throw new RuntimeException("无法解析数组");
         String[] strArr = value.split(",");
         List<Object> obj = new ArrayList<>();
         Arrays.stream(strArr).forEach(v -> obj.add(conversion(ctClass, v, null)));

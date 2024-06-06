@@ -1,7 +1,7 @@
 package cn.qaiu.vx.core.util;
 
 import io.vertx.core.MultiMap;
-import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.beanutils2.BeanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

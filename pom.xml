@@ -7,7 +7,7 @@
     <groupId>cn.qaiu</groupId>
     <artifactId>netdisk-fast-download</artifactId>
     <packaging>pom</packaging>
-    <version>0.1.7</version>
+    <version>${revision}</version>
 
     <modules>
         <module>core</module>
@@ -17,6 +17,7 @@
     </modules>
 
     <properties>
+        <revision>0.1.7</revision>
         <java.version>17</java.version>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
@@ -30,9 +31,39 @@
         <lombok.version>1.18.12</lombok.version>
         <slf4j.version>2.0.5</slf4j.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
+        <commons-beanutils2.version>2.0.0</commons-beanutils2.version>
         <jackson.version>2.14.2</jackson.version>
         <logback.version>1.4.12</logback.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.vertx</groupId>
+                <artifactId>vertx-dependencies</artifactId>
+                <version>${vertx.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>cn.qaiu</groupId>
+                <artifactId>core</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>cn.qaiu</groupId>
+                <artifactId>core-database</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.qaiu</groupId>
+                <artifactId>parser</artifactId>
+                <version>${revision}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <plugins>

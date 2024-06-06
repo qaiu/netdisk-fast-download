@@ -3,8 +3,8 @@ package cn.qaiu.vx.core.util;
 import cn.qaiu.vx.core.annotaions.HandleSortFilter;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
-import org.apache.commons.beanutils.ConvertUtils;
-import org.apache.commons.beanutils.Converter;
+import org.apache.commons.beanutils2.ConvertUtils;
+import org.apache.commons.beanutils2.Converter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

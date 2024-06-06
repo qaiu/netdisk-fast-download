@@ -5,10 +5,9 @@
     <parent>
         <artifactId>netdisk-fast-download</artifactId>
         <groupId>cn.qaiu</groupId>
-        <version>0.1.7</version>
+        <version>${revision}</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <version>0.1.7</version>
     <artifactId>web-service</artifactId>
 
     <properties>
@@ -22,7 +21,14 @@
         <dependency>
             <groupId>cn.qaiu</groupId>
             <artifactId>core</artifactId>
-            <version>1.0.8</version>
+        </dependency>
+        <dependency>
+            <groupId>cn.qaiu</groupId>
+            <artifactId>core-database</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>cn.qaiu</groupId>
+            <artifactId>parser</artifactId>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -46,16 +52,6 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>cn.qaiu</groupId>
-            <artifactId>core-database</artifactId>
-            <version>0.1.7</version>
-        </dependency>
-        <dependency>
-            <groupId>cn.qaiu</groupId>
-            <artifactId>parser</artifactId>
-            <version>0.1.7</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
