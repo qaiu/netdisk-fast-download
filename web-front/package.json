@@ -26,7 +26,7 @@
     "vue-template-compiler": "^2.6.14",
 
     "compression-webpack-plugin": "^6.1.1",
-    "filemanager-webpack-plugin": "2.0.5"
+    "filemanager-webpack-plugin": "8.0.0"
   },
   "eslintConfig": {
     "root": true,
