@@ -1,5 +1,6 @@
 云盘解析服务 (nfd云解析)
 预览地址 https://lz.qaiu.top  
+main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/netdisk-fast-download/tree/main-jdk11)
 **注意: 请不要过度依赖lz.qaiu.top预览地址服务，建议本地搭建或者云服务器自行搭建。
 解析次数过多IP会被部分网盘厂商限制，不推荐做公共解析。**
 
