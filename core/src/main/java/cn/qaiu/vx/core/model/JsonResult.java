@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.json.JsonObject;
 import org.apache.commons.lang3.StringUtils;
 
-import java.io.Serial;
 import java.io.Serializable;
 
 /**
@@ -17,7 +16,6 @@ import java.io.Serializable;
  */
 public class JsonResult<T> implements Serializable {
 
-    @Serial
     private static final long serialVersionUID = 1L;
 
     private static final int SUCCESS_CODE = 200;

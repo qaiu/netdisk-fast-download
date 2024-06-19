@@ -87,19 +87,15 @@ public final class Deploy {
         var calendar = Calendar.getInstance();
         calendar.setTime(new Date());
         var year = calendar.get(Calendar.YEAR);
-        var logoTemplate = """
 
-                Web Server powered by:\s
-                 ____   ____              _              _    _   \s
-                |_^^_| |_^^_|            / |_           | |  | |  \s
-                  \\ \\   / /.---.  _ .--.`| |-'   _   __ | |__| |_ \s
-                   \\ \\ / // /__\\\\[ `/'`\\]| |    [ \\ [  ]|____   _|\s
-                    \\ V / | \\__., | |    | |, _  > '  <     _| |_ \s
-                     \\_/   '.__.'[___]   \\__/(_)[__]`\\_]   |_____|\s
-                                                      Version: %s; Framework version: %s; %s©%d.
-
-                """;
-
+        String logoTemplate = "Web Server powered by: \n" +
+                " ____   ____              _              _    _   \n" +
+                "|_^^_| |_^^_|            / |_           | |  | |  \n" +
+                "  \\ \\   / /.---.  _ .--.`| |-'   _   __ | |__| |_ \n" +
+                "   \\ \\ / // /__\\\\[ `/'`\\]| |    [ \\ [  ]|____   _|\n" +
+                "    \\ V / | \\__., | |    | |, _  > '  <     _| |_ \n" +
+                "     \\_/   '.__.'[___]   \\__/(_)[__]`\\_]   |_____|\n" +
+                "                                      Version: %s; Framework version: %s; JDK11; %s©%d.\n\n";
         System.out.printf(logoTemplate,
                 conf.getString("version_app"),
                 VersionCommand.getVersion(),
@@ -132,9 +128,10 @@ public final class Deploy {
         localMap.put(GLOBAL_CONFIG, globalConfig);
         localMap.put(CUSTOM_CONFIG, customConfig);
         localMap.put(SERVER, globalConfig.getJsonObject(SERVER));
-        var future0 = vertx.createSharedWorkerExecutor("other-handle").executeBlocking(bch -> {
+        var future0 = vertx.createSharedWorkerExecutor("other-handle").executeBlocking(() -> {
             handle.handle(globalConfig);
-            bch.complete("other handle complete");
+            LOGGER.info("other handle complete");
+            return null;
         });
 
         // 部署 路由、异步service、反向代理 服务
@@ -142,7 +139,7 @@ public final class Deploy {
         var future2 = vertx.deployVerticle(ServiceVerticle.class, getWorkDeploymentOptions("Service"));
         var future3 = vertx.deployVerticle(ReverseProxyVerticle.class, getWorkDeploymentOptions("proxy"));
 
-        CompositeFuture.all(future1, future2, future3, future0)
+        Future.all(future1, future2, future3, future0)
                 .onSuccess(this::deployWorkVerticalSuccess)
                 .onFailure(this::deployVerticalFailed);
     }
@@ -181,7 +178,7 @@ public final class Deploy {
     private DeploymentOptions getWorkDeploymentOptions(String name, int ins) {
         return new DeploymentOptions()
                 .setWorkerPoolName(name)
-                .setWorker(true)
+                .setThreadingModel(ThreadingModel.WORKER)
                 .setInstances(ins);
     }
 

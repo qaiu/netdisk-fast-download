@@ -1,6 +1,7 @@
 package qaiu.web.test;
 
 import cn.qaiu.util.AESUtils;
+import cn.qaiu.util.jdk17halper.HexFormat;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -9,7 +10,6 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 
 public class TestAESUtil {
 

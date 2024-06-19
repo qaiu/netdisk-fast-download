@@ -47,12 +47,10 @@ public class DbServiceImpl implements DbService {
     public Future<StatisticsInfo> getStatisticsInfo() {
         JDBCPool client = JDBCPoolInit.instance().getPool();
         Promise<StatisticsInfo> promise = Promise.promise();
-        String sql = """
-                select COUNT(CASE "code" WHEN 500 THEN "code" END ) "fail",
-                       COUNT(CASE "code" WHEN 200 THEN "code" END ) "success",
-                       count(1) "total"
-                from "t_parser_log_info"
-                """;
+        String sql = "select COUNT(CASE \"code\" WHEN 500 THEN \"code\" END ) \"fail\",\n" +
+                "                       COUNT(CASE \"code\" WHEN 200 THEN \"code\" END ) \"success\",\n" +
+                "                       count(1) \"total\"\n" +
+                "                from \"t_parser_log_info\"";
         SqlTemplate.forQuery(client, sql).mapTo(StatisticsInfo.class).execute(new HashMap<>()).onSuccess(row -> {
             StatisticsInfo info;
             if ((info = row.iterator().next()) != null) {

@@ -1,5 +1,6 @@
 package cn.qaiu.util;
 
+import cn.qaiu.util.jdk17halper.HexFormat;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.crypto.*;
@@ -12,7 +13,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Date;
-import java.util.HexFormat;
 import java.util.Random;
 
 /**

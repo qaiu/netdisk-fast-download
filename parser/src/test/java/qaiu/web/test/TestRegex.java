@@ -9,10 +9,10 @@ public class TestRegex {
 
     @Test
     public void regexYFC() {
-        String html = """
-                    <input type="hidden" id="typed_id" value="file_559003251828">
-                    <input type="hidden" id="share_link_token" value="9cbe4b73521ba4d65a8cd38a8c">
-                """;
+        String html = "\n" +
+                "                    <input type=\"hidden\" id=\"typed_id\" value=\"file_559003251828\">\n" +
+                "                    <input type=\"hidden\" id=\"share_link_token\" " +
+                "value=\"9cbe4b73521ba4d65a8cd38a8c\">";
 
         Pattern compile = Pattern.compile("id=\"typed_id\"\\s+value=\"file_(\\d+)\"");
         Matcher matcher = compile.matcher(html);

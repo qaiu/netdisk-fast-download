@@ -7,24 +7,22 @@ public interface IPanTool {
     Future<String> parse();
 
     static IPanTool typeMatching(String type, String key, String pwd) {
-        return switch (type) {
-            case "lz" -> new LzTool(key, pwd);
-            case "cow" -> new CowTool(key, pwd);
-            case "ec" -> new EcTool(key, pwd);
-            case "fc" -> new FcTool(key, pwd);
-            case "uc" -> new UcTool(key, pwd);
-            case "ye" -> new YeTool(key, pwd);
-            case "fj" -> new FjTool(key, pwd);
-            case "qk" -> new QkTool(key, pwd);
-            case "le" -> new LeTool(key, pwd);
-            case "ws" -> new WsTool(key, pwd);
-            case "qq" -> new QQTool(key, pwd);
-            case "iz" -> new IzTool(key, pwd);
-            case "ce" -> new CeTool(key, pwd);
-            default -> {
-                throw new UnsupportedOperationException("未知分享类型");
-            }
-        };
+        switch (type) {
+            case "lz": return new LzTool(key, pwd);
+            case "cow": return new CowTool(key, pwd);
+            case "ec": return new EcTool(key, pwd);
+            case "fc": return new FcTool(key, pwd);
+            case "uc": return new UcTool(key, pwd);
+            case "ye": return new YeTool(key, pwd);
+            case "fj": return new FjTool(key, pwd);
+            case "qk": return new QkTool(key, pwd);
+            case "le": return new LeTool(key, pwd);
+            case "ws": return new WsTool(key, pwd);
+            case "qq": return new QQTool(key, pwd);
+            case "iz": return new IzTool(key, pwd);
+            case "ce": return new CeTool(key, pwd);
+            default: throw new UnsupportedOperationException("未知分享类型");
+        }
     }
 
     static IPanTool shareURLPrefixMatching(String url, String pwd) {

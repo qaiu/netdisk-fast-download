@@ -112,7 +112,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
                 return Integer.compare(routeHandler2.order(), routeHandler1.order());
             };
             // 获取处理器类列表
-            List<Class<?>> sortedHandlers = handlers.stream().sorted(comparator).toList();
+            List<Class<?>> sortedHandlers = handlers.stream().sorted(comparator).collect(Collectors.toList());
             for (Class<?> handler : sortedHandlers) {
                 try {
                     // 注册请求处理方法
@@ -153,7 +153,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
 
         methodList.addAll(Stream.of(methods).filter(
                 method -> method.isAnnotationPresent(SockRouteMapper.class)
-        ).toList());
+        ).collect(Collectors.toList()));
 
         // 依次注册处理方法
         for (Method method : methodList) {

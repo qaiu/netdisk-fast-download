@@ -1,4 +1,6 @@
 @echo off && @chcp 65001 > nul
+
+:: 需要JDK11及以上版本和Windows环境变量已配置jdk的路径
 pushd %~dp0
 set LIB_DIR=%~dp0
 for /f "delims=X" %%i in ('dir /b %LIB_DIR%\netdisk-fast-download.jar') do (

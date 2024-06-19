@@ -7,7 +7,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 # User=USER
-# 需要JDK17及以上版本 注意修改为自己的路径
+# 需要JDK11及以上版本 注意修改为自己的路径
 ExecStart=/root/java/jdk-17.0.2/bin/java -server -Xmx128m -jar /root/java/netdisk-fast-download/netdisk-fast-download.jar
 ExecStop=/bin/kill -s QUIT $MAINPID
 Restart=always

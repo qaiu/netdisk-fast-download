@@ -15,9 +15,11 @@ public class TestWebClient2 {
     public void matcherHtml() {
 
         Pattern compile = Pattern.compile("class=\"ifr2\" name=.+src=\"(/fn\\?[a-zA-Z0-9_+/=]{16,})\"");
-        var text = """
-<div class="ifr"><!--<iframe class="ifr2" name="1" src="/fn?v2" frameborder="0" scrolling="no"></iframe>-->
-<iframe class="ifr2" name="1685001208" src="/fn?UzUBa1oxBmUAYgNsUDUFNVI6BjJfJlchV21TZFU_aVWwANVQzXTBXMlUxUTcLZ1dwUn8DYwQ5AHFVOwdmBjRUPlM2AS9aOgY3AGIDMFA2" frameborder="0" scrolling="no"></iframe>""";
+        var text = "<div class=\"ifr\"><!--<iframe class=\"ifr2\" name=\"1\" src=\"/fn?v2\" frameborder=\"0\" " +
+                "scrolling=\"no\"></iframe>-->\n" +
+                "<iframe class=\"ifr2\" name=\"1685001208\" " +
+                "src=\"/fn" +
+                "?UzUBa1oxBmUAYgNsUDUFNVI6BjJfJlchV21TZFU_aVWwANVQzXTBXMlUxUTcLZ1dwUn8DYwQ5AHFVOwdmBjRUPlM2AS9aOgY3AGIDMFA2\" frameborder=\"0\" scrolling=\"no\"></iframe>";
         System.out.println(text);
         Matcher matcher = compile.matcher(text);
         if (matcher.find()) {

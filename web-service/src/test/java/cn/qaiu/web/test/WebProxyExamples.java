@@ -154,14 +154,14 @@ public class WebProxyExamples {
 
     public static void main(String[] args) {
         final WebProxyExamples examples = new WebProxyExamples();
-        examples.vertx.executeBlocking(rs -> {
-            rs.complete();
-            examples.origin();
-        });
-        examples.vertx.executeBlocking(rs -> {
-            rs.complete();
-            examples.route();
-        });
+//        examples.vertx.executeBlocking(rs -> {
+//            rs.complete();
+//            examples.origin();
+//        });
+//        examples.vertx.executeBlocking(rs -> {
+//            rs.complete();
+//            examples.route();
+//        });
         System.out.println("ok");
     }
 

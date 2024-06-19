@@ -22,3 +22,9 @@ Cloudreve自建网盘 (ce) {origin}/s/{shareKey}
 
 
 https://f.ws59.cn/f/e3peohu6192
+
+
+短链接设计
+
+
+
