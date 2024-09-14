@@ -1,43 +1,48 @@
 package cn.qaiu.parser.impl;
 
-import cn.qaiu.util.StringUtils;
-
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-
+import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.PanBase;
+import cn.qaiu.util.StringUtils;
+import io.netty.handler.codec.http.QueryStringDecoder;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.ext.web.client.WebClient;
+
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 
 /**
  * <a href="https://wx.mail.qq.com/">QQ邮箱</a>
  */
 public class QQTool extends PanBase implements IPanTool {
 
-    public static final String SHARE_URL_PREFIX = "wx.mail.qq.com/ftn/download?";
+    public static final String REDIRECT_URL_TEMP = "https://iwx.mail.qq.com/ftn/download?func=4&key={key}&code={code}";
 
-    public QQTool(String key, String pwd) {
-        super(key, pwd);
+    public QQTool(ShareLinkInfo shareLinkInfo) {
+        super(shareLinkInfo);
     }
 
-    @SuppressWarnings("unchecked")
     public Future<String> parse() {
-
-        WebClient httpClient = this.client;
-
-        // 补全链接
-        if (!this.key.startsWith("https://" + SHARE_URL_PREFIX)) {
-            if (this.key.startsWith(SHARE_URL_PREFIX)) {
-                this.key = "https://" + this.key;
-            } else if (this.key.startsWith("func=")) {
-                this.key = "https://" + SHARE_URL_PREFIX + this.key;
-            } else {
-                throw new UnsupportedOperationException("未知分享类型");
-            }
+        // QQ mail 直接替换为302链接 无需请求
+        QueryStringDecoder queryStringDecoder = new QueryStringDecoder(shareLinkInfo.getShareUrl(), StandardCharsets.UTF_8);
+        Map<String, List<String>> prms = queryStringDecoder.parameters();
+        if (prms.containsKey("key") && prms.containsKey("code") && prms.containsKey("func")) {
+            log.info(prms.get("func").get(0));
+            promise.complete(REDIRECT_URL_TEMP.replace("{key}",
+                    prms.get("key").get(0)).replace("{code}", prms.get("code").get(0)));
+        } else {
+            fail("key 不合法");
         }
 
+
+        // 通过请求URL获取文件信息和直链 暂时不需要
+        // getFileInfo(key);
+
+        return promise.future();
+    }
+
+    private void getFileInfo(String key) {
         // 设置基础HTTP头部
         var userAgent2 = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, " +
             "like " +
@@ -50,7 +55,7 @@ public class QQTool extends PanBase implements IPanTool {
         headers.set("sec-ch-ua-mobile", "sec-ch-ua-mobile");
 
         // 获取下载中转站页面
-        httpClient.getAbs(this.key).putHeaders(headers).send().onSuccess(res -> {
+        client.getAbs(key).putHeaders(headers).send().onSuccess(res -> {
             if (res.statusCode() == 200) {
                 String html = res.bodyAsString();
 
@@ -61,10 +66,10 @@ public class QQTool extends PanBase implements IPanTool {
 
                 if (filename != null && filesize != null && fileurl != null) {
                     // 设置所需HTTP头部
-                    headers.set("Referer", "https://" + StringUtils.StringCutNot(this.key, "https://", "/") + "/");
+                    headers.set("Referer", "https://" + StringUtils.StringCutNot(key, "https://", "/") + "/");
                     headers.set("Host", StringUtils.StringCutNot(fileurl, "https://", "/"));
                     res.headers().forEach((k, v) -> {
-                        if (k.toLowerCase().equals("set-cookie")) {
+                        if (k.equalsIgnoreCase("set-cookie")) {
                             headers.set("Cookie", "mail5k=" + StringUtils.StringCutNot(v, "mail5k=", ";") + ";");
                         }
                     });
@@ -82,9 +87,7 @@ public class QQTool extends PanBase implements IPanTool {
             } else {
                 this.fail("HTTP状态不正确，可能是分享链接的方式已更新");
             }
-        }).onFailure(this.handleFail(this.key));
-
-        return promise.future();
+        }).onFailure(this.handleFail(key));
     }
 
 }

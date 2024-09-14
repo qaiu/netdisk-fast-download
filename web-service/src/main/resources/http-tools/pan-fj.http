@@ -59,3 +59,10 @@ Origin:https://www.feijipan.com
 Referer:https://www.feijipan.com/
 
 {"loginName":"","loginPwd":""}
+
+
+### 240530 规则修改
+### https://share.feijipan.com/s/nMtCOXL
+POST https://api.feijipan.com/ws/recommend/list?devType=6&devModel=Chrome&uuid=WQAl5yBy1naGudJEILBvE&extra=2&timestamp=A8ECC3C7C50191ACEB9CB8444FD37624&shareId=nMtCOXL&type=0&offset=1&limit=60
+
+

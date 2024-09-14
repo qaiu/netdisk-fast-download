@@ -1,9 +1,9 @@
 package cn.qaiu.parser.impl;
 
+import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.AESUtils;
-import cn.qaiu.util.CommonUtils;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.json.JsonObject;
@@ -26,12 +26,12 @@ public class IzTool extends PanBase implements IPanTool {
     private static final String SECOND_REQUEST_URL = API_URL_PREFIX + "file/redirect?downloadId={fidEncode}&enable=1" +
             "&devType=6&uuid={uuid}&timestamp={ts}&auth={auth}";
 
-    public IzTool(String key, String pwd) {
-        super(key, pwd);
+    public IzTool(ShareLinkInfo shareLinkInfo) {
+        super(shareLinkInfo);
     }
 
     public Future<String> parse() {
-        String dataKey = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, key);
+        String dataKey = shareLinkInfo.getShareKey();
 
         // 24.5.12 ilanzou改规则无需计算shareId
         // String shareId = String.valueOf(AESUtils.idEncryptIz(dataKey));

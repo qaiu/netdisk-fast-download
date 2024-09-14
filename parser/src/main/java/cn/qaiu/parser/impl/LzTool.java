@@ -1,5 +1,6 @@
 package cn.qaiu.parser.impl;
 
+import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.JsExecUtils;
@@ -23,15 +24,15 @@ public class LzTool extends PanBase implements IPanTool {
 
     public static final String SHARE_URL_PREFIX = "https://wwwa.lanzoux.com";
 
-    public static final String LINK_KEY = "lanzou";
 
-    public LzTool(String key, String pwd) {
-        super(key, pwd);
+    public LzTool(ShareLinkInfo shareLinkInfo) {
+        super(shareLinkInfo);
     }
 
     @SuppressWarnings("unchecked")
     public Future<String> parse() {
-        String sUrl = key.startsWith("https://") ? key : SHARE_URL_PREFIX + "/" + key;
+        String sUrl = shareLinkInfo.getStandardUrl();
+        String pwd = shareLinkInfo.getSharePassword();
 
         WebClient client = clientNoRedirects;
         client.getAbs(sUrl).send().onSuccess(res -> {
@@ -50,34 +51,37 @@ public class LzTool extends PanBase implements IPanTool {
                 }
 
                 jsText = jsText.replace("document.getElementById('pwd').value", "\"" + pwd + "\"");
-                jsText = jsText.substring(0, jsText.indexOf("document.getElementById('rpt')"));
+                int i = jsText.indexOf("document.getElementById('rpt')");
+                if (i > 0) {
+                    jsText = jsText.substring(0, i);
+                }
                 try {
                     ScriptObjectMirror scriptObjectMirror = JsExecUtils.executeDynamicJs(jsText, "down_p");
                     getDownURL(sUrl, client, (Map<String, String>) scriptObjectMirror.get("data"));
                 } catch (ScriptException | NoSuchMethodException e) {
                     fail(e, "js引擎执行失败");
-                    return;
                 }
-                return;
-            }
-            String iframePath = matcher.group(1);
-            client.getAbs(SHARE_URL_PREFIX + iframePath).send().onSuccess(res2 -> {
-                String html2 = res2.bodyAsString();
+            } else {
+                // 没有密码
+                String iframePath = matcher.group(1);
+                client.getAbs(SHARE_URL_PREFIX + iframePath).send().onSuccess(res2 -> {
+                    String html2 = res2.bodyAsString();
 
-                // 去TMD正则
-                // Matcher matcher2 = Pattern.compile("'sign'\s*:\s*'(\\w+)'").matcher(html2);
-                String jsText = getJsText(html2);
-                if (jsText == null) {
-                    fail(SHARE_URL_PREFIX + iframePath + " -> " + sUrl + ": js脚本匹配失败, 可能分享已失效");
-                    return;
-                }
-                try {
-                    ScriptObjectMirror scriptObjectMirror = JsExecUtils.executeDynamicJs(jsText, null);
-                    getDownURL(sUrl, client, (Map<String, String>) scriptObjectMirror.get("data"));
-                } catch (ScriptException | NoSuchMethodException e) {
-                    fail(e, "js引擎执行失败");
-                }
-            }).onFailure(handleFail(SHARE_URL_PREFIX));
+                    // 去TMD正则
+                    // Matcher matcher2 = Pattern.compile("'sign'\s*:\s*'(\\w+)'").matcher(html2);
+                    String jsText = getJsText(html2);
+                    if (jsText == null) {
+                        fail(SHARE_URL_PREFIX + iframePath + " -> " + sUrl + ": js脚本匹配失败, 可能分享已失效");
+                        return;
+                    }
+                    try {
+                        ScriptObjectMirror scriptObjectMirror = JsExecUtils.executeDynamicJs(jsText, null);
+                        getDownURL(sUrl, client, (Map<String, String>) scriptObjectMirror.get("data"));
+                    } catch (ScriptException | NoSuchMethodException e) {
+                        fail(e, "js引擎执行失败");
+                    }
+                }).onFailure(handleFail(SHARE_URL_PREFIX));
+            }
         }).onFailure(handleFail(sUrl));
         return promise.future();
     }

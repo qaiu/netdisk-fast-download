@@ -1,10 +1,6 @@
 package cn.qaiu.parser.impl;
 
-import cn.qaiu.util.StringUtils;
-
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-
+import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.PanBase;
 import io.vertx.core.Future;
@@ -13,33 +9,27 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+
 /**
  * <a href="https://www.wenshushu.cn/">文叔叔</a>
  */
 public class WsTool extends PanBase implements IPanTool {
 
     public static final String SHARE_URL_PREFIX  = "www.wenshushu.cn/f/";
-    public static final String SHARE_URL_PREFIX2 = "f.ws59.cn/f/";
     public static final String SHARE_URL_API     = "https://www.wenshushu.cn/ap/";
 
-    public WsTool(String key, String pwd) {
-        super(key, pwd);
+    public WsTool(ShareLinkInfo shareLinkInfo) {
+        super(shareLinkInfo);
     }
 
     public Future<String> parse() {
 
         WebClient httpClient = this.client;
+        final String key = shareLinkInfo.getShareKey();
+        final String pwd = shareLinkInfo.getSharePassword();
 
-        // 补全链接
-        if (!this.key.startsWith("https://" + SHARE_URL_PREFIX) && !this.key.startsWith("https://" + SHARE_URL_PREFIX2)) {
-            if (this.key.startsWith(SHARE_URL_PREFIX) || this.key.startsWith(SHARE_URL_PREFIX2)) {
-                this.key = "https://" + this.key;
-            } else if (this.key.matches("^[A-Za-z0-9]+$")) {
-                this.key = "https://" + SHARE_URL_PREFIX + this.key;
-            } else {
-                throw new UnsupportedOperationException("未知分享类型");
-            }
-        }
 
         // 设置基础HTTP头部
         var userAgent2 = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, " +
@@ -66,8 +56,8 @@ public class WsTool extends PanBase implements IPanTool {
                         // 获取文件夹信息
                         httpClient.postAbs(SHARE_URL_API + "task/mgrtask").putHeaders(headers)
                             .sendJsonObject(JsonObject.of(
-                                "tid", StringUtils.StringCutNot(key, this.key.startsWith(SHARE_URL_PREFIX) ? SHARE_URL_PREFIX : SHARE_URL_PREFIX2),
-                                "password", ""
+                                "tid", key,
+                                "password", pwd
                             )).onSuccess(res2 -> {
 
                                 if (res2.statusCode() == 200) {
@@ -128,16 +118,9 @@ public class WsTool extends PanBase implements IPanTool {
                                                                         // 调试输出文件直链
                                                                         System.out.println("文件直链: " + fileurl);
 
-                                                                        if (!fileurl.equals(""))
-                                                                        {
-                                                                            try {
-                                                                                promise.complete(URLDecoder.decode(fileurl, "UTF-8"));
-                                                                            } catch (UnsupportedEncodingException e) {
-                                                                                promise.complete(fileurl);
-                                                                            }
-                                                                        }
-                                                                        else
-                                                                        {
+                                                                        if (!fileurl.equals("")) {
+                                                                            promise.complete(URLDecoder.decode(fileurl, StandardCharsets.UTF_8));
+                                                                        } else {
                                                                             this.fail("文件已失效");
                                                                         }
 
@@ -166,7 +149,7 @@ public class WsTool extends PanBase implements IPanTool {
                                     this.fail("HTTP状态不正确，可能是分享链接的方式已更新");
                                 }
 
-                            }).onFailure(this.handleFail(this.key));
+                            }).onFailure(this.handleFail(key));
 
                     } catch (DecodeException | NullPointerException e) {
                         this.fail("token获取失败，可能是分享链接的方式已更新");
@@ -175,7 +158,7 @@ public class WsTool extends PanBase implements IPanTool {
                     this.fail("HTTP状态不正确，可能是分享链接的方式已更新");
                 }
 
-            }).onFailure(this.handleFail(this.key));
+            }).onFailure(this.handleFail(key));
 
         return promise.future();
     }

@@ -1,13 +1,13 @@
 package cn.qaiu.lz.web.http;
 
-import cn.qaiu.parser.IPanTool;
-import cn.qaiu.parser.impl.EcTool;
-import cn.qaiu.parser.impl.QQTool;
+import cn.qaiu.lz.common.util.URLParamUtil;
+import cn.qaiu.lz.web.service.CacheService;
+import cn.qaiu.parser.PanDomainTemplate;
 import cn.qaiu.vx.core.annotaions.RouteHandler;
 import cn.qaiu.vx.core.annotaions.RouteMapping;
 import cn.qaiu.vx.core.enums.RouteMethod;
+import cn.qaiu.vx.core.util.AsyncServiceUtil;
 import cn.qaiu.vx.core.util.ResponseUtil;
-import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServerRequest;
@@ -24,33 +24,27 @@ import lombok.extern.slf4j.Slf4j;
 @RouteHandler("/")
 public class ServerApi {
 
-    @RouteMapping(value = "/parser", method = RouteMethod.GET, order = 4)
-    public Future<Void> parse(HttpServerResponse response, HttpServerRequest request, String url, String pwd) {
+    private final CacheService cacheService = AsyncServiceUtil.getAsyncServiceInstance(CacheService.class);
 
+    @RouteMapping(value = "/parser", method = RouteMethod.GET, order = 4)
+    public Future<Void> parse(HttpServerResponse response, HttpServerRequest request, String pwd) {
         Promise<Void> promise = Promise.promise();
-        if (url.contains(EcTool.SHARE_URL_PREFIX)) {
-            // 默认读取Url参数会被截断手动获取一下其他参数
-            url = EcTool.SHARE_URL_PREFIX + request.getParam("data");
-        }
-        if (url.contains(QQTool.SHARE_URL_PREFIX)) {
-            // 默认读取Url参数会被截断手动获取一下其他参数
-            url = url + "&key=" + request.getParam("key") +
-                "&code=" + request.getParam("code") + "&k=" + request.getParam("k") +
-                "&fweb=" + request.getParam("fweb") + "&cl=" + request.getParam("cl");
-        }
-        IPanTool.shareURLPrefixMatching(url, pwd).parse()
-                .onSuccess(resUrl -> ResponseUtil.redirect(response, resUrl, promise))
+        String url = URLParamUtil.parserParams(request);
+
+        PanDomainTemplate panDomainTemplate = PanDomainTemplate.fromShareUrl(url).setShareLinkInfoPwd(pwd);
+        cacheService.getAndSaveCachedShareLink(panDomainTemplate)
+                .onSuccess(res -> ResponseUtil.redirect(
+                        response.putHeader("nfd-cache-hit", res.getCacheHit().toString())
+                                .putHeader("nfd-cache-expires", res.getExpires()),
+                                res.getDirectLink(), promise))
                 .onFailure(t -> promise.fail(t.fillInStackTrace()));
         return promise.future();
     }
 
     @RouteMapping(value = "/json/parser", method = RouteMethod.GET, order = 3)
-    public Future<String> parseJson(HttpServerRequest request, String url, String pwd) {
-        if (url.contains(EcTool.SHARE_URL_PREFIX)) {
-            // 默认读取Url参数会被截断手动获取一下其他参数
-            url = EcTool.SHARE_URL_PREFIX + request.getParam("data");
-        }
-        return IPanTool.shareURLPrefixMatching(url, pwd).parse();
+    public Future<String> parseJson(HttpServerRequest request, String pwd) {
+        String url = URLParamUtil.parserParams(request);
+        return PanDomainTemplate.fromShareUrl(url).setShareLinkInfoPwd(pwd).createTool().parse();
     }
 
     @RouteMapping(value = "/json/:type/:key", method = RouteMethod.GET, order = 2)
@@ -61,7 +55,8 @@ public class ServerApi {
             key = keys[0];
             code = keys[1];
         }
-        return IPanTool.typeMatching(type, key, code).parse();
+        return PanDomainTemplate.fromShortName(type)
+                .generateShareLink(key).setShareLinkInfoPwd(code).createTool().parse();
     }
 
     @RouteMapping(value = "/:type/:key", method = RouteMethod.GET, order = 1)
@@ -74,8 +69,16 @@ public class ServerApi {
             code = keys[1];
         }
 
-        IPanTool.typeMatching(type, key, code).parse()
-                .onSuccess(resUrl -> ResponseUtil.redirect(response, resUrl, promise))
+        PanDomainTemplate panDomainTemplate = PanDomainTemplate
+                .fromShortName(type)
+                .generateShareLink(key)
+                .setShareLinkInfoPwd(code);
+
+        cacheService.getAndSaveCachedShareLink(panDomainTemplate)
+                .onSuccess(res -> ResponseUtil.redirect(
+                        response.putHeader("nfd-cache-hit", res.getCacheHit().toString())
+                                .putHeader("nfd-cache-expires", res.getExpires()),
+                        res.getDirectLink(), promise))
                 .onFailure(t -> promise.fail(t.fillInStackTrace()));
         return promise.future();
     }

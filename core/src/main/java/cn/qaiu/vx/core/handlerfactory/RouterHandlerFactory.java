@@ -32,12 +32,14 @@ import org.slf4j.LoggerFactory;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static cn.qaiu.vx.core.util.ConfigConstant.ROUTE_TIME_OUT;
 import static io.vertx.core.http.HttpHeaders.*;
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
 /**
  * 路由映射, 参数绑定
@@ -87,6 +89,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
             LOGGER.debug("The HTTP service request address information ===>path:{}, uri:{}, method:{}",
                     ctx.request().path(), ctx.request().absoluteURI(), ctx.request().method());
             ctx.response().headers().add(ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+            ctx.response().headers().add(DATE, LocalDateTime.now().format(ISO_LOCAL_DATE_TIME));
             ctx.response().headers().add(ACCESS_CONTROL_ALLOW_METHODS, "POST, GET, OPTIONS, PUT, DELETE, HEAD");
             ctx.response().headers().add(ACCESS_CONTROL_ALLOW_HEADERS, "X-PINGOTHER, Origin,Content-Type, Accept, " +
                     "X-Requested-With, Dev, Authorization, Version, Token");

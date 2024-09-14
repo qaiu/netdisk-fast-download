@@ -1,8 +1,8 @@
 package cn.qaiu.parser.impl;
 
+import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.PanBase;
-import cn.qaiu.util.CommonUtils;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
@@ -21,19 +21,19 @@ import java.util.regex.Pattern;
  */
 public class FcTool extends PanBase implements IPanTool {
 
-    public static final String SHARE_URL_PREFIX0 = "https://v2.fangcloud.com/s";
     public static final String SHARE_URL_PREFIX = "https://v2.fangcloud.com/sharing/";
     public static final String SHARE_URL_PREFIX2 = "https://v2.fangcloud.cn/sharing/";
     private static final String DOWN_REQUEST_URL = "https://v2.fangcloud.cn/apps/files/download?file_id={fid}" +
             "&scenario=share&unique_name={uname}";
 
-    public FcTool(String key, String pwd) {
-        super(key, pwd);
+    public FcTool(ShareLinkInfo shareLinkInfo) {
+        super(shareLinkInfo);
     }
 
+
     public Future<String> parse() {
-        String data = key.replace("share","sharing");
-        String dataKey = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, data);
+        final String dataKey = shareLinkInfo.getShareKey();
+        final String pwd = shareLinkInfo.getSharePassword();
         WebClientSession sClient = WebClientSession.create(client);
         // 第一次请求 自动重定向
         sClient.getAbs(SHARE_URL_PREFIX + dataKey).send().onSuccess(res -> {
