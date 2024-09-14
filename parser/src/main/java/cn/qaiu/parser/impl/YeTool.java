@@ -1,5 +1,6 @@
 package cn.qaiu.parser.impl;
 
+import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.CommonUtils;
@@ -30,13 +31,14 @@ public class YeTool extends PanBase implements IPanTool {
             "&shareKey={shareKey}&SharePwd={pwd}&ParentFileId=0&Page=1&event=homeListFile&operateType=1";
     private static final String DOWNLOAD_API_URL = "https://www.123pan.com/a/api/share/download/info?{authK}={authV}";
 
-    public YeTool(String key, String pwd) {
-        super(key, pwd);
+    public YeTool(ShareLinkInfo shareLinkInfo) {
+        super(shareLinkInfo);
     }
 
     public Future<String> parse() {
 
-        String dataKey = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, key);
+        final String dataKey = shareLinkInfo.getShareKey();
+        final String pwd = shareLinkInfo.getSharePassword();
 
         client.getAbs(UriTemplate.of(FIRST_REQUEST_URL)).setTemplateParam("key", dataKey).send().onSuccess(res -> {
 

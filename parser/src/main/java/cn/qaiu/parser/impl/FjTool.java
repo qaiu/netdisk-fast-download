@@ -1,9 +1,9 @@
 package cn.qaiu.parser.impl;
 
+import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.AESUtils;
-import cn.qaiu.util.CommonUtils;
 import cn.qaiu.util.UUIDUtil;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -18,10 +18,7 @@ import io.vertx.uritemplate.UriTemplate;
  * @version V016_230609
  */
 public class FjTool extends PanBase implements IPanTool {
-
-    public static final String SHARE_URL_PREFIX = "https://www.feijix.com/s/";
     public static final String REFERER_URL = "https://share.feijipan.com/";
-    public static final String SHARE_URL_PREFIX2 = REFERER_URL + "s/";
     private static final String API_URL_PREFIX = "https://api.feijipan.com/ws/";
 
     private static final String FIRST_REQUEST_URL = API_URL_PREFIX + "recommend/list?devType=6&devModel=Chrome" +
@@ -38,19 +35,14 @@ public class FjTool extends PanBase implements IPanTool {
             "={uuid}&extra=2&timestamp={ts}";
     // https://api.feijipan.com/ws/buy/vip/list?devType=6&devModel=Chrome&uuid=WQAl5yBy1naGudJEILBvE&extra=2&timestamp=E2C53155F6D09417A27981561134CB73
 
-    public FjTool(String key, String pwd) {
-        super(key, pwd);
+    public FjTool(ShareLinkInfo shareLinkInfo) {
+        super(shareLinkInfo);
     }
 
     public Future<String> parse() {
-        String dataKey;
-        if (key.startsWith(SHARE_URL_PREFIX2)) {
-            dataKey = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX2, key);
-        } else {
-            dataKey = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, key);
-        }
+        final String dataKey = shareLinkInfo.getShareKey();
 
-        // 240530 此处shareId又改为了原始的shareId, nm玩呢?
+        // 240530 此处shareId又改为了原始的shareId
         String shareId = dataKey; // String.valueOf(AESUtils.idEncrypt(dataKey));
         long nowTs = System.currentTimeMillis();
         String tsEncode = AESUtils.encrypt2Hex(Long.toString(nowTs));

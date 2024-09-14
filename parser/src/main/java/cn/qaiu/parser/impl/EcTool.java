@@ -1,8 +1,8 @@
 package cn.qaiu.parser.impl;
 
+import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.PanBase;
-import cn.qaiu.util.CommonUtils;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -12,20 +12,22 @@ import io.vertx.uritemplate.UriTemplate;
  * 移动云空间解析
  */
 public class EcTool extends PanBase implements IPanTool {
+    // https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=4b3d786755688b85c6eb0c04b9124f4dalzdaJpXHx&isShare=1
     private static final String FIRST_REQUEST_URL = "https://www.ecpan.cn/drive/fileextoverrid" +
             ".do?extractionCode={extractionCode}&chainUrlTemplate=https:%2F%2Fwww.ecpan" +
             ".cn%2Fweb%2F%23%2FyunpanProxy%3Fpath%3D%252F%2523%252Fdrive%252Foutside&parentId=-1&data={dataKey}";
 
     private static final String DOWNLOAD_REQUEST_URL = "https://www.ecpan.cn/drive/sharedownload.do";
 
-    public static final String SHARE_URL_PREFIX = "www.ecpan.cn/";
-
-    public EcTool(String key, String pwd) {
-        super(key, pwd);
+    public EcTool(ShareLinkInfo shareLinkInfo) {
+        super(shareLinkInfo);
     }
 
+
     public Future<String> parse() {
-        String dataKey = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, key);
+        final String dataKey = shareLinkInfo.getShareKey();
+        final String pwd = shareLinkInfo.getSharePassword();
+
         // 第一次请求 获取文件信息
         client.getAbs(UriTemplate.of(FIRST_REQUEST_URL))
                 .setTemplateParam("dataKey", dataKey)

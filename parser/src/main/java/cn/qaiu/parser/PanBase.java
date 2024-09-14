@@ -1,7 +1,7 @@
 package cn.qaiu.parser;
 
 import cn.qaiu.WebClientVertxInit;
-import cn.qaiu.util.CommonUtils;
+import cn.qaiu.entity.ShareLinkInfo;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.ext.web.client.WebClient;
@@ -35,16 +35,7 @@ public abstract class PanBase {
     protected WebClient clientNoRedirects = WebClient.create(WebClientVertxInit.get(),
             new WebClientOptions().setFollowRedirects(false));
 
-    /**
-     * 分享key 可以是整个URL; 如果是URL实现该类时要
-     * 使用{@link CommonUtils#adaptShortPaths(String urlPrefix, String key)}获取真实的分享key
-     */
-    protected String key;
-
-    /**
-     * 分享密码
-     */
-    protected String pwd;
+    protected ShareLinkInfo shareLinkInfo;
 
     /**
      * 子类重写此构造方法不需要添加额外逻辑
@@ -55,12 +46,9 @@ public abstract class PanBase {
      *  }
      * </pre></blockquote>
      *
-     * @param key 分享key/url
-     * @param pwd 分享密码
      */
-    protected PanBase(String key, String pwd) {
-        this.key = key;
-        this.pwd = pwd;
+    public PanBase(ShareLinkInfo shareLinkInfo) {
+        this.shareLinkInfo = shareLinkInfo;
     }
 
     /**

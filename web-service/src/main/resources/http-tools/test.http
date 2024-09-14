@@ -1,6 +1,6 @@
-### 蓝奏云
+### PASS 蓝奏云
 # @no-redirect
-GET http://127.0.0.1:6400/parser?url=https://lanzoux.com/ia2cntg
+GET http://127.0.0.1:6400/parser?url=https://www.lanzoux.com/ia2cntg
 
 ### 蓝奏云
 # @no-redirect
@@ -20,7 +20,7 @@ GET http://127.0.0.1:6400/lz/icBp6qqj82b@QAIU
 ### 蓝奏云
 GET http://127.0.0.1:6400/json/lz/ia2cntg
 
-### 蓝奏云优享
+### PASS 蓝奏云优享
 GET http://127.0.0.1:6400/json/iz/lGFndCM
 
 ###
@@ -34,7 +34,7 @@ GET http://127.0.0.1:6400/json/parser?url=https://www.ilanzou.com/s/zHkna1S
 GET http://127.0.0.1:6400/json/cow/9a644fe3e3a748
 Referer: https://cowtransfer.com/
 
-### 奶牛
+### PASS 奶牛
 # @no-redirect
 GET http://127.0.0.1:6400/cow/e4f41b51b5da4f
 
@@ -47,9 +47,9 @@ GET http://127.0.0.1:6400/parser?url=https://cowtransfer.com/s/9a644fe3e3a748
 # @no-redirect
 GET http://127.0.0.1:6400/parser?url=https://goldrepo.cowtransfer.com/s/026a638795634b
 
-### 移动云空间 https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
+### 移动云空间 PASS https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
 # @no-redirect
-GET http://127.0.0.1:6400/parser?url=https://www.ecpan.cn/web//yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
+GET http://127.0.0.1:6400/parser?url=https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
 
 ### 移动云空间 https://www.ecpan.cn/drive/fileextoverrid.do?chainUrlTemplate=https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=aa0cae0164d8885e6d35826b5b2901eckbWJBalM&parentId=-1
 # @no-redirect
@@ -62,21 +62,7 @@ GET http://127.0.0.1:6400/json/ec/4b3d786755688b85c6eb0c04b9124f4dalzdaJpXHx@T6O
 #@no-redirect
 GET http://127.0.0.1:6400/parser?url=https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=4b3d786755688b85c6eb0c04b9124f4dalzdaJpXHx&isShare=1&pwd=T6O1RC
 
-
-
-### UC网盘
-# @no-redirect
-GET http://127.0.0.1:6400/uc/33197dd53ace4
-
-### UC网盘
-GET http://127.0.0.1:6400/json/uc/33197dd53ace4
-
-### UC网盘
-# @no-redirect
-GET http://127.0.0.1:6400/parser?url=https://fast.uc.cn/s/33197dd53ace4
-
-
-### 小飞机盘https://share.feijipan.com/s/nMtCOXL
+### 小飞机盘 PASS https://share.feijipan.com/s/nMtCOXL
 # @no-redirect
 GET http://127.0.0.1:6400/parser?url=https://share.feijipan.com/s/nMtCOXL
 
@@ -98,7 +84,7 @@ GET http://127.0.0.1:6400/parser?url=https://v2.fangcloud.com/sharing/fb54bdf03c
 ### 360亿方云
 GET http://127.0.0.1:6400/json/fc/fb54bdf03c66c04334fe3687a3
 
-### 360亿方云
+### 360亿方云 PASS
 # @no-redirect
 GET http://127.0.0.1:6400/fc/e5079007dc31226096628870c7@QAIU
 
@@ -113,7 +99,7 @@ GET http://127.0.0.1:6400/json/ye/iaKtVv-6OECd@DcGe
 ### 123
 GET https://lz.qaiu.top/json/ye/iaKtVv-6OECd@DcGe
 
-### 123
+### 123 PASS
 # @no-redirect
 GET http://127.0.0.1:6400/ye/iaKtVv-qOECd
 
@@ -121,7 +107,7 @@ GET http://127.0.0.1:6400/ye/iaKtVv-qOECd
 # @no-redirect
 GET http://127.0.0.1:6400/ye/Ev1lVv-t3SY3
 
-### 123 https://www.123pan.com/s/iaKtVv-6OECd.html
+### 123 PASS https://www.123pan.com/s/iaKtVv-6OECd.html
 # @no-redirect
 GET http://127.0.0.1:6400/json/parser?url=https://www.123pan.com/s/iaKtVv-6OECd.html&pwd=DcGe
 
@@ -131,29 +117,37 @@ GET http://127.0.0.1:6400/json/parser?url=https://www.123pan.com/s/iaKtVv-6OECd.
 GET http://127.0.0.1:6400/parser?url=https://www.123pan.com/s/zF07Vv-WkHWd.html&pwd=bios
 
 
-### 联想乐云
+### 联想乐云 PASS
 # @no-redirect
 GET http://127.0.0.1:6400/parser?url=https://lecloud.lenovo.com/share/4DANWdRQsHHyiFB4a
 
-### 联想乐云
+### 联想乐云 PASS
 # @no-redirect
 GET http://127.0.0.1:6400/le/4DANWdRQsHHyiFB4a
 
-### 联想乐云
+### 联想乐云 PASS
 # @no-redirect
 GET http://127.0.0.1:6400/le/2RkKbLP9BrppS9b43@ex2b
 
-### 联想乐云
+### 联想乐云 PASS
 GET http://127.0.0.1:6400/json/le/2RkKbLP9BrppS9b43@ex2b
 
-### 文叔叔
-GET http://127.0.0.1:6400/json/parser?url=https://f.ws59.cn/f/e3peohu6192
+### PASS 文叔叔
+GET http://127.0.0.1:6400/json/parser?url=https://f.ws59.cn/f/f25625rv6p6
+###
+https://f.wss.cc/f/f25625rv6p6
 
-### Cloudreve
+### TODO Cloudreve
 GET http://127.0.0.1:6400/json/ce/https_pan.huang1111.cn_s_wDz5TK
 
 ### Cloudreve https://pan.huang1111.cn/s/g31PcQ
-GET http://127.0.0.1:6400/json/parser?url=https://pan.huang1111.cn/s/g31PcQ&pwd=qaiu
+GET http://127.0.0.1:6400/parser?url=https://pan.huang1111.cn/s/g31PcQ&pwd=qaiu
+
+### PASS QQ
+# @no-redirect
+GET http://127.0.0.1:6400/parser?url=https://iwx.mail.qq.com/ftn/download?func=3&key=c79c5732038ad41cf5ef1e3261663537f2cf4133636635371d4c484657050c0e5d561d070252021a0a0552024e5257530b4e0157540256525e5751565a053b374014540057560c070b511e53130d21f0361c829bf15b3e4a6355fbada6dd10dfdd11a33263663537386330&code=8c02cf57&k=c79c5732038ad41cf5ef1e3261663537f2cf4133636635371d4c484657050c0e5d561d070252021a0a0552024e5257530b4e0157540256525e5751565a053b374014540057560c070b511e53130d21f0361c829bf15b3e4a6355fbada6dd10dfdd11a33263663537386330
+
+
 
 ###
 GET http://127.0.0.1:6400/v2/statisticsInfo

@@ -49,6 +49,9 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 - [Cloudreve自建网盘 (ce)](https://github.com/cloudreve/Cloudreve)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析
+- [超星网盘-教育用户专属推荐非常稳定! (cx)](https://passport2.chaoxing.com/login?newversion=true&refer=https%3A%2F%2Fpan-yz.chaoxing.com%2F)
+  - [ ]  登录, 上传, 下载, 分享
+  - [ ]  直链解析
 - [QQ邮箱 (qq) 暂不可用-存在cookie问题](https://wx.mail.qq.com/)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析(用户无法直接使用直链)
@@ -71,7 +74,7 @@ your_host指的是您的域名或者IP，实际使用时替换为实际域名或
 - 移动云云空间,小飞机网盘的加密分享的密码可以忽略
 - 移动云空间分享key取分享链接中的data参数,比如`&data=xxx`的参数就是xxx
 
-规则示例: 
+API规则: 
 ```
 
 1. 解析并自动302跳转 :
@@ -80,20 +83,6 @@ your_host指的是您的域名或者IP，实际使用时替换为实际域名或
 2. 获取解析后的直链--JSON格式
     http://your_host/json/parser?url=分享链接(&pwd=xxx)
     http://your_host/json/网盘标识/分享key(@分享密码)
-3. 需要特殊处理的网盘分享:
-  1. 移动云云空间(ec)使用parser?url= 解析时因为分享链接比较特殊(链接带有参数且含有#符号)所以要么对#进行转义%23要么直接去掉# 或者URL直接是主机名+'/'跟一个data参数
-  比如 http://your_host/parser?url=https://www.ecpan.cn/web//yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
-      http://your_host/parser?url=https://www.ecpan.cn/web/%23/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
-      http://your_host/parser?url=https://www.ecpan.cn/&data=81027a5c99af5b11ca004966c945cce6W9Bf2&isShare=1
-      
-  2. Cloudreve自建网盘解析规则: 
-    1. 标志短链: 根据网盘使用https和http选择 http://your_host/ce/https_网盘域名_s_wDz5TK 或 http://your_host/ce/http_网盘域名_s_wDz5TK
-    网盘域名指的是Cloudreve搭建网盘的主域名比如pan.huang1111.cn，如果存在子路径需要将/替换为_，是否存在子路径看分享链接格式是否是：//网盘域名/子路径/s/xxx，一般不存在子路径：网盘域名/s/xxx，
-    比如: http://127.0.0.1:6400/ce/https_pan.huang1111.cn_s_wDz5TK
-    2. parser接口 -> http://your_host/parser?url=分享链接(&pwd=xxx)
-    比如: http://127.0.0.1:6400/parser?url=https://pan.huang1111.cn/s/wDz5TK
-
-
 
 ```
 json返回数据格式示例:
@@ -180,7 +169,7 @@ mvn package
 > 注意: netdisk-fast-download.service中的ExecStart的路径改为实际路径
 ```shell
 cd ~
-wget -O netdisk-fast-download.zip  https://github.com/qaiu/netdisk-fast-download/releases/download/0.1.7-release-fixed2/netdisk-fast-download-bin-fixed2.zip
+wget -O netdisk-fast-download.zip  https://github.com/qaiu/netdisk-fast-download/releases/download/0.1.8-release-fixed2/netdisk-fast-download-bin-fixed2.zip
 unzip netdisk-fast-download-bin.zip
 cd netdisk-fast-download
 bash service-install.sh

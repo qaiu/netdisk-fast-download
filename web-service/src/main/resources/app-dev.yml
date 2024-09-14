@@ -39,3 +39,23 @@ dataSource:
   driverClassName: org.h2.Driver
   username: root
   password: '123456'
+
+# 缓存配置
+cache:
+  type: h2db
+  # 默认时长: 单位分钟, 实际有效期分钟-1
+  defaultDuration: 59
+  duration:
+    ce:
+    cow:
+    ec:
+    fc:
+    fj:
+    iz:
+    le: 2879
+    lz:
+    qq:
+    ws:
+    ye:
+
+

@@ -1,14 +1,12 @@
 package cn.qaiu.parser.impl;
 
+import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.PanBase;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
-
-import java.net.MalformedURLException;
-import java.net.URL;
 
 /**
  * <a href="https://github.com/cloudreve/Cloudreve">Cloudreve网盘解析</a> <br>
@@ -17,34 +15,40 @@ import java.net.URL;
  */
 public class CeTool extends PanBase implements IPanTool {
 
-    private static final String DOWNLOAD_API_PATH = "/api/v3/share/download/";
+    private static final String DOWNLOAD_API_PATH = "https://pan.huang1111.cn/api/v3/share/download/";
 
     // api/v3/share/info/g31PcQ?password=qaiu
-    private static final String SHARE_API_PATH = "/api/v3/share/info/";
+    private static final String SHARE_API_PATH = "https://pan.huang1111.cn/api/v3/share/info/";
 
-    public CeTool(String key, String pwd) {
-        super(key, pwd);
+    public CeTool(ShareLinkInfo shareLinkInfo) {
+        super(shareLinkInfo);
     }
 
+
     public Future<String> parse() {
+        String key = shareLinkInfo.getShareKey();
+        String pwd = shareLinkInfo.getSharePassword();
         // https://pan.huang1111.cn/s/wDz5TK
         // https://pan.huang1111.cn/s/y12bI6 -> https://pan.huang1111
         // .cn/api/v3/share/download/y12bI6?path=undefined%2Fundefined;
         // 类型解析 -> /ce/https_pan.huang1111.cn_s_wDz5TK
         // parser接口 -> /parser?url=https://pan.huang1111.cn/s/wDz5TK
         try {
-            if (key.startsWith("https_") || key.startsWith("http_")) {
-                key = key.replace("https_", "https://")
-                        .replace("http_", "http://")
-                        .replace("_", "/");
-            }
-            // 处理URL
-            URL url = new URL(key);
-            String path = url.getPath();
-            String shareKey = path.substring(3);
-            String downloadApiUrl = url.getProtocol() + "://" + url.getHost() + DOWNLOAD_API_PATH + shareKey + "?path" +
-                    "=undefined/undefined;";
-            String shareApiUrl = url.getProtocol() + "://" + url.getHost() + SHARE_API_PATH + shareKey;
+//            if (key.startsWith("https_") || key.startsWith("http_")) {
+//                key = key.replace("https_", "https://")
+//                        .replace("http_", "http://")
+//                        .replace("_", "/");
+//            }
+//            // 处理URL
+//            URL url = new URL(key);
+//            String path = url.getPath();
+//            String shareKey = path.substring(3);
+//            String downloadApiUrl = url.getProtocol() + "://" + url.getHost() + DOWNLOAD_API_PATH + shareKey + "?path" +
+//                    "=undefined/undefined;";
+//            String shareApiUrl = url.getProtocol() + "://" + url.getHost() + SHARE_API_PATH + shareKey;
+
+            var shareApiUrl = SHARE_API_PATH;
+            var downloadApiUrl = DOWNLOAD_API_PATH;
 
             // 设置cookie
             HttpRequest<Buffer> httpRequest = clientSession.getAbs(shareApiUrl);
@@ -53,7 +57,7 @@ public class CeTool extends PanBase implements IPanTool {
             }
             // 获取下载链接
             httpRequest.send().onSuccess(res -> getDownURL(downloadApiUrl)).onFailure(handleFail(shareApiUrl));
-        } catch (MalformedURLException e) {
+        } catch (Exception e) {
             fail(e, "URL解析错误");
         }
         return promise.future();

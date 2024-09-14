@@ -1,8 +1,8 @@
 package cn.qaiu.parser.impl;
 
+import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.PanBase;
-import cn.qaiu.util.CommonUtils;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import org.apache.commons.lang3.StringUtils;
@@ -16,16 +16,14 @@ import org.apache.commons.lang3.StringUtils;
 public class CowTool extends PanBase implements IPanTool {
 
     private static final String API_REQUEST_URL = "https://cowtransfer.com/core/api/transfer/share";
-    public static final String SHARE_URL_PREFIX = "https://cowtransfer.com/s/";
 
-    public static final String LINK_KEY = "cowtransfer.com/s/";
-
-    public CowTool(String key, String pwd) {
-        super(key, pwd);
+    public CowTool(ShareLinkInfo shareLinkInfo) {
+        super(shareLinkInfo);
     }
 
+
     public Future<String> parse() {
-        key = CommonUtils.adaptShortPaths(SHARE_URL_PREFIX, key);
+        final String key = shareLinkInfo.getShareKey();
         String url = API_REQUEST_URL + "?uniqueUrl=" + key;
         client.getAbs(url).send().onSuccess(res -> {
             JsonObject resJson = res.bodyAsJsonObject();

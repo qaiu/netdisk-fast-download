@@ -19,4 +19,5 @@ public interface DbService extends BaseAsyncService {
     Future<JsonObject> sayOk2(String data, UserInfo holder);
 
     Future<StatisticsInfo> getStatisticsInfo();
+
 }

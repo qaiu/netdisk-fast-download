@@ -2,6 +2,7 @@ package cn.qaiu.lz;
 
 import cn.qaiu.WebClientVertxInit;
 import cn.qaiu.db.pool.JDBCPoolInit;
+import cn.qaiu.lz.common.cache.CacheConfigLoader;
 import cn.qaiu.vx.core.Deploy;
 import cn.qaiu.vx.core.util.ConfigConstant;
 import cn.qaiu.vx.core.util.VertxHolder;
@@ -23,17 +24,20 @@ public class AppMain {
     }
 
     /**
-     * 初始化数据库
+     * 初始化数据库/缓存等
      *
      * @param jsonObject 配置
      */
     private static void exec(JsonObject jsonObject) {
         WebClientVertxInit.init(VertxHolder.getVertxInstance());
         DatabindCodec.mapper().registerModule(new JavaTimeModule());
+        // 数据库
         if (jsonObject.getJsonObject(ConfigConstant.SERVER).getBoolean("enableDatabase")) {
             JDBCPoolInit.builder().config(jsonObject.getJsonObject("dataSource")).build().initPool();
         }
+        // 缓存
+        if (jsonObject.containsKey(ConfigConstant.CACHE)) {
+            CacheConfigLoader.init(jsonObject.getJsonObject(ConfigConstant.CACHE));
+        }
     }
-
-
 }
