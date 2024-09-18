@@ -52,7 +52,7 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 - [超星网盘-教育用户专属推荐非常稳定! (cx)](https://passport2.chaoxing.com/login?newversion=true&refer=https%3A%2F%2Fpan-yz.chaoxing.com%2F)
   - [ ]  登录, 上传, 下载, 分享
   - [ ]  直链解析
-- [QQ邮箱 (qq) 暂不可用-存在cookie问题](https://wx.mail.qq.com/)
+- [QQ邮箱文件中转站 (qq)(https://mail.qq.com/)
   - [ ]  登录, 上传, 下载, 分享
   - [X]  直链解析(用户无法直接使用直链)
 - [夸克网盘 (qk) 寄了](https://pan.quark.cn/)
