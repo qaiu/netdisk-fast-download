@@ -146,7 +146,7 @@ export default {
               message: response.data.msg,
               type: 'success'
             })
-            this.downUrl = response.data.data
+            this.downUrl = response.data.data.directLink
           } else {
             this.$message.error(response.data.msg)
           }
