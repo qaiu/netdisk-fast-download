@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 public class CacheLinkInfo implements ToJson {
 
     /**
-     * 缓存key: type@ShareKey; e.g. lz@xxxx
+     * 缓存key: type:ShareKey; e.g. lz:xxxx
      */
     @Length(varcharSize = 4096)
     private String shareKey;
@@ -51,6 +51,20 @@ public class CacheLinkInfo implements ToJson {
 
     // 使用 JsonObject 构造
     public CacheLinkInfo(JsonObject json) {
-        CacheLinkInfoConverter.fromJson(json, this);
+        if (json.containsKey("shareKey")) {
+            this.setShareKey(json.getString("shareKey"));
+        }
+        if (json.containsKey("directLink")) {
+            this.setDirectLink(json.getString("directLink"));
+        }
+        if (json.containsKey("expires")) {
+            this.setExpires(json.getString("expires"));
+        }
+        if (json.containsKey("expiration")) {
+            this.setExpiration(json.getLong("expiration"));
+        }
+        this.setCacheHit(json.getBoolean("cacheHit", false));
     }
+
+
 }

@@ -8,14 +8,14 @@ GET http://127.0.0.1:6400/json/parser?url=https://wwsd.lanzoue.com/iLany1e9bbbi
 
 ### 蓝奏云
 # @no-redirect
-GET http://127.0.0.1:6400/lz/i6SqHmp1yfc
+GET http://127.0.0.1:6400/json/lz/i6SqHmp1yfc
 ### 蓝奏云https://acgtools.lanzoui.com/iUr7Qnu3sxc  https://wwn.lanzouy.com/tp/ihLkw1gezutg https://wwn.lanzouy.com/ihLkw1gezutg
 # @no-redirect
 GET http://127.0.0.1:6400/lz/ihLkw1gezutg
 
 ### 蓝奏云
 # @no-redirect
-GET http://127.0.0.1:6400/lz/icBp6qqj82b@QAIU
+GET http://127.0.0.1:6400/json/lz/icBp6qqj82b@QAIU
 
 ### 蓝奏云
 GET http://127.0.0.1:6400/json/lz/ia2cntg
@@ -133,7 +133,7 @@ GET http://127.0.0.1:6400/le/2RkKbLP9BrppS9b43@ex2b
 GET http://127.0.0.1:6400/json/le/2RkKbLP9BrppS9b43@ex2b
 
 ### PASS 文叔叔
-GET http://127.0.0.1:6400/json/parser?url=https://f.ws59.cn/f/f25625rv6p6
+GET http://127.0.0.1:6400/parser?url=https://f.ws59.cn/f/f25625rv6p6
 ###
 https://f.wss.cc/f/f25625rv6p6
 
@@ -145,7 +145,7 @@ GET http://127.0.0.1:6400/parser?url=https://pan.huang1111.cn/s/g31PcQ&pwd=qaiu
 
 ### PASS QQ
 # @no-redirect
-GET http://127.0.0.1:6400/parser?url=https://iwx.mail.qq.com/ftn/download?func=3&key=c79c5732038ad41cf5ef1e3261663537f2cf4133636635371d4c484657050c0e5d561d070252021a0a0552024e5257530b4e0157540256525e5751565a053b374014540057560c070b511e53130d21f0361c829bf15b3e4a6355fbada6dd10dfdd11a33263663537386330&code=8c02cf57&k=c79c5732038ad41cf5ef1e3261663537f2cf4133636635371d4c484657050c0e5d561d070252021a0a0552024e5257530b4e0157540256525e5751565a053b374014540057560c070b511e53130d21f0361c829bf15b3e4a6355fbada6dd10dfdd11a33263663537386330
+GET http://127.0.0.1:6400/json/parser?url=https://iwx.mail.qq.com/ftn/download?func=3&key=qweqe&code=8c02cf57&k=asdad
 
 
 

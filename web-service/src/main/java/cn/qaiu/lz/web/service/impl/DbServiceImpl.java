@@ -48,10 +48,9 @@ public class DbServiceImpl implements DbService {
         JDBCPool client = JDBCPoolInit.instance().getPool();
         Promise<StatisticsInfo> promise = Promise.promise();
         String sql = """
-                select COUNT(CASE "code" WHEN 500 THEN "code" END ) "fail",
-                       COUNT(CASE "code" WHEN 200 THEN "code" END ) "success",
-                       count(1) "total"
-                from "t_parser_log_info"
+                select sum(api_parser_total) parserTotal,sum("cache_hit_total") cacheTotal,
+                sum(api_parser_total) + sum("cache_hit_total") total
+                from "api_statistics_info";
                 """;
         SqlTemplate.forQuery(client, sql).mapTo(StatisticsInfo.class).execute(new HashMap<>()).onSuccess(row -> {
             StatisticsInfo info;

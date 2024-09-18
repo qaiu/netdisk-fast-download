@@ -1,8 +1,8 @@
 package cn.qaiu.lz.web.http;
 
 import cn.qaiu.lz.common.util.URLParamUtil;
+import cn.qaiu.lz.web.model.CacheLinkInfo;
 import cn.qaiu.lz.web.service.CacheService;
-import cn.qaiu.parser.PanDomainTemplate;
 import cn.qaiu.vx.core.annotaions.RouteHandler;
 import cn.qaiu.vx.core.annotaions.RouteMapping;
 import cn.qaiu.vx.core.enums.RouteMethod;
@@ -31,8 +31,7 @@ public class ServerApi {
         Promise<Void> promise = Promise.promise();
         String url = URLParamUtil.parserParams(request);
 
-        PanDomainTemplate panDomainTemplate = PanDomainTemplate.fromShareUrl(url).setShareLinkInfoPwd(pwd);
-        cacheService.getAndSaveCachedShareLink(panDomainTemplate)
+        cacheService.getCachedByShareUrlAndPwd(url, pwd)
                 .onSuccess(res -> ResponseUtil.redirect(
                         response.putHeader("nfd-cache-hit", res.getCacheHit().toString())
                                 .putHeader("nfd-cache-expires", res.getExpires()),
@@ -42,39 +41,32 @@ public class ServerApi {
     }
 
     @RouteMapping(value = "/json/parser", method = RouteMethod.GET, order = 3)
-    public Future<String> parseJson(HttpServerRequest request, String pwd) {
+    public Future<CacheLinkInfo> parseJson(HttpServerRequest request, String pwd) {
         String url = URLParamUtil.parserParams(request);
-        return PanDomainTemplate.fromShareUrl(url).setShareLinkInfoPwd(pwd).createTool().parse();
+        return cacheService.getCachedByShareUrlAndPwd(url, pwd);
     }
 
     @RouteMapping(value = "/json/:type/:key", method = RouteMethod.GET, order = 2)
-    public Future<String> parseKeyJson(String type, String key) {
-        String code = "";
+    public Future<CacheLinkInfo> parseKeyJson(String type, String key) {
+        String pwd = "";
         if (key.contains("@")) {
             String[] keys = key.split("@");
             key = keys[0];
-            code = keys[1];
+            pwd = keys[1];
         }
-        return PanDomainTemplate.fromShortName(type)
-                .generateShareLink(key).setShareLinkInfoPwd(code).createTool().parse();
+        return cacheService.getCachedByShareKeyAndPwd(type, key, pwd);
     }
 
     @RouteMapping(value = "/:type/:key", method = RouteMethod.GET, order = 1)
     public Future<Void> parseKey(HttpServerResponse response, String type, String key) {
         Promise<Void> promise = Promise.promise();
-        String code = "";
+        String pwd = "";
         if (key.contains("@")) {
             String[] keys = key.split("@");
             key = keys[0];
-            code = keys[1];
+            pwd = keys[1];
         }
-
-        PanDomainTemplate panDomainTemplate = PanDomainTemplate
-                .fromShortName(type)
-                .generateShareLink(key)
-                .setShareLinkInfoPwd(code);
-
-        cacheService.getAndSaveCachedShareLink(panDomainTemplate)
+        cacheService.getCachedByShareKeyAndPwd(type, key, pwd)
                 .onSuccess(res -> ResponseUtil.redirect(
                         response.putHeader("nfd-cache-hit", res.getCacheHit().toString())
                                 .putHeader("nfd-cache-expires", res.getExpires()),

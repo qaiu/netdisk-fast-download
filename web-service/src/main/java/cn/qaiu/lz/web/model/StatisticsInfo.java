@@ -10,14 +10,14 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @DataObject
 public class StatisticsInfo implements ToJson {
-    Integer fail;
-    Integer success;
+    Integer parserTotal;
+    Integer cacheTotal;
     Integer total;
 
 
     public StatisticsInfo(JsonObject jsonObject) {
-        this.fail = jsonObject.getInteger("fail");
-        this.success = jsonObject.getInteger("success");
+        this.parserTotal = jsonObject.getInteger("parserTotal");
+        this.cacheTotal = jsonObject.getInteger("cacheTotal");
         this.total = jsonObject.getInteger("total");
     }
 }
