@@ -21,15 +21,18 @@ public class URLParamUtil {
      * @return 完整的URL字符串
      */
     public static String parserParams(HttpServerRequest request) {
+
         String url = request.absoluteURI();
         MultiMap params = request.params();
-
         // 处理URL截断的情况，例如: url='https://...&key=...&code=...'
         if (params.contains("url")) {
             String encodedUrl = params.get("url");
             url = handleTruncatedUrl(encodedUrl, params);
+            if (url.endsWith(".html")) {
+                // 123云盘的后缀处理
+                url = url.replace(".html", "");
+            }
         }
-
         return url;
     }
 

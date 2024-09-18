@@ -63,7 +63,7 @@ public class CacheServiceImpl implements CacheService {
     }
 
     private String generateDate(Long ts) {
-        return DateFormatUtils.format(new Date(ts), "yyyy-MM-dd hh:mm:ss");
+        return DateFormatUtils.format(new Date(ts), "yyyy-MM-dd HH:mm:ss");
     }
 
     @Override

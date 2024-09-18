@@ -35,6 +35,7 @@ public class LogStatistics implements AfterInterceptor {
 
         ParserLogInfo parserLogInfo = new ParserLogInfo();
         parserLogInfo.setPath(ctx.request().uri());
+        if (responseData == null) return;
         if (responseData.containsKey("code") && responseData.getInteger("code") == 500) {
             log.error("code 500: {} {}", ctx.request().path(), responseData.getString("msg"));
         } else {
