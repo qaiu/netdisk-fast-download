@@ -38,8 +38,6 @@ public class LogStatistics implements AfterInterceptor {
         if (responseData == null) return;
         if (responseData.containsKey("code") && responseData.getInteger("code") == 500) {
             log.error("code 500: {} {}", ctx.request().path(), responseData.getString("msg"));
-        } else {
-            log.error("未知json日志: {}, path: {}", responseData.encode(), ctx.request().path());
         }
     }
 
