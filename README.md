@@ -88,12 +88,18 @@ API规则:
 json返回数据格式示例:
 ```json
 {
-    "code": 200,
-    "msg": "success",
-    "success": true,
-    "count": 0,
-    "data": "https://下载链接",
-    "timestamp": 1690733953927
+  "code": 200,
+  "msg": "success",
+  "success": true,
+  "count": 0,
+  "data": {
+    "shareKey": "lz:xxx",
+    "directLink": "下载直链", 
+    "cacheHit": true,
+    "expires": "2024-09-18 01:48:02",
+    "expiration": 1726638482825
+  },
+  "timestamp": 1726637151902
 }
 ```
 
