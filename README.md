@@ -23,41 +23,17 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 `网盘名称(网盘标识):`
 
 - [蓝奏云 (lz)](https://pc.woozooo.com/)
-  - [ ]  登录, 上传, 下载, 分享
-  - [X]  直链解析
 - [蓝奏云优享 (iz)](https://www.ilanzou.com/)
-  - [ ]  登录, 上传, 下载, 分享
-  - [X]  直链解析
 - [奶牛快传 (cow)](https://cowtransfer.com/)
-  - [ ]  登录, 上传, 下载, 分享
-  - [X]  直链解析
 - [移动云云空间 (ec)](https://www.ecpan.cn/web)
-  - [ ]  登录, 上传, 下载, 分享
-  - [X]  直链解析
 - [小飞机网盘 (fj)](https://www.feijipan.com/)
-  - [ ]  登录, 上传, 下载, 分享
-  - [X]  直链解析
 - [亿方云 (fc)](https://www.fangcloud.com/)
-  - [ ]  登录, 上传, 下载, 分享
-  - [X]  直链解析
 - [123云盘 (ye)](https://www.123pan.com/)
-  - [ ]  登录, 上传, 下载, 分享
-  - [X]  直链解析
 - [文叔叔 (ws)](https://www.wenshushu.cn/)
-  - [ ]  登录, 上传, 下载, 分享
-  - [X]  直链解析
-- [Cloudreve自建网盘 (ce)](https://github.com/cloudreve/Cloudreve)
-  - [ ]  登录, 上传, 下载, 分享
-  - [X]  直链解析
-- [超星网盘-教育用户专属推荐非常稳定! (cx)](https://passport2.chaoxing.com/login?newversion=true&refer=https%3A%2F%2Fpan-yz.chaoxing.com%2F)
-  - [ ]  登录, 上传, 下载, 分享
-  - [ ]  直链解析
+- [联想乐云 (le)](https://lecloud.lenovo.com/)
 - [QQ邮箱文件中转站 (qq)](https://mail.qq.com/)
-  - [ ]  登录, 上传, 下载, 分享
-  - [X]  直链解析(用户无法直接使用直链)
-- [夸克网盘 (qk) 寄了](https://pan.quark.cn/)
-- [UC网盘 (uc) 寄了](https://fast.uc.cn/)
-
+- [超星网盘-开发中 (cx)](https://passport2.chaoxing.com/login?newversion=true&refer=https%3A%2F%2Fpan-yz.chaoxing.com%2F)
+- [Cloudreve自建网盘--正在优化 (ce)](https://github.com/cloudreve/Cloudreve)
 **TODO:**
   - 登录接口, 文件上传/下载/分享后端接口
   - 短地址服务
