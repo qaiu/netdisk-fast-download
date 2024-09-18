@@ -10,7 +10,7 @@ import cn.qaiu.parser.impl.*;
  *     <li>standardUrlTemplate: 网盘服务的标准URL模板，用于规范化分享链接。</li>
  *     <li>toolClass: 网盘解析工具实现类。</li>
  * </ul>
- *
+ * 请注意：增添网盘时，保证正则表达式最后一个捕捉组能匹配到分享key
  * @author <a href="https://qaiu.top">QAIU</a>
  * at 2023/6/13 4:26
  */
@@ -81,7 +81,7 @@ public enum PanDomainTemplate {
     // 网盘的显示名称，用于用户界面显示
     private final String displayName;
 
-    // 用于匹配和解析分享链接的正则表达式
+    // 用于匹配和解析分享链接的正则表达式，保证最后一个捕捉组能匹配到分享key
     private final String regexPattern;
 
     // 网盘的标准链接模板，不含占位符，用于规范化分享链接
