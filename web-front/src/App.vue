@@ -11,15 +11,12 @@
         <div class="typo">
           <p><strong>项目GitHub </strong><a href="https://github.com/qaiu/netdisk-fast-download" target="_blank"
                                             rel="nofollow"><u>netdisk-fast-download</u></a></p>
-          <p><strong>当前页面修改自开源项目</strong><a href="https://github.com/HurryBy/CloudDiskAnalysis"
-                                                       target="_blank"
-                                                       rel="nofollow"><u>CloudDiskAnalysis</u></a></p>
-          <p><strong>目前支持 </strong>已支持蓝奏云/奶牛快传/移动云云空间/UC网盘(暂时失效)/小飞机盘/亿方云/123云盘</p>
+          <p><strong>目前支持 </strong>蓝奏云/蓝奏云优享/小飞机盘/123云盘/奶牛快传/移动云云空间/亿方云/文叔叔/QQ邮箱文件中转站</p>
           <p>
             <el-button><strong @click="getInfo">刷新API调用统计</strong></el-button>
           </p>
-          <p>节点1: 成功:{{ node1Info.success }},失败:{{ node1Info.fail }},总数:{{ node1Info.total }}</p>
-          <p>节点2: 成功:{{ node2Info.success }},失败:{{ node2Info.fail }},总数:{{ node2Info.total }}</p>
+          <p>节点1: 回源请求数:{{ node1Info.parserTotal }}, 缓存请求数:{{ node1Info.cacheTotal }}, 总数:{{ node1Info.total }}</p>
+<!--          <p>节点2: 成功:{{ node2Info.success }},失败:{{ node2Info.fail }},总数:{{ node2Info.total }}</p>-->
         </div>
         <hr>
         <div class="main" v-loading="isLoading">
@@ -153,6 +150,7 @@ export default {
           } else {
             this.$message.error(response.data.msg)
           }
+          this.getInfo()
         },
         error => {
           this.isLoading = false
@@ -174,12 +172,12 @@ export default {
             this.node1Info = response.data.data
           }
         })
-      axios.get('/n2/statisticsInfo').then(
-        response => {
-          if (response.data.success) {
-            this.node2Info = response.data.data
-          }
-        })
+      // axios.get('/n2/statisticsInfo').then(
+      //   response => {
+      //     if (response.data.success) {
+      //       this.node2Info = response.data.data
+      //     }
+      //   })
     }
   },
   mounted() {

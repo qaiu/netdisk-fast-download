@@ -29,9 +29,9 @@ public class CacheConfigLoader {
     }
 
     public static Integer getDuration(PanDomainTemplate pdt) {
-        return CONFIGS.get(pdt.getShortName());
+        return CONFIGS.get(pdt.name().toLowerCase());
     }
-    public static Integer getDuration(String shortName) {
-        return CONFIGS.get(shortName);
+    public static Integer getDuration(String type) {
+        return CONFIGS.get(type.toLowerCase());
     }
 }

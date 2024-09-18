@@ -4,7 +4,6 @@ import cn.qaiu.db.pool.JDBCPoolInit;
 import cn.qaiu.lz.common.model.ParserLogInfo;
 import cn.qaiu.vx.core.annotaions.HandleSortFilter;
 import cn.qaiu.vx.core.interceptor.AfterInterceptor;
-import cn.qaiu.vx.core.model.JsonResult;
 import cn.qaiu.vx.core.util.CommonUtil;
 import cn.qaiu.vx.core.util.SharedDataUtil;
 import io.vertx.core.json.JsonArray;
@@ -36,21 +35,8 @@ public class LogStatistics implements AfterInterceptor {
 
         ParserLogInfo parserLogInfo = new ParserLogInfo();
         parserLogInfo.setPath(ctx.request().uri());
-        if (responseData == null) {
-            String location = ctx.response().headers().get("location");
-            if (location != null) {
-                parserLogInfo.setCode(200);
-                parserLogInfo.setData(location);
-            } else {
-                log.error("location不存在且responseData为空, path={}", ctx.request().path());
-            }
-            insert(parserLogInfo);
-
-        } else if (responseData.containsKey("code")) {
-            JsonResult<?> result = JsonResult.toJsonResult(responseData);
-            parserLogInfo.setCode(result.getCode());
-            parserLogInfo.setData(result.getCode() == 500 ? result.getMsg() : result.getData().toString());
-            insert(parserLogInfo);
+        if (responseData.containsKey("code") && responseData.getInteger("code") == 500) {
+            log.error("code 500: {} {}", ctx.request().path(), responseData.getString("msg"));
         } else {
             log.error("未知json日志: {}, path: {}", responseData.encode(), ctx.request().path());
         }

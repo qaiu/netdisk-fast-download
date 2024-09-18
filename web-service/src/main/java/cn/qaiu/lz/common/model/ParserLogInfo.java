@@ -14,6 +14,8 @@ public class ParserLogInfo {
     String id = SnowflakeIdWorker.getStringId();
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS", timezone = "GMT+8")
     Date logTime = new Date();
+
+    @Length(varcharSize = 4096)
     String path;
     Integer code;
 

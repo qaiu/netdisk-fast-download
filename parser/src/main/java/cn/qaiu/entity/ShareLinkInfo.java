@@ -66,7 +66,7 @@ public class ShareLinkInfo {
     // 建造者类
     public static class Builder {
         private String shareKey;      // 分享键
-        private String type;          // 分享类型
+        private String type;          // 分享类型 (网盘模板枚举的小写)
         private String sharePassword = ""; // 分享密码（如果存在）
         private String shareUrl;      // 原始分享链接
         private String standardUrl;   // 规范化的标准链接

@@ -5,7 +5,7 @@ import cn.qaiu.lz.common.cache.CacheConfigLoader;
 import cn.qaiu.lz.common.cache.CacheManager;
 import cn.qaiu.lz.web.model.CacheLinkInfo;
 import cn.qaiu.lz.web.service.CacheService;
-import cn.qaiu.parser.PanDomainTemplate;
+import cn.qaiu.parser.ParserCreate;
 import cn.qaiu.vx.core.annotaions.Service;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -19,21 +19,22 @@ public class CacheServiceImpl implements CacheService {
 
     private final CacheManager cacheManager = new CacheManager();
 
-    @Override
-    public Future<CacheLinkInfo> getAndSaveCachedShareLink(PanDomainTemplate template) {
+    private Future<CacheLinkInfo> getAndSaveCachedShareLink(ParserCreate parserCreate) {
         Promise<CacheLinkInfo> promise = Promise.promise();
-
         // 构建组合的缓存key
-        ShareLinkInfo shareLinkInfo = template.getShareLinkInfo();
+        ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();
         String cacheKey = generateCacheKey(shareLinkInfo.getType(), shareLinkInfo.getShareKey());
         // 尝试从缓存中获取
         cacheManager.get(cacheKey).onSuccess(result -> {
             // 判断是否已过期
             // 未命中或者过期
             if (!result.getCacheHit() || result.getExpiration() < System.currentTimeMillis()) {
-                template.createTool().parse().onSuccess(redirectUrl -> {
+                // parse
+                result.setCacheHit(false);
+                result.setExpiration(0L);
+                parserCreate.createTool().parse().onSuccess(redirectUrl -> {
                     long expires = System.currentTimeMillis() +
-                            CacheConfigLoader.getDuration(shareLinkInfo.getType()) * 60 * 1000;
+                            CacheConfigLoader.getDuration(shareLinkInfo.getType()) * 60 * 1000L;
                     result.setDirectLink(redirectUrl);
                     // result.setExpires(generateDate(expires));
                     promise.complete(result);
@@ -45,10 +46,12 @@ public class CacheServiceImpl implements CacheService {
                             "shareKey", cacheKey
                     ));
                     cacheManager.cacheShareLink(cacheLinkInfo).onFailure(Throwable::printStackTrace);
+                    cacheManager.updateTotalByParser(cacheKey).onFailure(Throwable::printStackTrace);
                 }).onFailure(promise::fail);
             } else {
                 result.setExpires(generateDate(result.getExpiration()));
                 promise.complete(result);
+                cacheManager.updateTotalByCached(cacheKey).onFailure(Throwable::printStackTrace);
             }
         }).onFailure(t -> promise.fail(t.fillInStackTrace()));
         return promise.future();
@@ -61,5 +64,17 @@ public class CacheServiceImpl implements CacheService {
 
     private String generateDate(Long ts) {
         return DateFormatUtils.format(new Date(ts), "yyyy-MM-dd hh:mm:ss");
+    }
+
+    @Override
+    public Future<CacheLinkInfo> getCachedByShareKeyAndPwd(String type, String shareKey, String pwd) {
+        ParserCreate parserCreate = ParserCreate.fromType(type).shareKey(shareKey).setShareLinkInfoPwd(pwd);
+        return getAndSaveCachedShareLink(parserCreate);
+    }
+
+    @Override
+    public Future<CacheLinkInfo> getCachedByShareUrlAndPwd(String shareUrl, String pwd) {
+        ParserCreate parserCreate = ParserCreate.fromShareUrl(shareUrl).setShareLinkInfoPwd(pwd);
+        return getAndSaveCachedShareLink(parserCreate);
     }
 }

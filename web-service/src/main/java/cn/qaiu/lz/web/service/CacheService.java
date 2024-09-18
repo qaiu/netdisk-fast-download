@@ -1,7 +1,6 @@
 package cn.qaiu.lz.web.service;
 
 import cn.qaiu.lz.web.model.CacheLinkInfo;
-import cn.qaiu.parser.PanDomainTemplate;
 import cn.qaiu.vx.core.base.BaseAsyncService;
 import io.vertx.codegen.annotations.ProxyGen;
 import io.vertx.core.Future;
@@ -13,5 +12,7 @@ import io.vertx.core.Future;
 @ProxyGen
 public interface CacheService extends BaseAsyncService {
 
-    Future<CacheLinkInfo> getAndSaveCachedShareLink(PanDomainTemplate shareLinkInfo);
+    Future<CacheLinkInfo> getCachedByShareKeyAndPwd(String type, String shareKey, String pwd);
+
+    Future<CacheLinkInfo> getCachedByShareUrlAndPwd(String shareUrl, String pwd);
 }

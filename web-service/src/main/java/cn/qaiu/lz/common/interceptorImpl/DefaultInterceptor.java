@@ -20,7 +20,7 @@ public class DefaultInterceptor implements BeforeInterceptor {
 
     @Override
     public void handle(RoutingContext ctx) {
-        System.out.println("进入前置拦截器1->" + ctx.request().path());
+        // System.out.println("进入前置拦截器1->" + ctx.request().path());
         doNext(ctx);
     }
 
