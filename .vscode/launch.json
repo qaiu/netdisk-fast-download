@@ -1,0 +1,70 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "StringCase",
+            "request": "launch",
+            "mainClass": "cn.qaiu.vx.core.util.StringCase",
+            "projectName": "core"
+        },
+        {
+            "type": "java",
+            "name": "FCURLParser",
+            "request": "launch",
+            "mainClass": "cn.qaiu.parser.FCURLParser",
+            "projectName": "parser"
+        },
+        {
+            "type": "java",
+            "name": "QkTool",
+            "request": "launch",
+            "mainClass": "cn.qaiu.parser.impl.QkTool",
+            "projectName": "parser"
+        },
+        {
+            "type": "java",
+            "name": "WebClientExample",
+            "request": "launch",
+            "mainClass": "qaiu.web.test.WebClientExample",
+            "projectName": "parser"
+        },
+        {
+            "type": "java",
+            "name": "AppMain",
+            "request": "launch",
+            "mainClass": "cn.qaiu.lz.AppMain",
+            "projectName": "web-service"
+        },
+        {
+            "type": "java",
+            "name": "TestJs",
+            "request": "launch",
+            "mainClass": "cn.qaiu.web.test.TestJs",
+            "projectName": "web-service"
+        },
+        {
+            "type": "java",
+            "name": "TestOS",
+            "request": "launch",
+            "mainClass": "cn.qaiu.web.test.TestOS",
+            "projectName": "web-service"
+        },
+        {
+            "type": "java",
+            "name": "WebProxyExamples",
+            "request": "launch",
+            "mainClass": "cn.qaiu.web.test.WebProxyExamples",
+            "projectName": "web-service"
+        }
+    ]
+}
