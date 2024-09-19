@@ -54,11 +54,11 @@ API规则:
 ```
 
 1. 解析并自动302跳转 :
-    http://your_host/parser?url=分享链接(&pwd=xxx)
+    http://your_host/parser?url=分享链接&pwd=xxx
     http://your_host/网盘标识/分享key(@分享密码)
 2. 获取解析后的直链--JSON格式
-    http://your_host/json/parser?url=分享链接(&pwd=xxx)
-    http://your_host/json/网盘标识/分享key(@分享密码)
+    http://your_host/json/parser?url=分享链接&pwd=xxx
+    http://your_host/json/网盘标识/分享key@分享密码
 
 ```
 json返回数据格式示例:
