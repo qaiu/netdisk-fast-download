@@ -7,11 +7,12 @@
             <el-avatar :size="150" :src="avatar"></el-avatar>
           </div>
         </div>
-        <h3 style="text-align: center;">NFD网盘直链解析(API演示)</h3>
+        <h3 style="text-align: center;">NFD网盘直链解析0.1.8_bate(API演示)</h3>
         <div class="typo">
           <p><strong>项目GitHub </strong><a href="https://github.com/qaiu/netdisk-fast-download" target="_blank"
                                             rel="nofollow"><u>netdisk-fast-download</u></a></p>
           <p><strong>目前支持 </strong>蓝奏云/蓝奏云优享/小飞机盘/123云盘/奶牛快传/移动云云空间/亿方云/文叔叔/QQ邮箱文件中转站</p>
+          <p>已加入缓存机制, 如果遇到解析出的下载链接失效的情况请及时到项目GitHub反馈</p>
           <p>
             <el-button><strong @click="getInfo">刷新API调用统计</strong></el-button>
           </p>
