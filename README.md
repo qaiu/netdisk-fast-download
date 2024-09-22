@@ -148,6 +148,7 @@ mvn package
 ```
 打包好的文件位于 web-service/target/netdisk-fast-download-bin.zip
 ## Linux服务部署
+### [宝塔安装参考](https://blog.qaiu.top/archives/netdisk-fast-download-bao-ta-an-zhuang-jiao-cheng)
 > 注意: netdisk-fast-download.service中的ExecStart的路径改为实际路径
 ```shell
 cd ~
