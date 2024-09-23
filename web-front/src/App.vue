@@ -134,11 +134,11 @@ export default {
       this.respData = {}
       this.getLink2 = `${location.protocol}//${location.host}/parser?url=${this.link}`
       // this.getLink = `${location.protocol}//${location.host}/api/json/parser?url=${this.link}`
-      this.getLink = `${location.protocol}//${location.host}/json/parser?url=${this.link}`
+      this.getLink = `${location.protocol}//${location.host}/json/parser`
       if (this.password) {
         this.getLink += `&pwd=${this.password}`
       }
-      axios.get(this.getLink).then(
+      axios.get(this.getLink, {params: {url: this.link}}).then(
         response => {
           this.isLoading = false
           this.respData = response.data
