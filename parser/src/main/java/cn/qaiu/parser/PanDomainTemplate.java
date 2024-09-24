@@ -52,8 +52,8 @@ public enum PanDomainTemplate {
             QQTool.class),
     // https://f.ws59.cn/f/或者https://www.wenshushu.cn/f/
     WS("文叔叔",
-            "https://(f\\.ws59\\.cn|www\\.wenshushu\\.cn)/f/(.+)",
-            "https://f.ws59.cn/f/{shareKey}",
+            "https://(f\\.ws([0-9]{2})\\.cn|www\\.wenshushu\\.cn)/f/(.+)",
+            "https://www.wenshushu.cn/f/{shareKey}",
             WsTool.class),
     // https://www.123pan.com/s/
     YE("123网盘",
