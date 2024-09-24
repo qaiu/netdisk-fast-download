@@ -136,7 +136,8 @@ export default {
   name: 'App',
   data() {
     return {
-      baseAPI: `${location.protocol}//${location.hostname}:6400`,
+      // baseAPI: `${location.protocol}//${location.hostname}:6400`,
+      baseAPI: `${location.protocol}//${location.host}`,
       current: {}, // 当前分享
       showQrc: false,
       codeUrl: '',
