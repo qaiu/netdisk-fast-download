@@ -153,6 +153,9 @@ GET http://127.0.0.1:6400/json/parser?url=https://iwx.mail.qq.com/ftn/download?f
 GET http://127.0.0.1:6400/v2/statisticsInfo
 
 ###
+GET http://127.0.0.1:6400/v2/linkInfo?url=https://www.123pan.com/s/iaKtVv-6OECd.html&pwd=DcGe
+
+###
 POST http://127.0.0.1:6400/v2/login?username=asd
 
 
