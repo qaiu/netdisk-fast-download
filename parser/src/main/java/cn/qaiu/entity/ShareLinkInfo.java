@@ -3,6 +3,8 @@ package cn.qaiu.entity;
 public class ShareLinkInfo {
 
     private String shareKey;      // 分享键
+
+    private String panName;       // 网盘名称
     private String type;          // 分享类型
     private String sharePassword; // 分享密码（如果存在）
     private String shareUrl;      // 原始分享链接
@@ -10,6 +12,7 @@ public class ShareLinkInfo {
 
     private ShareLinkInfo(Builder builder) {
         this.shareKey = builder.shareKey;
+        this.panName = builder.panName;
         this.type = builder.type;
         this.sharePassword = builder.sharePassword;
         this.shareUrl = builder.shareUrl;
@@ -22,8 +25,16 @@ public class ShareLinkInfo {
         return shareKey;
     }
 
+    public String getPanName() {
+        return panName;
+    }
+
     public void setShareKey(String shareKey) {
         this.shareKey = shareKey;
+    }
+
+    public void setPanName(String panName) {
+        this.panName = panName;
     }
 
     public String getType() {
@@ -58,6 +69,12 @@ public class ShareLinkInfo {
         this.standardUrl = standardUrl;
     }
 
+    public String getCacheKey() {
+        // 将type和shareKey组合成一个字符串作为缓存key
+        return type + ":" + shareKey;
+    }
+
+
     // 静态方法创建建造者对象
     public static ShareLinkInfo.Builder newBuilder() {
         return new ShareLinkInfo.Builder();
@@ -65,6 +82,7 @@ public class ShareLinkInfo {
 
     // 建造者类
     public static class Builder {
+        public String panName;        // 分享网盘名称
         private String shareKey;      // 分享键
         private String type;          // 分享类型 (网盘模板枚举的小写)
         private String sharePassword = ""; // 分享密码（如果存在）
@@ -73,6 +91,11 @@ public class ShareLinkInfo {
 
         public Builder shareKey(String shareKey) {
             this.shareKey = shareKey;
+            return this;
+        }
+
+        public Builder panName(String panName) {
+            this.panName = panName;
             return this;
         }
 
@@ -105,6 +128,7 @@ public class ShareLinkInfo {
     public String toString() {
         return "ShareLinkInfo{" +
                 "shareKey='" + shareKey + '\'' +
+                ", panName='" + panName + '\'' +
                 ", type='" + type + '\'' +
                 ", sharePassword='" + sharePassword + '\'' +
                 ", shareUrl='" + shareUrl + '\'' +

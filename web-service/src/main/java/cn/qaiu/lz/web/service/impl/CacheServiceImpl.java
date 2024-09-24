@@ -23,8 +23,8 @@ public class CacheServiceImpl implements CacheService {
         Promise<CacheLinkInfo> promise = Promise.promise();
         // 构建组合的缓存key
         ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();
-        String cacheKey = generateCacheKey(shareLinkInfo.getType(), shareLinkInfo.getShareKey());
         // 尝试从缓存中获取
+        String cacheKey = shareLinkInfo.getCacheKey();
         cacheManager.get(cacheKey).onSuccess(result -> {
             // 判断是否已过期
             // 未命中或者过期
@@ -55,11 +55,6 @@ public class CacheServiceImpl implements CacheService {
             }
         }).onFailure(t -> promise.fail(t.fillInStackTrace()));
         return promise.future();
-    }
-
-    private String generateCacheKey(String type, String shareKey) {
-        // 将type和shareKey组合成一个字符串作为缓存key
-        return type + ":" + shareKey;
     }
 
     private String generateDate(Long ts) {

@@ -1,4 +1,4 @@
-package cn.qaiu.lz.web.http;
+package cn.qaiu.lz.web.controller;
 
 import cn.qaiu.lz.common.util.URLParamUtil;
 import cn.qaiu.lz.web.model.CacheLinkInfo;
@@ -26,7 +26,7 @@ public class ServerApi {
 
     private final CacheService cacheService = AsyncServiceUtil.getAsyncServiceInstance(CacheService.class);
 
-    @RouteMapping(value = "/parser", method = RouteMethod.GET, order = 4)
+    @RouteMapping(value = "/parser", method = RouteMethod.GET, order = 1)
     public Future<Void> parse(HttpServerResponse response, HttpServerRequest request, String pwd) {
         Promise<Void> promise = Promise.promise();
         String url = URLParamUtil.parserParams(request);
@@ -40,13 +40,13 @@ public class ServerApi {
         return promise.future();
     }
 
-    @RouteMapping(value = "/json/parser", method = RouteMethod.GET, order = 3)
+    @RouteMapping(value = "/json/parser", method = RouteMethod.GET, order = 1)
     public Future<CacheLinkInfo> parseJson(HttpServerRequest request, String pwd) {
         String url = URLParamUtil.parserParams(request);
         return cacheService.getCachedByShareUrlAndPwd(url, pwd);
     }
 
-    @RouteMapping(value = "/json/:type/:key", method = RouteMethod.GET, order = 2)
+    @RouteMapping(value = "/json/:type/:key", method = RouteMethod.GET)
     public Future<CacheLinkInfo> parseKeyJson(String type, String key) {
         String pwd = "";
         if (key.contains("@")) {
@@ -57,7 +57,7 @@ public class ServerApi {
         return cacheService.getCachedByShareKeyAndPwd(type, key, pwd);
     }
 
-    @RouteMapping(value = "/:type/:key", method = RouteMethod.GET, order = 1)
+    @RouteMapping(value = "/:type/:key", method = RouteMethod.GET)
     public Future<Void> parseKey(HttpServerResponse response, String type, String key) {
         Promise<Void> promise = Promise.promise();
         String pwd = "";

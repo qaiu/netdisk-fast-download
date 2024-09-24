@@ -90,6 +90,7 @@ public class ParserCreate {
             if (shareUrl.matches(panDomainTemplate.getRegexPattern())) {
                 ShareLinkInfo shareLinkInfo = ShareLinkInfo.newBuilder()
                         .type(panDomainTemplate.name().toLowerCase())
+                        .panName(panDomainTemplate.getDisplayName())
                         .shareUrl(shareUrl).build();
                 ParserCreate parserCreate = new ParserCreate(panDomainTemplate, shareLinkInfo);
                 return parserCreate.normalizeShareLink();

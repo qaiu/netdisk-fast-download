@@ -11,6 +11,7 @@
     "axios": "^1.7.4",
     "core-js": "^3.8.3",
     "element-ui": "^2.15.14",
+    "qrcode": "^1.5.4",
     "vue": "^2.7.16",
     "vue-clipboard2": "^0.3.3",
     "vue-json-viewer": "^2.2.22"
@@ -21,12 +22,11 @@
     "@vue/cli-plugin-babel": "~5.0.0",
     "@vue/cli-plugin-eslint": "~5.0.0",
     "@vue/cli-service": "~5.0.0",
+    "compression-webpack-plugin": "^6.1.1",
     "eslint": "^7.32.0",
     "eslint-plugin-vue": "^8.0.3",
-    "vue-template-compiler": "^2.7.16",
-
-    "compression-webpack-plugin": "^6.1.1",
-    "filemanager-webpack-plugin": "8.0.0"
+    "filemanager-webpack-plugin": "8.0.0",
+    "vue-template-compiler": "^2.7.16"
   },
   "eslintConfig": {
     "root": true,

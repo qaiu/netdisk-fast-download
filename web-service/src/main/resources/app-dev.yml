@@ -2,11 +2,14 @@
 server:
   port: 6400
   contextPath: /
-  # 使用静态页面
-  enableStaticHtmlService: false
   # 使用数据库
   enableDatabase: true
+  # 使用静态页面
+  enableStaticHtmlService: false
   staticResourcePath: webroot/
+  # 服务域名或者IP
+  domainName: https://lz.qaiu.top
+
 # 反向代理服务器配置路径(不用加后缀)
 proxyConf: server-proxy
 

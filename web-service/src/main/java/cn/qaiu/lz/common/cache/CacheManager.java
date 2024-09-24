@@ -51,7 +51,7 @@ public class CacheManager {
                 .mapEmpty();
     }
 
-    // 统计网盘厂商API解析次数
+    // 写入网盘厂商API解析次数
     public Future<Integer> updateTotalByCached(String shareKey) {
         Promise<Integer> promise = Promise.promise();
         String sql = """
@@ -81,7 +81,7 @@ public class CacheManager {
         return fullShareKey.split(":")[0];
     }
 
-    // 统计网盘厂商API解析次数
+    // 写入网盘厂商API解析次数
     public Future<Integer> updateTotalByParser(String shareKey) {
         Promise<Integer> promise = Promise.promise();
         String sql = """
@@ -125,5 +125,31 @@ public class CacheManager {
         return promise.future();
     }
 
+    public Future<Map<String, Integer>> getShareKeyTotal(String shareKey) {
+        String sql = """
+                select `share_key`, sum(cache_hit_total) hit_total, sum(api_parser_total) parser_total,
+                from `api_statistics_info`
+                    group by `share_key` having `share_key` = #{shareKey}
+                """;
+        Promise<Map<String, Integer>> promise = Promise.promise();
+        Map<String, Object> paramMap = new HashMap<>();
+        paramMap.put("shareKey", shareKey);
+        SqlTemplate.forQuery(jdbcPool, sql)
+                .mapTo(Row::toJson)
+                .execute(paramMap)
+                .onSuccess(res -> {
+                     if(res.iterator().hasNext()) {
+                         JsonObject next = res.iterator().next();
+                         Map<String, Integer> resp = new HashMap<>(){{
+                             put("hit_total" ,next.getInteger("hit_total"));
+                             put("parser_total" ,next.getInteger("parser_total"));
+                         }};
+                         promise.complete(resp);
+                    } else {
+                         promise.complete();
+                     }
+                });
+        return promise.future();
+    }
 
 }
