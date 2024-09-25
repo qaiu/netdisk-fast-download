@@ -39,7 +39,7 @@ public class IzTool extends PanBase implements IPanTool {
         // 第一次请求 获取文件信息
         // POST https://api.feijipan.com/ws/recommend/list?devType=6&devModel=Chrome&extra=2&shareId=146731&type=0&offset=1&limit=60
         client.postAbs(UriTemplate.of(FIRST_REQUEST_URL)).setTemplateParam("shareId", dataKey).send().onSuccess(res -> {
-            JsonObject resJson = res.bodyAsJsonObject();
+            JsonObject resJson = asJson(res);
             if (resJson.getInteger("code") != 200) {
                 fail(FIRST_REQUEST_URL + " 返回异常: " + resJson);
                 return;

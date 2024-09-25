@@ -34,7 +34,7 @@ public class EcTool extends PanBase implements IPanTool {
                 .setTemplateParam("extractionCode", pwd == null ? "" : pwd)
                 .send()
                 .onSuccess(res -> {
-                    JsonObject jsonObject = res.bodyAsJsonObject();
+                    JsonObject jsonObject = asJson(res);
                     log.debug("ecPan get file info -> {}", jsonObject);
                     JsonObject fileInfo = jsonObject
                             .getJsonObject("var")
@@ -59,7 +59,7 @@ public class EcTool extends PanBase implements IPanTool {
 
                     // 第二次请求 获取下载链接
                     client.postAbs(DOWNLOAD_REQUEST_URL).sendJsonObject(requestBodyJson).onSuccess(res2 -> {
-                        JsonObject jsonRes = res2.bodyAsJsonObject();
+                        JsonObject jsonRes = asJson(res2);
                         log.debug("ecPan get download url -> {}", res2.body().toString());
                         promise.complete(jsonRes.getJsonObject("var").getString("downloadUrl"));
                     }).onFailure(handleFail(""));

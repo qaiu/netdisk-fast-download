@@ -133,15 +133,26 @@ GET http://127.0.0.1:6400/le/2RkKbLP9BrppS9b43@ex2b
 GET http://127.0.0.1:6400/json/le/2RkKbLP9BrppS9b43@ex2b
 
 ### PASS 文叔叔
-GET http://127.0.0.1:6400/parser?url=https://f.ws59.cn/f/f25625rv6p6
+GET http://127.0.0.1:6400/json/parser?url=https://f.ws28.cn/f/f5wtc2iwxtk
 ###
 https://f.wss.cc/f/f25625rv6p6
 
 ### TODO Cloudreve
-GET http://127.0.0.1:6400/json/ce/https_pan.huang1111.cn_s_wDz5TK
+GET http://127.0.0.1:6400/json/ce/pan.huang1111.cn_s_wDz5TK
 
-### Cloudreve https://pan.huang1111.cn/s/g31PcQ
-GET http://127.0.0.1:6400/parser?url=https://pan.huang1111.cn/s/g31PcQ&pwd=qaiu
+### TODO Cloudreve2
+GET http://127.0.0.1:6400/json/ce/pan.huang1111.cn_s_g31PcQ@qaiu
+
+### Cloudreve类 PASS
+### https://pan.huang1111.cn/s/g31PcQ
+### 看见存储 https://pan.seeoss.com/s/nLNsQ
+### 亿安云盘 https://dav.yiandrive.com/s/xxx
+#GET http://127.0.0.1:6400/parser?url=https://pan.huang1111.cn/s/g31PcQ&pwd=qaiu
+
+# @no-redirect
+GET http://127.0.0.1:6400/v2/linkInfo?url=https://pan.seeoss.com/s/nLNsQ
+
+
 
 ### PASS QQ
 # @no-redirect

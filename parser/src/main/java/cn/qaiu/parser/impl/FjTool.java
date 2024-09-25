@@ -63,7 +63,7 @@ public class FjTool extends PanBase implements IPanTool {
                             .setTemplateParam("uuid", uuid)
                             .setTemplateParam("ts", tsEncode0)
                             .send().onSuccess(res -> {
-                                JsonObject resJson = res.bodyAsJsonObject();
+                                JsonObject resJson = asJson(res);
                                 if (resJson.getInteger("code") != 200) {
                                     fail(FIRST_REQUEST_URL + " 返回异常: " + resJson);
                                     return;

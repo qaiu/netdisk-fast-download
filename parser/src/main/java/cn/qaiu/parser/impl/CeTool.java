@@ -8,17 +8,21 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 
+import java.net.URL;
+
 /**
- * <a href="https://github.com/cloudreve/Cloudreve">Cloudreve网盘解析</a> <br>
+ * <a href="https://github.com/cloudreve/Cloudreve">Cloudreve自建网盘解析</a> <br>
  * <a href="https://pan.xiaomuxi.cn">暮希云盘</a> <br>
  * <a href="https://pan.huang1111.cn">huang1111</a> <br>
+ * <a href="https://pan.seeoss.com">看见存储</a> <br>
+ * <a href="https://dav.yiandrive.com">亿安云盘</a> <br>
  */
 public class CeTool extends PanBase implements IPanTool {
 
-    private static final String DOWNLOAD_API_PATH = "https://pan.huang1111.cn/api/v3/share/download/";
+    private static final String DOWNLOAD_API_PATH = "/api/v3/share/download/";
 
     // api/v3/share/info/g31PcQ?password=qaiu
-    private static final String SHARE_API_PATH = "https://pan.huang1111.cn/api/v3/share/info/";
+    private static final String SHARE_API_PATH = "/api/v3/share/info/";
 
     public CeTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
@@ -31,24 +35,14 @@ public class CeTool extends PanBase implements IPanTool {
         // https://pan.huang1111.cn/s/wDz5TK
         // https://pan.huang1111.cn/s/y12bI6 -> https://pan.huang1111
         // .cn/api/v3/share/download/y12bI6?path=undefined%2Fundefined;
-        // 类型解析 -> /ce/https_pan.huang1111.cn_s_wDz5TK
+        // 类型解析 -> /ce/pan.huang1111.cn_s_wDz5TK
         // parser接口 -> /parser?url=https://pan.huang1111.cn/s/wDz5TK
         try {
-//            if (key.startsWith("https_") || key.startsWith("http_")) {
-//                key = key.replace("https_", "https://")
-//                        .replace("http_", "http://")
-//                        .replace("_", "/");
-//            }
 //            // 处理URL
-//            URL url = new URL(key);
-//            String path = url.getPath();
-//            String shareKey = path.substring(3);
-//            String downloadApiUrl = url.getProtocol() + "://" + url.getHost() + DOWNLOAD_API_PATH + shareKey + "?path" +
-//                    "=undefined/undefined;";
-//            String shareApiUrl = url.getProtocol() + "://" + url.getHost() + SHARE_API_PATH + shareKey;
-
-            var shareApiUrl = SHARE_API_PATH;
-            var downloadApiUrl = DOWNLOAD_API_PATH;
+            URL url = new URL(shareLinkInfo.getShareUrl());
+            String downloadApiUrl = url.getProtocol() + "://" + url.getHost() + DOWNLOAD_API_PATH + key + "?path" +
+                    "=undefined/undefined;";
+            String shareApiUrl = url.getProtocol() + "://" + url.getHost() + SHARE_API_PATH + key;
 
             // 设置cookie
             HttpRequest<Buffer> httpRequest = clientSession.getAbs(shareApiUrl);
@@ -65,7 +59,7 @@ public class CeTool extends PanBase implements IPanTool {
 
     private void getDownURL(String apiUrl) {
         clientSession.putAbs(apiUrl).send().onSuccess(res -> {
-            JsonObject jsonObject = res.bodyAsJsonObject();
+            JsonObject jsonObject = asJson(res);
             System.out.println(jsonObject.encodePrettily());
             if (jsonObject.containsKey("code") && jsonObject.getInteger("code") == 0) {
                 promise.complete(jsonObject.getString("data"));

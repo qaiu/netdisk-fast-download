@@ -115,7 +115,7 @@ public class LzTool extends PanBase implements IPanTool {
 
         String url = SHARE_URL_PREFIX + "/ajaxm.php";
         client.postAbs(url).putHeaders(headers).sendForm(map).onSuccess(res2 -> {
-            JsonObject urlJson = res2.bodyAsJsonObject();
+            JsonObject urlJson = asJson(res2);
             if (urlJson.getInteger("zt") != 1) {
                 fail(urlJson.getString("inf"));
                 return;

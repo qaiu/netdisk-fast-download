@@ -26,7 +26,7 @@ public class CowTool extends PanBase implements IPanTool {
         final String key = shareLinkInfo.getShareKey();
         String url = API_REQUEST_URL + "?uniqueUrl=" + key;
         client.getAbs(url).send().onSuccess(res -> {
-            JsonObject resJson = res.bodyAsJsonObject();
+            JsonObject resJson = asJson(res);
             if ("success".equals(resJson.getString("message")) && resJson.containsKey("data")) {
                 JsonObject dataJson = resJson.getJsonObject("data");
                 String guid = dataJson.getString("guid");
@@ -41,7 +41,7 @@ public class CowTool extends PanBase implements IPanTool {
                 }
                 String url2 = url2Build.toString();
                 client.getAbs(url2).send().onSuccess(res2 -> {
-                    JsonObject res2Json = res2.bodyAsJsonObject();
+                    JsonObject res2Json = asJson(res2);
                     if ("success".equals(res2Json.getString("message")) && res2Json.containsKey("data")) {
                         JsonObject data2 = res2Json.getJsonObject("data");
                         String downloadUrl = data2.getString("downloadUrl");

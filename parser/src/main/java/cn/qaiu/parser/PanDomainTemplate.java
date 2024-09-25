@@ -71,10 +71,11 @@ public enum PanDomainTemplate {
             "https://(.*)cowtransfer\\.com/s/(.+)",
             "https://cowtransfer.com/s/{shareKey}",
             CowTool.class),
-    // https://pan.huang1111.cn/s/
-    CE("huang1111",
-               "https://pan\\.huang1111\\.cn/s/(.+)",
-               "https://pan.huang1111.cn/s/{shareKey}",
+    // https://pan.huang1111.cn/s/xxx
+    // 通用域名([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}
+    CE("Cloudreve",
+               "https://([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,}/s/(.+)",
+               "https://{CloudreveName}/s/{shareKey}",
        CeTool.class);
 
 

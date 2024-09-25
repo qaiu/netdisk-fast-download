@@ -50,7 +50,7 @@ public class WsTool extends PanBase implements IPanTool {
                 if (res.statusCode() == 200) {
                     try {
                         // 设置匿名登录token
-                        String token = res.bodyAsJsonObject().getJsonObject("data").getString("token");
+                        String token = asJson(res).getJsonObject("data").getString("token");
                         headers.set("X-Token", token);
 
                         // 获取文件夹信息
@@ -63,10 +63,10 @@ public class WsTool extends PanBase implements IPanTool {
                                 if (res2.statusCode() == 200) {
                                     try {
                                         // 获取文件夹信息
-                                        String filetime = res2.bodyAsJsonObject().getJsonObject("data").getString("expire");          // 文件夹剩余时间
-                                        String filesize = res2.bodyAsJsonObject().getJsonObject("data").getString("file_size");       // 文件夹大小
-                                        String filepid  = res2.bodyAsJsonObject().getJsonObject("data").getString("ufileid");         // 文件夹pid
-                                        String filebid  = res2.bodyAsJsonObject().getJsonObject("data").getString("boxid");           // 文件夹bid
+                                        String filetime = asJson(res2).getJsonObject("data").getString("expire");          // 文件夹剩余时间
+                                        String filesize = asJson(res2).getJsonObject("data").getString("file_size");       // 文件夹大小
+                                        String filepid  = asJson(res2).getJsonObject("data").getString("ufileid");         // 文件夹pid
+                                        String filebid  = asJson(res2).getJsonObject("data").getString("boxid");           // 文件夹bid
 
                                         // 调试输出文件夹信息
                                         System.out.println("文件夹期限: " + filetime);
@@ -93,9 +93,9 @@ public class WsTool extends PanBase implements IPanTool {
                                                 if (res3.statusCode() == 200) {
                                                     try {
                                                         // 获取文件信息
-                                                        String filename = res3.bodyAsJsonObject().getJsonObject("data")
+                                                        String filename = asJson(res3).getJsonObject("data")
                                                             .getJsonArray("fileList").getJsonObject(0).getString("fname");          // 文件名称
-                                                        String filefid  = res3.bodyAsJsonObject().getJsonObject("data")
+                                                        String filefid  = asJson(res3).getJsonObject("data")
                                                             .getJsonArray("fileList").getJsonObject(0).getString("fid");            // 文件fid
 
                                                         // 调试输出文件信息
@@ -113,7 +113,7 @@ public class WsTool extends PanBase implements IPanTool {
                                                                 if (res4.statusCode() == 200) {
                                                                     try {
                                                                         // 获取直链
-                                                                        String fileurl = res4.bodyAsJsonObject().getJsonObject("data").getString("url");
+                                                                        String fileurl = asJson(res4).getJsonObject("data").getString("url");
 
                                                                         // 调试输出文件直链
                                                                         System.out.println("文件直链: " + fileurl);

@@ -4,6 +4,9 @@ import cn.qaiu.WebClientVertxInit;
 import cn.qaiu.entity.ShareLinkInfo;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
+import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.client.WebClientSession;
@@ -96,6 +99,21 @@ public abstract class PanBase {
      */
     protected Handler<Throwable> handleFail(String errorMsg) {
         return t -> fail(this.getClass().getSimpleName() + " - 请求异常 {}: -> {}", errorMsg, t.fillInStackTrace());
+    }
+
+
+    /**
+     * bodyAsJsonObject的封装, 会自动处理异常
+     * @param res HttpResponse
+     * @return JsonObject
+     */
+    protected JsonObject asJson(HttpResponse<?> res) {
+        try {
+            return res.bodyAsJsonObject();
+        } catch (DecodeException e) {
+            fail("解析失败: json格式异常: {}", res.bodyAsString());
+            throw new RuntimeException("解析失败: json格式异常");
+        }
     }
 
 }
