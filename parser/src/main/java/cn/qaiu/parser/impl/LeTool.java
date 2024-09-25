@@ -27,7 +27,7 @@ public class LeTool extends PanBase implements IPanTool {
         client.postAbs(apiUrl1)
                 .sendJsonObject(JsonObject.of("shareId", dataKey, "password", pwd, "directoryId", -1))
                 .onSuccess(res -> {
-                    JsonObject resJson = res.bodyAsJsonObject();
+                    JsonObject resJson = asJson(res);
                     if (resJson.containsKey("result")) {
                         if (resJson.getBoolean("result")) {
                             JsonObject dataJson = resJson.getJsonObject("data");
@@ -68,7 +68,7 @@ public class LeTool extends PanBase implements IPanTool {
         client.postAbs(apiUrl2)
                 .sendJsonObject(JsonObject.of("fileIds", fileIds, "shareId", key, "browserId", uuid))
                 .onSuccess(res -> {
-                    JsonObject resJson = res.bodyAsJsonObject();
+                    JsonObject resJson = asJson(res);
                     if (resJson.containsKey("result")) {
                         if (resJson.getBoolean("result")) {
                             JsonObject dataJson = resJson.getJsonObject("data");

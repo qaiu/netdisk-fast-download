@@ -66,8 +66,17 @@ public class ParserCreate {
 
     // set share key
     public ParserCreate shareKey(String shareKey) {
-        shareLinkInfo.setShareKey(shareKey);
-        shareLinkInfo.setStandardUrl(panDomainTemplate.getStandardUrlTemplate().replace("{shareKey}", shareKey));
+        if (panDomainTemplate == PanDomainTemplate.CE) {
+            // 处理Cloudreve(ce)类: pan.huang1111.cn_s_wDz5TK _ -> /
+            String[] s = shareKey.split("_");
+            String standardUrl = "https://" + String.join("/", s);
+            shareLinkInfo.setShareKey(s[s.length - 1]);
+            shareLinkInfo.setStandardUrl(standardUrl);
+            shareLinkInfo.setShareUrl(standardUrl);
+        } else {
+            shareLinkInfo.setShareKey(shareKey);
+            shareLinkInfo.setStandardUrl(panDomainTemplate.getStandardUrlTemplate().replace("{shareKey}", shareKey));
+        }
         return this;
     }
 

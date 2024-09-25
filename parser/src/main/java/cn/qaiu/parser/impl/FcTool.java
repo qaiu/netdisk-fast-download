@@ -88,7 +88,7 @@ public class FcTool extends PanBase implements IPanTool {
                 .setTemplateParam("unique_name", dataKey).send().onSuccess(res2 -> {
                     JsonObject resJson;
                     try {
-                        resJson = res2.bodyAsJsonObject();
+                        resJson = asJson(res2);
                     } catch (Exception e) {
                         fail(e, DOWN_REQUEST_URL + " 第二次请求没有返回JSON, 可能下载受限");
                         return;

@@ -70,7 +70,7 @@ public class YeTool extends PanBase implements IPanTool {
                             .putHeader("Platform", "web")
                             .putHeader("App-Version", "3")
                             .send().onSuccess(res2 -> {
-                                JsonObject infoJson = res2.bodyAsJsonObject();
+                                JsonObject infoJson = asJson(res2);
                                 if (infoJson.getInteger("code") != 0) {
                                     fail("{} 状态码异常 {}", dataKey, infoJson);
                                     return;
@@ -121,7 +121,7 @@ public class YeTool extends PanBase implements IPanTool {
                 .putHeader("Platform", "web")
                 .putHeader("App-Version", "3")
                 .sendJsonObject(jsonObject).onSuccess(res2 -> {
-                    JsonObject downURLJson = res2.bodyAsJsonObject();
+                    JsonObject downURLJson = asJson(res2);
 
                     try {
                         if (downURLJson.getInteger("code") != 0) {
@@ -141,7 +141,7 @@ public class YeTool extends PanBase implements IPanTool {
 
                         // 获取直链
                         client.getAbs(downUrl2).send().onSuccess(res3 -> {
-                            JsonObject res3Json = res3.bodyAsJsonObject();
+                            JsonObject res3Json = asJson(res3);
                             try {
                                 if (res3Json.getInteger("code") != 0) {
                                     fail("Ye: downUrl2返回值异常->" + res3Json);
