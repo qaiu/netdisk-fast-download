@@ -6,8 +6,6 @@ import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.net.ProxyOptions;
-import io.vertx.core.net.ProxyType;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
@@ -39,11 +37,6 @@ public abstract class PanBase {
      */
     protected WebClient clientNoRedirects = WebClient.create(WebClientVertxInit.get(),
             new WebClientOptions().setFollowRedirects(false));
-
-    // test proxy
-    protected WebClient proxyClient = WebClient.create(WebClientVertxInit.get(), new WebClientOptions()
-            .setUserAgentEnabled(false).setFollowRedirects(false)
-            .setProxyOptions(new ProxyOptions().setHost("101.251.204.174").setPort(8080).setType(ProxyType.HTTP)));
 
     protected ShareLinkInfo shareLinkInfo;
 
