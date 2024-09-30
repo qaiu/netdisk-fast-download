@@ -140,7 +140,7 @@ https://f.wss.cc/f/f25625rv6p6
 ### TODO Cloudreve
 GET http://127.0.0.1:6400/json/ce/pan.huang1111.cn_s_wDz5TK
 
-### TODO Cloudreve2
+### Cloudreve2
 GET http://127.0.0.1:6400/json/ce/pan.huang1111.cn_s_g31PcQ@qaiu
 
 ### Cloudreve类 PASS
@@ -150,7 +150,7 @@ GET http://127.0.0.1:6400/json/ce/pan.huang1111.cn_s_g31PcQ@qaiu
 #GET http://127.0.0.1:6400/parser?url=https://pan.huang1111.cn/s/g31PcQ&pwd=qaiu
 
 # @no-redirect
-GET http://127.0.0.1:6400/v2/linkInfo?url=https://pan.seeoss.com/s/nLNsQ
+GET http://127.0.0.1:6400/parser?url=https://pan.seeoss.com/s/nLNsQ
 
 
 

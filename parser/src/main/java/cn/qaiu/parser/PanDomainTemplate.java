@@ -75,7 +75,7 @@ public enum PanDomainTemplate {
     // 通用域名([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}
     CE("Cloudreve",
                "https://([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,}/s/(.+)",
-               "https://{CloudreveName}/s/{shareKey}",
+               "https://{CloudreveDomainName}/s/{shareKey}",
        CeTool.class);
 
 
