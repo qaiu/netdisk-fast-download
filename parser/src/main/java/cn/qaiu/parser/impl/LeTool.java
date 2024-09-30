@@ -1,11 +1,16 @@
 package cn.qaiu.parser.impl;
 
+import cn.qaiu.WebClientVertxInit;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.PanBase;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.net.ProxyOptions;
+import io.vertx.core.net.ProxyType;
+import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
 
 import java.util.UUID;
 
@@ -24,6 +29,7 @@ public class LeTool extends PanBase implements IPanTool {
         final String pwd = shareLinkInfo.getSharePassword();
         // {"shareId":"xxx","password":"xxx","directoryId":"-1"}
         String apiUrl1 = API_URL_PREFIX + "shareInfo";
+
         client.postAbs(apiUrl1)
                 .sendJsonObject(JsonObject.of("shareId", dataKey, "password", pwd, "directoryId", -1))
                 .onSuccess(res -> {
@@ -79,7 +85,7 @@ public class LeTool extends PanBase implements IPanTool {
                                 return;
                             }
                             // 获取重定向链接跳转链接
-                            clientNoRedirects.getAbs(downloadUrl).send()
+                            client.getAbs(downloadUrl).send()
                                     .onSuccess(res2 -> promise.complete(res2.headers().get("Location")))
                                     .onFailure(handleFail(downloadUrl));
                         } else {

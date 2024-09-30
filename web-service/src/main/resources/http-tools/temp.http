@@ -1,0 +1,66 @@
+# curl 'https://ip.ihuan.me/tqdl.html'
+#  -H 'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'
+#  -H 'accept-language: zh-CN,zh;q=0.9,en;q=0.8'
+#  -H 'cache-control: no-cache'
+#  -H 'content-type: application/x-www-form-urlencoded'
+#  -H 'cookie: 91e73cee101cc3ecefd9ca31a227d508=4380c9f80effb56e85210a54dc286c06; statistics=16453d6e2683b8800ded2a27c7f595d9; Hm_lvt_8ccd0ef22095c2eebfe4cd6187dea829=1727664099; HMACCOUNT=AA7CAD3BA9E39EC8; 28114211b4e11617bd725475433e69aa=29d9778b3f2c1b30c137fef0d6728e29; Hm_lpvt_8ccd0ef22095c2eebfe4cd6187dea829=1727667138'
+#  -H 'dnt: 1'
+#  -H 'origin: https://ip.ihuan.me'
+#  -H 'pragma: no-cache'
+#  -H 'priority: u=0, i'
+#  -H 'referer: https://ip.ihuan.me/ti.html'
+#  -H 'sec-ch-ua: "Google Chrome";v="129", "Not=A?Brand";v="8", "Chromium";v="129"'
+#  -H 'sec-ch-ua-mobile: ?0'
+#  -H 'sec-ch-ua-platform: "Windows"'
+#  -H 'sec-fetch-dest: document'
+#  -H 'sec-fetch-mode: navigate'
+#  -H 'sec-fetch-site: same-origin'
+#  -H 'sec-fetch-user: ?1'
+#  -H 'upgrade-insecure-requests: 1'
+#  -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36'
+#  --data-raw 'num=100&port=&kill_port=&address=&kill_address=&anonymity=&type=&post=&sort=&key=15146aca2e04e3756a2e79ec33ca5679'
+#@no-cookie-jar
+POST https://ip.ihuan.me/tqdl.html
+accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+accept-language: zh-CN,zh;q=0.9,en;q=0.8
+cache-control: no-cache
+cookie: 91e73cee101cc3ecefd9ca31a227d508=4380c9f80effb56e85210a54dc286c06; statistics=16453d6e2683b8800ded2a27c7f595d9; Hm_lvt_8ccd0ef22095c2eebfe4cd6187dea829=1727664099; HMACCOUNT=AA7CAD3BA9E39EC8; 28114211b4e11617bd725475433e69aa=29d9778b3f2c1b30c137fef0d6728e29; Hm_lpvt_8ccd0ef22095c2eebfe4cd6187dea829=1727667138
+dnt: 1
+origin: https://ip.ihuan.me
+pragma: no-cache
+priority: u=0, i
+referer: https://ip.ihuan.me/ti.html
+sec-ch-ua: "Google Chrome";v="129", "Not=A?Brand";v="8", "Chromium";v="129"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "Windows"
+sec-fetch-dest: document
+sec-fetch-mode: navigate
+sec-fetch-site: same-origin
+sec-fetch-user: ?1
+upgrade-insecure-requests: 1
+user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36
+Content-Type: application/x-www-form-urlencoded
+
+num=100&port=&kill_port=&address=&kill_address=&anonymity=&type=&post=&sort=&key=15146aca2e04e3756a2e79ec33ca5679
+
+###
+https://ip.ihuan.me/
+accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+accept-language: zh-CN,zh;q=0.9,en;q=0.8
+cache-control: no-cache
+#cookie: 91e73cee101cc3ecefd9ca31a227d508=4380c9f80effb56e85210a54dc286c06; statistics=16453d6e2683b8800ded2a27c7f595d9; Hm_lvt_8ccd0ef22095c2eebfe4cd6187dea829=1727664099; HMACCOUNT=AA7CAD3BA9E39EC8; 28114211b4e11617bd725475433e69aa=29d9778b3f2c1b30c137fef0d6728e29; Hm_lpvt_8ccd0ef22095c2eebfe4cd6187dea829=1727667138
+dnt: 1
+origin: https://ip.ihuan.me
+pragma: no-cache
+priority: u=0, i
+referer: https://ip.ihuan.me
+sec-ch-ua: "Google Chrome";v="129", "Not=A?Brand";v="8", "Chromium";v="129"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "Windows"
+sec-fetch-dest: document
+sec-fetch-mode: navigate
+sec-fetch-site: same-origin
+sec-fetch-user: ?1
+upgrade-insecure-requests: 1
+user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36
+Content-Type: application/x-www-form-urlencoded
