@@ -14,13 +14,10 @@ import cn.qaiu.vx.core.annotaions.RouteHandler;
 import cn.qaiu.vx.core.annotaions.RouteMapping;
 import cn.qaiu.vx.core.enums.RouteMethod;
 import cn.qaiu.vx.core.util.AsyncServiceUtil;
-import cn.qaiu.vx.core.util.ResponseUtil;
 import cn.qaiu.vx.core.util.SharedDataUtil;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.net.HostAndPort;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -48,10 +45,11 @@ public class ParserApi {
     public Future<LinkInfoResp> parse(HttpServerRequest request, String pwd) {
         Promise<LinkInfoResp> promise = Promise.promise();
         String url = URLParamUtil.parserParams(request);
-        ShareLinkInfo shareLinkInfo = ParserCreate.fromShareUrl(url).setShareLinkInfoPwd(pwd).getShareLinkInfo();
+        ParserCreate parserCreate = ParserCreate.fromShareUrl(url).setShareLinkInfoPwd(pwd);
+        ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();
         LinkInfoResp build = LinkInfoResp.builder()
-                .downLink(getDownLink(shareLinkInfo, false))
-                .apiLink(getDownLink(shareLinkInfo, true))
+                .downLink(getDownLink(parserCreate, false))
+                .apiLink(getDownLink(parserCreate, true))
                 .shareLinkInfo(shareLinkInfo).build();
         // 解析次数统计
         cacheManager.getShareKeyTotal(shareLinkInfo.getCacheKey()).onSuccess(res -> {
@@ -68,16 +66,14 @@ public class ParserApi {
         return promise.future();
     }
 
-    private static String getDownLink(ShareLinkInfo shareLinkInfo, boolean isJson) {
+    private static String getDownLink(ParserCreate create, boolean isJson) {
 
         String linkPrefix = SharedDataUtil.getJsonConfig("server")
                 .getString("domainName");
         if (StringUtils.isBlank(linkPrefix)) {
             linkPrefix = "http://127.0.0.1";
         }
-        String pwd = shareLinkInfo.getSharePassword();
-        return linkPrefix + (isJson ? "/json/" : "/") + shareLinkInfo.getType() + "/" + shareLinkInfo.getShareKey() +
-                (StringUtils.isBlank(pwd) ? "" : ("@" + pwd));
+        return linkPrefix + (isJson ? "/json/" : "/") + create.genPathSuffix();
     }
 
 }

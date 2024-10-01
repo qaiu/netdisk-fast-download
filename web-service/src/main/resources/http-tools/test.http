@@ -111,6 +111,9 @@ GET http://127.0.0.1:6400/ye/Ev1lVv-t3SY3
 # @no-redirect
 GET http://127.0.0.1:6400/json/parser?url=https://www.123pan.com/s/iaKtVv-6OECd.html&pwd=DcGe
 
+### 123 PASS https://www.123865.com/s/iaKtVv-6OECd.html
+# @no-redirect
+GET http://127.0.0.1:6400/json/parser?url=https://www.123865.com/s/iaKtVv-6OECd.html&pwd=DcGe
 
 ### 123
 # @no-redirect
@@ -164,7 +167,9 @@ GET http://127.0.0.1:6400/json/parser?url=https://iwx.mail.qq.com/ftn/download?f
 GET http://127.0.0.1:6400/v2/statisticsInfo
 
 ###
-GET http://127.0.0.1:6400/v2/linkInfo?url=https://www.123pan.com/s/iaKtVv-6OECd.html&pwd=DcGe
+GET http://127.0.0.1:6400/v2/linkInfo?url=https://www.123865.com/s/iaKtVv-6OECd.html&pwd=DcGe
+###
+GET http://127.0.0.1:6400/v2/linkInfo?url=https://pan.seeoss.com/s/nLNsQ&pwd=DcGe
 
 ###
 POST http://127.0.0.1:6400/v2/login?username=asd
