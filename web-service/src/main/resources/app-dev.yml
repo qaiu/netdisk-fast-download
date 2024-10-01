@@ -53,8 +53,8 @@ cache:
     cow:
     ec:
     fc:
-    fj:
-    iz:
+    fj: 30
+    iz: 20
     le: 2879
     lz:
     qq: 999999

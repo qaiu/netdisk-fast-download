@@ -42,7 +42,9 @@ public class ParserCreate {
             String standardUrl = getStandardUrlTemplate().replace("{shareKey}", shareKey);
             shareLinkInfo.setShareUrl(shareUrl);
             shareLinkInfo.setShareKey(shareKey);
-            shareLinkInfo.setStandardUrl(standardUrl);
+            if (!(panDomainTemplate == PanDomainTemplate.CE)) {
+                shareLinkInfo.setStandardUrl(standardUrl);
+            }
             return this;
         }
         throw new IllegalArgumentException("Invalid share URL for " + this.panDomainTemplate.getDisplayName());
@@ -101,6 +103,9 @@ public class ParserCreate {
                         .type(panDomainTemplate.name().toLowerCase())
                         .panName(panDomainTemplate.getDisplayName())
                         .shareUrl(shareUrl).build();
+                if (panDomainTemplate == PanDomainTemplate.CE) {
+                    shareLinkInfo.setStandardUrl(shareUrl);
+                }
                 ParserCreate parserCreate = new ParserCreate(panDomainTemplate, shareLinkInfo);
                 return parserCreate.normalizeShareLink();
             }
@@ -120,4 +125,21 @@ public class ParserCreate {
             throw new IllegalArgumentException("No enum constant for type name: " + type);
         }
     }
+
+    // 生成parser短链path(不包含domainName)
+    public String genPathSuffix() {
+
+        String path;
+        if (panDomainTemplate == PanDomainTemplate.CE) {
+            // 处理Cloudreve(ce)类: pan.huang1111.cn_s_wDz5TK _ -> /
+            path = this.shareLinkInfo.getType() + "/"
+                    + this.shareLinkInfo.getShareUrl()
+                    .substring("https://".length()).replace("/", "_");
+        } else {
+            path = this.shareLinkInfo.getType() + "/" + this.shareLinkInfo.getShareKey();
+        }
+        String sharePassword = this.shareLinkInfo.getSharePassword();
+        return path + (StringUtils.isBlank(sharePassword) ? "" : ("@" + sharePassword));
+    }
+
 }
