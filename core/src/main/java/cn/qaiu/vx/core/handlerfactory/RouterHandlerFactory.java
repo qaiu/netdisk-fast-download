@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static cn.qaiu.vx.core.util.ConfigConstant.ROUTE_TIME_OUT;
+import static cn.qaiu.vx.core.verticle.ReverseProxyVerticle.REROUTE_PATH_PREFIX;
 import static io.vertx.core.http.HttpHeaders.*;
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
@@ -72,20 +73,15 @@ public class RouterHandlerFactory implements BaseHttpApi {
     public Router createRouter() {
         // 主路由
         Router mainRouter = Router.router(VertxHolder.getVertxInstance());
-
-        // 静态资源
-        String path = SharedDataUtil.getJsonConfig("server")
-                .getString("staticResourcePath");
-        if (!StringUtils.isEmpty(path)) {
-            // 静态资源
-            mainRouter.route("/*").handler(StaticHandler
-                    .create(path)
-                    .setCachingEnabled(true)
-                    .setDefaultContentEncoding("UTF-8"));
-        }
-
-
         mainRouter.route().handler(ctx -> {
+            String realPath = ctx.request().uri();;
+            if (realPath.startsWith(REROUTE_PATH_PREFIX)) {
+                // vertx web proxy暂不支持rewrite, 所以这里进行手动替换, 请求地址中的请求path前缀替换为originPath
+                String rePath = realPath.substring(REROUTE_PATH_PREFIX.length());
+                ctx.reroute(rePath);
+                return;
+            }
+
             LOGGER.debug("The HTTP service request address information ===>path:{}, uri:{}, method:{}",
                     ctx.request().path(), ctx.request().absoluteURI(), ctx.request().method());
             ctx.response().headers().add(ACCESS_CONTROL_ALLOW_ORIGIN, "*");

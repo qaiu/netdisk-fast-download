@@ -21,7 +21,7 @@ public class JDBCPoolInit {
     JsonObject dbConfig;
     Vertx vertx = VertxHolder.getVertxInstance();
     String url;
-    private JDBCType type;
+    private final JDBCType type;
 
     private static JDBCPoolInit instance;
 
@@ -64,22 +64,17 @@ public class JDBCPoolInit {
      * init h2db<br>
      * 这个方法只允许调用一次
      */
-    public void initPool() {
+    synchronized public void initPool() {
         if (pool != null) {
             LOGGER.error("pool 重复初始化");
             return;
         }
 
         // 初始化数据库连接
-        vertx.createSharedWorkerExecutor("sql-pool-init")
-                .executeBlocking(() -> {
-                    // 初始化连接池
-                    pool = JDBCPool.pool(vertx, dbConfig);
-                    CreateTable.createTable(pool, type);
-                    return "数据库连接初始化: URL=" + url;
-                })
-                .onSuccess(LOGGER::info)
-                .onFailure(Throwable::printStackTrace);
+        // 初始化连接池
+        pool = JDBCPool.pool(vertx, dbConfig);
+        CreateTable.createTable(pool, type);
+        LOGGER.info("数据库连接初始化: URL=" + url);
     }
 
     /**
@@ -87,7 +82,7 @@ public class JDBCPoolInit {
      *
      * @return pool
      */
-    public JDBCPool getPool() {
+    synchronized public JDBCPool getPool() {
         return pool;
     }
 }
