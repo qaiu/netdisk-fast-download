@@ -9,6 +9,16 @@
 2. 打包后请将当前目录下的nfd-front目录放置在项目下webroot目录, 然后使用maven打包java模块即可
 3. 项目部署后演示页面的代理端口是6401默认使用http, 如需https可以加nginx代理, 也可以使用本项目自带的代理服务和配置证书路径
 
+## nginx配置
+```nginx
+    location / {
+      proxy_pass http://127.0.0.1:6401;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+```
+
 ## Project setup
 ```
 npm install
