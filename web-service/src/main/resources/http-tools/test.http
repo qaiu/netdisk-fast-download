@@ -101,7 +101,7 @@ GET https://lz.qaiu.top/json/ye/iaKtVv-6OECd@DcGe
 
 ### 123 PASS
 # @no-redirect
-GET http://127.0.0.1:6400/ye/iaKtVv-qOECd
+GET http://127.0.0.1:6401/ye/iaKtVv-qOECd
 
 ### 123
 # @no-redirect

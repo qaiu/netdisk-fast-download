@@ -11,11 +11,11 @@ proxy:
         x-token: ABC
       root: webroot/nfd-front/
 #      index: index.html
-    # ~开通表示正则匹配否则为前缀匹配, 当origin带子路径时进行路由重写,
+    # ~开头(没有空格)表示正则匹配否则为前缀匹配, 当origin带子路径时进行路由重写,
     # 1.origin代理地址端口后有目录(包括 / )，转发后地址：代理地址+访问URL目录部分去除location匹配目录
     # 2.origin代理地址端口后无任何，转发后地址：代理地址+访问URL目录部
     location:
-      - path: ~^/(json/|v2/|parser).*
+      - path: ~^/(json/|v2/|parser|ye/|lz/|cow/|ec/|fj/|fc/|le/|qq/|ws/|iz/|ce/).*
         origin: 127.0.0.1:6400
 
       # json/parser -> xxx/parser

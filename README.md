@@ -185,11 +185,8 @@ bash service-install.sh
 如果不想使用服务运行可以直接运行run.bat
 > 注意: 如果jdk环境变量的java版本不是17请修改nfd-service-template.xml中的java命令的路径改为实际路径
 
-## 0.1.8 开发计划
-- Docker部署
-- 联想乐云解析  √
-- 直链缓存     √
-- 日志优化     √
+## 0.1.9 开发计划
+- todo
 
 
 **技术栈:**
