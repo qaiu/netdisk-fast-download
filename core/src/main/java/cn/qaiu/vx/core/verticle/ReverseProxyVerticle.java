@@ -6,13 +6,13 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpServer;
-import io.vertx.core.http.WebSocket;
+import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.net.PemKeyCertOptions;
+import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.StaticHandler;
-import io.vertx.ext.web.handler.sockjs.SockJSHandler;
-import io.vertx.ext.web.handler.sockjs.SockJSHandlerOptions;
 import io.vertx.ext.web.proxy.handler.ProxyHandler;
 import io.vertx.httpproxy.HttpProxy;
 import org.apache.commons.lang3.StringUtils;
@@ -40,9 +40,11 @@ public class ReverseProxyVerticle extends AbstractVerticle {
             .getJsonConfig(ConfigConstant.GLOBAL_CONFIG)
             .getString("proxyConf");
     private static final Future<JsonObject> CONFIG = ConfigUtil.readYamlConfig(PATH_PROXY_CONFIG);
-    private static final String DEFAULT_PATH_404 = "webroot/err/404.html";
+    private static final String DEFAULT_PATH_404 = "webroot/err/page404.html";
 
     private static String serverName = "Vert.x-proxy-server"; //Server name in Http response header
+
+    public static String REROUTE_PATH_PREFIX = "/__rrvpspp"; //re_route_vert_proxy_server_path_prefix 硬编码
 
 
     @Override
@@ -74,22 +76,24 @@ public class ReverseProxyVerticle extends AbstractVerticle {
      * @param proxyConf 代理配置
      */
     private void handleProxyConf(JsonObject proxyConf) {
-        // 404 path
-        if (proxyConf.containsKey("404")) {
+        // page404 path
+        if (proxyConf.containsKey(
+
+                "page404")) {
             System.getProperty("user.dir");
-            String path = proxyConf.getString("404");
+            String path = proxyConf.getString("page404");
             if (StringUtils.isEmpty(path)) {
-                proxyConf.put("404", DEFAULT_PATH_404);
+                proxyConf.put("page404", DEFAULT_PATH_404);
             } else {
                 if (!path.startsWith("/")) {
                     path = "/" + path;
                 }
                 if (!new File(System.getProperty("user.dir") + path).exists()) {
-                    proxyConf.put("404", DEFAULT_PATH_404);
+                    proxyConf.put("page404", DEFAULT_PATH_404);
                 }
             }
         } else {
-            proxyConf.put("404", DEFAULT_PATH_404);
+            proxyConf.put("page404", DEFAULT_PATH_404);
         }
 
         final HttpClient httpClient = VertxHolder.getVertxInstance().createHttpClient();
@@ -111,22 +115,49 @@ public class ReverseProxyVerticle extends AbstractVerticle {
             handleStatic(proxyConf.getJsonObject("static"), proxyRouter);
         }
 
-        // static server
-        if (proxyConf.containsKey("sock")) {
-            handleSock(proxyConf.getJsonArray("sock"), httpClient, proxyRouter);
-        }
-
-        // Send 404 page
+        // Send page404 page
         proxyRouter.errorHandler(404, ctx -> {
-            ctx.response().sendFile(proxyConf.getString("404"));
+            ctx.response().sendFile(proxyConf.getString("page404"));
         });
 
-        HttpServer server = vertx.createHttpServer();
+        HttpServer server = getHttpsServer(proxyConf);
         server.requestHandler(proxyRouter);
 
         Integer port = proxyConf.getInteger("listen");
         LOGGER.info("proxy server start on {} port", port);
         server.listen(port);
+    }
+
+    private HttpServer getHttpsServer(JsonObject proxyConf) {
+        HttpServerOptions httpServerOptions = new HttpServerOptions();
+        if (proxyConf.containsKey("ssl")) {
+            JsonObject sslConfig = proxyConf.getJsonObject("ssl");
+
+            URL sslUrl = this.getClass().getClassLoader().getResource("");
+            if (sslUrl == null) {
+                throw new RuntimeException("SSL url not exist...");
+            }
+            if (sslConfig.containsKey("enable") && sslConfig.getBoolean("enable")) {
+                String sslCertificatePath = sslUrl.getPath() + sslConfig.getString("ssl_certificate");
+                String sslCertificateKeyPath = sslUrl.getPath() + sslConfig.getString("ssl_certificate_key");
+                LOGGER.info("enable ssl config. ");
+                httpServerOptions
+                        .setSsl(true)
+                        .setKeyCertOptions(
+                                new PemKeyCertOptions()
+                                        .setKeyPath(sslCertificateKeyPath)
+                                        .setCertPath(sslCertificatePath)
+                        ).addEnabledSecureTransportProtocol(sslConfig.getString("ssl_protocols"));
+                String sslCiphers = sslConfig.getString("ssl_ciphers");
+                if (sslCiphers != null && !sslCiphers.isEmpty()) {
+                    for (String s : sslCiphers.split(":")) {
+                        httpServerOptions.addEnabledCipherSuite(s);
+                    }
+                }
+            }
+
+        }
+        return vertx.createHttpServer(httpServerOptions);
     }
 
     /**
@@ -145,9 +176,12 @@ public class ReverseProxyVerticle extends AbstractVerticle {
             ctx.next();
         });
 
-        final StaticHandler staticHandler = StaticHandler.create();
+
+        StaticHandler staticHandler;
         if (staticConf.containsKey("root")) {
-            staticHandler.setWebRoot(staticConf.getString("root"));
+            staticHandler = StaticHandler.create(staticConf.getString("root"));
+        } else {
+            staticHandler = StaticHandler.create();
         }
         if (staticConf.containsKey("directory-listing")) {
             staticHandler.setDirectoryListing(staticConf.getBoolean("directory-listing"));
@@ -178,7 +212,7 @@ public class ReverseProxyVerticle extends AbstractVerticle {
                     port = 80;
                 }
                 String originPath = url.getPath();
-                LOGGER.debug("Conf(path, originPath, host, port) ----> {},{},{},{}", path, originPath, host, port);
+                LOGGER.info("Conf(path, originPath, host, port) ----> {},{},{},{}", path, originPath, host, port);
 
                 // 注意这里不能origin多个代理地址, 一个实例只能代理一个origin
                 final HttpProxy httpProxy = HttpProxy.reverseProxy(httpClient);
@@ -189,14 +223,21 @@ public class ReverseProxyVerticle extends AbstractVerticle {
 
                 // 代理目标路径为空 就像nginx一样路径穿透 (相对路径)
                 if (StringUtils.isEmpty(originPath) || path.equals(originPath)) {
-                    proxyRouter.route(path + "*").handler(ProxyHandler.create(httpProxy));
+                    Route route = path.startsWith("~") ? proxyRouter.routeWithRegex(path.substring(1))
+                            : proxyRouter.route(path);
+                    route.handler(ProxyHandler.create(httpProxy));
                 } else {
-                    proxyRouter.route(originPath + "*").handler(ProxyHandler.create(httpProxy));
-                    proxyRouter.route(path + "*").handler(ctx -> {
-                        String realPath = ctx.request().path();
-                        if (realPath.startsWith(path)) {
+                    // 配置 /api/, / => 请求 /api/test 代理后 /test
+                    // 配置 /api/, /xxx => 请求 /api/test 代理后 /xxx/test
+                    final String path0 = path;
+                    final String originPath0 = REROUTE_PATH_PREFIX + originPath;
+
+                    proxyRouter.route(originPath0 + "*").handler(ProxyHandler.create(httpProxy));
+                    proxyRouter.route(path0 + "*").handler(ctx -> {
+                        String realPath = ctx.request().uri();
+                        if (realPath.startsWith(path0)) {
                             // vertx web proxy暂不支持rewrite, 所以这里进行手动替换, 请求地址中的请求path前缀替换为originPath
-                            String rePath = realPath.replaceAll("^" + path, originPath);
+                            String rePath = realPath.replaceAll("^" + path0, originPath0);
                             ctx.reroute(rePath);
                         } else {
                             ctx.next();
@@ -209,55 +250,5 @@ public class ReverseProxyVerticle extends AbstractVerticle {
             }
 
         });
-    }
-
-    /**
-     * 处理websocket
-     *
-     * @param confList    sock配置
-     * @param httpClient  客户端
-     * @param proxyRouter 代理路由
-     */
-    private void handleSock(JsonArray confList, HttpClient httpClient, Router proxyRouter) {
-        // 代理规则
-        confList.stream().map(e -> (JsonObject) e).forEach(conf -> {
-
-            String origin = conf.getString("origin");
-            String path = conf.getString("path");
-            LOGGER.info("websocket proxy: {}, {}",origin,path);
-
-            SockJSHandlerOptions options = new SockJSHandlerOptions()
-                    .setHeartbeatInterval(2000)
-                    .setRegisterWriteHandler(true);
-
-            SockJSHandler sockJSHandler = SockJSHandler.create(VertxHolder.getVertxInstance(), options);
-            if (!path.startsWith("/")) {
-                path = "/" + path;
-            }
-
-
-            Router route = sockJSHandler.socketHandler(sock -> {
-                sock.handler(buffer -> {
-                    Future<WebSocket> webSocketFuture = httpClient.webSocket(8086,"127.0.0.1",sock.uri());
-                    webSocketFuture.onSuccess(s -> {
-                        System.out.println(buffer.toString());
-                        s.write(buffer).onSuccess(v -> {
-                            s.handler(w->{
-                                System.out.println("--------"+w.toString());
-                            });
-                        });
-                    });
-                });
-                sock.endHandler(v -> {
-
-                });
-                sock.closeHandler(v -> {
-
-                });
-            });
-            proxyRouter.mountSubRouter("/real/serverApi/test", route);
-        });
-
-
     }
 }

@@ -1,6 +1,6 @@
 ### PASS 蓝奏云
 # @no-redirect
-GET http://127.0.0.1:6400/parser?url=https://www.lanzoux.com/ia2cntg
+GET http://127.0.0.1:6400/parser?url=https://www123-asd111.lanzoux.com/ia2cntg
 
 ### 蓝奏云
 # @no-redirect
@@ -176,4 +176,20 @@ POST http://127.0.0.1:6400/v2/login?username=asd
 
 
 
+### 6401/v2
+GET http://127.0.0.1:6401/v2/linkInfo?url=https://pan.seeoss.com/s/nLNsQ&pwd=DcGe
+
+
+
+### PASS QQ
+# @no-redirect
+GET http://127.0.0.1:6401/parser?url=https://iwx.mail.qq.com/ftn/download?func=3&key=qweqe&code=8c02cf57&k=asdad
+
+
+### PASS QQ
+# @no-redirect
+GET http://127.0.0.1:6401/json/parser?url=https://iwx.mail.qq.com/ftn/download?func=3&key=qweqe&code=8c02cf57&k=asdad
+
+### n1
+http://127.0.0.1:6401/n1/statisticsInfo
 

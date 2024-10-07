@@ -1,22 +1,43 @@
 # 反向代理
 server-name: Vert.x-proxy-server(v4.1.2)
 
-#proxy:
-#  - listen: 8085
-#    # 404的路径
-#    404: webroot/real-html/index.html
-#    static:
-#      path: /
-##      add-headers:
-##        x-token: ABC
-#      root: webroot/real-html/
-#      index: realIndex
-#    location:
-#      - path: /real/
-#        origin: 127.0.0.1:8088
-#      - path: /api/
-#        origin: 127.0.0.1:7070/demo/
-#
+proxy:
+  - listen: 6401
+    # 404的路径
+    page404: webroot/err/404.html
+    static:
+      path: /
+      add-headers:
+        x-token: ABC
+      root: webroot/nfd-front/
+#      index: index.html
+    # ~开通表示正则匹配否则为前缀匹配, 当origin带子路径时进行路由重写,
+    # 1.origin代理地址端口后有目录(包括 / )，转发后地址：代理地址+访问URL目录部分去除location匹配目录
+    # 2.origin代理地址端口后无任何，转发后地址：代理地址+访问URL目录部
+    location:
+      - path: ~^/(json/|v2/|parser).*
+        origin: 127.0.0.1:6400
+
+      # json/parser -> xxx/parser
+#      - path: /json/
+#        origin: 127.0.0.1:6400/
+      - path: /n1/
+        origin: 127.0.0.1:6400/v2/
+
+#    # SSL HTTPS配置
+    ssl:
+      enable: false
+      # 强制https 暂不支持
+      #ssl_force: true
+      # SSL 协议版本
+      ssl_protocols: TLSv1.2
+      # 证书
+      ssl_certificate: ssl/server.pem
+      # 私钥
+      ssl_certificate_key: ssl/privkey.key
+      # 加密套件 ssl_ciphers 暂不支持
+      # ssl_ciphers: AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384
+
 #  - listen: 8086
 #    static:
 #      path: /t2/

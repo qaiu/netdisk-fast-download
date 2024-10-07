@@ -4,16 +4,13 @@ server:
   contextPath: /
   # 使用数据库
   enableDatabase: true
-  # 使用静态页面
-  enableStaticHtmlService: false
-  staticResourcePath: webroot/
-  # 服务域名或者IP
+  # 服务域名或者IP 生成二维码链接时需要
   domainName: https://lz.qaiu.top
 
 # 反向代理服务器配置路径(不用加后缀)
 proxyConf: server-proxy
 
-# vertx线程配置 事件循环线程配置为0: eventLoopPoolSize将会采用默认配置(CPU核心*2) workerPoolSize将会采用默认20
+# vertx线程配置, 为0表示eventLoopPoolSize将会采用默认配置(CPU核心*2) workerPoolSize将会采用默认20
 vertx:
   eventLoopPoolSize: 0
   workerPoolSize: 0

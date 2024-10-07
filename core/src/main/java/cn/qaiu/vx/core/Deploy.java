@@ -132,19 +132,23 @@ public final class Deploy {
         localMap.put(GLOBAL_CONFIG, globalConfig);
         localMap.put(CUSTOM_CONFIG, customConfig);
         localMap.put(SERVER, globalConfig.getJsonObject(SERVER));
-        var future0 = vertx.createSharedWorkerExecutor("other-handle").executeBlocking(bch -> {
-            handle.handle(globalConfig);
-            bch.complete("other handle complete");
-        });
+        var future0 = vertx.createSharedWorkerExecutor("other-handle")
+                .executeBlocking(() -> {
+                    handle.handle(globalConfig);
+                    return "Other handle complete";
+                });
 
-        // 部署 路由、异步service、反向代理 服务
-        var future1 = vertx.deployVerticle(RouterVerticle.class, getWorkDeploymentOptions("Router"));
-        var future2 = vertx.deployVerticle(ServiceVerticle.class, getWorkDeploymentOptions("Service"));
-        var future3 = vertx.deployVerticle(ReverseProxyVerticle.class, getWorkDeploymentOptions("proxy"));
+        future0.onSuccess(res -> {
+            LOGGER.info(res);
+            // 部署 路由、异步service、反向代理 服务
+            var future1 = vertx.deployVerticle(RouterVerticle.class, getWorkDeploymentOptions("Router"));
+            var future2 = vertx.deployVerticle(ServiceVerticle.class, getWorkDeploymentOptions("Service"));
+            var future3 = vertx.deployVerticle(ReverseProxyVerticle.class, getWorkDeploymentOptions("proxy"));
 
-        CompositeFuture.all(future1, future2, future3, future0)
-                .onSuccess(this::deployWorkVerticalSuccess)
-                .onFailure(this::deployVerticalFailed);
+            Future.all(future1, future2, future3)
+                    .onSuccess(this::deployWorkVerticalSuccess)
+                    .onFailure(this::deployVerticalFailed);
+        }).onFailure(e -> LOGGER.error("Other handle error", e));
     }
 
     /**
