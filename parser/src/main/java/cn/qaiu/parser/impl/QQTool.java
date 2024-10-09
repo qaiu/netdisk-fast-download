@@ -1,7 +1,6 @@
 package cn.qaiu.parser.impl;
 
-import cn.qaiu.entity.ShareLinkInfo;
-import cn.qaiu.parser.IPanTool;
+import cn.qaiu.entity.ShareLinkInfo; 
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.StringUtils;
 import io.netty.handler.codec.http.QueryStringDecoder;
@@ -15,7 +14,7 @@ import java.util.Map;
 /**
  * <a href="https://wx.mail.qq.com/">QQ邮箱</a>
  */
-public class QQTool extends PanBase implements IPanTool {
+public class QQTool extends PanBase {
 
     public static final String REDIRECT_URL_TEMP = "https://iwx.mail.qq.com/ftn/download?func=4&key={key}&code={code}";
 

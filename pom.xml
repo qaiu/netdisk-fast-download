@@ -32,7 +32,8 @@
         <commons-lang3.version>3.12.0</commons-lang3.version>
         <commons-beanutils2.version>2.0.0</commons-beanutils2.version>
         <jackson.version>2.14.2</jackson.version>
-        <logback.version>1.4.12</logback.version>
+        <logback.version>1.5.8</logback.version>
+        <junit.version>4.13.2</junit.version>
     </properties>
 
     <dependencyManagement>

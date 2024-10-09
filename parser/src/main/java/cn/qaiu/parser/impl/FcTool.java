@@ -1,7 +1,6 @@
 package cn.qaiu.parser.impl;
 
-import cn.qaiu.entity.ShareLinkInfo;
-import cn.qaiu.parser.IPanTool;
+import cn.qaiu.entity.ShareLinkInfo; 
 import cn.qaiu.parser.PanBase;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -19,7 +18,7 @@ import java.util.regex.Pattern;
 /**
  * 360亿方云
  */
-public class FcTool extends PanBase implements IPanTool {
+public class FcTool extends PanBase {
 
     public static final String SHARE_URL_PREFIX = "https://v2.fangcloud.com/sharing/";
     public static final String SHARE_URL_PREFIX2 = "https://v2.fangcloud.cn/sharing/";

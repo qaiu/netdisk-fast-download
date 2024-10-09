@@ -32,6 +32,7 @@ public class CacheConfigLoader {
         return CONFIGS.get(pdt.name().toLowerCase());
     }
     public static Integer getDuration(String type) {
-        return CONFIGS.get(type.toLowerCase());
+        String key = type.toLowerCase();
+        return CONFIGS.getOrDefault(key, -1);
     }
 }

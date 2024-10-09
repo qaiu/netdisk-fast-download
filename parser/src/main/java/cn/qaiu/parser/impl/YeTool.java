@@ -1,7 +1,6 @@
 package cn.qaiu.parser.impl;
 
-import cn.qaiu.entity.ShareLinkInfo;
-import cn.qaiu.parser.IPanTool;
+import cn.qaiu.entity.ShareLinkInfo; 
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.CommonUtils;
 import cn.qaiu.util.JsExecUtils;
@@ -21,7 +20,7 @@ import java.util.regex.Pattern;
 /**
  * 123网盘
  */
-public class YeTool extends PanBase implements IPanTool {
+public class YeTool extends PanBase {
 
     public static final String SHARE_URL_PREFIX = "https://www.123pan.com/s/";
     public static final String FIRST_REQUEST_URL = SHARE_URL_PREFIX + "{key}.html";

@@ -1,14 +1,13 @@
 package cn.qaiu.parser.impl;
 
-import cn.qaiu.entity.ShareLinkInfo;
-import cn.qaiu.parser.IPanTool;
+import cn.qaiu.entity.ShareLinkInfo; 
 import cn.qaiu.parser.PanBase;
 import io.vertx.core.Future;
 
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
-public class QkTool extends PanBase implements IPanTool {
+public class QkTool extends PanBase {
 
     public QkTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);

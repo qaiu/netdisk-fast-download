@@ -1,7 +1,6 @@
 package cn.qaiu.parser.impl;
 
-import cn.qaiu.entity.ShareLinkInfo;
-import cn.qaiu.parser.IPanTool;
+import cn.qaiu.entity.ShareLinkInfo; 
 import cn.qaiu.parser.PanBase;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
@@ -12,7 +11,7 @@ import java.util.UUID;
 /**
  * <a href="https://lecloud.lenovo.com/">联想乐云</a>
  */
-public class LeTool extends PanBase implements IPanTool {
+public class LeTool extends PanBase {
     private static final String API_URL_PREFIX = "https://lecloud.lenovo.com/share/api/clouddiskapi/share/public/v1/";
 
     public LeTool(ShareLinkInfo shareLinkInfo) {
