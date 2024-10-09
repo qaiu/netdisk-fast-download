@@ -190,6 +190,12 @@ GET http://127.0.0.1:6401/parser?url=https://iwx.mail.qq.com/ftn/download?func=3
 # @no-redirect
 GET http://127.0.0.1:6401/json/parser?url=https://iwx.mail.qq.com/ftn/download?func=3&key=qweqe&code=8c02cf57&k=asdad
 
+### PASS CT
+# @no-redirect
+GET http://127.0.0.1:6401/parser?url=https://474b.com/file/4015376-131945810
+
+
+
 ### n1
 http://127.0.0.1:6401/n1/statisticsInfo
 

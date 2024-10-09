@@ -1,7 +1,6 @@
 package cn.qaiu.parser.impl;
 
-import cn.qaiu.entity.ShareLinkInfo;
-import cn.qaiu.parser.IPanTool;
+import cn.qaiu.entity.ShareLinkInfo; 
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.AESUtils;
 import io.vertx.core.Future;
@@ -15,7 +14,7 @@ import java.util.UUID;
  * 蓝奏云优享
  *
  */
-public class IzTool extends PanBase implements IPanTool {
+public class IzTool extends PanBase {
 
     public static final String SHARE_URL_PREFIX = "https://www.ilanzou.com/s/";
     private static final String API_URL_PREFIX = "https://api.ilanzou.com/unproved/";

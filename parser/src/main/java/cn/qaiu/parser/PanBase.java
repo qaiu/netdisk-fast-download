@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
  * 解析器抽象类包含promise, HTTP Client, 默认失败方法等;
  * 新增网盘解析器需要继承该类.
  */
-public abstract class PanBase {
+public abstract class PanBase implements IPanTool {
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
     protected Promise<String> promise = Promise.promise();
@@ -49,6 +49,7 @@ public abstract class PanBase {
      *  }
      * </pre></blockquote>
      *
+     * @param shareLinkInfo 分享链接信息
      */
     public PanBase(ShareLinkInfo shareLinkInfo) {
         this.shareLinkInfo = shareLinkInfo;

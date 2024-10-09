@@ -71,6 +71,10 @@ public enum PanDomainTemplate {
             "https://(.*)cowtransfer\\.com/s/(.+)",
             "https://cowtransfer.com/s/{shareKey}",
             CowTool.class),
+    CT("城通网盘",
+            "https://474b\\.com/file/(.+)",
+            "https://474b.com/file/{shareKey}",
+            CtTool.class),
     // https://pan.huang1111.cn/s/xxx
     // 通用域名([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}
     CE("Cloudreve",

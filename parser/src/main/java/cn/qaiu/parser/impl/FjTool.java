@@ -1,7 +1,6 @@
 package cn.qaiu.parser.impl;
 
-import cn.qaiu.entity.ShareLinkInfo;
-import cn.qaiu.parser.IPanTool;
+import cn.qaiu.entity.ShareLinkInfo; 
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.AESUtils;
 import cn.qaiu.util.UUIDUtil;
@@ -17,7 +16,7 @@ import io.vertx.uritemplate.UriTemplate;
  *
  * @version V016_230609
  */
-public class FjTool extends PanBase implements IPanTool {
+public class FjTool extends PanBase {
     public static final String REFERER_URL = "https://share.feijipan.com/";
     private static final String API_URL_PREFIX = "https://api.feijipan.com/ws/";
 

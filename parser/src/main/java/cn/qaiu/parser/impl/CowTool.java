@@ -1,7 +1,6 @@
 package cn.qaiu.parser.impl;
 
-import cn.qaiu.entity.ShareLinkInfo;
-import cn.qaiu.parser.IPanTool;
+import cn.qaiu.entity.ShareLinkInfo; 
 import cn.qaiu.parser.PanBase;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
@@ -13,7 +12,7 @@ import org.apache.commons.lang3.StringUtils;
  * @author <a href="https://qaiu.top">QAIU</a>
  * @date 2023/4/21 21:19
  */
-public class CowTool extends PanBase implements IPanTool {
+public class CowTool extends PanBase {
 
     private static final String API_REQUEST_URL = "https://cowtransfer.com/core/api/transfer/share";
 

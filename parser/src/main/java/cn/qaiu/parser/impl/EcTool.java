@@ -1,7 +1,6 @@
 package cn.qaiu.parser.impl;
 
-import cn.qaiu.entity.ShareLinkInfo;
-import cn.qaiu.parser.IPanTool;
+import cn.qaiu.entity.ShareLinkInfo; 
 import cn.qaiu.parser.PanBase;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
@@ -11,7 +10,7 @@ import io.vertx.uritemplate.UriTemplate;
 /**
  * 移动云空间解析
  */
-public class EcTool extends PanBase implements IPanTool {
+public class EcTool extends PanBase {
     // https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=4b3d786755688b85c6eb0c04b9124f4dalzdaJpXHx&isShare=1
     private static final String FIRST_REQUEST_URL = "https://www.ecpan.cn/drive/fileextoverrid" +
             ".do?extractionCode={extractionCode}&chainUrlTemplate=https:%2F%2Fwww.ecpan" +

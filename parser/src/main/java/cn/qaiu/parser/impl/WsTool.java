@@ -1,7 +1,6 @@
 package cn.qaiu.parser.impl;
 
-import cn.qaiu.entity.ShareLinkInfo;
-import cn.qaiu.parser.IPanTool;
+import cn.qaiu.entity.ShareLinkInfo; 
 import cn.qaiu.parser.PanBase;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -15,7 +14,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * <a href="https://www.wenshushu.cn/">文叔叔</a>
  */
-public class WsTool extends PanBase implements IPanTool {
+public class WsTool extends PanBase {
 
     public static final String SHARE_URL_PREFIX  = "www.wenshushu.cn/f/";
     public static final String SHARE_URL_API     = "https://www.wenshushu.cn/ap/";

@@ -34,8 +34,11 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 - [联想乐云 (le)](https://lecloud.lenovo.com/)
 - [QQ邮箱文件中转站 (qq)](https://mail.qq.com/)
 - [超星网盘-开发中 (cx)](https://passport2.chaoxing.com/login?newversion=true&refer=https%3A%2F%2Fpan-yz.chaoxing.com%2F)
-- [Cloudreve自建网盘--正在优化 (ce)](https://github.com/cloudreve/Cloudreve)    
+- [城通网盘(ce)](https://www.ctfile.com)
+- [Cloudreve自建网盘(ce)](https://github.com/cloudreve/Cloudreve)    
+
 **TODO:**
+  - docker
   - 登录接口, 文件上传/下载/分享后端接口
   - 短地址服务
   - 前端界面(建设中...)
@@ -186,8 +189,11 @@ bash service-install.sh
 > 注意: 如果jdk环境变量的java版本不是17请修改nfd-service-template.xml中的java命令的路径改为实际路径
 
 ## 0.1.9 开发计划
-- todo
-
+- 超星网盘解析 doing
+- 带Referer头的js请求下载 doing
+- 城通网盘解析 √
+- 目录解析(专属版)
+- 带cookie/token参数解析大文件(专属版)
 
 **技术栈:**
 Jdk17+Vert.x4.4.1
@@ -200,7 +206,8 @@ Core模块集成Vert.x实现类似spring的注解式路由API
 
 
 ## 支持该项目
-开源不易，用爱发电，本项目长期维护如果觉得有帮助, 可以请作者喝杯咖啡, 感谢支持
+开源不易，用爱发电，本项目长期维护如果觉得有帮助, 可以请作者喝杯咖啡, 感谢支持  
+赞助88元以上, 可以优先体验专享版--大文件解析,目录解析
 ![image](https://github.com/qaiu/netdisk-fast-download/assets/29825328/54276aee-cc3f-4ebd-8973-2e15f6295819)
 
 [手机端支付宝打赏跳转链接](https://qr.alipay.com/fkx01882dnoxxtjenhlxt53)

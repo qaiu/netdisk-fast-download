@@ -1,7 +1,6 @@
 package cn.qaiu.parser.impl;
 
-import cn.qaiu.entity.ShareLinkInfo;
-import cn.qaiu.parser.IPanTool;
+import cn.qaiu.entity.ShareLinkInfo; 
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.JsExecUtils;
 import io.vertx.core.Future;
@@ -20,7 +19,7 @@ import java.util.regex.Pattern;
  *
  * @author QAIU
  */
-public class LzTool extends PanBase implements IPanTool {
+public class LzTool extends PanBase {
 
     public static final String SHARE_URL_PREFIX = "https://wwwa.lanzoux.com";
 

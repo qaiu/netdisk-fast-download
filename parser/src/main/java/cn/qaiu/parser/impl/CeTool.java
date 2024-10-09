@@ -1,7 +1,6 @@
 package cn.qaiu.parser.impl;
 
-import cn.qaiu.entity.ShareLinkInfo;
-import cn.qaiu.parser.IPanTool;
+import cn.qaiu.entity.ShareLinkInfo; 
 import cn.qaiu.parser.PanBase;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
@@ -17,7 +16,7 @@ import java.net.URL;
  * <a href="https://pan.seeoss.com">看见存储</a> <br>
  * <a href="https://dav.yiandrive.com">亿安云盘</a> <br>
  */
-public class CeTool extends PanBase implements IPanTool {
+public class CeTool extends PanBase {
 
     private static final String DOWNLOAD_API_PATH = "/api/v3/share/download/";
 
