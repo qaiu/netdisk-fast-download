@@ -35,6 +35,7 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 - [QQ邮箱文件中转站 (qq)](https://mail.qq.com/)
 - [超星网盘-开发中 (cx)](https://passport2.chaoxing.com/login?newversion=true&refer=https%3A%2F%2Fpan-yz.chaoxing.com%2F)
 - [城通网盘(ct)](https://www.ctfile.com)
+- [网易云音乐(mne)](https://music.163.com)
 - [Cloudreve自建网盘(ce)](https://github.com/cloudreve/Cloudreve)    
 
 **TODO:**

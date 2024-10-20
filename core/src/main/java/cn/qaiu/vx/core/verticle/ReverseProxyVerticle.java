@@ -48,8 +48,9 @@ public class ReverseProxyVerticle extends AbstractVerticle {
 
 
     @Override
-    public void start(Promise<Void> startPromise) throws Exception {
+    public void start(Promise<Void> startPromise) {
         CONFIG.onSuccess(this::handleProxyConfList);
+//        createFileListener
         startPromise.complete();
     }
 
@@ -116,9 +117,7 @@ public class ReverseProxyVerticle extends AbstractVerticle {
         }
 
         // Send page404 page
-        proxyRouter.errorHandler(404, ctx -> {
-            ctx.response().sendFile(proxyConf.getString("page404"));
-        });
+        proxyRouter.errorHandler(404, ctx -> ctx.response().sendFile(proxyConf.getString("page404")));
 
         HttpServer server = getHttpsServer(proxyConf);
         server.requestHandler(proxyRouter);

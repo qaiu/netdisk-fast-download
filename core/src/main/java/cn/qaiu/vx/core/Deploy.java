@@ -185,7 +185,7 @@ public final class Deploy {
     private DeploymentOptions getWorkDeploymentOptions(String name, int ins) {
         return new DeploymentOptions()
                 .setWorkerPoolName(name)
-                .setWorker(true)
+                .setThreadingModel(ThreadingModel.WORKER)
                 .setInstances(ins);
     }
 

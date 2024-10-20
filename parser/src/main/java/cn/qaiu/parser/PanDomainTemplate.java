@@ -75,6 +75,11 @@ public enum PanDomainTemplate {
             "https://474b\\.com/file/(.+)",
             "https://474b.com/file/{shareKey}",
             CtTool.class),
+    // http://163cn.tv/xxx
+    MNE("网易云音乐",
+            "http(s)?://163cn\\.tv/(.+)",
+            "http://163cn.tv/{shareKey}",
+            MneTool.class),
     // https://pan.huang1111.cn/s/xxx
     // 通用域名([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}
     CE("Cloudreve",

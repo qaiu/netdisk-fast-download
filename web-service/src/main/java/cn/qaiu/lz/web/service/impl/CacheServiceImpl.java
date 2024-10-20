@@ -3,6 +3,7 @@ package cn.qaiu.lz.web.service.impl;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.lz.common.cache.CacheConfigLoader;
 import cn.qaiu.lz.common.cache.CacheManager;
+import cn.qaiu.lz.common.cache.CacheTotalField;
 import cn.qaiu.lz.web.model.CacheLinkInfo;
 import cn.qaiu.lz.web.service.CacheService;
 import cn.qaiu.parser.ParserCreate;
@@ -46,12 +47,12 @@ public class CacheServiceImpl implements CacheService {
                             "shareKey", cacheKey
                     ));
                     cacheManager.cacheShareLink(cacheLinkInfo).onFailure(Throwable::printStackTrace);
-                    cacheManager.updateTotalByParser(cacheKey).onFailure(Throwable::printStackTrace);
+                    cacheManager.updateTotalByField(cacheKey, CacheTotalField.API_PARSER_TOTAL).onFailure(Throwable::printStackTrace);
                 }).onFailure(promise::fail);
             } else {
                 result.setExpires(generateDate(result.getExpiration()));
                 promise.complete(result);
-                cacheManager.updateTotalByCached(cacheKey).onFailure(Throwable::printStackTrace);
+                cacheManager.updateTotalByField(cacheKey, CacheTotalField.CACHE_HIT_TOTAL).onFailure(Throwable::printStackTrace);
             }
         }).onFailure(t -> promise.fail(t.fillInStackTrace()));
         return promise.future();
