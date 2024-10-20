@@ -52,15 +52,16 @@ public class CacheManager {
     }
 
     // 写入网盘厂商API解析次数
-    public Future<Integer> updateTotalByCached(String shareKey) {
+    public Future<Integer> updateTotalByField(String shareKey, CacheTotalField field) {
         Promise<Integer> promise = Promise.promise();
+        String fieldLower = field.name().toLowerCase();
         String sql = """
-                MERGE INTO `api_statistics_info` (`pan_type`, `share_key`, `cache_hit_total`, `update_ts`)
+                MERGE INTO `api_statistics_info` (`pan_type`, `share_key`, `{field}`, `update_ts`)
                                 KEY (`share_key`)
                                 VALUES (#{panType}, #{shareKey}, #{total}, #{ts})
-                """;
+                """.replace("field", fieldLower);
 
-        getShareKeyTotal(shareKey, "cache_hit_total").onSuccess(total -> {
+        getShareKeyTotal(shareKey, fieldLower).onSuccess(total -> {
             Integer newTotal = (total == null ? 0 : total) + 1;
             SqlTemplate.forUpdate(jdbcPool, sql)
                     .execute(new HashMap<>() {{
@@ -79,30 +80,6 @@ public class CacheManager {
     private String getShareType(String fullShareKey) {
         // 将type和shareKey组合成一个字符串作为缓存key
         return fullShareKey.split(":")[0];
-    }
-
-    // 写入网盘厂商API解析次数
-    public Future<Integer> updateTotalByParser(String shareKey) {
-        Promise<Integer> promise = Promise.promise();
-        String sql = """
-                MERGE INTO `api_statistics_info` (`pan_type`, `share_key`, `api_parser_total`, `update_ts`)
-                                KEY (`share_key`)
-                                VALUES (#{panType}, #{shareKey}, #{total}, #{ts})
-                """;
-
-        getShareKeyTotal(shareKey, "api_parser_total").onSuccess(total -> {
-            Integer newTotal = (total == null ? 0 : total) + 1;
-            SqlTemplate.forUpdate(jdbcPool, sql)
-                    .execute(new HashMap<>() {{
-                        put("panType", getShareType(shareKey));
-                        put("shareKey", shareKey);
-                        put("total", newTotal);
-                        put("ts", System.currentTimeMillis());
-                    }})
-                    .onSuccess(res -> promise.complete(res.rowCount()))
-                    .onFailure(Throwable::printStackTrace);
-        });
-        return promise.future();
     }
 
     public Future<Integer> getShareKeyTotal(String shareKey, String name) {

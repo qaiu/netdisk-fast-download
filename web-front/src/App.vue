@@ -193,7 +193,7 @@ export default {
       this.showQrc = false
       this.respData = {}
       this.tjData = {}
-      if (!this.link.startsWith("https://")) {
+      if (!this.link.startsWith("https://") && !this.link.startsWith("http://")) {
         this.$message.error("请输入有效链接!")
         throw new Error('请输入有效链接')
       }
