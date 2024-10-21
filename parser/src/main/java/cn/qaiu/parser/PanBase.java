@@ -15,7 +15,10 @@ import org.slf4j.LoggerFactory;
 
 /**
  * 解析器抽象类包含promise, HTTP Client, 默认失败方法等;
- * 新增网盘解析器需要继承该类.
+ * 新增网盘解析器需要继承该类. <br>
+ * <h2>实现类命名规则: </h2>
+ * <p>{网盘标识}Tool, 网盘标识不超过3个字符, 可以取网盘名称首字母缩写或拼音首字母, <br>
+ * 音乐类型的解析以M开头, 例如网易云音乐Mne</p>
  */
 public abstract class PanBase implements IPanTool {
     protected Logger log = LoggerFactory.getLogger(this.getClass());
@@ -54,6 +57,10 @@ public abstract class PanBase implements IPanTool {
     public PanBase(ShareLinkInfo shareLinkInfo) {
         this.shareLinkInfo = shareLinkInfo;
     }
+
+    protected PanBase() {
+    }
+
 
     /**
      * 失败时生成异常消息

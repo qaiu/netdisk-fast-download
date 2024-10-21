@@ -1,4 +1,4 @@
-package qaiu.web.test;
+package cn.qaiu.util;
 
 import cn.qaiu.util.AESUtils;
 import org.junit.Assert;

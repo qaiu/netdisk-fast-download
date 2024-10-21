@@ -199,8 +199,15 @@ GET http://127.0.0.1:6401/parser?url=https://474b.com/file/4015376-131945810
 # @no-redirect
 GET http://127.0.0.1:6401/parser?url=http://163cn.tv/ykLZJJT
 
+### PASS MQQ
+# @no-redirect
+GET http://127.0.0.1:6401/parser?url=https://c6.y.qq.com/base/fcgi-bin/u?__=k8gafY6HAQ5Y
 
+### PASS MKG
+# @no-redirect
+GET http://127.0.0.1:6401/parser?url=https://t1.kugou.com/song.html?id=2bi8Fe9CSV3
 
 ### n1
 http://127.0.0.1:6401/n1/statisticsInfo
+
 

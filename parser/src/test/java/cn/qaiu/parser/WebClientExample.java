@@ -1,4 +1,4 @@
-package qaiu.web.test;
+package cn.qaiu.parser;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;

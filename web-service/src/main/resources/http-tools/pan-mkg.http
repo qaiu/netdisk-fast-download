@@ -1,0 +1,45 @@
+#@no-cookie-jar
+#@no-redirect
+https://t1.kugou.com/song.html?id=2bi8Fe9CSV3
+
+
+###
+GET https://www.kugou.com/share/2bi8Fe9CSV3.html?id=2bi8Fe9CSV3
+accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+if-modified-since: Mon, 21 Oct 2024 08:45:50 GMT
+priority: u=0, i
+sec-ch-ua: "Microsoft Edge";v="129", "Not=A?Brand";v="8", "Chromium";v="129"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "Windows"
+sec-fetch-dest: document
+sec-fetch-mode: navigate
+sec-fetch-site: none
+sec-fetch-user: ?1
+upgrade-insecure-requests: 1
+user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0
+
+###
+
+
+https://www.kuwo.cn/api/v1/www/music/playUrl?mid=395500809&type=music&httpsStatus=1&reqId=&plat=web_www&from=
+Cookie: Hm_Iuvt_cdb524f42f23cer9b268564v7y735ewrq2324=c7nkKBeXXzCyTQ8Wc8DRNYc4Th3f6hTE
+Secret: 4067e5c95a650d73865fe3e81feb897a6bf7b58579a3ff335de848ffb0ee31c9058333c0
+
+###
+https://nmobi.kuwo.cn/mobi.s?f=kuwo&q=NI8S5evAnmGldi4g47EsqtfDbGsJckckbTQQd2LAgmDPITUWSd51OkjHRFj6xHPEQxNN6u+tD3K2e3HYhbE4U0pUYwqjd2kt
+
+###
+https://m.kuwo.cn/newh5/singles/songinfoandlrc?musicId=395500809
+
+###
+https://kuwo.cn/api/v1/www/music/playUrl?mid=395500809&type=music&httpsStatus=1&reqId=e09294a0-8f90-11ef-9b50-49e06d70bd68&plat=web_www&from=
+
+###
+https://kuwo.cn/play_detail/395500809
+
+###
+#@no-cookie-jar
+https://www.kuwo.cn/api/v1/www/music/playUrl?mid=395500809&type=music&httpsStatus=1&reqId=&plat=web_www&from=
+Cookie: Hm_Iuvt_cdb524f42f23cer9b268564v7y735ewrq2324=eZCHRdwSSYkG4d5XRGYtXrMpAXmGE5mh
+Secret: 460ac8ea43431f788d7ccbd67fde84755a88a8a36f88d17748d816dec3b308e402f768e8
+
