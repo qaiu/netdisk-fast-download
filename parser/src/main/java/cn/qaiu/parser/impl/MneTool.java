@@ -2,12 +2,14 @@ package cn.qaiu.parser.impl;
 
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
+import cn.qaiu.util.URLUtil;
 import io.vertx.core.Future;
 import io.vertx.uritemplate.UriTemplate;
 
 /**
  * 网易云音乐, 单歌曲直链解析
- * <a href="http://163cn.tv/ykLZJJT">示例分享</a>
+ * <a href="http://163cn.tv/ykLZJJT">示例分享1</a>
+ * <a href="https://music.163.com/#/song?id=472194327">示例分享2</a>
  */
 public class MneTool extends PanBase {
 
@@ -23,8 +25,7 @@ public class MneTool extends PanBase {
         String shareUrl = shareLinkInfo.getStandardUrl();
         clientNoRedirects.getAbs(shareUrl).send().onSuccess(res -> {
             String locationURL = res.headers().get("Location");
-            String substring = locationURL.substring(locationURL.indexOf("id="));
-            String id = substring.substring("id=".length(), substring.indexOf('&'));
+            String id = URLUtil.from(locationURL).getParam("id");
             clientNoRedirects.getAbs(UriTemplate.of(API_URL)).setTemplateParam("id", id).send()
                     .onSuccess(res2 -> {
                         promise.complete(res2.headers().get("Location"));

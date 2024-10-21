@@ -80,6 +80,16 @@ public enum PanDomainTemplate {
             "http(s)?://163cn\\.tv/(.+)",
             "http://163cn.tv/{shareKey}",
             MneTool.class),
+    // https://c6.y.qq.com/base/fcgi-bin/u?__=xxx
+    MQQ("QQ音乐",
+            "https://(.+)\\.y\\.qq\\.com/base/fcgi-bin/u\\?__=(.+)",
+            "https://c6.y.qq.com/base/fcgi-bin/u?__={shareKey}",
+            MqqTool.class),
+    // https://t1.kugou.com/song.html?id=xxx
+    MKG("酷狗音乐",
+            "https://(.+)\\.kugou\\.com/song\\.html\\?id=(.+)",
+            "https://t1.kugou.com/song.html?id={shareKey}",
+            MkgTool.class),
     // https://pan.huang1111.cn/s/xxx
     // 通用域名([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}
     CE("Cloudreve",

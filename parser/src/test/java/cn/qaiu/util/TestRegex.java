@@ -1,4 +1,4 @@
-package qaiu.web.test;
+package cn.qaiu.util;
 
 import org.junit.Test;
 
