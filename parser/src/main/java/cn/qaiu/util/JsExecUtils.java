@@ -8,8 +8,6 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
-import static cn.qaiu.util.AESUtils.encrypt;
-
 /**
  * 执行Js脚本
  *
@@ -85,13 +83,10 @@ public class JsExecUtils {
 
     public static void main(String[] args) {
         //encrypt("ZYcEEs2JdncXG8zAaytJiXxmbyhH2wxb", "Hm_Iuvt_cdb524f42f23cer9b268564v7y735ewrq2324")
-        //'7909e8e754545a61ba4bc3c90c82cb6c69b6859d5ea2e46a6bf913d1b4f11dee011dced1'
-        // 1e3170f1cc1ca75172409e443b89261ec777e190ebc595b458b8e114a912a9544d2b467323f8ca011b2ed0
-        // 93a44ef48949d950c91303c84d36
-        // 95dea502a45fb153f68d8da0bf8e4a095a001e396f60837e9c1b58a48969eb77038234d2
-        // 93c3750f6ccf9d11b5c304b32495
-        System.out.println(getKwSign("Hm_lvt_cdb524f42f0ce19b169a8071123a4797", "1729503755"));
-        System.out.println(getKwSign("HelloWorld", "password123"));
+        // 1a9b1a33222a78d6506e0aeaacf5b9b69984954de79e98e3ef4766c009025b7000000000
+        // acb0a82caa6ee641ca99ad81ace7081f58412e2148619827aa0a038a8d76c75000000000
+        // f7a05b893131238ee4d1f31a85401b64056bb09988b5b9c2b87c12542578360600000000
+        System.out.println(getKwSign("c7nkKBeXXzCyTQ8Wc8DRNYc4Th3f6hTE", "Hm_Iuvt_cdb524f42f23cer9b268564v7y735ewrq2324"));
 
     }
 

@@ -124,4 +124,8 @@ public abstract class PanBase implements IPanTool {
         }
     }
 
+    protected void complete(String url) {
+        promise.complete(url);
+    }
+
 }
