@@ -18,7 +18,11 @@ public class TestAESUtil {
     @Test
     public void decode() throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException,
             BadPaddingException, InvalidKeyException {
-        String hex = AESUtils.encryptHexByAES("1686215935703", AESUtils.CIPHER_AES2);
+        String hex = AESUtils.encryptBase64ByAES("MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC8asrfSaoOb4je+DSmKdriQJKW\n" +
+                "VJ2oDZrs3wi5W67m3LwTB9QVR+cE3XWU21Nx+YBxS0yun8wDcjgQvYt625ZCcgin\n" +
+                "2ro/eOkNyUOTBIbuj9CvMnhUYiR61lC1f1IGbrSYYimqBVSjpifVufxtx/I3exRe\n" +
+                "ZosTByYp4Xwpb1+WAQIDAQAB", AESUtils.CIPHER_AES2);
+        System.out.println(hex);
         Assert.assertEquals("B4C5B9833113ACA41F16AABADE17349C", hex.toUpperCase());
     }
 
