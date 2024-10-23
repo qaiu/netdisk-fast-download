@@ -8,6 +8,11 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
+import static cn.qaiu.util.AESUtils.encrypt;
+
 /**
  * 执行Js脚本
  *
@@ -81,12 +86,24 @@ public class JsExecUtils {
         }
     }
 
+    public static String mgEncData(String data, String key) {
+        try {
+            return executeOtherJs(JsContent.mgJS, "enc", data, key).toString();
+        } catch (ScriptException | NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    // return OM.AES.encrypt('{"copyrightId":"6326951FKBL","type":1,"auditionsFlag":0}',
+    // '4ea5c508a6566e76240543f8feb06fd457777be39549c4016436afda65d2330e').toString()
+    //
+
     public static void main(String[] args) {
-        //encrypt("ZYcEEs2JdncXG8zAaytJiXxmbyhH2wxb", "Hm_Iuvt_cdb524f42f23cer9b268564v7y735ewrq2324")
-        // 1a9b1a33222a78d6506e0aeaacf5b9b69984954de79e98e3ef4766c009025b7000000000
-        // acb0a82caa6ee641ca99ad81ace7081f58412e2148619827aa0a038a8d76c75000000000
-        // f7a05b893131238ee4d1f31a85401b64056bb09988b5b9c2b87c12542578360600000000
-        System.out.println(getKwSign("c7nkKBeXXzCyTQ8Wc8DRNYc4Th3f6hTE", "Hm_Iuvt_cdb524f42f23cer9b268564v7y735ewrq2324"));
+        System.out.println(URLEncoder
+                .encode(mgEncData("{\"copyrightId\":\"6326951FKBL\",\"type\":1,\"auditionsFlag\":0}", AESUtils.MG_KEY), StandardCharsets.UTF_8));
+
+        // U2FsdGVkX1/UiZC91ImQvQY7qDBSEbTykAcVoARiquibPCZhWSs3kWQw3j2PNme5wNLqt2oau498ni1hgjGFuxwORnkk6x9rzk/X0arElUo=
 
     }
 
