@@ -2,6 +2,10 @@ package cn.qaiu.parser;
 
 import cn.qaiu.parser.impl.*;
 
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 /**
  * 枚举类 PanDomainTemplate 定义了不同网盘服务的模板信息，包括：
  * <ul>
@@ -75,21 +79,54 @@ public enum PanDomainTemplate {
             "https://474b\\.com/file/(.+)",
             "https://474b.com/file/{shareKey}",
             CtTool.class),
+
+    // =====================音乐类解析 分享链接标志->MxxS (单歌曲/普通音质)==========================
     // http://163cn.tv/xxx
-    MNE("网易云音乐",
+    MNES("网易云音乐分享",
             "http(s)?://163cn\\.tv/(.+)",
             "http://163cn.tv/{shareKey}",
-            MneTool.class),
+            MnesTool.class),
+    MNE("网易云音乐",
+            "https://music\\.163\\.com/(#/)?song\\?id=(.+)",
+            "https://music.163.com/#/song?id={shareKey}",
+            MnesTool.MneTool.class),
     // https://c6.y.qq.com/base/fcgi-bin/u?__=xxx
-    MQQ("QQ音乐",
+    MQQS("QQ音乐分享",
             "https://(.+)\\.y\\.qq\\.com/base/fcgi-bin/u\\?__=(.+)",
             "https://c6.y.qq.com/base/fcgi-bin/u?__={shareKey}",
             MqqTool.class),
+    // https://y.qq.com/n/ryqq/songDetail/000XjcLg0fbRjv?songtype=0
+    MQQ("QQ音乐",
+            "https://y\\.qq\\.com/n/ryqq/songDetail/(.+)\\?.*",
+            "https://y.qq.com/n/ryqq/songDetail/{shareKey}",
+            MqqTool.class),
+
     // https://t1.kugou.com/song.html?id=xxx
-    MKG("酷狗音乐",
+    MKGS("酷狗音乐分享",
             "https://(.+)\\.kugou\\.com/song\\.html\\?id=(.+)",
             "https://t1.kugou.com/song.html?id={shareKey}",
-            MkgTool.class),
+            MkgsTool.class),
+    // https://www.kugou.com/share/2bi8Fe9CSV3.html?id=2bi8Fe9CSV3#6ed9gna4"
+    MKGS2("酷狗音乐分享2",
+            "https://www\\.kugou\\.com/share/(.+).html\\?.*",
+            "https://www.kugou.com/share/{shareKey}.html",
+            MkgsTool.Mkgs2Tool.class),
+    // https://www.kugou.com/mixsong/2bi8Fe9CSV3
+    MKG("酷狗音乐",
+            "https://(.+)\\.kugou\\.com/song\\.html\\?id=(.+)",
+            "https://www.kugou.com/mixsong/{shareKey}",
+            MkgsTool.MkgTool.class),
+    //
+    MKWS("酷我音乐分享*",
+            "https://(.+)\\.kugou\\.com/song\\.html\\?id=(.+)",
+            "https://t1.kugou.com/song.html?id={shareKey}",
+            MkwTool.class),
+    //
+    MMGS("咪咕音乐分享",
+            "https://(.+)\\.kugou\\.com/song\\.html\\?id=(.+)",
+            "https://t1.kugou.com/song.html?id={shareKey}",
+            MkwTool.class),
+    // =====================私有盘解析==========================
     // https://pan.huang1111.cn/s/xxx
     // 通用域名([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}
     CE("Cloudreve",
@@ -132,5 +169,23 @@ public enum PanDomainTemplate {
 
     public Class<? extends IPanTool> getToolClass() {
         return toolClass;
+    }
+
+    public static void main(String[] args) {
+        // 校验重复
+        Set<String> collect =
+                Arrays.stream(PanDomainTemplate.values()).map(PanDomainTemplate::getRegexPattern).collect(Collectors.toSet());
+        if (collect.size()<PanDomainTemplate.values().length) {
+            System.out.println("有重复枚举正则");
+        }
+        Set<String> collect2 =
+                Arrays.stream(PanDomainTemplate.values()).map(PanDomainTemplate::getStandardUrlTemplate).collect(Collectors.toSet());
+        if (collect2.size()<PanDomainTemplate.values().length) {
+            System.out.println("有重复枚举标准链接");
+        }
+        System.out.println(collect);
+        System.out.println(collect2);
+
+
     }
 }

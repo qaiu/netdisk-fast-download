@@ -4,6 +4,7 @@ import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.JsExecUtils;
 import io.vertx.core.Future;
+import io.vertx.core.json.JsonObject;
 import io.vertx.uritemplate.UriTemplate;
 
 import java.util.regex.Matcher;
@@ -41,9 +42,21 @@ public class MkwTool extends PanBase {
                     var token = matcher.group(2);
                     String sign = JsExecUtils.getKwSign(token, key);
                     System.out.println(sign);
-                    clientSession.getAbs(UriTemplate.of(API_URL)).setQueryParam("mid", "395500809")
-                            .putHeader("Secret", sign).putHeader("Cookie", key + "=" + token).send().onSuccess(res -> {
-                                System.out.println(res.bodyAsString());
+                    clientSession.getAbs(UriTemplate.of(API_URL)).setTemplateParam("mid", "395500809")
+                            .putHeader("Secret", sign).send().onSuccess(res -> {
+                                JsonObject json = asJson(res);
+                                log.debug(json.encodePrettily());
+                                try {
+                                    if (json.getInteger("code") == 200) {
+                                        complete(json.getJsonObject("data").getString("url"));
+                                    } else {
+                                        fail("链接已失效");
+                                    }
+
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                    fail("解析失败");
+                                }
                             });
                 }
             }

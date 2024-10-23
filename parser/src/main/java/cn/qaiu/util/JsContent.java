@@ -167,8 +167,10 @@ public interface JsContent {
                 }
                 var salt = Math.round(Math.random() * 1000000000) % 100000000;
                 prand += salt;
+                var flag = 1;
                 while (prand.length > 10) {
-                    prand = (parseInt(prand.substring(0, 10)) + parseInt(prand.substring(10, prand.length))).toString();
+                    prand = (parseInt(prand.substring(0, 10)) + (flag ?parseFloat(prand.substring(10, prand.length)) : parseInt(prand.substring(10, prand.length)) )).toString();
+                    flag = 0;
                 }
                 prand = (mult * prand + incr) % modu;
                 var enc_chr = "";
