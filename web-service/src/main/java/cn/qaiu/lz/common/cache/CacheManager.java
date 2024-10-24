@@ -59,7 +59,7 @@ public class CacheManager {
                 MERGE INTO `api_statistics_info` (`pan_type`, `share_key`, `{field}`, `update_ts`)
                                 KEY (`share_key`)
                                 VALUES (#{panType}, #{shareKey}, #{total}, #{ts})
-                """.replace("field", fieldLower);
+                """.replace("{field}", fieldLower);
 
         getShareKeyTotal(shareKey, fieldLower).onSuccess(total -> {
             Integer newTotal = (total == null ? 0 : total) + 1;
