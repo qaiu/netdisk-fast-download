@@ -2,6 +2,7 @@ package cn.qaiu.parser;
 
 import cn.qaiu.WebClientVertxInit;
 import cn.qaiu.entity.ShareLinkInfo;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.json.DecodeException;
@@ -13,11 +14,14 @@ import io.vertx.ext.web.client.WebClientSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+import java.util.Iterator;
+
 /**
  * 解析器抽象类包含promise, HTTP Client, 默认失败方法等;
  * 新增网盘解析器需要继承该类. <br>
  * <h2>实现类命名规则: </h2>
- * <p>{网盘标识}Tool, 网盘标识不超过3个字符, 可以取网盘名称首字母缩写或拼音首字母, <br>
+ * <p>{网盘标识}Tool, 网盘标识不超过5个字符, 可以取网盘名称首字母缩写或拼音首字母, <br>
  * 音乐类型的解析以M开头, 例如网易云音乐Mne</p>
  */
 public abstract class PanBase implements IPanTool {
@@ -73,11 +77,11 @@ public abstract class PanBase implements IPanTool {
         try {
             String s = String.format(errorMsg.replaceAll("\\{}", "%s"), args);
             log.error("解析异常: " + s, t.fillInStackTrace());
-            promise.fail(this.getClass().getSimpleName() + ": 解析异常: " + s + " -> " + t);
+            promise.fail(shareLinkInfo.getPanName() + "-" + shareLinkInfo.getType() + ": 解析异常: " + s + " -> " + t);
         } catch (Exception e) {
             log.error("ErrorMsg format fail. The parameter has been discarded", e);
             log.error("解析异常: " + errorMsg, t.fillInStackTrace());
-            promise.fail(this.getClass().getSimpleName() + ": 解析异常: " + errorMsg + " -> " + t);
+            promise.fail(shareLinkInfo.getPanName() + "-" + shareLinkInfo.getType() + ": 解析异常: " + errorMsg + " -> " + t);
         }
     }
 
@@ -91,11 +95,11 @@ public abstract class PanBase implements IPanTool {
         try {
             String s = String.format(errorMsg.replaceAll("\\{}", "%s"), args);
             log.error("解析异常: " + s);
-            promise.fail(this.getClass().getSimpleName() + " - 解析异常: " + s);
+            promise.fail(shareLinkInfo.getPanName() + "-" + shareLinkInfo.getType() + " - 解析异常: " + s);
         } catch (Exception e) {
             log.error("ErrorMsg format fail. The parameter has been discarded", e);
             log.error("解析异常: " + errorMsg);
-            promise.fail(this.getClass().getSimpleName() + " - 解析异常: " + errorMsg);
+            promise.fail(shareLinkInfo.getPanName() + "-" + shareLinkInfo.getType() + " - 解析异常: " + errorMsg);
         }
     }
 
@@ -106,7 +110,7 @@ public abstract class PanBase implements IPanTool {
      * @return Handler
      */
     protected Handler<Throwable> handleFail(String errorMsg) {
-        return t -> fail(this.getClass().getSimpleName() + " - 请求异常 {}: -> {}", errorMsg, t.fillInStackTrace());
+        return t -> fail(shareLinkInfo.getPanName() + "-" + shareLinkInfo.getType() + " - 请求异常 {}: -> {}", errorMsg, t.fillInStackTrace());
     }
 
 
@@ -126,6 +130,32 @@ public abstract class PanBase implements IPanTool {
 
     protected void complete(String url) {
         promise.complete(url);
+    }
+
+    protected Future<String> future() {
+        return promise.future();
+    }
+
+    /**
+     * 调用下一个解析器, 通用域名解析
+     */
+    protected void nextParser() {
+        Iterator<PanDomainTemplate> iterator = Arrays.asList(PanDomainTemplate.values()).iterator();
+        while (iterator.hasNext()) {
+            if (iterator.next().name().equalsIgnoreCase(shareLinkInfo.getType())) {
+                if (iterator.hasNext()) {
+                    PanDomainTemplate next = iterator.next();
+                    log.debug("规则不匹配, 处理解析器转发: {} -> {}", shareLinkInfo.getPanName(), next.getDisplayName());
+                    ParserCreate.fromType(next.name())
+                            .fromAnyShareUrl(shareLinkInfo.getShareUrl())
+                            .createTool()
+                            .parse()
+                            .onComplete(promise);
+                } else {
+                    fail("error: 没有下一个解析处理器");
+                }
+            }
+        }
     }
 
 }

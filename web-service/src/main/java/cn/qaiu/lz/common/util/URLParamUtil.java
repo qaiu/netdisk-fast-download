@@ -28,10 +28,6 @@ public class URLParamUtil {
         if (params.contains("url")) {
             String encodedUrl = params.get("url");
             url = handleTruncatedUrl(encodedUrl, params);
-            if (url.endsWith(".html")) {
-                // 123云盘的后缀处理
-                url = url.replace(".html", "");
-            }
         }
         return url;
     }

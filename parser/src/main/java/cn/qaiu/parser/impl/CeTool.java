@@ -1,13 +1,17 @@
 package cn.qaiu.parser.impl;
 
-import cn.qaiu.entity.ShareLinkInfo; 
+import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
+import cn.qaiu.parser.PanDomainTemplate;
+import cn.qaiu.parser.ParserCreate;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 
 import java.net.URL;
+import java.util.Arrays;
+import java.util.Iterator;
 
 /**
  * <a href="https://github.com/cloudreve/Cloudreve">Cloudreve自建网盘解析</a> <br>
@@ -42,22 +46,32 @@ public class CeTool extends PanBase {
             String downloadApiUrl = url.getProtocol() + "://" + url.getHost() + DOWNLOAD_API_PATH + key + "?path" +
                     "=undefined/undefined;";
             String shareApiUrl = url.getProtocol() + "://" + url.getHost() + SHARE_API_PATH + key;
-
             // 设置cookie
             HttpRequest<Buffer> httpRequest = clientSession.getAbs(shareApiUrl);
             if (pwd != null) {
                 httpRequest.addQueryParam("password", pwd);
             }
             // 获取下载链接
-            httpRequest.send().onSuccess(res -> getDownURL(downloadApiUrl)).onFailure(handleFail(shareApiUrl));
+            httpRequest.send().onSuccess(res -> {
+                try {
+                    if (res.statusCode() == 200 && res.bodyAsJsonObject().containsKey("code")) {
+                        getDownURL(downloadApiUrl);
+                    } else {
+                        nextParser();
+                    }
+                } catch (Exception e) {
+                    nextParser();
+                }
+            }).onFailure(handleFail(shareApiUrl));
         } catch (Exception e) {
             fail(e, "URL解析错误");
         }
         return promise.future();
     }
 
-    private void getDownURL(String apiUrl) {
-        clientSession.putAbs(apiUrl).send().onSuccess(res -> {
+
+    private void getDownURL(String shareApiUrl) {
+        clientSession.putAbs(shareApiUrl).send().onSuccess(res -> {
             JsonObject jsonObject = asJson(res);
             System.out.println(jsonObject.encodePrettily());
             if (jsonObject.containsKey("code") && jsonObject.getInteger("code") == 0) {
@@ -65,6 +79,6 @@ public class CeTool extends PanBase {
             } else {
                 fail("JSON解析失败: {}", jsonObject.encodePrettily());
             }
-        }).onFailure(handleFail(apiUrl));
+        }).onFailure(handleFail(shareApiUrl));
     }
 }
