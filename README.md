@@ -38,11 +38,6 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 - [网易云音乐(mne)](https://music.163.com)
 - [Cloudreve自建网盘(ce)](https://github.com/cloudreve/Cloudreve)    
 
-**TODO:**
-  - docker
-  - 登录接口, 文件上传/下载/分享后端接口
-  - 短地址服务
-  - 前端界面(建设中...)
 
 ### API接口说明
 your_host指的是您的域名或者IP，实际使用时替换为实际域名或者IP，端口默认6400，可以使用nginx代理来做域名访问。    
@@ -66,7 +61,11 @@ API规则:
     http://your_host/json/网盘标识/分享key@分享密码
 
 ```
-json返回数据格式示例:
+json返回数据格式示例:  
+`shareKey`:    全局分享key  
+`directLink`:  下载链接  
+`cacheHit`:    是否为缓存链接  
+`expires`:     缓存到期时间  
 ```json
 {
   "code": 200,
@@ -195,6 +194,7 @@ bash service-install.sh
 - 城通网盘解析 √
 - 目录解析(专属版)
 - 带cookie/token参数解析大文件(专属版)
+- docker
 
 **技术栈:**
 Jdk17+Vert.x4.4.1
