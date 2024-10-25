@@ -34,7 +34,12 @@ public class MnesTool extends PanBase {
         String id = URLUtil.from(locationURL).getParam("id");
         clientNoRedirects.getAbs(UriTemplate.of(API_URL)).setTemplateParam("id", id).send()
                 .onSuccess(res2 -> {
-                    promise.complete(res2.headers().get("Location"));
+                    String location = res2.headers().get("Location");
+                    if (location.endsWith("/404")) {
+                        fail("链接已失效: id={}", id);
+                    } else {
+                        promise.complete(location);
+                    }
                 }).onFailure(handleFail(API_URL.replace("{id}", id)));
     }
 

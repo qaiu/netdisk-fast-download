@@ -211,7 +211,7 @@ public class ReverseProxyVerticle extends AbstractVerticle {
                     port = 80;
                 }
                 String originPath = url.getPath();
-                LOGGER.info("Conf(path, originPath, host, port) ----> {},{},{},{}", path, originPath, host, port);
+                LOGGER.info("path {}, originPath {}, to {}:{}", path, originPath, host, port);
 
                 // 注意这里不能origin多个代理地址, 一个实例只能代理一个origin
                 final HttpProxy httpProxy = HttpProxy.reverseProxy(httpClient);

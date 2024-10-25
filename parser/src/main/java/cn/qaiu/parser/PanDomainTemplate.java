@@ -4,7 +4,10 @@ import cn.qaiu.parser.impl.*;
 
 import java.util.Arrays;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static java.util.regex.Pattern.compile;
 
 /**
  * 枚举类 PanDomainTemplate 定义了不同网盘服务的模板信息，包括：
@@ -20,126 +23,144 @@ import java.util.stream.Collectors;
  */
 public enum PanDomainTemplate {
 
+
     // 网盘定义
     LZ("蓝奏云",
-            "https://([a-z0-9-]+)?\\.?lanzou[a-z]\\.com/(.+/)?(.+)",
+             compile("https://([a-z0-9-]+)?\\.?lanzou[a-z]\\.com/(.+/)?(?<KEY>.+)"),
             "https://lanzoux.com/{shareKey}",
             LzTool.class),
 
     // https://www.feijix.com/s/
     // https://share.feijipan.com/s/
     FJ("小飞机网盘",
-            "https://(share\\.feijipan\\.com|www\\.feijix\\.com)/s/(.+)",
+            compile("https://(share\\.feijipan\\.com|www\\.feijix\\.com)/s/(?<KEY>.+)"),
             "https://www.feijix.com/s/{shareKey}",
             FjTool.class),
 
     // https://lecloud.lenovo.com/share/
     LE("联想乐云",
-            "https://lecloud?\\.lenovo\\.com/share/(.+)",
+            compile("https://lecloud?\\.lenovo\\.com/share/(?<KEY>.+)"),
             "https://lecloud.lenovo.com/share/{shareKey}",
             LeTool.class),
 
     // https://v2.fangcloud.com/s/
     FC("亿方云",
-            "https://v2\\.fangcloud\\.(com|cn)/(s|sharing)/([^/]+)",
+            compile("https://v2\\.fangcloud\\.(com|cn)/(s|sharing)/(?<KEY>.+)"),
             "https://v2.fangcloud.com/s/{shareKey}",
             FcTool.class),
     // https://www.ilanzou.com/s/
     IZ("蓝奏云优享",
-            "https://www\\.ilanzou\\.com/s/(.+)",
+            compile("https://www\\.ilanzou\\.com/s/(?<KEY>.+)"),
             "https://www.ilanzou.com/s/{shareKey}",
             IzTool.class),
     // https://wx.mail.qq.com/ftn/download?
     QQ("QQ邮箱中转站",
-            "https://i?wx\\.mail\\.qq\\.com/ftn/download\\?(.+)",
+            compile("https://i?wx\\.mail\\.qq\\.com/ftn/download\\?(?<KEY>.+)"),
             "https://iwx.mail.qq.com/ftn/download/{shareKey}",
             QQTool.class),
     // https://f.ws59.cn/f/或者https://www.wenshushu.cn/f/
     WS("文叔叔",
-            "https://(f\\.ws([0-9]{2})\\.cn|www\\.wenshushu\\.cn)/f/(.+)",
+            compile("https://(f\\.ws([0-9]{2})\\.cn|www\\.wenshushu\\.cn)/f/(?<KEY>.+)"),
             "https://www.wenshushu.cn/f/{shareKey}",
             WsTool.class),
     // https://www.123pan.com/s/
     YE("123网盘",
-            "https://www\\.(123pan|123865|123684)\\.com/s/(.+)",
+            compile("https://www\\.(123pan|123865|123684)\\.com/s/(?<KEY>.+)(.html)?"),
             "https://www.123pan.com/s/{shareKey}",
             YeTool.class),
     // https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data={code}&isShare=1
     EC("移动云空间",
-            "https://www\\.ecpan\\.cn/web(/%23|/#)?/yunpanProxy\\?path=.*&data=" +
-                    "([^&]+)&isShare=1",
+            compile("https://www\\.ecpan\\.cn/web(/%23|/#)?/yunpanProxy\\?path=.*&data=" +
+                    "(?<KEY>[^&]+)&isShare=1"),
             "https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data={shareKey}&isShare=1",
             EcTool.class),
     // https://cowtransfer.com/s/
     COW("奶牛快传",
-            "https://(.*)cowtransfer\\.com/s/(.+)",
+            compile("https://(.*)cowtransfer\\.com/s/(?<KEY>.+)"),
             "https://cowtransfer.com/s/{shareKey}",
             CowTool.class),
     CT("城通网盘",
-            "https://474b\\.com/file/(.+)",
+            compile("https://474b\\.com/file/(?<KEY>.+)"),
             "https://474b.com/file/{shareKey}",
             CtTool.class),
 
     // =====================音乐类解析 分享链接标志->MxxS (单歌曲/普通音质)==========================
     // http://163cn.tv/xxx
     MNES("网易云音乐分享",
-            "http(s)?://163cn\\.tv/(.+)",
+            compile("http(s)?://163cn\\.tv/(?<KEY>.+)"),
             "http://163cn.tv/{shareKey}",
             MnesTool.class),
-    MNE("网易云音乐",
-            "https://music\\.163\\.com/(#/)?song\\?id=(.+)",
+    // https://music.163.com/#/song?id=xxx
+    MNE("网易云音乐歌曲详情",
+            compile("https://music\\.163\\.com/(#/)?song\\?id=(?<KEY>.+)"),
             "https://music.163.com/#/song?id={shareKey}",
             MnesTool.MneTool.class),
     // https://c6.y.qq.com/base/fcgi-bin/u?__=xxx
     MQQS("QQ音乐分享",
-            "https://(.+)\\.y\\.qq\\.com/base/fcgi-bin/u\\?__=(.+)",
+            compile("https://(.+)\\.y\\.qq\\.com/base/fcgi-bin/u\\?__=(?<KEY>.+)"),
             "https://c6.y.qq.com/base/fcgi-bin/u?__={shareKey}",
-            MqqTool.class),
+            MqqsTool.class),
     // https://y.qq.com/n/ryqq/songDetail/000XjcLg0fbRjv?songtype=0
-    MQQ("QQ音乐",
-            "https://y\\.qq\\.com/n/ryqq/songDetail/(.+)\\?.*",
+    MQQ("QQ音乐歌曲详情",
+            compile("https://y\\.qq\\.com/n/ryqq/songDetail/(?<KEY>.+)(\\?.*)?"),
             "https://y.qq.com/n/ryqq/songDetail/{shareKey}",
-            MqqTool.class),
+            MqqsTool.MqqTool.class),
 
     // https://t1.kugou.com/song.html?id=xxx
     MKGS("酷狗音乐分享",
-            "https://(.+)\\.kugou\\.com/song\\.html\\?id=(.+)",
+            compile("https://(.+)\\.kugou\\.com/song\\.html\\?id=(?<KEY>.+)"),
             "https://t1.kugou.com/song.html?id={shareKey}",
             MkgsTool.class),
     // https://www.kugou.com/share/2bi8Fe9CSV3.html?id=2bi8Fe9CSV3#6ed9gna4"
     MKGS2("酷狗音乐分享2",
-            "https://www\\.kugou\\.com/share/(.+).html\\?.*",
+            compile("https://(.+)\\.kugou\\.com/share/(?<KEY>.+).html.*"),
             "https://www.kugou.com/share/{shareKey}.html",
             MkgsTool.Mkgs2Tool.class),
     // https://www.kugou.com/mixsong/2bi8Fe9CSV3
-    MKG("酷狗音乐",
-            "https://(.+)\\.kugou\\.com/song\\.html\\?id=(.+)",
-            "https://www.kugou.com/mixsong/{shareKey}",
+    MKG("酷狗音乐歌曲详情",
+            compile("https://(.+)\\.kugou\\.com/mixsong/(?<KEY>.+)\\.html.*"),
+            "https://www.kugou.com/mixsong/{shareKey}.html",
             MkgsTool.MkgTool.class),
-    //
+    // https://kuwo.cn/play_detail/395500809
     MKWS("酷我音乐分享*",
-            "https://(.+)\\.kugou\\.com/song\\.html\\?id=(.+)",
-            "https://t1.kugou.com/song.html?id={shareKey}",
+            compile("https://kuwo\\.cn/play_detail/(?<KEY>.+)"),
+            "https://kuwo.cn/play_detail/{shareKey}",
             MkwTool.class),
-    //
+    // https://music.migu.cn/v3/music/song/6326951FKBJ?channelId=001002H
     MMGS("咪咕音乐分享",
-            "https://(.+)\\.kugou\\.com/song\\.html\\?id=(.+)",
-            "https://t1.kugou.com/song.html?id={shareKey}",
+            compile("https://music\\.migu\\.cn/v3/music/song/(?<KEY>.+)(\\?.*)?"),
+            "https://music.migu.cn/v3/music/song/{shareKey}",
             MkwTool.class),
     // =====================私有盘解析==========================
+
+    // Cloudreve自定义域名解析, 解析器CeTool兜底策略, 即任意域名如果匹配不到对应的规则, 则由CeTool统一处理,
+    // 如果不属于Cloudreve盘 则调用下一个自定义域名解析器, 若都处理不了则抛出异常, 这种匹配模式类似责任链
     // https://pan.huang1111.cn/s/xxx
     // 通用域名([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}
     CE("Cloudreve",
-               "https://([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,}/s/(.+)",
-               "https://{CloudreveDomainName}/s/{shareKey}",
-       CeTool.class);
+            compile("https://([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\\.)+[a-zA-Z]{2,}(/s)?/(?<KEY>.+)"),
+            "https://{any}/s/{shareKey}",
+            CeTool.class),
+    // 可道云自定义域名解析
+    KD("可道云",
+            compile("http(s)?://([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\\.)+[a-zA-Z]{2,}(/#s)?/(?<KEY>.+)"),
+            "https://{any}/#s/{shareKey}",
+            KdTool.class),
+    // 其他自定义域名解析
+    OTHER("其他网盘",
+       compile("http(s)?://([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\\.)+[a-zA-Z]{2,}/(?<KEY>.+)"),
+               "https://{any}/{shareKey}",
+    OtherTool.class);
 
+    public static final String KEY = "KEY";
 
     // 网盘的显示名称，用于用户界面显示
     private final String displayName;
 
     // 用于匹配和解析分享链接的正则表达式，保证最后一个捕捉组能匹配到分享key
-    private final String regexPattern;
+    private final Pattern pattern;
+
+    private final String regex;
 
     // 网盘的标准链接模板，不含占位符，用于规范化分享链接
     private final String standardUrlTemplate;
@@ -147,10 +168,11 @@ public enum PanDomainTemplate {
     // 指向解析工具IPanTool实现类
     private final Class<? extends IPanTool> toolClass;
 
-    PanDomainTemplate(String displayName, String regexPattern, String standardUrlTemplate,
+    PanDomainTemplate(String displayName, Pattern pattern, String standardUrlTemplate,
                       Class<? extends IPanTool> toolClass) {
         this.displayName = displayName;
-        this.regexPattern = regexPattern;
+        this.pattern = pattern;
+        this.regex = pattern.pattern();
         this.standardUrlTemplate = standardUrlTemplate;
         this.toolClass = toolClass;
     }
@@ -159,8 +181,12 @@ public enum PanDomainTemplate {
         return displayName;
     }
 
-    public String getRegexPattern() {
-        return regexPattern;
+    public Pattern getPattern() {
+        return pattern;
+    }
+
+    public String getRegex() {
+        return regex;
     }
 
     public String getStandardUrlTemplate() {
@@ -174,7 +200,7 @@ public enum PanDomainTemplate {
     public static void main(String[] args) {
         // 校验重复
         Set<String> collect =
-                Arrays.stream(PanDomainTemplate.values()).map(PanDomainTemplate::getRegexPattern).collect(Collectors.toSet());
+                Arrays.stream(PanDomainTemplate.values()).map(PanDomainTemplate::getRegex).collect(Collectors.toSet());
         if (collect.size()<PanDomainTemplate.values().length) {
             System.out.println("有重复枚举正则");
         }

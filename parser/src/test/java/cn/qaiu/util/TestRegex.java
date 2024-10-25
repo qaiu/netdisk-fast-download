@@ -10,11 +10,10 @@ public class TestRegex {
     @Test
     public void regexYFC() {
         String html = """
-                    <input type="hidden" id="typed_id" value="file_559003251828">
-                    <input type="hidden" id="share_link_token" value="9cbe4b73521ba4d65a8cd38a8c">
+                https://www.kugou.com/mixsong/9q98o5b9.html
                 """;
 
-        Pattern compile = Pattern.compile("id=\"typed_id\"\\s+value=\"file_(\\d+)\"");
+        Pattern compile = Pattern.compile("https://(.+)\\.kugou\\.com/mixsong/(?<KEY>.+).html");
         Matcher matcher = compile.matcher(html);
         if (matcher.find()) {
             System.out.println(matcher.group(0));

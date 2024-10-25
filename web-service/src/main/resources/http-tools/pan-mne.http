@@ -8,7 +8,10 @@ https://music.163.com/song?id=233334
 
 ###
 #@no-redirect
-https://music.163.com/song/media/outer/url?id=233334
+https://music.163.com/song/media/outer/url?id=2020593612
+
+###
+https://music.163.com/#/song?id=092087
 
 
 ###
@@ -166,3 +169,13 @@ https://ws6.stream.qqmusic.qq.com/C400003mAan70zUy5O.m4a?guid=2796982635&vkey=B2
 
 ###
 https://ws.stream.qqmusic.qq.com/C400003mAan70zUy5O.m4a?fromtag=666&guid=2796982635&vkey=B2EDD08E318F0C0D2B3A9462FC5754CBCA9AEFD796FA0662C83A102821425D31547F957451751901F195095830842E1565FF8815B210B25A
+
+###
+https://y.qq.com/n/ryqq/songDetail/000KKjzb2Eq15b
+
+###
+# @no-redirect
+https://c6.y.qq.com/base/fcgi-bin/u?__=k8gafY6HAQ5Y
+
+###
+https://u.y.qq.com/cgi-bin/musicu.fcg?-=getplaysongvkey2682247447678878&g_tk=5381&loginUin=956581739&hostUin=0&format=json&inCharset=utf8&outCharset=utf-8&notice=0&platform=yqq.json&needNewCode=0&data=%7B%22req_0%22%3A%7B%22module%22%3A%22vkey.GetVkeyServer%22%2C%22method%22%3A%22CgiGetVkey%22%2C%22param%22%3A%7B%22guid%22%3A%222796982635%22%2C%22songmid%22%3A%5B%22000KKjzb2Eq15b%22%5D%2C%22songtype%22%3A%5B1%5D%2C%22uin%22%3A%22956581739%22%2C%22loginflag%22%3A1%2C%22platform%22%3A%2220%22%7D%7D%2C%22comm%22%3A%7B%22uin%22%3A956581739%2C%22format%22%3A%22json%22%2C%22ct%22%3A24%2C%22cv%22%3A0%7D%7D

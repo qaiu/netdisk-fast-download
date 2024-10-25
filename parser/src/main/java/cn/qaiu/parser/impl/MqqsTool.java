@@ -14,7 +14,7 @@ import io.vertx.uritemplate.UriTemplate;
  * <a href="https://c6.y.qq.com/base/fcgi-bin/u?__=w3lqEpOHACLO">分享示例</a>
  * <a href="https://y.qq.com/n/ryqq/songDetail/000XjcLg0fbRjv?songtype=0">详情页</a>
  */
-public class MqqTool extends PanBase {
+public class MqqsTool extends PanBase {
 
     public static final String API_URL = "https://u.y.qq.com/cgi-bin/musicu" +
             ".fcg?-=getplaysongvkey2682247447678878&g_tk=5381&loginUin=956581739&hostUin=0&format=json&inCharset=utf8" +
@@ -24,7 +24,7 @@ public class MqqTool extends PanBase {
             "%2C%22loginflag%22%3A1%2C%22platform%22%3A%2220%22%7D%7D%2C%22comm%22%3A%7B%22uin%22%3A956581739%2C" +
             "%22format%22%3A%22json%22%2C%22ct%22%3A24%2C%22cv%22%3A0%7D%7D";
 
-    public MqqTool(ShareLinkInfo shareLinkInfo) {
+    public MqqsTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
     }
 
@@ -36,30 +36,43 @@ public class MqqTool extends PanBase {
         clientNoRedirects.getAbs(shareUrl).send().onSuccess(res -> {
             String locationURL = res.headers().get("Location");
             String id = URLUtil.from(locationURL).getParam("songmid");
-            clientNoRedirects.getAbs(UriTemplate.of(API_URL)).setTemplateParam("songmid", id).send().onSuccess(res2 -> {
-                JsonObject jsonObject = asJson(res2);
-                System.out.println(jsonObject.encodePrettily());
-                try {
-                    JsonObject data = jsonObject.getJsonObject("req_0").getJsonObject("data");
-                    String path = data.getJsonArray("midurlinfo").getJsonObject(0).getString("purl");
-                    if (path.isEmpty()) {
-                        fail("暂不支持VIP音乐");
-                        return;
-                    }
-                    String downURL = data.getJsonArray("sip").getString(0)
-                            .replace("http://", "https://") + path;
-                    System.out.println(downURL);
-                    promise.complete(downURL);
-                } catch (Exception e) {
-                    fail("获取失败");
-                }
-            }).onFailure(handleFail(API_URL.replace("{id}", id)));
+            downUrl(id);
         }).onFailure(handleFail(shareUrl));
 
         return promise.future();
     }
 
-    public static void main(String[] args) {
-        new MqqTool(ShareLinkInfo.newBuilder().build()).parse();
+    protected void downUrl(String id) {
+        clientNoRedirects.getAbs(UriTemplate.of(API_URL)).setTemplateParam("songmid", id).send().onSuccess(res2 -> {
+            JsonObject jsonObject = asJson(res2);
+            log.debug(jsonObject.encodePrettily());
+            try {
+                JsonObject data = jsonObject.getJsonObject("req_0").getJsonObject("data");
+                String path = data.getJsonArray("midurlinfo").getJsonObject(0).getString("purl");
+                if (path.isEmpty()) {
+                    fail("暂不支持VIP音乐");
+                    return;
+                }
+                String downURL = data.getJsonArray("sip").getString(0)
+                        .replace("http://", "https://") + path;
+                promise.complete(downURL);
+            } catch (Exception e) {
+                fail("获取失败");
+            }
+        }).onFailure(handleFail(API_URL.replace("{id}", id)));
+    }
+
+
+    public static class MqqTool extends MqqsTool{
+
+        public MqqTool(ShareLinkInfo shareLinkInfo) {
+            super(shareLinkInfo);
+        }
+
+        @Override
+        public Future<String> parse() {
+            downUrl(shareLinkInfo.getShareKey());
+            return promise.future();
+        }
     }
 }

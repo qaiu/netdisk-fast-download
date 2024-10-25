@@ -153,8 +153,14 @@ GET http://127.0.0.1:6400/json/ce/pan.huang1111.cn_s_g31PcQ@qaiu
 #GET http://127.0.0.1:6400/parser?url=https://pan.huang1111.cn/s/g31PcQ&pwd=qaiu
 
 # @no-redirect
-GET http://127.0.0.1:6400/parser?url=https://pan.seeoss.com/s/nLNsQ
+GET http://127.0.0.1:6401/parser?url=https://pan.seeoss.com/s/nLNsQ
 
+###
+# @no-redirect
+GET http://127.0.0.1:6401/parser?url=https://blog.qaiu.top/s/nLNsQ
+
+###
+PUT https://blog.qaiu.top/s/nLNsQ
 
 
 ### PASS QQ
@@ -197,15 +203,37 @@ GET http://127.0.0.1:6401/parser?url=https://474b.com/file/4015376-131945810
 
 ### PASS MNE
 # @no-redirect
-GET http://127.0.0.1:6401/parser?url=http://163cn.tv/ykLZJJT
+GET http://127.0.0.1:6401/json/parser?url=http://163cn.tv/ykLZJJT
+### PASS MNE2
+# @no-redirect
+GET http://127.0.0.1:6401/parser?url=https://music.163.com/#/song?id=472194327
+
 
 ### PASS MQQ
 # @no-redirect
 GET http://127.0.0.1:6401/parser?url=https://c6.y.qq.com/base/fcgi-bin/u?__=k8gafY6HAQ5Y
+### PASS MQQ2
+# @no-redirect
+GET http://127.0.0.1:6401/parser?url=https://y.qq.com/n/ryqq/songDetail/000KKjzb2Eq15b
 
+### PASS MKG0 酷狗
+# @no-redirect
+GET http://127.0.0.1:6401/parser?url=https://www.kugou.com/share/2bi8Fe9CSV3.html
 ### PASS MKG
 # @no-redirect
+GET http://127.0.0.1:6401/json/parser?url=https://www.kugou.com/share/2bi8Fe9CSV3.html?id=2bi8Fe9CSV3#6ed9gna4
+### PASS MKG2
+# @no-redirect
 GET http://127.0.0.1:6401/parser?url=https://t1.kugou.com/song.html?id=2bi8Fe9CSV3
+### PASS MKG3
+# @no-redirect
+GET http://127.0.0.1:6401/parser?url=https://www.kugou.com/mixsong/9q98o5b9.html
+
+### PASS MQW 酷我
+# @no-redirect
+GET http://127.0.0.1:6401/parser?url=https://kuwo.cn/play_detail/395500809
+
+
 
 ### n1
 http://127.0.0.1:6401/n1/statisticsInfo

@@ -64,3 +64,15 @@ sec-fetch-user: ?1
 upgrade-insecure-requests: 1
 user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36
 Content-Type: application/x-www-form-urlencoded
+
+###
+GET https://blog.qaiu.top/api/v3/share/download/nLNsQ
+
+###
+# @no-redirect
+GET http://127.0.0.1:6401/parser?url=https://blog.qaiu.top/s/nLNsQ1
+
+###
+# @no-redirect
+GET http://127.0.0.1:6401/parser?url=https://pan.seeoss.com/s/nLNsQ1
+

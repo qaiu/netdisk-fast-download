@@ -4,7 +4,8 @@ import cn.qaiu.entity.ShareLinkInfo;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import static cn.qaiu.parser.PanDomainTemplate.KEY;
 
 
 /**
@@ -34,15 +35,14 @@ public class ParserCreate {
         if (StringUtils.isEmpty(shareUrl)) {
             throw new IllegalArgumentException("ShareLinkInfo shareUrl is empty");
         }
-        Pattern pattern = Pattern.compile(this.panDomainTemplate.getRegexPattern());
-        Matcher matcher = pattern.matcher(shareUrl);
+        Matcher matcher = this.panDomainTemplate.getPattern().matcher(shareUrl);
         if (matcher.find()) {
-            String shareKey = matcher.group(matcher.groupCount());
+            String shareKey = matcher.group(KEY);
             // 返回规范化的标准链接
             String standardUrl = getStandardUrlTemplate().replace("{shareKey}", shareKey);
             shareLinkInfo.setShareUrl(shareUrl);
             shareLinkInfo.setShareKey(shareKey);
-            if (!(panDomainTemplate == PanDomainTemplate.CE)) {
+            if (!(panDomainTemplate.ordinal() >= PanDomainTemplate.CE.ordinal())) {
                 shareLinkInfo.setStandardUrl(standardUrl);
             }
             return this;
@@ -68,7 +68,7 @@ public class ParserCreate {
 
     // set share key
     public ParserCreate shareKey(String shareKey) {
-        if (panDomainTemplate == PanDomainTemplate.CE) {
+        if (panDomainTemplate.ordinal() >= PanDomainTemplate.CE.ordinal()) {
             // 处理Cloudreve(ce)类: pan.huang1111.cn_s_wDz5TK _ -> /
             String[] s = shareKey.split("_");
             String standardUrl = "https://" + String.join("/", s);
@@ -79,6 +79,13 @@ public class ParserCreate {
             shareLinkInfo.setShareKey(shareKey);
             shareLinkInfo.setStandardUrl(panDomainTemplate.getStandardUrlTemplate().replace("{shareKey}", shareKey));
         }
+        return this;
+    }
+
+    // set any share url
+    public ParserCreate fromAnyShareUrl(String url) {
+        shareLinkInfo.setStandardUrl(url);
+        shareLinkInfo.setShareUrl(url);
         return this;
     }
 
@@ -98,12 +105,12 @@ public class ParserCreate {
     // 根据分享链接获取PanDomainTemplate实例
     public synchronized static ParserCreate fromShareUrl(String shareUrl) {
         for (PanDomainTemplate panDomainTemplate : PanDomainTemplate.values()) {
-            if (shareUrl.matches(panDomainTemplate.getRegexPattern())) {
+            if (panDomainTemplate.getPattern().matcher(shareUrl).matches()) {
                 ShareLinkInfo shareLinkInfo = ShareLinkInfo.newBuilder()
                         .type(panDomainTemplate.name().toLowerCase())
                         .panName(panDomainTemplate.getDisplayName())
                         .shareUrl(shareUrl).build();
-                if (panDomainTemplate == PanDomainTemplate.CE) {
+                if (panDomainTemplate.ordinal() >= PanDomainTemplate.CE.ordinal()) {
                     shareLinkInfo.setStandardUrl(shareUrl);
                 }
                 ParserCreate parserCreate = new ParserCreate(panDomainTemplate, shareLinkInfo);
@@ -119,6 +126,7 @@ public class ParserCreate {
             PanDomainTemplate panDomainTemplate = Enum.valueOf(PanDomainTemplate.class, type.toUpperCase());
             ShareLinkInfo shareLinkInfo = ShareLinkInfo.newBuilder()
                     .type(type.toLowerCase()).build();
+            shareLinkInfo.setPanName(panDomainTemplate.getDisplayName());
             return new ParserCreate(panDomainTemplate, shareLinkInfo);
         } catch (IllegalArgumentException ignore) {
             // 如果没有找到对应的枚举实例，抛出异常
