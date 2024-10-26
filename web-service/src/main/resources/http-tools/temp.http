@@ -74,5 +74,61 @@ GET http://127.0.0.1:6401/parser?url=https://blog.qaiu.top/s/nLNsQ1
 
 ###
 # @no-redirect
-GET http://127.0.0.1:6401/parser?url=https://pan.seeoss.com/s/nLNsQ1
+GET http://127.0.0.1:6401/parser?url=https://pan.baidu.com/s/1o7ZPmAecYJ4rsxibyARyeg?pwd=QAIU
+
+###
+https://pan.baidu.com/s/1o7ZPmAecYJ4rsxibyARyeg?pwd=QAIU
+
+
+
+### 微雨云存储 0. 带密码 获取分享ID: QMa6ie
+https://www.vyuyun.com/s/QMa6ie?password=I4KG7H
+### 微雨云存储 0. 不带密码 获取分享ID: jemOTl
+https://www.vyuyun.com/s/jemOTl?password=
+
+### 微雨云存储 1. 传入jemOTl 获取文件ID json: data->id
+https://www.vyuyun.com/apiv1/share/file/jemOTl?password=
+### 微雨云存储 1. 传入jemOTl 获取文件ID json: data->id
+https://www.vyuyun.com/apiv1/share/file/QMa6ie?password=I4KG7H
+
+### 微雨云存储 2. 获取文件直链 json: data->downInfo->url
+https://www.vyuyun.com/apiv1/share/getShareDownUrl/jemOTl/0BEmf4?password=
+referer: https://www.vyuyun.com
+
+
+### 下载直链 无需请求头 11:00
+#@no-cookie-jar
+https://down2.bilnn.top/uploads/11283/306bdccd233ffd2c.jar?filename=C400003mAan70zUy5O+%282%29.m4a&mime=audio%2Fx-m4a&verify=1729911697-SLZtEHXB4TM*ze1j31WMyNA**p743DY*GN2sajUx5w*2mM**
+
+
+### 118网盘 https://qaiu.118pan.com/b1228264
+#密码：qaiu
+https://qaiu.118pan.com/b1228264
+
+###
+https://xiguage.118pan.com/b1186280
+
+###  118 b1228264->1228264
+POST https://qaiu.118pan.com/ajax.php
+Content-Type: application/x-www-form-urlencoded; charset=UTF-8
+
+action=load_down_addr1&file_id=1228264
+
+###  118 b1186280->1186280
+POST https://qaiu.118pan.com/ajax.php
+Content-Type: application/x-www-form-urlencoded; charset=UTF-8
+
+action=load_down_addr1&file_id=1186280
+
+###
+#@no-redirect
+https://nsub2d3.118pan.com/dl.php?M2E0NFVEMGM4YnFOenc2dHI5MGp1MEV3MUhvbW1sYXhnUkxLbHg3clhkMDhld24vZFBpazhlNTVTKytEY1IvRUhsWUZxT1lGYWNZUmtaNU9KMnNDQll3NzNYbFVUVU1Uc09CUUQrSHVyajR4RmpSczdsYS8zVUpmNzdkTlJHSG9FMnpNcEJuWnhnVCtiUVBoelE4S1c3WW8xczI2bEZsb3hTSlYvdis4dTk0My9TS2lKbzNLcXpLUmVNN1NPMlhHaWc4Tlo3TVlKQ3g3OHdOWW9mMzhMVk9tRThWdVBzZU1XZHFzTVR5cDE1aEFiU2o4ZkZ1SThwZXRNdGdPQmtOdEJvejRiS0pmMTFNS3Bn
+
+
+### https://qscbm187531.118pan.com/b1102853
+#@no-redirect
+POST https://qscbm187531.118pan.com/ajax.php
+Content-Type: application/x-www-form-urlencoded; charset=UTF-8
+
+
 

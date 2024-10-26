@@ -32,7 +32,8 @@ public abstract class PanBase implements IPanTool {
     /**
      * Http client
      */
-    protected WebClient client = WebClient.create(WebClientVertxInit.get());
+    protected WebClient client = WebClient.create(WebClientVertxInit.get(),
+            new WebClientOptions().setUserAgentEnabled(false));
 
     /**
      * Http client session (会话管理, 带cookie请求)
@@ -103,6 +104,10 @@ public abstract class PanBase implements IPanTool {
         }
     }
 
+    protected void fail() {
+        fail("");
+    }
+
     /**
      * 生成失败Future的处理器
      *
@@ -111,6 +116,10 @@ public abstract class PanBase implements IPanTool {
      */
     protected Handler<Throwable> handleFail(String errorMsg) {
         return t -> fail(shareLinkInfo.getPanName() + "-" + shareLinkInfo.getType() + " - 请求异常 {}: -> {}", errorMsg, t.fillInStackTrace());
+    }
+
+    protected Handler<Throwable> handleFail() {
+        return handleFail("");
     }
 
 

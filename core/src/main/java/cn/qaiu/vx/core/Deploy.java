@@ -6,6 +6,7 @@ import cn.qaiu.vx.core.verticle.ReverseProxyVerticle;
 import cn.qaiu.vx.core.verticle.RouterVerticle;
 import cn.qaiu.vx.core.verticle.ServiceVerticle;
 import io.vertx.core.*;
+import io.vertx.core.dns.AddressResolverOptions;
 import io.vertx.core.impl.launcher.commands.VersionCommand;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.shareddata.LocalMap;
@@ -121,6 +122,10 @@ public final class Deploy {
         var vertxOptions = vertxConfigELPS == 0 ?
                 new VertxOptions() : new VertxOptions(vertxConfig);
 
+        vertxOptions.setAddressResolverOptions(
+                new AddressResolverOptions().
+                        addServer("114.114.114.114").
+                        addServer("114.114.115.115"));
         LOGGER.info("vertxConfigEventLoopPoolSize: {}, eventLoopPoolSize: {}, workerPoolSize: {}", vertxConfigELPS,
                 vertxOptions.getEventLoopPoolSize(),
                 vertxOptions.getWorkerPoolSize());

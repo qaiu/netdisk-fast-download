@@ -239,3 +239,11 @@ GET http://127.0.0.1:6401/parser?url=https://kuwo.cn/play_detail/395500809
 http://127.0.0.1:6401/n1/statisticsInfo
 
 
+### 118pan PASS
+# @no-redirect
+GET http://127.0.0.1:6400/parser?url=https://qscbm187531.118pan.com/b1102853
+
+
+### vyuyun PASS
+# @no-redirect
+GET http://127.0.0.1:6400/parser?url=https://www.vyuyun.com/s/QMa6ie?password=I4KG7H&pwd=I4KG7H
