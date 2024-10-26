@@ -83,6 +83,16 @@ public enum PanDomainTemplate {
             compile("https://474b\\.com/file/(?<KEY>.+)"),
             "https://474b.com/file/{shareKey}",
             CtTool.class),
+    // https://xxx.118pan.com/bxxx
+    P118("118网盘",
+            compile("https://((.*)\\.)?118pan\\.com/b(?<KEY>.+)"),
+            "https://qaiu.118pan.com/b{shareKey}",
+            P118Tool.class),
+    // https://www.vyuyun.com/s/QMa6ie?password=I4KG7H
+    PVYY("微雨云存储",
+            compile("https://www\\.vyuyun\\.com/s/(?<KEY>[a-zA-Z0-9-]+)(\\?password=.*)?"),
+            "https://www.vyuyun.com/s/{shareKey}",
+            PvyyTool.class),
 
     // =====================音乐类解析 分享链接标志->MxxS (单歌曲/普通音质)==========================
     // http://163cn.tv/xxx

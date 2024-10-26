@@ -312,13 +312,19 @@ export default {
             this.$message.error(response.data.msg)
           }
         });
-    }
+    },
+    async getPaste() {
+      const text = await navigator.clipboard.readText();
+      console.log('获取到的文本内容是：', text)
+    },
   },
   mounted() {
     this.getLinkInfo = `${this.baseAPI}/v2/linkInfo`
-    this.getLink = `${this.baseAPI}/json/parser`
+      this.getLink = `${this.baseAPI}/json/parser`
     this.getInfo()
-  }
+    this.getPaste()
+  },
+
 }
 </script>
 
