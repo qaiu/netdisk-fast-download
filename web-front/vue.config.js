@@ -15,12 +15,8 @@ module.exports = {
     host: '127.0.0.1',
     port: 6444,
     proxy: {
-      '/api': {
+      '/': {
         target: 'http://127.0.0.1:6400',  // 请求本地
-        changeOrigin: true,
-        pathRewrite: {
-          '^/api': '/'   //本身的接口地址没有 '/api' 这种通用前缀，所以要rewrite，如果本身有则去掉
-        },
         ws: true
       },
     }

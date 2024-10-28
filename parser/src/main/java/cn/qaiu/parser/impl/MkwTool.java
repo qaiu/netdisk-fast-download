@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 /**
  * 酷我音乐分享
  * <a href="https://kuwo.cn/play_detail/395500809">分享示例</a>
+ * <a href="https://m.kuwo.cn/newh5app/play_detail/318448522">分享示例</a>
  */
 public class MkwTool extends PanBase {
 

@@ -132,8 +132,9 @@ public enum PanDomainTemplate {
             "https://www.kugou.com/mixsong/{shareKey}.html",
             MkgsTool.MkgTool.class),
     // https://kuwo.cn/play_detail/395500809
+    // https://m.kuwo.cn/newh5app/play_detail/318448522
     MKWS("酷我音乐分享*",
-            compile("https://kuwo\\.cn/play_detail/(?<KEY>.+)"),
+            compile("https://(m\\.)?kuwo\\.cn/(newh5app/)?play_detail/(?<KEY>.+)"),
             "https://kuwo.cn/play_detail/{shareKey}",
             MkwTool.class),
     // https://music.migu.cn/v3/music/song/6326951FKBJ?channelId=001002H
@@ -148,7 +149,7 @@ public enum PanDomainTemplate {
     // https://pan.huang1111.cn/s/xxx
     // 通用域名([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}
     CE("Cloudreve",
-            compile("https://([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\\.)+[a-zA-Z]{2,}(/s)?/(?<KEY>.+)"),
+            compile("http(s)?://([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\\.)+[a-zA-Z]{2,}(/s)?/(?<KEY>.+)"),
             "https://{any}/s/{shareKey}",
             CeTool.class),
     // 可道云自定义域名解析

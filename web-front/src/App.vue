@@ -238,7 +238,7 @@ export default {
     },
     getInfo() {
       // 初始化统计信息
-      axios.get('/n1/statisticsInfo').then(
+      axios.get('/v2/statisticsInfo').then(
         response => {
           if (response.data.success) {
             this.node1Info = response.data.data
