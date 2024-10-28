@@ -4,6 +4,7 @@ import cn.qaiu.parser.impl.*;
 
 import java.util.Arrays;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -93,6 +94,12 @@ public enum PanDomainTemplate {
             compile("https://www\\.vyuyun\\.com/s/(?<KEY>[a-zA-Z0-9-]+)(\\?password=.*)?"),
             "https://www.vyuyun.com/s/{shareKey}",
             PvyyTool.class),
+    // https://1drv.ms/w/s!Alg0feQmCv2rnRFd60DQOmMa-Oh_?e=buaRtp
+    //
+    POD("OneCloud",
+            compile("https://1drv\\.ms/[uw]/s!(?<KEY>.+)"),
+            "https://1drv.ms/w/s!{shareKey}",
+            PodTool.class),
 
     // =====================音乐类解析 分享链接标志->MxxS (单歌曲/普通音质)==========================
     // http://163cn.tv/xxx
@@ -209,6 +216,12 @@ public enum PanDomainTemplate {
     }
 
     public static void main(String[] args) {
+
+        Matcher matcher = compile("https://1drv\\.ms/[uw]/s!(?<KEY>.+)")
+                .matcher("https://1drv.ms/u/s!Alg0feQmCv2rpFvu444hg5yVqDcK?e=OggA4s");
+        if (matcher.find()) {
+            System.out.println(matcher.group());
+        }
         // 校验重复
         Set<String> collect =
                 Arrays.stream(PanDomainTemplate.values()).map(PanDomainTemplate::getRegex).collect(Collectors.toSet());
@@ -220,8 +233,8 @@ public enum PanDomainTemplate {
         if (collect2.size()<PanDomainTemplate.values().length) {
             System.out.println("有重复枚举标准链接");
         }
-        System.out.println(collect);
-        System.out.println(collect2);
+//        System.out.println(collect);
+//        System.out.println(collect2);
 
 
     }
