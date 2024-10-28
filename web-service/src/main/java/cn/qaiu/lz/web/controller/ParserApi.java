@@ -68,12 +68,12 @@ public class ParserApi {
 
     private static String getDownLink(ParserCreate create, boolean isJson) {
 
-        String linkPrefix = SharedDataUtil.getJsonConfig("server")
-                .getString("domainName");
+        String linkPrefix = SharedDataUtil.getJsonConfig("server").getString("domainName");
         if (StringUtils.isBlank(linkPrefix)) {
             linkPrefix = "http://127.0.0.1";
         }
-        return linkPrefix + (isJson ? "/json/" : "/") + create.genPathSuffix();
+        // 下载短链前缀 /d
+        return linkPrefix + (isJson ? "/json/" : "/d/") + create.genPathSuffix();
     }
 
 }

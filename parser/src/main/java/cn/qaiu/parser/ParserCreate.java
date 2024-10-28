@@ -138,7 +138,7 @@ public class ParserCreate {
     public String genPathSuffix() {
 
         String path;
-        if (panDomainTemplate == PanDomainTemplate.CE) {
+        if (panDomainTemplate.ordinal() >= PanDomainTemplate.CE.ordinal()) {
             // 处理Cloudreve(ce)类: pan.huang1111.cn_s_wDz5TK _ -> /
             path = this.shareLinkInfo.getType() + "/"
                     + this.shareLinkInfo.getShareUrl()

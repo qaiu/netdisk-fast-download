@@ -5,7 +5,7 @@ server:
   # 使用数据库
   enableDatabase: true
   # 服务域名或者IP 生成二维码链接时需要
-  domainName: https://lz.qaiu.top
+  domainName: http://127.0.0.1:6401
 
 # 反向代理服务器配置路径(不用加后缀)
 proxyConf: server-proxy
@@ -40,11 +40,13 @@ dataSource:
   username: root
   password: '123456'
 
-# 缓存配置
+# 直链缓存相关配置
 cache:
+  # 该配置未使用，后续加入其他Cache实现时，区分类型
   type: h2db
-  # 默认时长: 单位分钟, 实际有效期分钟-1
+  # 默认时长: 单位分钟，大部分网盘未严格验证，建议不要太大
   defaultDuration: 59
+  # 具体网盘的缓存配置，如果不加配置则不缓存，每次请求都会请求网盘API，格式：网盘标识: 时长
   duration:
     ce:
     cow:

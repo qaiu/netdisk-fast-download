@@ -189,6 +189,13 @@ bash service-install.sh
 如果不想使用服务运行可以直接运行run.bat
 > 注意: 如果jdk环境变量的java版本不是17请修改nfd-service-template.xml中的java命令的路径改为实际路径
 
+## 相关配置说明
+
+resources目录下包含服务端配置文件 配置文件自带说明，具体请查看配置文件内容，  
+app-dev.yml 可以配置解析服务相关信息， 包括端口，域名，缓存时长等  
+server-proxy.yml 可以配置代理服务运行的相关信息， 包括前端反向代理端口，路径等  
+
+
 ## 0.1.9 开发计划
 - 超星网盘解析 doing
 - 带Referer头的js请求下载 doing
