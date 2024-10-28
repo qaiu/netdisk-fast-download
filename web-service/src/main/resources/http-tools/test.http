@@ -247,3 +247,7 @@ GET http://127.0.0.1:6400/parser?url=https://qscbm187531.118pan.com/b1102853
 ### vyuyun PASS
 # @no-redirect
 GET http://127.0.0.1:6400/parser?url=https://www.vyuyun.com/s/QMa6ie?password=I4KG7H&pwd=I4KG7H
+
+### pod PASS
+# @no-redirect
+GET http://127.0.0.1:6400/parser?url=https://1drv.ms/u/s!Alg0feQmCv2rpFvu444hg5yVqDcK?e=OggA4s
