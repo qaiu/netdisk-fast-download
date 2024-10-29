@@ -1,5 +1,7 @@
 package cn.qaiu.entity;
 
+import java.util.Map;
+
 public class ShareLinkInfo {
 
     private String shareKey;      // 分享键
@@ -9,6 +11,8 @@ public class ShareLinkInfo {
     private String sharePassword; // 分享密码（如果存在）
     private String shareUrl;      // 原始分享链接
     private String standardUrl;   // 规范化的标准链接
+
+    private Map<String, Object> otherParam;   // 其他参数
 
     private ShareLinkInfo(Builder builder) {
         this.shareKey = builder.shareKey;
@@ -88,6 +92,7 @@ public class ShareLinkInfo {
         private String sharePassword = ""; // 分享密码（如果存在）
         private String shareUrl;      // 原始分享链接
         private String standardUrl;   // 规范化的标准链接
+        private Map<String, Object> otherParam;   // 其他参数
 
         public Builder shareKey(String shareKey) {
             this.shareKey = shareKey;
@@ -119,6 +124,11 @@ public class ShareLinkInfo {
             return this;
         }
 
+        public Builder otherParam(Map<String, Object> otherParam) {
+            this.otherParam = otherParam;
+            return this;
+        }
+
         public ShareLinkInfo build() {
             return new ShareLinkInfo(this);
         }
@@ -133,6 +143,7 @@ public class ShareLinkInfo {
                 ", sharePassword='" + sharePassword + '\'' +
                 ", shareUrl='" + shareUrl + '\'' +
                 ", standardUrl='" + standardUrl + '\'' +
+                ", otherParam='" + otherParam + '\'' +
                 '}';
     }
 }
