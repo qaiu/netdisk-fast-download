@@ -1,6 +1,6 @@
 package cn.qaiu.parser.impl;
 
-import cn.qaiu.entity.ShareLinkInfo; 
+import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.CommonUtils;
 import cn.qaiu.util.JsExecUtils;
@@ -42,11 +42,17 @@ public class YeTool extends PanBase {
         client.getAbs(UriTemplate.of(FIRST_REQUEST_URL)).setTemplateParam("key", dataKey).send().onSuccess(res -> {
 
             String html = res.bodyAsString();
+            // 判断分享是否已经失效
+            if (html.contains("分享链接已失效")) {
+                fail("该分享已失效({})已失效", shareLinkInfo.getShareUrl());
+                return;
+            }
+
             Pattern compile = Pattern.compile("window.g_initialProps\\s*=\\s*(.*);");
             Matcher matcher = compile.matcher(html);
 
             if (!matcher.find()) {
-                fail(html + "\n Ye: " + dataKey + " 正则匹配失败");
+                fail("该分享({})文件信息找不到, 可能分享已失效", shareLinkInfo.getShareUrl());
                 return;
             }
             String fileInfoString = matcher.group(1);
@@ -59,6 +65,7 @@ public class YeTool extends PanBase {
                 return;
             }
             String shareKey = resJson.getJsonObject("data").getString("ShareKey");
+
             if (resListJson == null || resListJson.getInteger("code") != 0) {
                 // 加密分享
                 if (StringUtils.isNotEmpty(pwd)) {

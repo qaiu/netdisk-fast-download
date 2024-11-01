@@ -95,11 +95,9 @@ public abstract class PanBase implements IPanTool {
     protected void fail(String errorMsg, Object... args) {
         try {
             String s = String.format(errorMsg.replaceAll("\\{}", "%s"), args);
-            log.error("解析异常: " + s);
             promise.fail(shareLinkInfo.getPanName() + "-" + shareLinkInfo.getType() + " - 解析异常: " + s);
         } catch (Exception e) {
             log.error("ErrorMsg format fail. The parameter has been discarded", e);
-            log.error("解析异常: " + errorMsg);
             promise.fail(shareLinkInfo.getPanName() + "-" + shareLinkInfo.getType() + " - 解析异常: " + errorMsg);
         }
     }

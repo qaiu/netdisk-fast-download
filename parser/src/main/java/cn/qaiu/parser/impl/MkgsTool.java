@@ -102,7 +102,7 @@ public class MkgsTool extends PanBase {
         }).onFailure(handleFail(locationURL));
     }
 
-    public static class MkgTool extends MkgsTool{
+    public static class MkgTool extends MkgsTool {
 
         public MkgTool(ShareLinkInfo shareLinkInfo) {
             super(shareLinkInfo);
@@ -112,10 +112,12 @@ public class MkgsTool extends PanBase {
         public Future<String> parse() {
             downUrl(shareLinkInfo.getStandardUrl());
             return promise.future();
-        };
+        }
+
+        ;
     }
 
-    public static class Mkgs2Tool extends MkgTool{
+    public static class Mkgs2Tool extends MkgTool {
         public Mkgs2Tool(ShareLinkInfo shareLinkInfo) {
             super(shareLinkInfo);
         }

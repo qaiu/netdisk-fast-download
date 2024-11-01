@@ -21,6 +21,7 @@ public class ShareLinkInfo {
         this.sharePassword = builder.sharePassword;
         this.shareUrl = builder.shareUrl;
         this.standardUrl = builder.standardUrl;
+        this.otherParam = builder.otherParam;
     }
 
     // Getter和Setter方法
@@ -78,6 +79,14 @@ public class ShareLinkInfo {
         return type + ":" + shareKey;
     }
 
+    public ShareLinkInfo setOtherParam(Map<String, Object> otherParam) {
+        this.otherParam = otherParam;
+        return this;
+    }
+
+    public Map<String, Object> getOtherParam() {
+        return otherParam;
+    }
 
     // 静态方法创建建造者对象
     public static ShareLinkInfo.Builder newBuilder() {
