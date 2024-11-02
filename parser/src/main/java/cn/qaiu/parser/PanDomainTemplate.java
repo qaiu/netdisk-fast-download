@@ -2,11 +2,9 @@ package cn.qaiu.parser;
 
 import cn.qaiu.parser.impl.*;
 
-import java.util.Arrays;
-import java.util.Set;
-import java.util.regex.Matcher;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static java.util.regex.Pattern.compile;
 
@@ -27,7 +25,7 @@ public enum PanDomainTemplate {
 
     // 网盘定义
     LZ("蓝奏云",
-             compile("https://([a-z0-9-]+)?\\.?lanzou[a-z]\\.com/(.+/)?(?<KEY>.+)"),
+             compile("https://(?:[a-zA-Z\\d-]+\\.)?lanzou[a-z]\\.com/(.+/)?(?<KEY>.+)"),
             "https://lanzoux.com/{shareKey}",
             LzTool.class),
 
@@ -48,6 +46,7 @@ public enum PanDomainTemplate {
     FC("亿方云",
             compile("https://v2\\.fangcloud\\.(com|cn)/(s|sharing)/(?<KEY>.+)"),
             "https://v2.fangcloud.com/s/{shareKey}",
+            "https://www.fangcloud.com/",
             FcTool.class),
     // https://www.ilanzou.com/s/
     IZ("蓝奏云优享",
@@ -58,10 +57,11 @@ public enum PanDomainTemplate {
     QQ("QQ邮箱中转站",
             compile("https://i?wx\\.mail\\.qq\\.com/ftn/download\\?(?<KEY>.+)"),
             "https://iwx.mail.qq.com/ftn/download/{shareKey}",
+            "https://mail.qq.com",
             QQTool.class),
     // https://f.ws59.cn/f/或者https://www.wenshushu.cn/f/
     WS("文叔叔",
-            compile("https://(f\\.ws([0-9]{2})\\.cn|www\\.wenshushu\\.cn)/f/(?<KEY>.+)"),
+            compile("https://(f\\.ws(\\d{2})\\.cn|www\\.wenshushu\\.cn)/f/(?<KEY>.+)"),
             "https://www.wenshushu.cn/f/{shareKey}",
             WsTool.class),
     // https://www.123pan.com/s/
@@ -81,25 +81,29 @@ public enum PanDomainTemplate {
             "https://cowtransfer.com/s/{shareKey}",
             CowTool.class),
     CT("城通网盘",
-            compile("https://474b\\.com/file/(?<KEY>.+)"),
+            compile("https://(?:[a-zA-Z\\d-]+\\.)?(ctfile|545c|u062|ghpym|474b)\\.com/file/(?<KEY>.+)"),
             "https://474b.com/file/{shareKey}",
             CtTool.class),
     // https://xxx.118pan.com/bxxx
     P118("118网盘",
-            compile("https://((.*)\\.)?118pan\\.com/b(?<KEY>.+)"),
+            compile("https://(?:[a-zA-Z\\d-]+\\.)?118pan\\.com/b(?<KEY>.+)"),
             "https://qaiu.118pan.com/b{shareKey}",
             P118Tool.class),
     // https://www.vyuyun.com/s/QMa6ie?password=I4KG7H
     PVYY("微雨云存储",
-            compile("https://www\\.vyuyun\\.com/s/(?<KEY>[a-zA-Z0-9-]+)(\\?password=.*)?"),
+            compile("https://www\\.vyuyun\\.com/s/(?<KEY>[a-zA-Z\\d-]+)(\\?password=.*)?"),
             "https://www.vyuyun.com/s/{shareKey}",
             PvyyTool.class),
     // https://1drv.ms/w/s!Alg0feQmCv2rnRFd60DQOmMa-Oh_?e=buaRtp
-    //
-    POD("OneCloud",
+    POD("OneDrive",
             compile("https://1drv\\.ms/[uw]/s!(?<KEY>.+)"),
-            "https://1drv.ms/w/s!{shareKey}",
+            "https://onedrive.live.com/",
             PodTool.class),
+    // 404网盘 https://drive.google.com/file/d/xxx/view?usp=sharing
+    PGD("GoogleDrive",
+            compile("https://drive\\.google\\.com/file/d/(?<KEY>.+)/view(\\?usp=(sharing|drive_link))?"),
+            "https://drive.google.com/file/d/{shareKey}/view?usp=sharing",
+            PgdTool.class),
 
     // =====================音乐类解析 分享链接标志->MxxS (单歌曲/普通音质)==========================
     // http://163cn.tv/xxx
@@ -114,7 +118,7 @@ public enum PanDomainTemplate {
             MnesTool.MneTool.class),
     // https://c6.y.qq.com/base/fcgi-bin/u?__=xxx
     MQQS("QQ音乐分享",
-            compile("https://(.+)\\.y\\.qq\\.com/base/fcgi-bin/u\\?__=(?<KEY>.+)"),
+            compile("https://(?:[a-zA-Z\\d-]+\\.)?y\\.qq\\.com/base/fcgi-bin/u\\?__=(?<KEY>.+)"),
             "https://c6.y.qq.com/base/fcgi-bin/u?__={shareKey}",
             MqqsTool.class),
     // https://y.qq.com/n/ryqq/songDetail/000XjcLg0fbRjv?songtype=0
@@ -125,17 +129,17 @@ public enum PanDomainTemplate {
 
     // https://t1.kugou.com/song.html?id=xxx
     MKGS("酷狗音乐分享",
-            compile("https://(.+)\\.kugou\\.com/song\\.html\\?id=(?<KEY>.+)"),
+            compile("https://(?:[a-zA-Z\\d-]+\\.)?kugou\\.com/song\\.html\\?id=(?<KEY>.+)"),
             "https://t1.kugou.com/song.html?id={shareKey}",
             MkgsTool.class),
     // https://www.kugou.com/share/2bi8Fe9CSV3.html?id=2bi8Fe9CSV3#6ed9gna4"
     MKGS2("酷狗音乐分享2",
-            compile("https://(.+)\\.kugou\\.com/share/(?<KEY>.+).html.*"),
+            compile("https://(?:[a-zA-Z\\d-]+\\.)?kugou\\.com/share/(?<KEY>.+).html.*"),
             "https://www.kugou.com/share/{shareKey}.html",
             MkgsTool.Mkgs2Tool.class),
     // https://www.kugou.com/mixsong/2bi8Fe9CSV3
     MKG("酷狗音乐歌曲详情",
-            compile("https://(.+)\\.kugou\\.com/mixsong/(?<KEY>.+)\\.html.*"),
+            compile("https://(?:[a-zA-Z\\d-]+\\.)?kugou\\.com/mixsong/(?<KEY>.+)\\.html.*"),
             "https://www.kugou.com/mixsong/{shareKey}.html",
             MkgsTool.MkgTool.class),
     // https://kuwo.cn/play_detail/395500809
@@ -154,19 +158,21 @@ public enum PanDomainTemplate {
     // Cloudreve自定义域名解析, 解析器CeTool兜底策略, 即任意域名如果匹配不到对应的规则, 则由CeTool统一处理,
     // 如果不属于Cloudreve盘 则调用下一个自定义域名解析器, 若都处理不了则抛出异常, 这种匹配模式类似责任链
     // https://pan.huang1111.cn/s/xxx
-    // 通用域名([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}
+    // 通用域名([a-z\\d]+(-[a-z\\d]+)*\.)+[a-z]{2,}
     CE("Cloudreve",
-            compile("http(s)?://([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\\.)+[a-zA-Z]{2,}(/s)?/(?<KEY>.+)"),
+            compile("http(s)?://([a-zA-Z\\d]+(-[a-zA-Z\\d]+)*\\.)+[a-zA-Z]{2,}(/s)?/(?<KEY>.+)"),
             "https://{any}/s/{shareKey}",
+            "https://cloudreve.org/",
             CeTool.class),
     // 可道云自定义域名解析
     KD("可道云",
-            compile("http(s)?://([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\\.)+[a-zA-Z]{2,}(/#s)?/(?<KEY>.+)"),
+            compile("http(s)?://([a-zA-Z\\d]+(-[a-zA-Z\\d]+)*\\.)+[a-zA-Z]{2,}(/#s)?/(?<KEY>.+)"),
             "https://{any}/#s/{shareKey}",
+            "https://kodcloud.com/",
             KdTool.class),
     // 其他自定义域名解析
     OTHER("其他网盘",
-       compile("http(s)?://([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\\.)+[a-zA-Z]{2,}/(?<KEY>.+)"),
+       compile("http(s)?://([a-zA-Z\\d]+(-[a-zA-Z\\d]+)*\\.)+[a-zA-Z]{2,}/(?<KEY>.+)"),
                "https://{any}/{shareKey}",
     OtherTool.class);
 
@@ -183,6 +189,9 @@ public enum PanDomainTemplate {
     // 网盘的标准链接模板，不含占位符，用于规范化分享链接
     private final String standardUrlTemplate;
 
+    // 网盘的域名, 如果在分享链接里能提取到, 则可不写
+    private String panDomain;
+
     // 指向解析工具IPanTool实现类
     private final Class<? extends IPanTool> toolClass;
 
@@ -192,6 +201,16 @@ public enum PanDomainTemplate {
         this.pattern = pattern;
         this.regex = pattern.pattern();
         this.standardUrlTemplate = standardUrlTemplate;
+        this.toolClass = toolClass;
+    }
+
+    PanDomainTemplate(String displayName, Pattern pattern, String standardUrlTemplate, String panDomain,
+                      Class<? extends IPanTool> toolClass) {
+        this.displayName = displayName;
+        this.pattern = pattern;
+        this.regex = pattern.pattern();
+        this.standardUrlTemplate = standardUrlTemplate;
+        this.panDomain = panDomain;
         this.toolClass = toolClass;
     }
 
@@ -215,27 +234,17 @@ public enum PanDomainTemplate {
         return toolClass;
     }
 
-    public static void main(String[] args) {
+    public String getPanDomain() {
+        if (panDomain == null) {
+            String url = standardUrlTemplate
+                    .replace("{shareKey}", "");
+            URL panDomainUrl = null;
+            try {
+                panDomainUrl = new URL(url);
+            } catch (MalformedURLException ignored) {}
 
-        Matcher matcher = compile("https://1drv\\.ms/[uw]/s!(?<KEY>.+)")
-                .matcher("https://1drv.ms/u/s!Alg0feQmCv2rpFvu444hg5yVqDcK?e=OggA4s");
-        if (matcher.find()) {
-            System.out.println(matcher.group());
+            return panDomainUrl != null ? (panDomainUrl.getProtocol() + "://" + panDomainUrl.getHost()) : "无";
         }
-        // 校验重复
-        Set<String> collect =
-                Arrays.stream(PanDomainTemplate.values()).map(PanDomainTemplate::getRegex).collect(Collectors.toSet());
-        if (collect.size()<PanDomainTemplate.values().length) {
-            System.out.println("有重复枚举正则");
-        }
-        Set<String> collect2 =
-                Arrays.stream(PanDomainTemplate.values()).map(PanDomainTemplate::getStandardUrlTemplate).collect(Collectors.toSet());
-        if (collect2.size()<PanDomainTemplate.values().length) {
-            System.out.println("有重复枚举标准链接");
-        }
-//        System.out.println(collect);
-//        System.out.println(collect2);
-
-
+        return panDomain;
     }
 }

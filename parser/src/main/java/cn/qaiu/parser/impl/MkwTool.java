@@ -25,8 +25,7 @@ public class MkwTool extends PanBase {
     }
 
     public Future<String> parse() {
-//        String shareUrl = shareLinkInfo.getStandardUrl();
-        String shareUrl = "https://kuwo.cn/play_detail/395500809";
+        String shareUrl = shareLinkInfo.getStandardUrl();
         clientSession.getAbs(shareUrl).send().onSuccess(result -> {
             String cookie = result.headers().get("set-cookie");
 
@@ -43,7 +42,7 @@ public class MkwTool extends PanBase {
                     var token = matcher.group(2);
                     String sign = JsExecUtils.getKwSign(token, key);
                     System.out.println(sign);
-                    clientSession.getAbs(UriTemplate.of(API_URL)).setTemplateParam("mid", "395500809")
+                    clientSession.getAbs(UriTemplate.of(API_URL)).setTemplateParam("mid", shareLinkInfo.getShareKey())
                             .putHeader("Secret", sign).send().onSuccess(res -> {
                                 JsonObject json = asJson(res);
                                 log.debug(json.encodePrettily());
@@ -51,7 +50,7 @@ public class MkwTool extends PanBase {
                                     if (json.getInteger("code") == 200) {
                                         complete(json.getJsonObject("data").getString("url"));
                                     } else {
-                                        fail("链接已失效");
+                                        fail("链接已失效/需要VIP");
                                     }
 
                                 } catch (Exception e) {
@@ -65,12 +64,5 @@ public class MkwTool extends PanBase {
         });
 
         return promise.future();
-    }
-
-    MkwTool() {
-    }
-
-    public static void main(String[] args) {
-        new MkwTool().parse();
     }
 }

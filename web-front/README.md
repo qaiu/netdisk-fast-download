@@ -1,5 +1,7 @@
 # nfd-web
-解析服务的前端页面, 提供API测试, 统计查询, 二维码生成等
+解析服务的前端页面, 提供API测试, 统计查询, 二维码生成等;  
+20241101 支持剪切板链接自动识别解析, 一键生成短链  
+
 ![img_2.png](img/img_2.png)
 ![img.png](img/img.png)
 ![img_1.png](img/img_1.png)
@@ -41,3 +43,8 @@ npm run lint
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
+
+
+## 参考项目
+- https://github.com/HurryBy/CloudDiskAnalysis
+- https://github.com/syhyz1990/panAI

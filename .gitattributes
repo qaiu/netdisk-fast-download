@@ -1,0 +1,8 @@
+# 文本文件使用 LF 换行符，适用于 Linux 和 macOS
+*.sh text eol=lf
+*.service text eol=lf
+
+# Windows 执行的文件使用 CRLF 换行符
+*.bat text eol=crlf
+*.cmd text eol=crlf
+bin/nfd-service-template.xml text eol=crlf

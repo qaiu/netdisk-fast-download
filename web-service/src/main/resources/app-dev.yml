@@ -10,11 +10,12 @@ server:
 # 反向代理服务器配置路径(不用加后缀)
 proxyConf: server-proxy
 
-# vertx线程配置, 为0表示eventLoopPoolSize将会采用默认配置(CPU核心*2) workerPoolSize将会采用默认20
+# vertx核心线程配置(一般无需改的), 为0表示eventLoopPoolSize将会采用默认配置(CPU核心*2) workerPoolSize将会采用默认20
 vertx:
   eventLoopPoolSize: 0
   workerPoolSize: 0
 
+# vertx-service配置(一般无需改的)
 custom:
   # 异步服务线程数
   asyncServiceInstances: 4
