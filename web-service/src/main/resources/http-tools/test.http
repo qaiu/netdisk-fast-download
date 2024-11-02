@@ -173,6 +173,9 @@ GET http://127.0.0.1:6400/json/parser?url=https://iwx.mail.qq.com/ftn/download?f
 GET http://127.0.0.1:6400/v2/statisticsInfo
 
 ###
+GET http://127.0.0.1:6400/v2/getPanList
+
+###
 GET http://127.0.0.1:6400/v2/linkInfo?url=https://www.123865.com/s/iaKtVv-6OECd.html&pwd=DcGe
 ###
 GET http://127.0.0.1:6400/v2/linkInfo?url=https://pan.seeoss.com/s/nLNsQ&pwd=DcGe
@@ -198,7 +201,7 @@ GET http://127.0.0.1:6401/json/parser?url=https://iwx.mail.qq.com/ftn/download?f
 
 ### PASS CT
 # @no-redirect
-GET http://127.0.0.1:6401/parser?url=https://474b.com/file/4015376-131945810
+GET http://127.0.0.1:6401/parser?url=https://123123-asd.474b.com/file/4015376-131945810
 
 
 ### PASS MNE
@@ -231,7 +234,7 @@ GET http://127.0.0.1:6401/parser?url=https://www.kugou.com/mixsong/9q98o5b9.html
 
 ### PASS MQW 酷我
 # @no-redirect
-GET http://127.0.0.1:6401/parser?url=https://kuwo.cn/play_detail/395500809
+GET http://127.0.0.1:6401/parser?url=https://kuwo.cn/play_detail/394906263
 
 
 

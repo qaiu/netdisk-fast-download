@@ -33,13 +33,24 @@
         <hr>
         <div class="main" v-loading="isLoading">
           <div class="grid-content">
+
+            <!-- 开关按钮，控制是否自动读取剪切板 -->
+            <el-switch
+              v-model="autoReadClipboard"
+              active-text="自动识别剪切板"
+            ></el-switch>
+
+            <!-- 手动触发按钮 -->
+            <el-button style="margin-left: 20px;margin-bottom: 20px" @click="() => getPaste(1)">读取剪切板</el-button>
+
             <el-input placeholder="请粘贴分享链接" v-model="link" id="url" lass="input-with-select">
               <strong slot="prepend">分享链接</strong>
             </el-input>
             <el-input placeholder="请输入密码" v-model="password" id="url" lass="input-with-select">
                 <strong slot="prepend">分享密码</strong>
             </el-input>
-            <el-input v-show="respData.data" placeholder="解析地址" :value="getLink2" id="url" lass="input-with-select">
+            <el-input v-show="getLink2" placeholder="解析地址" :value="getLink2" id="url" lass="input-with-select">
+              <strong slot="prepend">智能直链</strong>
               <el-button slot="append" v-clipboard:copy="getLink2"
                          v-clipboard:success="onCopy"
                          v-clipboard:error="onError">点我复制
@@ -110,34 +121,16 @@
 <script>
 import axios from 'axios'
 import QRCode from 'qrcode'
-/*
-蓝奏云 (lz)
- 登录, 上传, 下载, 分享
- 直链解析
-奶牛快传 (cow)
- 登录, 上传, 下载, 分享
- 直链解析
-移动云空间 (ec)
- 登录, 上传, 下载, 分享
- 直链解析
-UC网盘 (uc)似乎已经失效，需要登录
- 登录, 上传, 下载, 分享
- 直链解析
-小飞机网盘 (fj)
- 登录, 上传, 下载, 分享
- 直链解析
-亿方云 (fc)
- 登录, 上传, 下载, 分享
- 直链解析
-123云盘 (ye)
- 登录, 上传, 下载,, 分享
- */
+
+import parserUrl from './parserUrl1'
+
 export default {
   name: 'App',
   data() {
     return {
       // baseAPI: `${location.protocol}//${location.hostname}:6400`,
       baseAPI: `${location.protocol}//${location.host}`,
+      autoReadClipboard: true, // 开关状态，默认为自动读取
       current: {}, // 当前分享
       showQrc: false,
       codeUrl: '',
@@ -313,16 +306,44 @@ export default {
           }
         });
     },
-    async getPaste() {
+
+    async getPaste(v) {
       const text = await navigator.clipboard.readText();
-      console.log('获取到的文本内容是：', text)
+      console.log('获取到的文本内容是：', text);
+      let linkInfo = parserUrl.parseLink(text);
+      let pwd = parserUrl.parsePwd(text) || '';
+      if (linkInfo.link) {
+        if(linkInfo.link !== this.link || pwd !== this.password ) {
+          this.password = pwd;
+          this.link = linkInfo.link;
+          this.getLink2 = `${this.baseAPI}/parser?url=${this.link}`
+          if (this.link) this.$message.success(`自动识别分享成功, 网盘类型: ${linkInfo.name}; 分享URL ${this.link}; 分享密码: ${this.password || '空'}`);
+        } else {
+          v || this.$message.warning(`[${linkInfo.name}]分享信息无变化`)
+        }
+      } else {
+        this.$message.warning("未能提取到分享链接, 该分享可能尚未支持, 你可以复制任意网盘/音乐App的分享到该页面, 系统智能识别")
+      }
     },
   },
   mounted() {
     this.getLinkInfo = `${this.baseAPI}/v2/linkInfo`
-      this.getLink = `${this.baseAPI}/json/parser`
+    this.getLink = `${this.baseAPI}/json/parser`
     this.getInfo()
-    this.getPaste()
+
+    // 页面首次加载时，根据开关状态判断是否读取剪切板
+    if (this.autoReadClipboard) {
+      this.getPaste()
+    }
+    // 当文档获得焦点时触发
+    window.addEventListener('focus', () => {
+      console.log('文档获得了焦点');
+      if (this.autoReadClipboard) {
+        this.getPaste()
+      }
+    });
+
+    // this.getPaste()
   },
 
 }

@@ -1,5 +1,6 @@
 package cn.qaiu.entity;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class ShareLinkInfo {
@@ -101,7 +102,7 @@ public class ShareLinkInfo {
         private String sharePassword = ""; // 分享密码（如果存在）
         private String shareUrl;      // 原始分享链接
         private String standardUrl;   // 规范化的标准链接
-        private Map<String, Object> otherParam;   // 其他参数
+        private Map<String, Object> otherParam = new HashMap<>();   // 其他参数
 
         public Builder shareKey(String shareKey) {
             this.shareKey = shareKey;

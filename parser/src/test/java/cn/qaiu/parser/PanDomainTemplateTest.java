@@ -3,8 +3,13 @@ package cn.qaiu.parser;
 import cn.qaiu.entity.ShareLinkInfo;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 
+import static java.util.regex.Pattern.compile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -69,5 +74,33 @@ public class PanDomainTemplateTest {
 //        // 可以添加更多的断言来验证正则表达式匹配逻辑
 //        new Scanner(System.in).nextLine();
         TimeUnit.SECONDS.sleep(5);
+    }
+
+
+    @Test
+    public void verifyDuplicates() {
+
+        Matcher matcher = compile("https://(?:[a-zA-Z\\d-]+\\.)?drive\\.google\\.com/file/d/(?<KEY>.+)/view(\\?usp=(sharing|drive_link))?")
+                .matcher("https://adsd.drive.google.com/file/d/151bR-nk-tOBm9QAFaozJIVt2WYyCMkoz/view");
+        if (matcher.find()) {
+            System.out.println(matcher.group());
+            System.out.println(matcher.group("KEY"));
+        }
+        // 校验重复
+        Set<String> collect =
+                Arrays.stream(PanDomainTemplate.values()).map(PanDomainTemplate::getRegex).collect(Collectors.toSet());
+        if (collect.size()<PanDomainTemplate.values().length) {
+            System.out.println("有重复枚举正则");
+        } else {
+            System.out.println("正则无重复");
+        }
+
+        Set<String> collect2 =
+                Arrays.stream(PanDomainTemplate.values()).map(PanDomainTemplate::getStandardUrlTemplate).collect(Collectors.toSet());
+        if (collect2.size()<PanDomainTemplate.values().length) {
+            System.out.println("有重复枚举标准链接");
+        } else {
+            System.out.println("标准链接无重复");
+        }
     }
 }
