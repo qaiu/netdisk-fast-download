@@ -12,7 +12,7 @@
     "core-js": "^3.8.3",
     "element-ui": "^2.15.14",
     "qrcode": "^1.5.4",
-    "vue": "^2.7.16",
+    "vue": "^3.0.0",
     "vue-clipboard2": "^0.3.3",
     "vue-json-viewer": "^2.2.22"
   },
