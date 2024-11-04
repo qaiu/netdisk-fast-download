@@ -40,29 +40,34 @@
               active-text="自动识别剪切板"
             ></el-switch>
 
-            <!-- 手动触发按钮 -->
-            <el-button style="margin-left: 20px;margin-bottom: 20px" @click="() => getPaste(1)">读取剪切板</el-button>
+            <el-input placeholder="请粘贴分享链接" v-model="link" id="url">
+              <template #prepend>分享链接</template>
+              <template #append v-if="!autoReadClipboard">
+                <el-button @click="() => getPaste(1)">读取剪切板</el-button>
+              </template>
+            </el-input>
+            <el-input placeholder="请输入密码" v-model="password" id="url">
+                <template #prepend>分享密码</template>
+            </el-input>
+            <el-input v-show="getLink2" placeholder="解析地址" :value="getLink2" id="url">
+              <template #prepend>智能直链</template>
+              <template #append>
+                  <el-button :icon="Search" circle
+                             v-clipboard:copy="getLink2"
+                             v-clipboard:success="onCopy"
+                             v-clipboard:error="onError">复制
+                  </el-button>
+              </template>
+            </el-input>
 
-            <el-input placeholder="请粘贴分享链接" v-model="link" id="url" lass="input-with-select">
-              <strong slot="prepend">分享链接</strong>
-            </el-input>
-            <el-input placeholder="请输入密码" v-model="password" id="url" lass="input-with-select">
-                <strong slot="prepend">分享密码</strong>
-            </el-input>
-            <el-input v-show="getLink2" placeholder="解析地址" :value="getLink2" id="url" lass="input-with-select">
-              <strong slot="prepend">智能直链</strong>
-              <el-button slot="append" v-clipboard:copy="getLink2"
-                         v-clipboard:success="onCopy"
-                         v-clipboard:error="onError">点我复制
-              </el-button>
-            </el-input>
             <p style="text-align: center">
-              <el-button style="" @click="onSubmit">解析测试</el-button>
-              <el-button style="margin-left: 20px" @click="genMd">生成Markdown链接</el-button>
+              <el-button style="margin-left: 40px;margin-bottom: 10px" @click="onSubmit">解析测试</el-button>
+              <el-button style="margin-left: 20px;margin-bottom: 10px" @click="genMd">生成Markdown链接</el-button>
               <el-button style="margin-left: 20px" @click="generateQRCode">生成二维码</el-button>
               <el-button style="margin-left: 20px" @click="getTj">链接信息统计</el-button>
             </p>
           </div>
+
           <div v-if="respData.code" style="margin-top: 10px">
             <strong>解析结果: </strong>
             <json-viewer
@@ -74,22 +79,17 @@
             />
             <a :href="downUrl" v-show="downUrl">点击下载</a>
           </div>
-          <el-row v-if="mdText" style="text-align: center">
-            <el-col span="22">
+          <div v-if="mdText" style="text-align: center">
               <el-input
                 type="textarea"
-                :autosize="{ minRows: 4, maxRows: 8}"
-                placeholder="请输入内容"
+                :autosize="{ minRows: 1, maxRows: 8}"
                 v-model="mdText">
               </el-input>
-            </el-col>
-            <el-col span="2">
-              <el-button v-clipboard:copy="mdText"
+              <el-button style="width: 100%" v-clipboard:copy="mdText"
                          v-clipboard:success="onCopy"
                          v-clipboard:error="onError">复制
               </el-button>
-            </el-col>
-          </el-row>
+          </div>
           <div style="text-align: center" v-show="showQrc">
             <div style="text-align: center"><el-link  target="_blank" :href="codeUrl">{{ codeUrl }}</el-link></div>
             <canvas  ref="qrcodeCanvas"></canvas>
@@ -121,6 +121,7 @@
 <script>
 import axios from 'axios'
 import QRCode from 'qrcode'
+import '@element-plus/icons-vue'
 
 import parserUrl from './parserUrl1'
 
@@ -329,6 +330,11 @@ export default {
   mounted() {
     this.getLinkInfo = `${this.baseAPI}/v2/linkInfo`
     this.getLink = `${this.baseAPI}/json/parser`
+    let item = window.localStorage.getItem("autoReadClipboard");
+    if (item) {
+      this.autoReadClipboard = (item === 'true');
+    }
+
     this.getInfo()
 
     // 页面首次加载时，根据开关状态判断是否读取剪切板
@@ -345,6 +351,11 @@ export default {
 
     // this.getPaste()
   },
+  watch: {
+    autoReadClipboard(val) {
+      window.localStorage.setItem("autoReadClipboard", val)
+    }
+  }
 
 }
 </script>
@@ -383,11 +394,6 @@ body:before {
 
 .el-select .el-input {
   width: 130px;
-}
-
-.input-with-select .el-input-group__prepend {
-  background-color: #fff;
-
 }
 
 .box-card {
