@@ -308,6 +308,11 @@
             host: /drive\.google\.com/,
             name: 'GoogleDrive'
         },
+        icloud: {
+            reg: /https:\/\/www\.icloud\.com\.cn\/iclouddrive\/([a-zA-Z\d_-]+)(#.+)?/,
+            host: /www\.icloud\.com\.cn/,
+            name: 'iCloud',
+        },
         n163Music: {
             reg: /https:\/\/163cn\.tv\/.+/,
             host: /163cn\.tv/,
