@@ -1,5 +1,7 @@
 package cn.qaiu.entity;
 
+import java.util.Map;
+
 public class FileInfo {
 
     /**
@@ -11,6 +13,16 @@ public class FileInfo {
      * 文件ID
      */
     String fileId;
+
+    /**
+     * 文件大小(byte)
+     */
+    Long size;
+
+    /**
+     * MIME类型
+     */
+    String fileMIME;
 
     /**
      * 文件路径
@@ -38,9 +50,9 @@ public class FileInfo {
     Integer downloadCount;
 
     /**
-     * 评论信息
+     * 扩展参数
      */
-    String comments;
+    Map<String, Object> extParameters;
 
     public String getFileName() {
         return fileName;
@@ -57,6 +69,24 @@ public class FileInfo {
 
     public FileInfo setFileId(String fileId) {
         this.fileId = fileId;
+        return this;
+    }
+
+    public Long getSize() {
+        return size;
+    }
+
+    public FileInfo setSize(Long size) {
+        this.size = size;
+        return this;
+    }
+
+    public String getFileMIME() {
+        return fileMIME;
+    }
+
+    public FileInfo setFileMIME(String fileMIME) {
+        this.fileMIME = fileMIME;
         return this;
     }
 
@@ -105,12 +135,12 @@ public class FileInfo {
         return this;
     }
 
-    public String getComments() {
-        return comments;
+    public Map<String, Object> getExtParameters() {
+        return extParameters;
     }
 
-    public FileInfo setComments(String comments) {
-        this.comments = comments;
+    public FileInfo setExtParameters(Map<String, Object> extParameters) {
+        this.extParameters = extParameters;
         return this;
     }
 }

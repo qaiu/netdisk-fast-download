@@ -104,6 +104,11 @@ public enum PanDomainTemplate {
             compile("https://drive\\.google\\.com/file/d/(?<KEY>.+)/view(\\?usp=(sharing|drive_link))?"),
             "https://drive.google.com/file/d/{shareKey}/view?usp=sharing",
             PgdTool.class),
+    // iCloud https://www.icloud.com.cn/iclouddrive/xxx#fonts
+    PIC("iCloud",
+            compile("https://www\\.icloud\\.com\\.cn/iclouddrive/(?<KEY>[a-z_A-Z\\d-=]+)(#(.+))?"),
+            "https://www.icloud.com.cn/iclouddrive/{shareKey}",
+            PicTool.class),
 
     // =====================音乐类解析 分享链接标志->MxxS (单歌曲/普通音质)==========================
     // http://163cn.tv/xxx

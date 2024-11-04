@@ -254,3 +254,8 @@ GET http://127.0.0.1:6400/parser?url=https://www.vyuyun.com/s/QMa6ie?password=I4
 ### pod PASS
 # @no-redirect
 GET http://127.0.0.1:6400/parser?url=https://1drv.ms/u/s!Alg0feQmCv2rpFvu444hg5yVqDcK?e=OggA4s
+
+
+### pic PASS
+# @no-redirect
+GET http://127.0.0.1:6400/parser?url=https://www.icloud.com.cn/iclouddrive/0d8lBC0qp01v1uNThurAGQf1A#fonts
