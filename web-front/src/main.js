@@ -6,7 +6,9 @@ import DirectiveExtensions from './directive'
 import JsonViewer from 'vue3-json-viewer'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
+import 'element-plus/theme-chalk/dark/css-vars.css'
 import "vue3-json-viewer/dist/index.css";
+import './styles/dark/css-vars.css'
 
 window.$vueApp = Vue.createApp(App)
 

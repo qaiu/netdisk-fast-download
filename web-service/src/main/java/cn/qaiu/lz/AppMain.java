@@ -7,8 +7,12 @@ import cn.qaiu.vx.core.Deploy;
 import cn.qaiu.vx.core.util.ConfigConstant;
 import cn.qaiu.vx.core.util.VertxHolder;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.json.jackson.DatabindCodec;
+import io.vertx.core.shareddata.LocalMap;
+
+import static cn.qaiu.vx.core.util.ConfigConstant.LOCAL;
 
 
 /**
@@ -38,6 +42,24 @@ public class AppMain {
         // 缓存
         if (jsonObject.containsKey(ConfigConstant.CACHE)) {
             CacheConfigLoader.init(jsonObject.getJsonObject(ConfigConstant.CACHE));
+        }
+        // 代理
+        if (jsonObject.containsKey(ConfigConstant.PROXY)) {
+            LocalMap<Object, Object> localMap = VertxHolder.getVertxInstance().sharedData().getLocalMap(LOCAL);
+            JsonArray proxyJsonArray = jsonObject.getJsonArray(ConfigConstant.PROXY);
+
+            proxyJsonArray.forEach(proxyJson -> {
+                String panTypes = ((JsonObject)proxyJson).getString("panTypes");
+
+                if (!panTypes.isEmpty()) {
+                    JsonObject jsonObject1 = new JsonObject();
+                    for (String s : panTypes.split(",")) {
+                        jsonObject1.put(s, proxyJson);
+                    }
+                    localMap.put("proxy", jsonObject1);
+                }
+            });
+
         }
     }
 }

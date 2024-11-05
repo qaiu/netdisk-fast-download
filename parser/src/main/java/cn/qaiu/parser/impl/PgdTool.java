@@ -31,17 +31,11 @@ public class PgdTool extends PanBase implements IPanTool {
     public Future<String> parse() {
         downloadUrl = DOWN_URL_TEMPLATE + "?id=" + shareLinkInfo.getShareKey() + "&export=download";
 
-        if (true) {
+        if (shareLinkInfo.getOtherParam().containsKey("proxy")) {
 //            if (shareLinkInfo.getOtherParam().containsKey("bypassCheck")
 //                    && "true".equalsIgnoreCase(shareLinkInfo.getOtherParam().get("bypassCheck").toString())) {
             // 发起请求但不真正下载文件, 只检查响应头
-            HttpRequest<Buffer> clientAbs = client.headAbs(downloadUrl);
-            // TODO 判断是否需要代理
-            if (true) {
-                clientAbs.proxy(new ProxyOptions().setHost("127.0.0.1").setPort(7890));
-            }
-            clientAbs
-                    .send()
+            client.headAbs(downloadUrl).send()
                     .onSuccess(this::handleResponse)
                     .onFailure(handleFail("请求下载链接失败"));
             return future();
@@ -59,12 +53,7 @@ public class PgdTool extends PanBase implements IPanTool {
             complete(downloadUrl);
         } else {
             // 如果不是文件流类型，从 HTML 中解析出真实下载链接
-            HttpRequest<Buffer> clientAbs = client.getAbs(downloadUrl);
-            // TODO 判断是否需要代理
-            if (true) {
-                clientAbs.proxy(new ProxyOptions().setHost("127.0.0.1").setPort(7890));
-            }
-            clientAbs
+            client.getAbs(downloadUrl)
                     .send()
                     .onSuccess(res0 -> {
                         parseHtmlForRealLink(res0.bodyAsString());

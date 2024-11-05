@@ -8,9 +8,12 @@ import cn.qaiu.lz.web.model.CacheLinkInfo;
 import cn.qaiu.lz.web.service.CacheService;
 import cn.qaiu.parser.ParserCreate;
 import cn.qaiu.vx.core.annotaions.Service;
+import cn.qaiu.vx.core.util.ConfigConstant;
+import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.shareddata.LocalMap;
 import org.apache.commons.lang3.time.DateFormatUtils;
 
 import java.util.Date;
@@ -21,6 +24,16 @@ public class CacheServiceImpl implements CacheService {
     private final CacheManager cacheManager = new CacheManager();
 
     private Future<CacheLinkInfo> getAndSaveCachedShareLink(ParserCreate parserCreate) {
+        LocalMap<Object, Object> localMap = VertxHolder.getVertxInstance().sharedData()
+                .getLocalMap(ConfigConstant.LOCAL);
+        if (localMap.containsKey(ConfigConstant.PROXY)) {
+            JsonObject proxy = (JsonObject) localMap.get(ConfigConstant.PROXY);
+            String type = parserCreate.getShareLinkInfo().getType();
+            if (proxy.containsKey(type)) {
+                parserCreate.getShareLinkInfo().getOtherParam().put(ConfigConstant.PROXY, proxy.getJsonObject(type));
+            }
+        }
+
         Promise<CacheLinkInfo> promise = Promise.promise();
         // 构建组合的缓存key
         ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();

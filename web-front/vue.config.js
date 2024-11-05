@@ -5,7 +5,7 @@ function resolve(dir) {
   return path.join(__dirname, dir)
 }
 const CompressionPlugin = require('compression-webpack-plugin');
-const FileManagerPlugin = require('filemanager-webpack-plugin')
+// const FileManagerPlugin = require('filemanager-webpack-plugin')
 
 module.exports = {
   transpileDependencies: true,
@@ -20,6 +20,9 @@ module.exports = {
         ws: false
       },
     }
+  },
+  build: {
+    productionSourceMap: false, // 是否在构建生产包时生成sourceMap文件，false将提高构建速度
   },
   configureWebpack: {
     // provide the app's title in webpack's name field, so that
