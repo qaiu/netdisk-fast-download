@@ -64,4 +64,16 @@ cache:
     mqq: 30
     mkg: 30
 
+# httpClient静态代理服务器配置(外网代理)
+proxy:
+  - panTypes: pgd,pdb
+    type: http # 支持http/socks4/socks5
+    host: 127.0.0.1
+    port: 7890
+    username:
+    password:
 
+
+# 代理池配置
+#ip-pool:
+#  api-url:

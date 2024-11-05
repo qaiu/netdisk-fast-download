@@ -6,16 +6,22 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.net.ProxyOptions;
+import io.vertx.core.net.ProxyType;
+import io.vertx.core.net.impl.VertxHandler;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.client.WebClientSession;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Map;
 
 /**
  * 解析器抽象类包含promise, HTTP Client, 默认失败方法等;
@@ -61,6 +67,29 @@ public abstract class PanBase implements IPanTool {
      */
     public PanBase(ShareLinkInfo shareLinkInfo) {
         this.shareLinkInfo = shareLinkInfo;
+        if (shareLinkInfo.getOtherParam().containsKey("proxy")) {
+            JsonObject proxy = (JsonObject) shareLinkInfo.getOtherParam().get("proxy");
+            ProxyOptions proxyOptions = new ProxyOptions()
+                    .setType(ProxyType.valueOf(proxy.getString("type").toUpperCase()))
+                    .setHost(proxy.getString("host"))
+                    .setPort(proxy.getInteger("port"));
+            if (StringUtils.isNotEmpty(proxy.getString("username"))) {
+                proxyOptions.setUsername(proxy.getString("username"));
+            }
+            if (StringUtils.isNotEmpty(proxy.getString("password"))) {
+                proxyOptions.setUsername(proxy.getString("password"));
+            }
+            this.client = WebClient.create(WebClientVertxInit.get(),
+                    new WebClientOptions()
+                            .setUserAgentEnabled(false)
+                            .setProxyOptions(proxyOptions));
+
+            this.clientSession = WebClientSession.create(client);
+            this.clientNoRedirects = WebClient.create(WebClientVertxInit.get(),
+                    new WebClientOptions().setFollowRedirects(false)
+                            .setUserAgentEnabled(false)
+                            .setProxyOptions(proxyOptions));
+        }
     }
 
     protected PanBase() {

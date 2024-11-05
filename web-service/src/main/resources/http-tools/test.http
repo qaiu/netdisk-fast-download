@@ -259,3 +259,7 @@ GET http://127.0.0.1:6400/parser?url=https://1drv.ms/u/s!Alg0feQmCv2rpFvu444hg5y
 ### pic PASS
 # @no-redirect
 GET http://127.0.0.1:6400/parser?url=https://www.icloud.com.cn/iclouddrive/0d8lBC0qp01v1uNThurAGQf1A#fonts
+
+### pdb PASS
+# @no-redirect
+GET http://127.0.0.1:6400/parser?url=https://www.dropbox.com/scl/fi/cwnbms1yn8u6rcatzyta7/1?rlkey=3uoi4bxz5mv93jmlaws0nlol1&e=2&dl=0

@@ -6,6 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.regex.Matcher;
 
 import static cn.qaiu.parser.PanDomainTemplate.KEY;
+import static cn.qaiu.parser.PanDomainTemplate.PWD;
 
 
 /**
@@ -38,8 +39,16 @@ public class ParserCreate {
         Matcher matcher = this.panDomainTemplate.getPattern().matcher(shareUrl);
         if (matcher.find()) {
             String shareKey = matcher.group(KEY);
+
             // 返回规范化的标准链接
-            String standardUrl = getStandardUrlTemplate().replace("{shareKey}", shareKey);
+            String standardUrl = getStandardUrlTemplate()
+                    .replace("{shareKey}", shareKey);
+
+            try {
+                String pwd = matcher.group(PWD);
+                standardUrl = standardUrl .replace("{pwd}", pwd);
+            } catch (Exception ignored) {}
+
             shareLinkInfo.setShareUrl(shareUrl);
             shareLinkInfo.setShareKey(shareKey);
             if (!(panDomainTemplate.ordinal() >= PanDomainTemplate.CE.ordinal())) {

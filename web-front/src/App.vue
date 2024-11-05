@@ -1,7 +1,10 @@
 <template>
   <div id="app">
+
     <el-row :gutter="20">
       <el-card class="box-card">
+
+        <div style="text-align: right"><DarkMode/></div>
         <div class="demo-basic--circle">
           <div class="block" style="text-align: center;">
             <img :height="150" src="../public/images/lanzou111.png" alt="lz"></img>
@@ -40,7 +43,7 @@
               active-text="自动识别剪切板"
             ></el-switch>
 
-            <el-input placeholder="请粘贴分享链接" v-model="link" id="url">
+            <el-input placeholder="请粘贴分享链接(http://或https://)" v-model="link" id="url">
               <template #prepend>分享链接</template>
               <template #append v-if="!autoReadClipboard">
                 <el-button @click="() => getPaste(1)">读取剪切板</el-button>
@@ -49,14 +52,14 @@
             <el-input placeholder="请输入密码" v-model="password" id="url">
                 <template #prepend>分享密码</template>
             </el-input>
-            <el-input v-show="getLink2" placeholder="解析地址" :value="getLink2" id="url">
+            <el-input v-show="getLink2" :value="getLink2" id="url">
               <template #prepend>智能直链</template>
               <template #append>
-                  <el-button :icon="Search" circle
-                             v-clipboard:copy="getLink2"
-                             v-clipboard:success="onCopy"
-                             v-clipboard:error="onError">复制
-                  </el-button>
+                <el-button v-clipboard:copy="getLink2"
+                           v-clipboard:success="onCopy"
+                           v-clipboard:error="onError">
+                    <el-icon><CopyDocument/></el-icon>
+                </el-button>
               </template>
             </el-input>
 
@@ -80,20 +83,19 @@
             <a :href="downUrl" v-show="downUrl">点击下载</a>
           </div>
           <div v-if="mdText" style="text-align: center">
-              <el-input
-                type="textarea"
-                :autosize="{ minRows: 1, maxRows: 8}"
-                v-model="mdText">
+              <el-input :value="mdText" readonly>
+                <template #append>
+                  <el-button v-clipboard:copy="mdText"
+                             v-clipboard:success="onCopy"
+                             v-clipboard:error="onError">
+                    <el-icon><CopyDocument/></el-icon>
+                  </el-button>
+                </template>
               </el-input>
-              <el-button style="width: 100%" v-clipboard:copy="mdText"
-                         v-clipboard:success="onCopy"
-                         v-clipboard:error="onError">复制
-              </el-button>
           </div>
           <div style="text-align: center" v-show="showQrc">
-            <div style="text-align: center"><el-link  target="_blank" :href="codeUrl">{{ codeUrl }}</el-link></div>
             <canvas  ref="qrcodeCanvas"></canvas>
-            <div style="text-align: center"> 扫码下载 </div>
+            <div style="text-align: center"><el-link  target="_blank" :href="codeUrl">{{ codeUrl }}</el-link></div>
           </div>
           <div v-if="tjData.shareLinkInfo">
             <el-descriptions class="margin-top" title="分享详情" :column="1" border>
@@ -121,12 +123,13 @@
 <script>
 import axios from 'axios'
 import QRCode from 'qrcode'
-import '@element-plus/icons-vue'
+import DarkMode from '@/components/DarkMode'
 
 import parserUrl from './parserUrl1'
 
 export default {
   name: 'App',
+  components: {DarkMode},
   data() {
     return {
       // baseAPI: `${location.protocol}//${location.hostname}:6400`,
@@ -182,6 +185,9 @@ export default {
     }
   },
   methods: {
+    // toggleDark() {
+    //   toggleDark()
+    // },
     check() {
       this.mdText = ''
       this.showQrc = false
@@ -269,9 +275,7 @@ export default {
       const options = { // 设置二维码的参数，例如大小、边距等
         width: 150,
         height: 150,
-        margin: 2,
-        colorDark : "#8e0fb7",
-        colorLight : "#fff2ad",
+        margin: 2
       };
       axios.get(this.getLinkInfo, {params: {url: this.link, pwd: this.password}}).then(
         response => {
@@ -343,13 +347,10 @@ export default {
     }
     // 当文档获得焦点时触发
     window.addEventListener('focus', () => {
-      console.log('文档获得了焦点');
       if (this.autoReadClipboard) {
         this.getPaste()
       }
     });
-
-    // this.getPaste()
   },
   watch: {
     autoReadClipboard(val) {
@@ -371,9 +372,6 @@ export default {
   max-width: 900px;
 }
 
-::selection {
-  background: rgba(0, 149, 255, .1);
-}
 
 body:before {
   top: 0;
@@ -382,7 +380,6 @@ body:before {
   bottom: 0;
   opacity: .3;
   z-index: -1;
-  content: "";
   position: fixed;
 }
 
