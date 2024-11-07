@@ -11,7 +11,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref,watch } from 'vue'
 import { useDark, useToggle } from '@vueuse/core'
 /** 引入Element-Plus图标 */
 import { Sunny, Moon } from '@element-plus/icons-vue'
@@ -23,6 +23,15 @@ defineOptions({
 const isDark = useDark({})
 
 const toggleDark = useToggle(isDark)
+
+let item = window.localStorage.getItem("darkMode");
+if (item) {
+  item = (item === 'true');
+}
 /** 是否切换为暗黑模式 */
-const darkMode = ref(false)
+const darkMode = ref(item)
+watch(darkMode, (newValue) => {
+  console.log(`darkMode: ${newValue}`)
+  window.localStorage.setItem("darkMode", newValue);
+})
 </script>

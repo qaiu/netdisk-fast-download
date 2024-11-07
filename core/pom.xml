@@ -60,12 +60,6 @@
             <artifactId>commons-lang3</artifactId>
             <version>${commons-lang3.version}</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/com.melloware/commons-beanutils2 -->
-        <dependency>
-            <groupId>com.melloware</groupId>
-            <artifactId>commons-beanutils2</artifactId>
-            <version>${commons-beanutils2.version}</version>
-        </dependency>
 
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

@@ -3,8 +3,6 @@ package cn.qaiu.vx.core.util;
 import cn.qaiu.vx.core.annotaions.HandleSortFilter;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
-import org.apache.commons.beanutils2.ConvertUtils;
-import org.apache.commons.beanutils2.Converter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,23 +95,6 @@ public class CommonUtil {
             }
         }
         return data;
-    }
-
-    /**
-     * 注册枚举转换器
-     *
-     * @param enums 枚举类
-     */
-    @SafeVarargs
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public static void enumConvert(Class<? extends Enum>... enums) {
-        for (Class<? extends Enum> anEnum : enums) {
-            ConvertUtils.register(new Converter() {
-                public Object convert(Class type, Object value) {
-                    return Enum.valueOf(anEnum, (String) value);
-                }
-            }, anEnum);
-        }
     }
 
     /**
