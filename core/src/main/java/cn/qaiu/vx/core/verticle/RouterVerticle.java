@@ -2,6 +2,7 @@ package cn.qaiu.vx.core.verticle;
 
 import cn.qaiu.vx.core.handlerfactory.RouterHandlerFactory;
 import cn.qaiu.vx.core.util.CommonUtil;
+import cn.qaiu.vx.core.util.JacksonConfig;
 import cn.qaiu.vx.core.util.SharedDataUtil;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
@@ -30,6 +31,8 @@ public class RouterVerticle extends AbstractVerticle {
     private HttpServer server;
 
     static {
+        LOGGER.info(JacksonConfig.class.getSimpleName() + " >> ");
+        JacksonConfig.nothing();
         LOGGER.info("To start listening to port {} ......", port);
     }
 

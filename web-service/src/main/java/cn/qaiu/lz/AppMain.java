@@ -28,6 +28,7 @@ public class AppMain {
     }
 
     /**
+     * 框架回调方法
      * 初始化数据库/缓存等
      *
      * @param jsonObject 配置

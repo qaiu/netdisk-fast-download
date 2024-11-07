@@ -1,11 +1,10 @@
 package cn.qaiu.vx.core.util;
 
 import io.vertx.core.MultiMap;
-import org.apache.commons.beanutils2.BeanUtils;
+import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,29 +17,21 @@ import java.util.Map;
 public final class ParamUtil {
     private static final Logger LOGGER = LoggerFactory.getLogger(ParamUtil.class);
 
-    public static Map<String, String> multiMapToMap(MultiMap multiMap) {
+    public static Map<String, Object> multiMapToMap(MultiMap multiMap) {
         if (multiMap == null) return null;
-        Map<String, String> map = new HashMap<>();
+        Map<String, Object> map = new HashMap<>();
         for (Map.Entry<String, String> entry : multiMap.entries()) {
             map.put(entry.getKey(), entry.getValue());
         }
         return map;
     }
 
-    public static <T> T multiMapToEntity(MultiMap multiMap, Class<T> tClass) throws NoSuchMethodException {
-        Map<String, String> map = multiMapToMap(multiMap);
-        T obj = null;
-        try {
-            obj = tClass.getDeclaredConstructor().newInstance();
-            BeanUtils.populate(obj, map);
-        } catch (InstantiationException | IllegalAccessException e) {
-            e.printStackTrace();
-            LOGGER.error("实例化异常");
-        } catch (InvocationTargetException e2) {
-            e2.printStackTrace();
-            LOGGER.error("map2bean转换异常");
+    public static <T> T multiMapToEntity(MultiMap multiMap, Class<T> tClass) {
+        Map<String, Object> map = multiMapToMap(multiMap);
+        if (map == null) {
+            return null;
         }
-        return obj;
+        return new JsonObject(map).mapTo(tClass);
     }
 
     public static MultiMap paramsToMap(String paramString) {

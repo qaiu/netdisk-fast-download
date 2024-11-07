@@ -181,7 +181,7 @@ GET http://127.0.0.1:6400/v2/linkInfo?url=https://www.123865.com/s/iaKtVv-6OECd.
 GET http://127.0.0.1:6400/v2/linkInfo?url=https://pan.seeoss.com/s/nLNsQ&pwd=DcGe
 
 ###
-POST http://127.0.0.1:6400/v2/login?username=asd
+POST http://127.0.0.1:6400/v2/login?username=asd&age=12&password=123123&createTime=2011-12-03T10:15:30
 
 
 
