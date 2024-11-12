@@ -14,6 +14,7 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -138,5 +139,22 @@ public class CommonUtil {
                 throw new RuntimeException(e);
             }
         }).collect(Collectors.toSet());
+    }
+
+    private static String appVersion;
+
+    public static String getAppVersion() {
+        if (null == appVersion) {
+            Properties properties = new Properties();
+            try {
+                properties.load(CommonUtil.class.getClassLoader().getResourceAsStream("app.properties"));
+                if (!properties.isEmpty()) {
+                    appVersion = properties.getProperty("app.version");
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return appVersion;
     }
 }
