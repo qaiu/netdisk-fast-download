@@ -1,5 +1,6 @@
 package cn.qaiu.vx.core;
 
+import cn.qaiu.vx.core.util.CommonUtil;
 import cn.qaiu.vx.core.util.ConfigUtil;
 import cn.qaiu.vx.core.util.VertxHolder;
 import cn.qaiu.vx.core.verticle.ReverseProxyVerticle;
@@ -102,7 +103,7 @@ public final class Deploy {
                 """;
 
         System.out.printf(logoTemplate,
-                conf.getString("version_app"),
+                CommonUtil.getAppVersion(),
                 VersionCommand.getVersion(),
                 conf.getString("copyright"),
                 year
@@ -125,7 +126,9 @@ public final class Deploy {
         vertxOptions.setAddressResolverOptions(
                 new AddressResolverOptions().
                         addServer("114.114.114.114").
-                        addServer("114.114.115.115"));
+                        addServer("114.114.115.115").
+                        addServer("8.8.8.8").
+                        addServer("8.8.4.4"));
         LOGGER.info("vertxConfigEventLoopPoolSize: {}, eventLoopPoolSize: {}, workerPoolSize: {}", vertxConfigELPS,
                 vertxOptions.getEventLoopPoolSize(),
                 vertxOptions.getWorkerPoolSize());

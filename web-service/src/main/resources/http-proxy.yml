@@ -1,0 +1,5 @@
+# 正向代理
+server-name: Vert.x-proxy-http(v4.1.2)
+
+proxy:
+  - listen: 6402
