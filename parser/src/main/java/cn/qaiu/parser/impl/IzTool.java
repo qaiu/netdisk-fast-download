@@ -1,6 +1,6 @@
 package cn.qaiu.parser.impl;
 
-import cn.qaiu.entity.ShareLinkInfo; 
+import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.AESUtils;
 import io.vertx.core.Future;
@@ -19,11 +19,12 @@ public class IzTool extends PanBase {
     public static final String SHARE_URL_PREFIX = "https://www.ilanzou.com/s/";
     private static final String API_URL_PREFIX = "https://api.ilanzou.com/unproved/";
 
-    private static final String FIRST_REQUEST_URL = API_URL_PREFIX + "recommend/list?devType=6&devModel=Chrome&extra" +
-            "=2&shareId={shareId}&type=0&offset=1&limit=60";
+    private static final String FIRST_REQUEST_URL = API_URL_PREFIX +
+            "recommend/list?devModel=Chrome&extra=2&shareId={shareId}&type=0&offset=1&limit=60";
 
-    private static final String SECOND_REQUEST_URL = API_URL_PREFIX + "file/redirect?downloadId={fidEncode}&enable=1" +
-            "&devType=6&uuid={uuid}&timestamp={ts}&auth={auth}";
+    private static final String SECOND_REQUEST_URL = API_URL_PREFIX +
+            "file/redirect?downloadId={fidEncode}&enable=1&devType=6&uuid={uuid}&timestamp={ts}&auth={auth}&shareId={shareId}";
+    // downloadId=x&enable=1&devType=6&uuid=x&timestamp=x&auth=x&shareId=lGFndCM
 
     public IzTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
@@ -55,7 +56,7 @@ public class IzTool extends PanBase {
             long nowTs = System.currentTimeMillis();
             String tsEncode = AESUtils.encrypt2HexIz(Long.toString(nowTs));
             String uuid = UUID.randomUUID().toString();
-//            String fidEncode = AESUtils.encrypt2HexIz(fileId + "|");
+            // String fidEncode = AESUtils.encrypt2HexIz(fileId + "|");
             String fidEncode = AESUtils.encrypt2HexIz(fileId + "|" + userId);
             String auth = AESUtils.encrypt2HexIz(fileId + "|" + nowTs);
             // 第二次请求
@@ -63,7 +64,8 @@ public class IzTool extends PanBase {
                     .setTemplateParam("fidEncode", fidEncode)
                     .setTemplateParam("uuid", uuid)
                     .setTemplateParam("ts", tsEncode)
-                    .setTemplateParam("auth", auth).send().onSuccess(res2 -> {
+                    .setTemplateParam("auth", auth)
+                    .setTemplateParam("shareId", dataKey).send().onSuccess(res2 -> {
                         MultiMap headers = res2.headers();
                         if (!headers.contains("Location")) {
                             fail(SECOND_REQUEST_URL + " 未找到重定向URL: \n" + res.headers());
