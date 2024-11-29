@@ -95,7 +95,7 @@
                         <annotationProcessor>io.vertx.codegen.CodeGenProcessor</annotationProcessor>
                     </annotationProcessors>
                     <generatedSourcesDirectory>
-                        ${project.basedir}/src/main/java
+                        ${project.basedir}/src/main/generated
                     </generatedSourcesDirectory>
                 </configuration>
             </plugin>
