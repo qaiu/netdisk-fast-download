@@ -77,7 +77,11 @@ public class ShareLinkInfo {
 
     public String getCacheKey() {
         // 将type和shareKey组合成一个字符串作为缓存key
-        return type + ":" + shareKey;
+        String key = type + ":" + shareKey;
+        if (type.equals("p115")) {
+            key += ("_" + otherParam.get("UA").toString().hashCode());
+        }
+        return key;
     }
 
     public ShareLinkInfo setOtherParam(Map<String, Object> otherParam) {

@@ -59,6 +59,7 @@ public class ParserApi {
                 .apiLink(getDownLink(parserCreate, true))
                 .shareLinkInfo(shareLinkInfo).build();
         // 解析次数统计
+        shareLinkInfo.getOtherParam().put("UA",request.headers().get("user-agent"));
         cacheManager.getShareKeyTotal(shareLinkInfo.getCacheKey()).onSuccess(res -> {
             if (res != null) {
                 build.setCacheHitTotal(res.get("hit_total") == null ? 0: res.get("hit_total"));
