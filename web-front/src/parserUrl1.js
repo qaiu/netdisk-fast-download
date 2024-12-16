@@ -298,8 +298,14 @@
             host: /118pan\.com/,
             name: '118网盘'
         },
+        pan115: {
+            // https://115.com/s/swhyiia3wzi?password=h374
+            reg: /https:\/\/(115|anxia)\.com\/s\/.+/,
+            host: /115pan\.com/,
+            name: '115网盘'
+        },
         onedrive: {
-            reg: /https:\/\/1drv\.ms\/[uw]\/s!.+/,
+            reg: /https:\/\/1drv\.ms\/.+/,
             host: /1drv\.ms/,
             name: 'OneDrive'
         },

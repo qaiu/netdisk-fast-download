@@ -12,6 +12,8 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -27,11 +29,11 @@ public class ServerApi {
     private final CacheService cacheService = AsyncServiceUtil.getAsyncServiceInstance(CacheService.class);
 
     @RouteMapping(value = "/parser", method = RouteMethod.GET, order = 1)
-    public Future<Void> parse(HttpServerResponse response, HttpServerRequest request, String pwd) {
+    public Future<Void> parse(HttpServerResponse response, HttpServerRequest request, RoutingContext rcx, String pwd) {
         Promise<Void> promise = Promise.promise();
         String url = URLParamUtil.parserParams(request);
 
-        cacheService.getCachedByShareUrlAndPwd(url, pwd)
+        cacheService.getCachedByShareUrlAndPwd(url, pwd, JsonObject.of("UA",request.headers().get("user-agent")))
                 .onSuccess(res -> ResponseUtil.redirect(
                         response.putHeader("nfd-cache-hit", res.getCacheHit().toString())
                                 .putHeader("nfd-cache-expires", res.getExpires()),
@@ -43,22 +45,22 @@ public class ServerApi {
     @RouteMapping(value = "/json/parser", method = RouteMethod.GET, order = 1)
     public Future<CacheLinkInfo> parseJson(HttpServerRequest request, String pwd) {
         String url = URLParamUtil.parserParams(request);
-        return cacheService.getCachedByShareUrlAndPwd(url, pwd);
+        return cacheService.getCachedByShareUrlAndPwd(url, pwd, JsonObject.of("UA",request.headers().get("user-agent")));
     }
 
     @RouteMapping(value = "/json/:type/:key", method = RouteMethod.GET)
-    public Future<CacheLinkInfo> parseKeyJson(String type, String key) {
+    public Future<CacheLinkInfo> parseKeyJson(HttpServerRequest request, String type, String key) {
         String pwd = "";
         if (key.contains("@")) {
             String[] keys = key.split("@");
             key = keys[0];
             pwd = keys[1];
         }
-        return cacheService.getCachedByShareKeyAndPwd(type, key, pwd);
+        return cacheService.getCachedByShareKeyAndPwd(type, key, pwd, JsonObject.of("UA",request.headers().get("user-agent")));
     }
 
     @RouteMapping(value = "/:type/:key", method = RouteMethod.GET)
-    public Future<Void> parseKey(HttpServerResponse response, String type, String key) {
+    public Future<Void> parseKey(HttpServerResponse response, HttpServerRequest request, String type, String key) {
         Promise<Void> promise = Promise.promise();
         String pwd = "";
         if (key.contains("@")) {
@@ -66,7 +68,7 @@ public class ServerApi {
             key = keys[0];
             pwd = keys[1];
         }
-        cacheService.getCachedByShareKeyAndPwd(type, key, pwd)
+        cacheService.getCachedByShareKeyAndPwd(type, key, pwd, JsonObject.of("UA",request.headers().get("user-agent")))
                 .onSuccess(res -> ResponseUtil.redirect(
                         response.putHeader("nfd-cache-hit", res.getCacheHit().toString())
                                 .putHeader("nfd-cache-expires", res.getExpires()),

@@ -96,7 +96,8 @@ public enum PanDomainTemplate {
             PvyyTool.class),
     // https://1drv.ms/w/s!Alg0feQmCv2rnRFd60DQOmMa-Oh_?e=buaRtp
     POD("OneDrive",
-            compile("https://1drv\\.ms/[uw]/s!(?<KEY>.+)"),
+            compile("https://1drv\\.ms/(?<KEY>.+)"),
+            "https://1drv\\.ms/{shareKey}",
             "https://onedrive.live.com/",
             PodTool.class),
     // 404网盘 https://drive.google.com/file/d/xxx/view?usp=sharing
@@ -115,8 +116,8 @@ public enum PanDomainTemplate {
             "https://www.dropbox.com/scl/fi/{shareKey}/?rlkey={pwd}&dl=0",
             PdbTool.class),
     P115("115网盘",
-            compile("https://anxia.com/s/(?<KEY>\\w+)(\\?password=(?<PWD>\\w+))?"),
-            "https://anxia.com/s/{shareKey}?password={pwd}",
+            compile("https://(115|anxia).com/s/(?<KEY>\\w+)(\\?password=(?<PWD>\\w+))?"),
+            "https://115.com/s/{shareKey}?password={pwd}",
             P115Tool.class),
     // =====================音乐类解析 分享链接标志->MxxS (单歌曲/普通音质)==========================
     // http://163cn.tv/xxx
