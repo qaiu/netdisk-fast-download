@@ -67,9 +67,9 @@ public class P115Tool extends PanBase {
 
                     // 第二次请求
                     // share_code={dataKey}&receive_code={dataPwd}&file_id={file_id}
-
-                    clientNoRedirects.postAbs(SECOND_REQUEST_URL)
+                    client.postAbs(SECOND_REQUEST_URL)
                             .putHeaders(header)
+                            .putHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
                             .sendForm(MultiMap.caseInsensitiveMultiMap()
                                     .set("share_code", shareLinkInfo.getShareKey())
                                     .set("receive_code", shareLinkInfo.getSharePassword())
