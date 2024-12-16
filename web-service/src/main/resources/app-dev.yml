@@ -63,6 +63,7 @@ cache:
     mne: 30
     mqq: 30
     mkg: 30
+    p115: 5
 
 # httpClient静态代理服务器配置(外网代理)
 proxy:
