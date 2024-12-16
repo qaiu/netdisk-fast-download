@@ -68,23 +68,7 @@ Cookie:XSRF-TOKEN=eyJpdiI6ImVpdW9XOFwvazVka0xRQ2JUQ1p4c1dRPT0iLCJ2YWx1ZSI6Im1NcT
 #  -H 'sec-ch-ua-platform: "Windows"'
 #  --data-raw 'share_code=swhyiia3wzi&receive_code=h374&file_id=2532636713782843636'
 POST https://anxia.com/webapi/share/skip_login_downurl
-Accept: application/json, text/javascript, */*; q=0.01
-Accept-Language: zh-CN,zh;q=0.9,en;q=0.8
-Cache-Control: no-cache
-Connection: keep-alive
-Cookie: acw_tc=2f6a1fdb17343237335965711ee089dd42f90058dbad48c86a96931b7098b0
-DNT: 1
-Origin: https://anxia.com
-Pragma: no-cache
-Referer: https://anxia.com/s/swhyiia3wzi?password=h374
-Sec-Fetch-Dest: empty
-Sec-Fetch-Mode: cors
-Sec-Fetch-Site: same-origin
 User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
-X-Requested-With: XMLHttpRequest
-sec-ch-ua: "Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "Windows"
 Content-Type: application/x-www-form-urlencoded; charset=UTF-8
 
 share_code=swhyiia3wzi&receive_code=h374&file_id=2532636713782843636
@@ -126,5 +110,36 @@ sec-ch-ua-mobile: ?0
 sec-ch-ua-platform: "Windows"
 
 ###
+# curl 'https://cdnfhnfile.115.com/63a79fdca011d11b46d5fda83f6fdf7fe5141ec7/%E6%95%B0%E5%AD%A612%E6%9C%8819%E6%97%A5-12%E6%9C%8823%E6%97%A5%E7%BA%BF%E4%B8%8A%E8%B5%84%E6%BA%90.zip?t=1734331803&u=ip976768882&s=512000&d=976768882--0&c=1&f=1&k=89f2b6ec6839999b3e7edc2b6ac85066&us=512000&uc=0&v=1'
+#  -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'
+#  -H 'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8'
+#  -H 'Cache-Control: no-cache'
+#  -H 'Connection: keep-alive'
+#  -H 'DNT: 1'
+#  -H 'Pragma: no-cache'
+#  -H 'Referer: https://anxia.com/'
+#  -H 'Sec-Fetch-Dest: document'
+#  -H 'Sec-Fetch-Mode: navigate'
+#  -H 'Sec-Fetch-Site: cross-site'
+#  -H 'Sec-Fetch-User: ?1'
+#  -H 'Upgrade-Insecure-Requests: 1'
+#  -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+#  -H 'sec-ch-ua: "Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"'
+#  -H 'sec-ch-ua-mobile: ?0'
+#  -H 'sec-ch-ua-platform: "Windows"'
+# @no-cookie-jar
+# @no-redirect
+GET https://cdnfhnfile.115.com/63a79fdca011d11b46d5fda83f6fdf7fe5141ec7/%E6%95%B0%E5%AD%A612%E6%9C%8819%E6%97%A5-12%E6%9C%8823%E6%97%A5%E7%BA%BF%E4%B8%8A%E8%B5%84%E6%BA%90.zip?t=1734331803&u=ip976768882&s=512000&d=976768882--0&c=1&f=1&k=89f2b6ec6839999b3e7edc2b6ac85066&us=512000&uc=0&v=1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
 
 
+###
+# @no-cookie-jar
+# @no-redirect
+GET https://cdnfhnfile.115.com/63a79fdca011d11b46d5fda83f6fdf7fe5141ec7/%E6%95%B0%E5%AD%A612%E6%9C%8819%E6%97%A5-12%E6%9C%8823%E6%97%A5%E7%BA%BF%E4%B8%8A%E8%B5%84%E6%BA%90.zip?t=1734332086&u=ip976768882&s=512000&d=976768882--0&c=1&f=1&k=28e2b7be1a91ff0715dd92c6a9ec592f&us=512000&uc=0&v=1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
+
+
+###
+https://cdnfhnfile.115.com/63a79fdca011d11b46d5fda83f6fdf7fe5141ec7/%E6%95%B0%E5%AD%A612%E6%9C%8819%E6%97%A5-12%E6%9C%8823%E6%97%A5%E7%BA%BF%E4%B8%8A%E8%B5%84%E6%BA%90.zip?t=1734336235&u=ip976768882&s=512000&d=976768882--0&c=1&f=1&k=89c7796e0906aca3eecccbd545775653&us=512000&uc=0&v=1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36

@@ -38,8 +38,6 @@ public class P115Tool extends PanBase {
         header.set("Sec-Fetch-Dest", "empty");
         header.set("Sec-Fetch-Mode", "cors");
         header.set("Sec-Fetch-Site", "cross-site");
-        header.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
-                "Chrome/131.0.0.0 Safari/537.36");
         header.set("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"");
         header.set("sec-ch-ua-mobile", "?0");
         header.set("sec-ch-ua-platform", "\"Windows\"");
@@ -53,6 +51,7 @@ public class P115Tool extends PanBase {
         // 第一次请求 获取文件信息
         client.getAbs(UriTemplate.of(FIRST_REQUEST_URL))
                 .putHeaders(header)
+                .putHeader("User-Agent", shareLinkInfo.getOtherParam().get("UA").toString())
                 .setTemplateParam("dataKey", shareLinkInfo.getShareKey())
                 .setTemplateParam("dataPwd", shareLinkInfo.getSharePassword())
                 .send().onSuccess(res -> {
@@ -68,8 +67,8 @@ public class P115Tool extends PanBase {
                     // 第二次请求
                     // share_code={dataKey}&receive_code={dataPwd}&file_id={file_id}
                     client.postAbs(SECOND_REQUEST_URL)
-                            .putHeaders(header)
                             .putHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+                            .putHeader("User-Agent", shareLinkInfo.getOtherParam().get("UA").toString())
                             .sendForm(MultiMap.caseInsensitiveMultiMap()
                                     .set("share_code", shareLinkInfo.getShareKey())
                                     .set("receive_code", shareLinkInfo.getSharePassword())
