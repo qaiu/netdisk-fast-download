@@ -114,7 +114,10 @@ public enum PanDomainTemplate {
             compile("https://www.dropbox.com/scl/fi/(?<KEY>\\w+)/.+?rlkey=(?<PWD>\\w+).*"),
             "https://www.dropbox.com/scl/fi/{shareKey}/?rlkey={pwd}&dl=0",
             PdbTool.class),
-
+    P115("115网盘",
+            compile("https://anxia.com/s/(?<KEY>\\w+)(\\?password=(?<PWD>\\w+))?"),
+            "https://anxia.com/s/{shareKey}?password={pwd}",
+            P115Tool.class),
     // =====================音乐类解析 分享链接标志->MxxS (单歌曲/普通音质)==========================
     // http://163cn.tv/xxx
     MNES("网易云音乐分享",
