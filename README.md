@@ -153,6 +153,31 @@ mvn package
 ```
 打包好的文件位于 web-service/target/netdisk-fast-download-bin.zip
 ## Linux服务部署
+
+### Docker 部署（Main分支）
+
+```shell
+# 创建目录
+mkdir -p netdisk-fast-download
+cd netdisk-fast-download
+
+# 拉取镜像
+docker pull ghcr.io/qaiu/netdisk-fast-download:main
+
+# 复制配置文件（或下载仓库web-service\src\main\resources）
+docker create --name netdisk-fast-download ghcr.io/qaiu/netdisk-fast-download:main
+docker cp netdisk-fast-download:/app/resources ./resources
+docker rm netdisk-fast-download
+
+# 启动容器
+docker run -d -it --name netdisk-fast-download -p 6401:6401 --restart unless-stopped -e TZ=Asia/Shanghai -v ./resources:/app/resources -v ./db:/app/db -v ./logs:/app/logs ghcr.io/qaiu/netdisk-fast-download:main
+
+# 反代6401端口
+
+# 升级容器
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock containrrr/watchtower --cleanup --run-once netdisk-fast-download
+```
+
 ### [宝塔安装参考](https://blog.qaiu.top/archives/netdisk-fast-download-bao-ta-an-zhuang-jiao-cheng)
 > 注意: netdisk-fast-download.service中的ExecStart的路径改为实际路径
 ```shell
