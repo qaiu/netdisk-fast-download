@@ -48,18 +48,19 @@ public class AppMain {
         if (jsonObject.containsKey(ConfigConstant.PROXY)) {
             LocalMap<Object, Object> localMap = VertxHolder.getVertxInstance().sharedData().getLocalMap(LOCAL);
             JsonArray proxyJsonArray = jsonObject.getJsonArray(ConfigConstant.PROXY);
+            if (proxyJsonArray != null) {
+                proxyJsonArray.forEach(proxyJson -> {
+                    String panTypes = ((JsonObject)proxyJson).getString("panTypes");
 
-            proxyJsonArray.forEach(proxyJson -> {
-                String panTypes = ((JsonObject)proxyJson).getString("panTypes");
-
-                if (!panTypes.isEmpty()) {
-                    JsonObject jsonObject1 = new JsonObject();
-                    for (String s : panTypes.split(",")) {
-                        jsonObject1.put(s, proxyJson);
+                    if (!panTypes.isEmpty()) {
+                        JsonObject jsonObject1 = new JsonObject();
+                        for (String s : panTypes.split(",")) {
+                            jsonObject1.put(s, proxyJson);
+                        }
+                        localMap.put("proxy", jsonObject1);
                     }
-                    localMap.put("proxy", jsonObject1);
-                }
-            });
+                });
+            }
 
         }
     }

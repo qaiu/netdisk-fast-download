@@ -6,11 +6,9 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.ProxyOptions;
 import io.vertx.core.net.ProxyType;
-import io.vertx.core.net.impl.VertxHandler;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
@@ -21,7 +19,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.Map;
 
 /**
  * 解析器抽象类包含promise, HTTP Client, 默认失败方法等;
@@ -77,7 +74,7 @@ public abstract class PanBase implements IPanTool {
                 proxyOptions.setUsername(proxy.getString("username"));
             }
             if (StringUtils.isNotEmpty(proxy.getString("password"))) {
-                proxyOptions.setUsername(proxy.getString("password"));
+                proxyOptions.setPassword(proxy.getString("password"));
             }
             this.client = WebClient.create(WebClientVertxInit.get(),
                     new WebClientOptions()
