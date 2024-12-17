@@ -8,9 +8,9 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.uritemplate.UriTemplate;
 
 /**
- * 小飞机网盘
- *
- * @version V016_230609
+ * 115网盘
+ * 
+ * 需要请求API的UA和请求下载链接的UA保持一致，安卓Chrome需要访问电脑版才能下载
  */
 public class P115Tool extends PanBase {
     private static final String API_URL_PREFIX = "https://anxia.com/webapi/";
