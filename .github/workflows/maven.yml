@@ -49,6 +49,7 @@ jobs:
     # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
     - name: Update dependency graph
       uses: advanced-security/maven-dependency-submission-action@v3
+      if: github.event_name != 'pull_request'
       with:
         ignore-maven-wrapper: true
 
