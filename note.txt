@@ -20,11 +20,11 @@ Cloudreve自建网盘 (ce) {origin}/s/{shareKey}
 缓存key -> 下载URL
 分享链接 -> add 网盘类型 pwd origin(私有化) -> 直链
 
-
-https://f.ws59.cn/f/e3peohu6192
-
 开源版 TODO
 1. 缓存优化, 配置自动重载
+2. 缓存删除接口(后台功能)
+3. JS脚本引擎 自定义解析
+
 
 
 专属版 功能设计

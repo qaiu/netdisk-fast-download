@@ -53,7 +53,7 @@ cache:
     cow:
     ec:
     fc:
-    fj: 30
+    fj:
     iz: 20
     le: 2879
     lz: 20
@@ -67,12 +67,12 @@ cache:
 
 # httpClient静态代理服务器配置(外网代理)
 proxy:
-  - panTypes: pgd,pdb
-    type: http # 支持http/socks4/socks5
-    host: 127.0.0.1
-    port: 7890
-    username:
-    password:
+#  - panTypes: pgd,pdb,pod
+#    type: http # 支持http/socks4/socks5
+#    host: 127.0.0.1
+#    port: 7890
+#    username:
+#    password:
 
 
 # 代理池配置

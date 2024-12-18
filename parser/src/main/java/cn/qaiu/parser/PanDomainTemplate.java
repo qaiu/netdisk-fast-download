@@ -90,9 +90,10 @@ public enum PanDomainTemplate {
             "https://qaiu.118pan.com/b{shareKey}",
             P118Tool.class),
     // https://www.vyuyun.com/s/QMa6ie?password=I4KG7H
+    // https://www.vyuyun.com/s/QMa6ie/file?password=I4KG7H
     PVYY("微雨云存储",
-            compile("https://www\\.vyuyun\\.com/s/(?<KEY>[a-zA-Z\\d-]+)(\\?password=.*)?"),
-            "https://www.vyuyun.com/s/{shareKey}",
+            compile("https://www\\.vyuyun\\.com/s/(?<KEY>[a-zA-Z\\d-]+)(/file)?(\\?password=(?<PWD>\\w+))?"),
+            "https://www.vyuyun.com/s/{shareKey}?password={pwd}",
             PvyyTool.class),
     // https://1drv.ms/w/s!Alg0feQmCv2rnRFd60DQOmMa-Oh_?e=buaRtp
     POD("OneDrive",

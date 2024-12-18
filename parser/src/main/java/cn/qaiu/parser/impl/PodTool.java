@@ -7,7 +7,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.net.ProxyOptions;
 import io.vertx.uritemplate.UriTemplate;
 
 import java.io.IOException;
@@ -82,7 +81,6 @@ public class PodTool extends PanBase {
                     .setTemplateParam("resid1", cid2)
                     .setTemplateParam("cid", cid1.toLowerCase())
                     .setTemplateParam("redeem", redeem)
-                    .proxy(new ProxyOptions().setHost("127.0.0.1").setPort(7890))
                     .send()
                     .onSuccess(r1 -> {
                         String auth =
