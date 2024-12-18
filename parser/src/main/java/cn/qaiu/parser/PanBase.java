@@ -36,7 +36,7 @@ public abstract class PanBase implements IPanTool {
      * Http client
      */
     protected WebClient client = WebClient.create(WebClientVertxInit.get(),
-            new WebClientOptions().setUserAgentEnabled(false));
+            new WebClientOptions());
 
     /**
      * Http client session (会话管理, 带cookie请求)

@@ -10,7 +10,7 @@
             <img :height="150" src="../public/images/lanzou111.png" alt="lz"></img>
           </div>
         </div>
-        <h3 style="text-align: center;">NFD网盘直链解析0.1.8_bate2(API演示)</h3>
+        <h3 style="text-align: center;">NFD网盘直链解析0.1.8_bate3(API演示)</h3>
         <div class="typo">
           <p style="text-align: center;">
             <span>
@@ -66,7 +66,7 @@
             <p style="text-align: center">
               <el-button style="margin-left: 40px;margin-bottom: 10px" @click="onSubmit">解析测试</el-button>
               <el-button style="margin-left: 20px;margin-bottom: 10px" @click="genMd">生成Markdown链接</el-button>
-              <el-button style="margin-left: 20px" @click="generateQRCode">生成二维码</el-button>
+              <el-button style="margin-left: 20px" @click="generateQRCode">扫码下载</el-button>
               <el-button style="margin-left: 20px" @click="getTj">链接信息统计</el-button>
             </p>
           </div>

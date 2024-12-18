@@ -43,9 +43,11 @@ public class ParserCreate {
             // 返回规范化的标准链接
             String standardUrl = getStandardUrlTemplate()
                     .replace("{shareKey}", shareKey);
-
             try {
                 String pwd = matcher.group(PWD);
+                if (StringUtils.isNotEmpty(pwd)) {
+                    shareLinkInfo.setSharePassword(pwd);
+                }
                 standardUrl = standardUrl .replace("{pwd}", pwd);
             } catch (Exception ignored) {}
 
@@ -107,7 +109,9 @@ public class ParserCreate {
     }
 
     public ParserCreate setShareLinkInfoPwd(String pwd) {
-        shareLinkInfo.setSharePassword(pwd);
+        if (pwd != null) {
+            shareLinkInfo.setSharePassword(pwd);
+        }
         return this;
     }
 
