@@ -16,6 +16,10 @@ permissions:
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - 'bin/**'
+      - '*.txt'
+      - '*.md'
   pull_request:
     branches: [ "main" ]
 
