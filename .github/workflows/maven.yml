@@ -18,6 +18,10 @@ on:
     branches: [ "main" ]
     paths-ignore:
       - 'bin/**'
+      - '.github/**'
+      - '.mvn/**'
+      - '.run/**'
+      - '.vscode/**'
       - '*.txt'
       - '*.md'
   pull_request:
