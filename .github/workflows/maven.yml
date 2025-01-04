@@ -16,6 +16,14 @@ permissions:
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - 'bin/**'
+      - '.github/**'
+      - '.mvn/**'
+      - '.run/**'
+      - '.vscode/**'
+      - '*.txt'
+      - '*.md'
   pull_request:
     branches: [ "main" ]
 
