@@ -223,14 +223,24 @@ resources目录下包含服务端配置文件 配置文件自带说明，具体�
 app-dev.yml 可以配置解析服务相关信息， 包括端口，域名，缓存时长等  
 server-proxy.yml 可以配置代理服务运行的相关信息， 包括前端反向代理端口，路径等  
 
+## ip代理配置说明  
+app-dev.yml
+
+```yaml
+proxy:
+  - panTypes: pgd,pdb,pod     # 网盘标识
+    type: http                # 支持http/socks4/socks5
+    host: 127.0.0.1           # 代理IP
+    port: 7890                # 端口
+    username:                 # 用户名
+    password:                 # 密码
+```  
+可以通过nfd-proxy搭建http代理服务器 
+参考https://github.com/nfd-parser/nfd-proxy
 
 ## 0.1.9 开发计划
-- 超星网盘解析 doing
-- 带Referer头的js请求下载 doing
-- 城通网盘解析 √
 - 目录解析(专属版)
 - 带cookie/token参数解析大文件(专属版)
-- docker
 
 **技术栈:**
 Jdk17+Vert.x4
