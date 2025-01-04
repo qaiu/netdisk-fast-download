@@ -5,7 +5,7 @@ import cn.qaiu.entity.ShareLinkInfo;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
-import io.vertx.core.json.DecodeException;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.ProxyOptions;
 import io.vertx.core.net.ProxyType;
@@ -17,8 +17,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.zip.GZIPInputStream;
 
 /**
  * 解析器抽象类包含promise, HTTP Client, 默认失败方法等;
@@ -146,19 +152,54 @@ public abstract class PanBase implements IPanTool {
         return handleFail("");
     }
 
-
     /**
      * bodyAsJsonObject的封装, 会自动处理异常
+     *
      * @param res HttpResponse
      * @return JsonObject
      */
     protected JsonObject asJson(HttpResponse<?> res) {
         try {
-            return res.bodyAsJsonObject();
-        } catch (DecodeException e) {
+            // 检查响应头中的Content-Encoding是否为gzip
+            String contentEncoding = res.getHeader("Content-Encoding");
+            if ("gzip".equalsIgnoreCase(contentEncoding)) {
+                // 如果是gzip压缩的响应体，解压
+                return new JsonObject(decompressGzip((Buffer) res.body()));
+            } else {
+                return res.bodyAsJsonObject();
+            }
+
+        } catch (Exception e) {
             fail("解析失败: json格式异常: {}", res.bodyAsString());
             throw new RuntimeException("解析失败: json格式异常");
         }
+    }
+
+    /**
+     * 解压gzip数据
+     * @param compressedData compressedData
+     * @return String
+     * @throws IOException IOException
+     */
+    private String decompressGzip(Buffer compressedData) throws IOException {
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(compressedData.getBytes());
+             GZIPInputStream gzis = new GZIPInputStream(bais);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(gzis,
+                     StandardCharsets.UTF_8))) {
+
+            // 用于存储解压后的字符串
+            StringBuilder decompressedData = new StringBuilder();
+
+            // 逐行读取解压后的数据
+            String line;
+            while ((line = reader.readLine()) != null) {
+                decompressedData.append(line);
+            }
+
+            // 此时decompressedData.toString()包含了解压后的字符串
+            return decompressedData.toString();
+        }
+
     }
 
     protected void complete(String url) {
