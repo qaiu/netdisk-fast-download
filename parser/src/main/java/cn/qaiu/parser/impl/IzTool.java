@@ -15,15 +15,13 @@ import java.util.UUID;
  *
  */
 public class IzTool extends PanBase {
-
-    public static final String SHARE_URL_PREFIX = "https://www.ilanzou.com/s/";
     private static final String API_URL_PREFIX = "https://api.ilanzou.com/unproved/";
 
-    private static final String FIRST_REQUEST_URL = API_URL_PREFIX +
-            "recommend/list?devModel=Chrome&extra=2&shareId={shareId}&type=0&offset=1&limit=60";
+    private static final String FIRST_REQUEST_URL = API_URL_PREFIX + "recommend/list?devType=6&devModel=Chrome" +
+            "&uuid={uuid}&extra=2&timestamp={ts}&shareId={shareId}&type=0&offset=1&limit=60";
 
-    private static final String SECOND_REQUEST_URL = API_URL_PREFIX +
-            "file/redirect?downloadId={fidEncode}&enable=1&devType=6&uuid={uuid}&timestamp={ts}&auth={auth}&shareId={shareId}";
+    private static final String SECOND_REQUEST_URL = API_URL_PREFIX + "file/redirect?downloadId={fidEncode}&enable=1" +
+            "&devType=6&uuid={uuid}&timestamp={ts}&auth={auth}&shareId={dataKey}";
     // downloadId=x&enable=1&devType=6&uuid=x&timestamp=x&auth=x&shareId=lGFndCM
 
     public IzTool(ShareLinkInfo shareLinkInfo) {
@@ -32,13 +30,20 @@ public class IzTool extends PanBase {
 
     public Future<String> parse() {
         String dataKey = shareLinkInfo.getShareKey();
+        long nowTs = System.currentTimeMillis();
+        String tsEncode = AESUtils.encrypt2HexIz(Long.toString(nowTs));
+        String uuid = UUID.randomUUID().toString();
 
         // 24.5.12 ilanzou改规则无需计算shareId
         // String shareId = String.valueOf(AESUtils.idEncryptIz(dataKey));
 
         // 第一次请求 获取文件信息
         // POST https://api.feijipan.com/ws/recommend/list?devType=6&devModel=Chrome&extra=2&shareId=146731&type=0&offset=1&limit=60
-        client.postAbs(UriTemplate.of(FIRST_REQUEST_URL)).setTemplateParam("shareId", dataKey).send().onSuccess(res -> {
+        client.postAbs(UriTemplate.of(FIRST_REQUEST_URL))
+                .setTemplateParam("shareId", dataKey)
+                .setTemplateParam("uuid", uuid)
+                .setTemplateParam("ts", tsEncode)
+                .send().onSuccess(res -> {
             JsonObject resJson = asJson(res);
             if (resJson.getInteger("code") != 200) {
                 fail(FIRST_REQUEST_URL + " 返回异常: " + resJson);
@@ -53,9 +58,6 @@ public class IzTool extends PanBase {
             String fileId = fileInfo.getString("fileIds");
             String userId = fileInfo.getString("userId");
             // 其他参数
-            long nowTs = System.currentTimeMillis();
-            String tsEncode = AESUtils.encrypt2HexIz(Long.toString(nowTs));
-            String uuid = UUID.randomUUID().toString();
             // String fidEncode = AESUtils.encrypt2HexIz(fileId + "|");
             String fidEncode = AESUtils.encrypt2HexIz(fileId + "|" + userId);
             String auth = AESUtils.encrypt2HexIz(fileId + "|" + nowTs);
