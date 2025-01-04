@@ -1,5 +1,6 @@
 云盘解析服务 (nfd云解析)
 预览地址 https://lz.qaiu.top  
+预览地址2(可以解析onedrive) http://8.209.249.88:6402  
 main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/netdisk-fast-download/tree/main-jdk11)  
 **注意: 请不要过度依赖lz.qaiu.top预览地址服务，建议本地搭建或者云服务器自行搭建。
 解析次数过多IP会被部分网盘厂商限制，不推荐做公共解析。**
@@ -163,6 +164,8 @@ cd netdisk-fast-download
 
 # 拉取镜像
 docker pull ghcr.io/qaiu/netdisk-fast-download:main
+# 国内加速镜像
+# docker pull ghcr.nju.edu.cn/qaiu/netdisk-fast-download:main
 
 # 复制配置文件（或下载仓库web-service\src\main\resources）
 docker create --name netdisk-fast-download ghcr.io/qaiu/netdisk-fast-download:main
