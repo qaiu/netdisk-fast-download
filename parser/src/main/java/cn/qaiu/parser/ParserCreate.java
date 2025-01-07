@@ -3,6 +3,8 @@ package cn.qaiu.parser;
 import cn.qaiu.entity.ShareLinkInfo;
 import org.apache.commons.lang3.StringUtils;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 
 import static cn.qaiu.parser.PanDomainTemplate.KEY;
@@ -20,9 +22,12 @@ public class ParserCreate {
     private final PanDomainTemplate panDomainTemplate;
     private final ShareLinkInfo shareLinkInfo;
 
+    private String standardUrl;
+
     public ParserCreate(PanDomainTemplate panDomainTemplate, ShareLinkInfo shareLinkInfo) {
         this.panDomainTemplate = panDomainTemplate;
         this.shareLinkInfo = shareLinkInfo;
+        this.standardUrl = panDomainTemplate.getStandardUrlTemplate();
     }
 
 
@@ -38,17 +43,19 @@ public class ParserCreate {
         }
         Matcher matcher = this.panDomainTemplate.getPattern().matcher(shareUrl);
         if (matcher.find()) {
-            String shareKey = matcher.group(KEY);
+            String k0 = matcher.group(KEY);
+            String shareKey = URLEncoder.encode(k0, StandardCharsets.UTF_8);
 
             // 返回规范化的标准链接
-            String standardUrl = getStandardUrlTemplate()
-                    .replace("{shareKey}", shareKey);
+            standardUrl = getStandardUrlTemplate()
+                    .replace("{shareKey}", k0);
+
             try {
                 String pwd = matcher.group(PWD);
                 if (StringUtils.isNotEmpty(pwd)) {
                     shareLinkInfo.setSharePassword(pwd);
                 }
-                standardUrl = standardUrl .replace("{pwd}", pwd);
+                standardUrl = standardUrl.replace("{pwd}", pwd);
             } catch (Exception ignored) {}
 
             shareLinkInfo.setShareUrl(shareUrl);
@@ -88,7 +95,11 @@ public class ParserCreate {
             shareLinkInfo.setShareUrl(standardUrl);
         } else {
             shareLinkInfo.setShareKey(shareKey);
-            shareLinkInfo.setStandardUrl(panDomainTemplate.getStandardUrlTemplate().replace("{shareKey}", shareKey));
+            standardUrl = standardUrl.replace("{shareKey}", shareKey);
+            shareLinkInfo.setStandardUrl(standardUrl);
+        }
+        if (StringUtils.isEmpty(shareLinkInfo.getShareUrl())) {
+            shareLinkInfo.setShareUrl(standardUrl);
         }
         return this;
     }
@@ -111,6 +122,11 @@ public class ParserCreate {
     public ParserCreate setShareLinkInfoPwd(String pwd) {
         if (pwd != null) {
             shareLinkInfo.setSharePassword(pwd);
+            standardUrl = standardUrl.replace("{pwd}", pwd);
+            shareLinkInfo.setStandardUrl(standardUrl);
+            if (shareLinkInfo.getShareUrl().contains("{pwd}")) {
+                shareLinkInfo.setShareUrl(standardUrl);
+            }
         }
         return this;
     }
