@@ -38,8 +38,6 @@ jobs:
     - uses: actions/setup-node@v4
       with:
         node-version: '18'
-        cache: 'yarn'
-        cache-dependency-path: 'web-front/yarn.lock'
 
     - name: Set up JDK 17
       uses: actions/setup-java@v3
