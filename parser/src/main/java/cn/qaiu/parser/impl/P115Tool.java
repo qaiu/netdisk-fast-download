@@ -9,7 +9,7 @@ import io.vertx.uritemplate.UriTemplate;
 
 /**
  * 115网盘
- * 
+ *
  * 需要请求API的UA和请求下载链接的UA保持一致，安卓Chrome需要访问电脑版才能下载
  */
 public class P115Tool extends PanBase {
@@ -75,8 +75,8 @@ public class P115Tool extends PanBase {
                                     .set("file_id", fileId))
                             .onSuccess(res2 -> {
                                 JsonObject resJson2 = asJson(res2);
-                                if (!resJson.getBoolean("state")) {
-                                    fail(FIRST_REQUEST_URL + " 解析错误: " + resJson);
+                                if (!resJson2.getBoolean("state")) {
+                                    fail(FIRST_REQUEST_URL + " 解析错误: " + resJson2);
                                     return;
                                 }
                                 // data.url.url
