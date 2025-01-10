@@ -22,8 +22,10 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 > 20230824 123云盘解析大文件(>100MB)失效，需要登录  
 > 20230722 UC网盘解析失效，需要登录  
 
-`网盘名称-网盘标识:`
+网盘名称-网盘标识:  
+
 开源版:  
+
 - [蓝奏云-lz](https://pc.woozooo.com/)
 - [蓝奏云优享-iz](https://www.ilanzou.com/)
 - [奶牛快传-cow](https://cowtransfer.com/)
