@@ -33,7 +33,7 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 - [小飞机网盘-fj](https://www.feijipan.com/)
 - [亿方云-fc](https://www.fangcloud.com/)
 - [123云盘-ye](https://www.123pan.com/)
-- [115云盘-p115](https://115.com/)
+- [115网盘-p115](https://115.com/)
 - [118网盘(已停服)-p118](https://www.118pan.com/)
 - [文叔叔-ws](https://www.wenshushu.cn/)
 - [联想乐云-le](https://lecloud.lenovo.com/)
