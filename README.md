@@ -22,31 +22,43 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 > 20230824 123云盘解析大文件(>100MB)失效，需要登录  
 > 20230722 UC网盘解析失效，需要登录  
 
-`网盘名称(网盘标识):`
+`网盘名称-网盘标识:`
+开源版:  
+- [蓝奏云-lz](https://pc.woozooo.com/)
+- [蓝奏云优享-iz](https://www.ilanzou.com/)
+- [奶牛快传-cow](https://cowtransfer.com/)
+- [移动云云空间-ec](https://www.ecpan.cn/web)
+- [小飞机网盘-fj](https://www.feijipan.com/)
+- [亿方云-fc](https://www.fangcloud.com/)
+- [123云盘-ye](https://www.123pan.com/)
+- [文叔叔-ws](https://www.wenshushu.cn/)
+- [联想乐云-le](https://lecloud.lenovo.com/)
+- [QQ邮箱文件中转站-qq](https://mail.qq.com/)
+- [城通网盘-ct](https://www.ctfile.com)
+- [网易云音乐分享链接-mnes](https://music.163.com)
+- [酷狗音乐分享链接-mne](https://www.kugou.com)
+- [酷我音乐分享链接-mne](https://kuwo.cn)
+- [QQ音乐分享链接-mne](https://y.qq.com)
+- 咪咕音乐分享链接(开发中)
+- [Cloudreve自建网盘-ce](https://github.com/cloudreve/Cloudreve)
+- [微雨云存储-pvvy](https://www.vyuyun.com/)
+- Google云盘-pgd
+- Onedrive-pod
+- Dropbox-pdp
+- iCloud-pic
 
-- [蓝奏云 (lz)](https://pc.woozooo.com/)
-- [蓝奏云优享 (iz)](https://www.ilanzou.com/)
-- [奶牛快传 (cow)](https://cowtransfer.com/)
-- [移动云云空间 (ec)](https://www.ecpan.cn/web)
-- [小飞机网盘 (fj)](https://www.feijipan.com/)
-- [亿方云 (fc)](https://www.fangcloud.com/)
-- [123云盘 (ye)](https://www.123pan.com/)
-- [文叔叔 (ws)](https://www.wenshushu.cn/)
-- [联想乐云 (le)](https://lecloud.lenovo.com/)
-- [QQ邮箱文件中转站 (qq)](https://mail.qq.com/)
-- [超星网盘-开发中 (cx)](https://passport2.chaoxing.com/login?newversion=true&refer=https%3A%2F%2Fpan-yz.chaoxing.com%2F)
-- [城通网盘(ct)](https://www.ctfile.com)
-- [网易云音乐(mne)](https://music.163.com)
-- [Cloudreve自建网盘(ce)](https://github.com/cloudreve/Cloudreve)    
-
+专属版新增:  
+- [移动云盘-p139](https://yun.139.com/)
+- [联通云盘-pwo](https://pan.wo.cn/)
+- [天翼云盘-p189](https://cloud.189.cn/)
 
 ### API接口说明
   your_host指的是您的域名或者IP，实际使用时替换为实际域名或者IP，端口默认6400，可以使用nginx代理来做域名访问。    
   解析方式分为两种类型直接跳转下载文件和获取下载链接,  
 每一种都提供了两种接口形式: `通用接口parser?url=`和`网盘标志/分享key拼接的短地址（标志短链）`，所有规则参考示例。
-- 通用接口: `/parser?url=分享链接`，加密分享需要加上参数pwd=密码;
-- 标志短链: `/网盘标识/分享key` 在分享Key后面加上@密码;
-- 直链JSON: `通用接口`和`标志短链`前加上`/json` 加密分享的密码规则同上;
+- 通用接口: `/parser?url=分享链接&pwd=密码` 没有分享密码去掉&pwd参数;
+- 标志短链: `/d/网盘标识/分享key@密码` 没有分享密码去掉@密码;
+- 直链JSON: `/json/网盘标识/分享key@密码`和`/json/parser?url=分享链接&pwd=密码`
 - 网盘标识参考上面网盘支持情况
 - 当带有分享密码时需要加上密码参数(pwd)
 - 移动云云空间,小飞机网盘的加密分享的密码可以忽略
@@ -57,11 +69,12 @@ API规则:
 
 1. 解析并自动302跳转 :
     http://your_host/parser?url=分享链接&pwd=xxx
-    http://your_host/网盘标识/分享key@分享密码
+    http://your_host/d/网盘标识/分享key@分享密码
 2. 获取解析后的直链--JSON格式
     http://your_host/json/parser?url=分享链接&pwd=xxx
     http://your_host/json/网盘标识/分享key@分享密码
 
+1. 获取下载直链 http://your_host/json/parser?url=分享链接&pwd=xxx
 ```
 json返回数据格式示例:  
 `shareKey`:    全局分享key  
@@ -82,6 +95,50 @@ json返回数据格式示例:
     "expiration": 1726638482825
   },
   "timestamp": 1726637151902
+}
+```
+2. 分享链接详情接口 /v2/linkInfo?url=分享链接
+```json
+{
+    "code": 200,
+    "msg": "success",
+    "success": true,
+    "count": 0,
+    "data": {
+        "downLink": "https://lz.qaiu.top/d/fj/FuE96Rgg",
+        "apiLink": "https://lz.qaiu.top/json/fj/FuE96Rgg",
+        "cacheHitTotal": 5,
+        "parserTotal": 2,
+        "sumTotal": 7,
+        "shareLinkInfo": {
+            "shareKey": "FuE96Rgg",
+            "panName": "小飞机网盘",
+            "type": "fj",
+            "sharePassword": "",
+            "shareUrl": "https://share.feijipan.com/s/FuE96Rgg",
+            "standardUrl": "https://www.feijix.com/s/FuE96Rgg",
+            "otherParam": {
+                "UA": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0"
+            },
+            "cacheKey": "fj:FuE96Rgg"
+        }
+    },
+    "timestamp": 1736489219402
+}
+```
+3. 解析次数统计接口 /v2/statisticsInfo
+```json
+{
+    "code": 200,
+    "msg": "success",
+    "success": true,
+    "count": 0,
+    "data": {
+        "parserTotal": 320508,
+        "cacheTotal": 5957910,
+        "total": 6278418
+    },
+    "timestamp": 1736489378770
 }
 ```
 
