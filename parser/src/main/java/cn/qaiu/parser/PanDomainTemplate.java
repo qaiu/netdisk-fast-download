@@ -128,7 +128,7 @@ public enum PanDomainTemplate {
             MnesTool.class),
     // https://music.163.com/#/song?id=xxx
     MNE("网易云音乐歌曲详情",
-            compile("https://music\\.163\\.com/(#/)?song\\?id=(?<KEY>.+)"),
+            compile("https://(y.)?music\\.163\\.com/(#|m/)?song\\?id=(?<KEY>.+)(&.*)?"),
             "https://music.163.com/#/song?id={shareKey}",
             MnesTool.MneTool.class),
     // https://c6.y.qq.com/base/fcgi-bin/u?__=xxx
