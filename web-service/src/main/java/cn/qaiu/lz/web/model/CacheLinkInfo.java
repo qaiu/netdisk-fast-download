@@ -3,6 +3,7 @@ package cn.qaiu.lz.web.model;
 import cn.qaiu.db.ddl.Length;
 import cn.qaiu.db.ddl.Table;
 import cn.qaiu.db.ddl.TableGenIgnore;
+import cn.qaiu.entity.FileInfo;
 import cn.qaiu.lz.common.ToJson;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
@@ -47,6 +48,8 @@ public class CacheLinkInfo implements ToJson {
      * 有效期
      */
     private Long expiration;
+
+    private FileInfo fileInfo;
 
 
     // 使用 JsonObject 构造

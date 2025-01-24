@@ -20,9 +20,9 @@ public class FileInfo {
     Long size;
 
     /**
-     * MIME类型
+     * 类型
      */
-    String fileMIME;
+    String fileType;
 
     /**
      * 文件路径
@@ -33,6 +33,11 @@ public class FileInfo {
      * 创建(上传)时间 yyyy-MM-dd HH:mm:ss格式
      */
     String createTime;
+
+    /**
+     * 上次修改时间
+     */
+    String updateTime;
 
     /**
      * 创建者
@@ -81,12 +86,12 @@ public class FileInfo {
         return this;
     }
 
-    public String getFileMIME() {
-        return fileMIME;
+    public String getFileType() {
+        return fileType;
     }
 
-    public FileInfo setFileMIME(String fileMIME) {
-        this.fileMIME = fileMIME;
+    public FileInfo setFileType(String fileType) {
+        this.fileType = fileType;
         return this;
     }
 
@@ -105,6 +110,15 @@ public class FileInfo {
 
     public FileInfo setCreateTime(String createTime) {
         this.createTime = createTime;
+        return this;
+    }
+
+    public String getUpdateTime() {
+        return updateTime;
+    }
+
+    public FileInfo setUpdateTime(String updateTime) {
+        this.updateTime = updateTime;
         return this;
     }
 

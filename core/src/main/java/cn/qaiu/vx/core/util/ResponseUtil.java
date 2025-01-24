@@ -26,7 +26,17 @@ public class ResponseUtil {
                 .end(jsonObject.encode());
     }
 
+    public static void fireJsonObjectResponse(HttpServerResponse ctx, JsonObject jsonObject) {
+        ctx.putHeader(CONTENT_TYPE, "application/json; charset=utf-8")
+                .setStatusCode(200)
+                .end(jsonObject.encode());
+    }
+
     public static <T> void fireJsonResultResponse(RoutingContext ctx, JsonResult<T> jsonResult) {
+        fireJsonObjectResponse(ctx, jsonResult.toJsonObject());
+    }
+
+    public static <T> void fireJsonResultResponse(HttpServerResponse ctx, JsonResult<T> jsonResult) {
         fireJsonObjectResponse(ctx, jsonResult.toJsonObject());
     }
 

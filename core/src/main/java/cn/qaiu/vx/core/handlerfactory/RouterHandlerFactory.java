@@ -175,8 +175,13 @@ public class RouterHandlerFactory implements BaseHttpApi {
                 route.handler(ResponseTimeHandler.create());
                 route.handler(ctx -> handlerMethod(instance, method, ctx)).failureHandler(ctx -> {
                     if (ctx.response().ended()) return;
-                    ctx.failure().printStackTrace();
-                    doFireJsonResultResponse(ctx, JsonResult.error(ctx.failure().getMessage(), 500));
+                    // 超时处理器状态码503
+                    if (ctx.statusCode() == 503 || ctx.failure() == null) {
+                        doFireJsonResultResponse(ctx, JsonResult.error("未知异常, 请联系管理员", 500));
+                    } else {
+                        ctx.failure().printStackTrace();
+                        doFireJsonResultResponse(ctx, JsonResult.error(ctx.failure().getMessage(), 500));
+                    }
                 });
             } else if (method.isAnnotationPresent(SockRouteMapper.class)) {
                 // websocket 基于sockJs

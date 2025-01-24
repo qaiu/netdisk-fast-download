@@ -5,6 +5,7 @@ import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.CommonUtils;
 import cn.qaiu.util.JsExecUtils;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.uritemplate.UriTemplate;
@@ -16,6 +17,8 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static cn.qaiu.util.RandomStringGenerator.gen36String;
 
 /**
  * 123网盘
@@ -30,8 +33,27 @@ public class YeTool extends PanBase {
             "&shareKey={shareKey}&SharePwd={pwd}&ParentFileId=0&Page=1&event=homeListFile&operateType=1";
     private static final String DOWNLOAD_API_URL = "https://www.123pan.com/a/api/share/download/info?{authK}={authV}";
 
+    private final MultiMap header = MultiMap.caseInsensitiveMultiMap();
+
     public YeTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
+        header.set("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
+        header.set("App-Version", "3");
+        header.set("Cache-Control", "no-cache");
+        header.set("Connection", "keep-alive");
+        header.set("DNT", "1");
+        header.set("Host", "www.123pan.com");
+        header.set("LoginUuid", gen36String());
+        header.set("Pragma", "no-cache");
+        header.set("Referer", shareLinkInfo.getStandardUrl());
+        header.set("Sec-Fetch-Dest", "empty");
+        header.set("Sec-Fetch-Mode", "cors");
+        header.set("Sec-Fetch-Site", "same-origin");
+        header.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0");
+        header.set("platform", "web");
+        header.set("sec-ch-ua", "\"Not)A;Brand\";v=\"99\", \"Microsoft Edge\";v=\"127\", \"Chromium\";v=\"127\"");
+        header.set("sec-ch-ua-mobile", "?0");
+        header.set("sec-ch-ua-platform", "Windows");
     }
 
     public Future<String> parse() {
