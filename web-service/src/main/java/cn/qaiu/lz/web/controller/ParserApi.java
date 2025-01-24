@@ -93,6 +93,7 @@ public class ParserApi {
         return Arrays.stream(PanDomainTemplate.values()).map(pan -> new TreeMap<String, String>() {{
             put("name", pan.getDisplayName());
             put("type", pan.name().toLowerCase());
+            put("shareUrlFormat", pan.getStandardUrlTemplate());
             put("url", pan.getPanDomain());
         }}).collect(Collectors.toList());
     }

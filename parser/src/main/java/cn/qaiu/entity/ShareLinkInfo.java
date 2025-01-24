@@ -13,7 +13,13 @@ public class ShareLinkInfo {
     private String shareUrl;      // 原始分享链接
     private String standardUrl;   // 规范化的标准链接
 
-    private Map<String, Object> otherParam;   // 其他参数
+    /**
+     * 其他参数预定义
+     * auths: 认证相关 传入
+     * UA: 浏览器请求头 传入
+     * fileInfo: 解析成功的文件信息对象 传出
+     */
+    private Map<String, Object> otherParam;
 
     private ShareLinkInfo(Builder builder) {
         this.shareKey = builder.shareKey;

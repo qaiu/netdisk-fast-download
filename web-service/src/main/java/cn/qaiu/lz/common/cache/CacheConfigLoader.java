@@ -19,7 +19,9 @@ public class CacheConfigLoader {
         TYPE =  config.getString("type");
         Integer defaultDuration = config.getInteger("defaultDuration");
         DEFAULT_DURATION = defaultDuration == null ? 60 : defaultDuration;
-        config.getJsonObject("duration").getMap().forEach((k,v) -> {
+        JsonObject duration = config.getJsonObject("duration");
+        if (duration == null) return;
+        duration.getMap().forEach((k, v) -> {
             if (v == null) {
                 CONFIGS.put(k, DEFAULT_DURATION);
             } else {

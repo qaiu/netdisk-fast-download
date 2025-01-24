@@ -152,6 +152,7 @@ public abstract class PanBase implements IPanTool {
         return handleFail("");
     }
 
+
     /**
      * bodyAsJsonObject的封装, 会自动处理异常
      *
@@ -173,33 +174,6 @@ public abstract class PanBase implements IPanTool {
             fail("解析失败: json格式异常: {}", res.bodyAsString());
             throw new RuntimeException("解析失败: json格式异常");
         }
-    }
-
-    /**
-     * 解压gzip数据
-     * @param compressedData compressedData
-     * @return String
-     * @throws IOException IOException
-     */
-    private String decompressGzip(Buffer compressedData) throws IOException {
-        try (ByteArrayInputStream bais = new ByteArrayInputStream(compressedData.getBytes());
-             GZIPInputStream gzis = new GZIPInputStream(bais);
-             BufferedReader reader = new BufferedReader(new InputStreamReader(gzis,
-                     StandardCharsets.UTF_8))) {
-
-            // 用于存储解压后的字符串
-            StringBuilder decompressedData = new StringBuilder();
-
-            // 逐行读取解压后的数据
-            String line;
-            while ((line = reader.readLine()) != null) {
-                decompressedData.append(line);
-            }
-
-            // 此时decompressedData.toString()包含了解压后的字符串
-            return decompressedData.toString();
-        }
-
     }
 
     protected void complete(String url) {
@@ -232,4 +206,31 @@ public abstract class PanBase implements IPanTool {
         }
     }
 
+
+    /**
+     * 解压gzip数据
+     * @param compressedData compressedData
+     * @return String
+     * @throws IOException IOException
+     */
+    private String decompressGzip(Buffer compressedData) throws IOException {
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(compressedData.getBytes());
+             GZIPInputStream gzis = new GZIPInputStream(bais);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(gzis,
+                     StandardCharsets.UTF_8))) {
+
+            // 用于存储解压后的字符串
+            StringBuilder decompressedData = new StringBuilder();
+
+            // 逐行读取解压后的数据
+            String line;
+            while ((line = reader.readLine()) != null) {
+                decompressedData.append(line);
+            }
+
+            // 此时decompressedData.toString()包含了解压后的字符串
+            return decompressedData.toString();
+        }
+
+    }
 }

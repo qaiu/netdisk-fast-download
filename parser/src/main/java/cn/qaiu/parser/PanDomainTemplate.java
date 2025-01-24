@@ -59,6 +59,12 @@ public enum PanDomainTemplate {
             "https://iwx.mail.qq.com/ftn/download/{shareKey}",
             "https://mail.qq.com",
             QQTool.class),
+    // https://wx.mail.qq.com/s?k=uAG9JR42Rqgt010mFp
+    QQW("QQ邮箱中转站(微信账户)",
+            compile("https://wx\\.mail\\.qq\\.com/s\\?k=(?<KEY>.+)"),
+            "https://wx.mail.qq.com/s?k={shareKey}",
+            "https://mail.qq.com",
+            QQwTool.class),
     // https://f.ws59.cn/f/或者https://www.wenshushu.cn/f/
     WS("文叔叔",
             compile("https://(f\\.ws(\\d{2})\\.cn|www\\.wenshushu\\.cn)/f/(?<KEY>.+)"),
@@ -96,6 +102,7 @@ public enum PanDomainTemplate {
             "https://www.vyuyun.com/s/{shareKey}?password={pwd}",
             PvyyTool.class),
     // https://1drv.ms/w/s!Alg0feQmCv2rnRFd60DQOmMa-Oh_?e=buaRtp
+    // https://1drv.ms/u/c/abfd0a26e47d3458/EdYACWvPq85Et797YmvL5LgBruUKoNxqIFATXhIv1PI2_Q?e=z4ffNJ
     POD("OneDrive",
             compile("https://1drv\\.ms/(?<KEY>.+)"),
             "https://1drv\\.ms/{shareKey}",
@@ -117,7 +124,7 @@ public enum PanDomainTemplate {
             "https://www.dropbox.com/scl/fi/{shareKey}/?rlkey={pwd}&dl=0",
             PdbTool.class),
     P115("115网盘",
-            compile("https://(115|anxia).com/s/(?<KEY>\\w+)(\\?password=(?<PWD>\\w+))?(&.+)?"),
+            compile("https://(115|anxia).com/s/(?<KEY>\\w+)(\\?password=(?<PWD>\\w+))?([&#].*)?"),
             "https://115.com/s/{shareKey}?password={pwd}",
             P115Tool.class),
     // =====================音乐类解析 分享链接标志->MxxS (单歌曲/普通音质)==========================

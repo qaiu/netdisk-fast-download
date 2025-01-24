@@ -1,6 +1,7 @@
 package cn.qaiu.util;
 
 import java.security.SecureRandom;
+import java.util.UUID;
 
 public class RandomStringGenerator {
     private static final String CHARACTERS = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -19,4 +20,10 @@ public class RandomStringGenerator {
 
         return sb.toString();
     }
+
+        public static String gen36String() {
+            String uuid = UUID.randomUUID().toString().toLowerCase();
+            // 移除短横线
+            return uuid.replace("-", "");
+        }
 }

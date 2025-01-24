@@ -10,6 +10,7 @@ public class LinkInfoResp {
     // 解析链接
     private String downLink;
     private String apiLink;
+    private String viewLink;
     private Integer cacheHitTotal;
     private Integer parserTotal;
     private Integer sumTotal;
