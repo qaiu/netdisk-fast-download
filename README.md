@@ -285,7 +285,9 @@ app-dev.yml 可以配置解析服务相关信息， 包括端口，域名，缓�
 server-proxy.yml 可以配置代理服务运行的相关信息， 包括前端反向代理端口，路径等  
 
 ## ip代理配置说明  
-有时候解析量很大，IP容易被ban，这时候可以搭建代理服务器
+有时候解析量很大，IP容易被ban，这时候可以使用其他服务器搭建nfd-proxy代理服务。
+
+修改配置文件：
 app-dev.yml
 
 ```yaml
@@ -297,7 +299,7 @@ proxy:
     username:                 # 用户名
     password:                 # 密码
 ```  
-可以通过nfd-proxy搭建http代理服务器 
+nfd-proxy搭建http代理服务器 
 参考https://github.com/nfd-parser/nfd-proxy
 
 ## 0.1.9 开发计划
@@ -316,7 +318,10 @@ Core模块集成Vert.x实现类似spring的注解式路由API
 
 ## 支持该项目
 开源不易，用爱发电，本项目长期维护如果觉得有帮助, 可以请作者喝杯咖啡, 感谢支持  
-赞助88元以上, 可以优先体验专享版--大文件解析,目录解析
+赞助88元以上, 可以优先体验专享版--大文件解析,目录解析  
+赞助188元，提供部署服务  
+赞助788元，提供云服务器在搭建  
+可以提供功能定制开发, 加v价格详谈: qaiu-cn
 ![image](https://github.com/qaiu/netdisk-fast-download/assets/29825328/54276aee-cc3f-4ebd-8973-2e15f6295819)
 
 [手机端支付宝打赏跳转链接](https://qr.alipay.com/fkx01882dnoxxtjenhlxt53)
