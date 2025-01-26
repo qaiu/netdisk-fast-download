@@ -242,7 +242,7 @@ docker run -d -it --name netdisk-fast-download -p 6401:6401 --restart unless-sto
 docker run --rm -v /var/run/docker.sock:/var/run/docker.sock containrrr/watchtower --cleanup --run-once netdisk-fast-download
 ```
 
-### [宝塔安装参考](https://blog.qaiu.top/archives/netdisk-fast-download-bao-ta-an-zhuang-jiao-cheng)
+### [点我查看宝塔部署教程](https://blog.qaiu.top/archives/netdisk-fast-download-bao-ta-an-zhuang-jiao-cheng)
 > 注意: netdisk-fast-download.service中的ExecStart的路径改为实际路径
 ```shell
 cd ~
@@ -285,6 +285,7 @@ app-dev.yml 可以配置解析服务相关信息， 包括端口，域名，缓�
 server-proxy.yml 可以配置代理服务运行的相关信息， 包括前端反向代理端口，路径等  
 
 ## ip代理配置说明  
+有时候解析量很大，IP容易被ban，这时候可以搭建代理服务器
 app-dev.yml
 
 ```yaml
