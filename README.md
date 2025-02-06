@@ -69,10 +69,12 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 - 移动云空间分享key取分享链接中的data参数,比如`&data=xxx`的参数就是xxx
 
 API规则: 
+> 建议使用UrlEncode编码分享链接
 ```
 
-1. 解析并自动302跳转 :
+1. 解析并自动302跳转
     http://your_host/parser?url=分享链接&pwd=xxx
+    或者 http://your_host/parser?url=UrlEncode(分享链接)&pwd=xxx  
     http://your_host/d/网盘标识/分享key@分享密码
 2. 获取解析后的直链--JSON格式
     http://your_host/json/parser?url=分享链接&pwd=xxx
