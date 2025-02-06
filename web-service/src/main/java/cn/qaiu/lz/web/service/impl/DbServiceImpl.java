@@ -48,10 +48,11 @@ public class DbServiceImpl implements DbService {
         JDBCPool client = JDBCPoolInit.instance().getPool();
         Promise<StatisticsInfo> promise = Promise.promise();
         String sql = """
-                select sum(api_parser_total) parserTotal,sum("cache_hit_total") cacheTotal,
-                sum(api_parser_total) + sum("cache_hit_total") total
-                from "api_statistics_info";
+                select sum(api_parser_total) as parserTotal, sum(cache_hit_total) as cacheTotal,
+                sum(api_parser_total) + sum(cache_hit_total) as total
+                from api_statistics_info;
                 """;
+
         SqlTemplate.forQuery(client, sql).mapTo(StatisticsInfo.class).execute(new HashMap<>()).onSuccess(row -> {
             StatisticsInfo info;
             if ((info = row.iterator().next()) != null) {
@@ -59,7 +60,10 @@ public class DbServiceImpl implements DbService {
             } else {
                 promise.fail("t_parser_log_info查询为空");
             }
-        }).onFailure(promise::fail);
+        }).onFailure(e->{
+            log.error("getStatisticsInfo: ", e);
+            promise.fail(e);
+        });
         return promise.future();
     }
 }

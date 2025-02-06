@@ -21,13 +21,13 @@ public class ApiStatisticsInfo implements ToJson {
     /**
      * pan type 单独拿出来便于统计.
      */
-    @Length(varcharSize = 4)
+    @Length(varcharSize = 16)
     private String panType;
 
     /**
      * 分享key type:key
      */
-    @Length(varcharSize = 4096)
+    @Length(varcharSize = 1024)
     private String shareKey;
 
     /**
