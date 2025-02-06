@@ -23,7 +23,7 @@ public class CacheLinkInfo implements ToJson {
     /**
      * 缓存key: type:ShareKey; e.g. lz:xxxx
      */
-    @Length(varcharSize = 4096)
+    @Length(varcharSize = 1024)
     private String shareKey;
 
     /**

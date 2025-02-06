@@ -32,7 +32,7 @@ public @interface Constraint {
      */
     String defaultValue() default "";
     /**
-     * 默认值是否是函数
+     * 默认值是否是函数 like value=NOW()
      * @return false 不是函数
      */
     boolean defaultValueIsFunction() default false;

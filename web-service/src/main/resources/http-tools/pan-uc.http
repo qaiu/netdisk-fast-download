@@ -51,3 +51,111 @@ Cookie: __pugs=efc5f3f9c041af5dc62eea4481901cbbAAT912628i+uT/WMwOFWBjJ1TjbKGC1j6
 https://dl-uf-zb.pds.uc.cn/l3PNAKfz/64623447/646b0de6e9f13000c9b14ba182b805312795a82a/646b0de6717e1bfa5bb44dd2a456f103c5177850?Expires=1691489999&OSSAccessKeyId=LTAIyYfxTqY7YZsg&Signature=NbQLAEUCkvJxmSsRoIynZ%2BuPMvY%3D&x-oss-traffic-limit=503316480&response-content-disposition=attachment%3B%20filename%3DC%23%20Shell%20%28C%23%20Offline%20Compiler%29_2.5.16.apks&callback-var=eyJ4OmF1IjoiLSIsIng6c3AiOiIxOTkiLCJ4OnRva2VuIjoiMi0wNDBjYjFjMDNjNzU1YWY1NDc0NjkxNjNmOTYzYWY2NC0yLTctNjE0NDAtZGFjYjM2NjViYmFhNGY1ZTlkMzc4MDBlYzY0MDMxNjAtYTU2MGJiMmU1MzhlNzY0OTFkMDY1MjA2OGRiNmEzMzEiLCJ4OnR0bCI6IjEwODAwIn0%3D&callback=eyJjYWxsYmFja0JvZHlUeXBlIjoiYXBwbGljYXRpb24vanNvbiIsImNhbGxiYWNrU3RhZ2UiOiJiZWZvcmUtZXhlY3V0ZSIsImNhbGxiYWNrRmFpbHVyZUFjdGlvbiI6Imlnbm9yZSIsImNhbGxiYWNrVXJsIjoiaHR0cHM6Ly9hdXRoLWNkbi51Yy5jbi9vdXRlci9vc3MvY2hlY2twbGF5IiwiY2FsbGJhY2tCb2R5Ijoie1wiaG9zdFwiOiR7aHR0cEhlYWRlci5ob3N0fSxcInNpemVcIjoke3NpemV9LFwicmFuZ2VcIjoke2h0dHBIZWFkZXIucmFuZ2V9LFwicmVmZXJlclwiOiR7aHR0cEhlYWRlci5yZWZlcmVyfSxcImNvb2tpZVwiOiR7aHR0cEhlYWRlci5jb29raWV9LFwibWV0aG9kXCI6JHtodHRwSGVhZGVyLm1ldGhvZH0sXCJpcFwiOiR7Y2xpZW50SXB9LFwicG9ydFwiOiR7Y2xpZW50UG9ydH0sXCJvYmplY3RcIjoke29iamVjdH0sXCJzcFwiOiR7eDpzcH0sXCJ0b2tlblwiOiR7eDp0b2tlbn0sXCJhdVwiOiR7eDphdX0sXCJ0dGxcIjoke3g6dHRsfSxcImNsaWVudF90b2tlblwiOiR7cXVlcnlTdHJpbmcuY2xpZW50X3Rva2VufX0ifQ%3D%3D&ud=4-0-5-0-6-N-3-ft-0-2
 Cookie: __puus=dc48cb12577eb3df6fe84fdea250ad6fAAOF0LBv/M4HTtkYfuUNdcVLXHZl1x2mw8NQSdxo5abymS+irugphlPNv5kwQZkDI+pXaeOD22v/whNQT5AwUULF0q1nSNXmHqxr20AJjXlEhvbIZNgUfwmw8aOCyarrLi7o7w6w0Rod4DLCSeYGwlTF3P9jMcqCM+WqWHnxKY6i8gaXZkHLObatSHkwivB7Xpc=
 Referer: https://fast.uc.cn/
+###
+# curl 'https://dl-uf-zb.pds.uc.cn/l3PNAKfz/64623447/646b0de6e9f13000c9b14ba182b805312795a82a/646b0de6717e1bfa5bb44dd2a456f103c5177850?Expires=1737791001&OSSAccessKeyId=LTAI5tJJpWQEfrcKHnd1LqsZ&Signature=n7Q7BNK5Z1rFS0nDgQZxbBBpqqE%3D&x-oss-traffic-limit=503316480&response-content-disposition=attachment%3B%20filename%3DC%2523%2520Shell%2520%2528C%2523%2520Offline%2520Compiler%2529_2.5.16.apks%3Bfilename%2A%3Dutf-8%27%27C%2523%2520Shell%2520%2528C%2523%2520Offline%2520Compiler%2529_2.5.16.apks&callback-var=eyJ4OmF1IjoiLSIsIng6dWQiOiI0LTAtNS0wLTYtTi0zLWZ0LTAtMi0wLU4iLCJ4OnNwIjoiMTAwIiwieDp0b2tlbiI6IjQtYjZlMGU5ZWUyMWFkOWZlZGIzNjMwMGY4ZWYyMWU5MjUtMi03LTE1MzYxMS1kYWNiMzY2NWJiYWE0ZjVlOWQzNzgwMGVjNjQwMzE2MC0wLTAtMC0wLTYzYmFhOGEzZGFlZGNlYzA5MmNlNzhkMDgyMmFlMjQ4IiwieDp0dGwiOiIxMDgwMCJ9&callback=eyJjYWxsYmFja0JvZHlUeXBlIjoiYXBwbGljYXRpb24vanNvbiIsImNhbGxiYWNrU3RhZ2UiOiJiZWZvcmUtZXhlY3V0ZSIsImNhbGxiYWNrRmFpbHVyZUFjdGlvbiI6Imlnbm9yZSIsImNhbGxiYWNrVXJsIjoiaHR0cHM6Ly9hdXRoLWNkbi51Yy5jbi9vdXRlci9vc3MvY2hlY2twbGF5IiwiY2FsbGJhY2tCb2R5Ijoie1wiaG9zdFwiOiR7aHR0cEhlYWRlci5ob3N0fSxcInNpemVcIjoke3NpemV9LFwicmFuZ2VcIjoke2h0dHBIZWFkZXIucmFuZ2V9LFwicmVmZXJlclwiOiR7aHR0cEhlYWRlci5yZWZlcmVyfSxcImNvb2tpZVwiOiR7aHR0cEhlYWRlci5jb29raWV9LFwibWV0aG9kXCI6JHtodHRwSGVhZGVyLm1ldGhvZH0sXCJpcFwiOiR7Y2xpZW50SXB9LFwicG9ydFwiOiR7Y2xpZW50UG9ydH0sXCJvYmplY3RcIjoke29iamVjdH0sXCJzcFwiOiR7eDpzcH0sXCJ1ZFwiOiR7eDp1ZH0sXCJ0b2tlblwiOiR7eDp0b2tlbn0sXCJhdVwiOiR7eDphdX0sXCJ0dGxcIjoke3g6dHRsfSxcImR0X3NwXCI6JHt4OmR0X3NwfSxcImhzcFwiOiR7eDpoc3B9LFwiY2xpZW50X3Rva2VuXCI6JHtxdWVyeVN0cmluZy5jbGllbnRfdG9rZW59fSJ9&ud=4-0-5-0-6-N-3-ft-0-2-0-N'
+#  -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'
+#  -H 'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8'
+#  -H 'Cache-Control: no-cache'
+#  -H 'Connection: keep-alive'
+#  -H 'Cookie: _UP_28A_52_=519; _UP_A4A_11_=wb9c5167d67c42ba9444ac9f42b20a05; _UP_D_=pc; __sdid=AARkEnYbifr7X5obz/wd2gzbXPw1zviyFe4xBC3uVp7xQG20ziCSbbxMib8Fov3RPRk=; __pus=9db24ba75335a2deb2e99fc400ac59ffAAQ9T+W6s02ilSvzMeh5ionWLTKFfaa2QFvJNU1PoiCYQe0aunWWq5GyJCVzXrVuICNHxooijrybFKlkUoI7xCfP; __kp=aaaeba0e-8c8e-4837-869f-882283adb802; __kps=AASxYmDMULu4nzmEK/wFzK3I; __ktd=dvy3qySVr8aXEqUuxMJydA==; __uid=AASxYmDMULu4nzmEK/wFzK3I; tfstk=gJ-IibMk8WVC79FMKXHNG51AEQSSgQi2v86JnLEUeMIdVLdF_65rKL8_2QCwYaSKtg1R6Q4UY_SeVCOMsBJeU3TgVKvkYvjrKMvhqghqgmSWKpjooOET3fJteTj5pUMeYcJhqghZgmo2KpAxkBSuFgH1XT65pgUpwGpOsTX89TEKCdCG6_IR2QptCTfOpfAThTgCtpMB-WEBJUCvp1Z8V-XCJsnc1uEJf9NVMp302uK1dwtlqg1VZw8JnZxeQ0ZGYKTOX9O-DXQMJdt5o30zYpINOKb6SXZOQa1BWHQ_euphbFOyPBGQ-6Le1ZXOW8icQI59KHLsE5ppg6sdBNoxhdQJ7HbDYfECDEvFYUdtfkOA4YqVG7kLPR_02O1qCAaurBoEyuDPFR31JOXC7AM_9UbdIO1qCAaurwBGdtksCWLl.; __puus=7a473fc40c62988cd82a0e443bb2a1baAAR498zI4bjrVRD3mNor9LX8Upgw8asjZxzEjBkb4gLBZ0tfOM5jNElFhDUmiKxA9d/xwzIgTARhY8ySH0Yl8Ipm2njsKPbk3gkplByVAZ62t0TQCe0hEdprNbdImIFDM8RbnpQ5PLvMeiJMZFJyXsK9EhAWvCpp0mO7sHVVk1oxjYkuBM3jff1l6YLQaZfd3h8='
+#  -H 'DNT: 1'
+#  -H 'Pragma: no-cache'
+#  -H 'Referer: https://fast.uc.cn/'
+#  -H 'Sec-Fetch-Dest: iframe'
+#  -H 'Sec-Fetch-Mode: navigate'
+#  -H 'Sec-Fetch-Site: same-site'
+#  -H 'Sec-Fetch-User: ?1'
+#  -H 'Upgrade-Insecure-Requests: 1'
+#  -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36'
+#  -H 'sec-ch-ua: "Not A(Brand";v="8", "Chromium";v="132", "Google Chrome";v="132"'
+#  -H 'sec-ch-ua-mobile: ?0'
+#  -H 'sec-ch-ua-platform: "Windows"'
+GET https://dl-uf-zb.pds.uc.cn/l3PNAKfz/64623447/646b0de6e9f13000c9b14ba182b805312795a82a/646b0de6717e1bfa5bb44dd2a456f103c5177850?Expires=1737791001&OSSAccessKeyId=LTAI5tJJpWQEfrcKHnd1LqsZ&Signature=n7Q7BNK5Z1rFS0nDgQZxbBBpqqE%3D&x-oss-traffic-limit=503316480&response-content-disposition=attachment%3B%20filename%3DC%2523%2520Shell%2520%2528C%2523%2520Offline%2520Compiler%2529_2.5.16.apks%3Bfilename%2A%3Dutf-8%27%27C%2523%2520Shell%2520%2528C%2523%2520Offline%2520Compiler%2529_2.5.16.apks&callback-var=eyJ4OmF1IjoiLSIsIng6dWQiOiI0LTAtNS0wLTYtTi0zLWZ0LTAtMi0wLU4iLCJ4OnNwIjoiMTAwIiwieDp0b2tlbiI6IjQtYjZlMGU5ZWUyMWFkOWZlZGIzNjMwMGY4ZWYyMWU5MjUtMi03LTE1MzYxMS1kYWNiMzY2NWJiYWE0ZjVlOWQzNzgwMGVjNjQwMzE2MC0wLTAtMC0wLTYzYmFhOGEzZGFlZGNlYzA5MmNlNzhkMDgyMmFlMjQ4IiwieDp0dGwiOiIxMDgwMCJ9&callback=eyJjYWxsYmFja0JvZHlUeXBlIjoiYXBwbGljYXRpb24vanNvbiIsImNhbGxiYWNrU3RhZ2UiOiJiZWZvcmUtZXhlY3V0ZSIsImNhbGxiYWNrRmFpbHVyZUFjdGlvbiI6Imlnbm9yZSIsImNhbGxiYWNrVXJsIjoiaHR0cHM6Ly9hdXRoLWNkbi51Yy5jbi9vdXRlci9vc3MvY2hlY2twbGF5IiwiY2FsbGJhY2tCb2R5Ijoie1wiaG9zdFwiOiR7aHR0cEhlYWRlci5ob3N0fSxcInNpemVcIjoke3NpemV9LFwicmFuZ2VcIjoke2h0dHBIZWFkZXIucmFuZ2V9LFwicmVmZXJlclwiOiR7aHR0cEhlYWRlci5yZWZlcmVyfSxcImNvb2tpZVwiOiR7aHR0cEhlYWRlci5jb29raWV9LFwibWV0aG9kXCI6JHtodHRwSGVhZGVyLm1ldGhvZH0sXCJpcFwiOiR7Y2xpZW50SXB9LFwicG9ydFwiOiR7Y2xpZW50UG9ydH0sXCJvYmplY3RcIjoke29iamVjdH0sXCJzcFwiOiR7eDpzcH0sXCJ1ZFwiOiR7eDp1ZH0sXCJ0b2tlblwiOiR7eDp0b2tlbn0sXCJhdVwiOiR7eDphdX0sXCJ0dGxcIjoke3g6dHRsfSxcImR0X3NwXCI6JHt4OmR0X3NwfSxcImhzcFwiOiR7eDpoc3B9LFwiY2xpZW50X3Rva2VuXCI6JHtxdWVyeVN0cmluZy5jbGllbnRfdG9rZW59fSJ9&ud=4-0-5-0-6-N-3-ft-0-2-0-N
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Language: zh-CN,zh;q=0.9,en;q=0.8
+Cache-Control: no-cache
+Connection: keep-alive
+Cookie: _UP_28A_52_=519; _UP_A4A_11_=wb9c5167d67c42ba9444ac9f42b20a05; _UP_D_=pc; __sdid=AARkEnYbifr7X5obz/wd2gzbXPw1zviyFe4xBC3uVp7xQG20ziCSbbxMib8Fov3RPRk=; __pus=9db24ba75335a2deb2e99fc400ac59ffAAQ9T+W6s02ilSvzMeh5ionWLTKFfaa2QFvJNU1PoiCYQe0aunWWq5GyJCVzXrVuICNHxooijrybFKlkUoI7xCfP; __kp=aaaeba0e-8c8e-4837-869f-882283adb802; __kps=AASxYmDMULu4nzmEK/wFzK3I; __ktd=dvy3qySVr8aXEqUuxMJydA==; __uid=AASxYmDMULu4nzmEK/wFzK3I; tfstk=gJ-IibMk8WVC79FMKXHNG51AEQSSgQi2v86JnLEUeMIdVLdF_65rKL8_2QCwYaSKtg1R6Q4UY_SeVCOMsBJeU3TgVKvkYvjrKMvhqghqgmSWKpjooOET3fJteTj5pUMeYcJhqghZgmo2KpAxkBSuFgH1XT65pgUpwGpOsTX89TEKCdCG6_IR2QptCTfOpfAThTgCtpMB-WEBJUCvp1Z8V-XCJsnc1uEJf9NVMp302uK1dwtlqg1VZw8JnZxeQ0ZGYKTOX9O-DXQMJdt5o30zYpINOKb6SXZOQa1BWHQ_euphbFOyPBGQ-6Le1ZXOW8icQI59KHLsE5ppg6sdBNoxhdQJ7HbDYfECDEvFYUdtfkOA4YqVG7kLPR_02O1qCAaurBoEyuDPFR31JOXC7AM_9UbdIO1qCAaurwBGdtksCWLl.;
+Pragma: no-cache
+Referer: https://fast.uc.cn/
+
+###
+
+# curl 'https://fast-api.uc.cn/1/transfer/member?fr=pc&pr=UCBrowser&fetch_rights=ALL'
+#  -H 'accept: application/json, text/plain, */*'
+#  -H 'accept-language: zh-CN,zh;q=0.9'
+#  -H 'cache-control: no-cache'
+#  -H 'cookie: __pus=52e1ead14f116cf7c9e1f661e94cd253AAT2jmfclZedBkubcvIXwKTFo7XJmjaf4bHgaMR/vSLdC1iXn192H+d3SgVIFkiWWjUAlSInoboPn7Zg5KU1Cbis; __kp=ac118c62-20c1-4e12-aac1-d901f6a0e8d4; __kps=AASxYmDMULu4nzmEK/wFzK3I; __ktd=dvy3qySVr8aXEqUuxMJydA==; __uid=AASxYmDMULu4nzmEK/wFzK3I; XSRF-TOKEN=67412de4-5552-4f80-aca5-a4e23ac2621a; XSRF-TOKEN=67412de4-5552-4f80-aca5-a4e23ac2621a; __puus=b2c6f59b3607030fb60c1d486ca09126AAR498zI4bjrVRD3mNor9LX86VT5PSEpFI0gt/S1i/S8HStTB8LEW+gpFt7z2zsuZDcCgcxzWFAPKQXYedkkQ03+iTFqCGSScL0iSNCfE1+aqsf7fkE2ToXKz+zHxg3iVTYNaSnUCkbXk6QlMPaatHGJeHuh0RpS7lG75zREt1MArKS0wWYF5hCgYogvvp92tkQ='
+#  -H 'dnt: 1'
+#  -H 'origin: https://fast.uc.cn'
+#  -H 'pragma: no-cache'
+#  -H 'priority: u=1, i'
+#  -H 'referer: https://fast.uc.cn/'
+#  -H 'sec-ch-ua: "Not A(Brand";v="8", "Chromium";v="132", "Microsoft Edge";v="132"'
+#  -H 'sec-ch-ua-mobile: ?0'
+#  -H 'sec-ch-ua-platform: "Windows"'
+#  -H 'sec-fetch-dest: empty'
+#  -H 'sec-fetch-mode: cors'
+#  -H 'sec-fetch-site: same-site'
+#  -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0'
+#  -H 'x-biz-retry: 0'
+GET https://fast-api.uc.cn/1/transfer/member?fr=pc&pr=UCBrowser&fetch_rights=ALL
+accept: application/json, text/plain, */*
+accept-language: zh-CN,zh;q=0.9
+cache-control: no-cache
+cookie: __pus=52e1ead14f116cf7c9e1f661e94cd253AAT2jmfclZedBkubcvIXwKTFo7XJmjaf4bHgaMR/vSLdC1iXn192H+d3SgVIFkiWWjUAlSInoboPn7Zg5KU1Cbis;
+dnt: 1
+###
+# curl 'https://fast.uc.cn/api/info?fr=pc&pr=UCBrowser'
+#  -H 'accept: application/json, text/plain, */*'
+#  -H 'accept-language: zh-CN,zh;q=0.9'
+#  -H 'cache-control: no-cache'
+#  -H 'content-type: application/json'
+#  -H 'cookie: UDRIVE_TRANSFER_SESS=PjvNRi7KTc55QvE9cxLKQKTWRNH_9C8dTVuWdgOJm9eKVLxXZy7_bXk92ma8wNw9XIOlqhtVTZ8BXNkV4jbTQjYjTrG8Z0FqcE_PMPDsctcmnxujbLa1jnm7SpVB2i3i-fltzwwwoI9RhkkfLZVMW3_cw2llA6Yip847Pr-auhXC-ZJpNp3nzPLANTgn19lz; b-user-id=d3b7a19e-c576-0fb1-602a-e3cf7821d90e'
+#  -H 'dnt: 1'
+#  -H 'origin: https://fast.uc.cn'
+#  -H 'pragma: no-cache'
+#  -H 'priority: u=1, i'
+#  -H 'referer: https://fast.uc.cn/s/33197dd53ace4'
+#  -H 'sec-ch-ua: "Not A(Brand";v="8", "Chromium";v="132", "Microsoft Edge";v="132"'
+#  -H 'sec-ch-ua-mobile: ?0'
+#  -H 'sec-ch-ua-platform: "Windows"'
+#  -H 'sec-fetch-dest: empty'
+#  -H 'sec-fetch-mode: cors'
+#  -H 'sec-fetch-site: same-origin'
+#  -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0'
+#  -H 'x-biz-retry: 0'
+#  --data-raw '{"st":"st9c5631ad6j032w5rdr0978zxcl1qjt"}'
+# 不限跨域
+POST https://fast.uc.cn/api/info?fr=pc&pr=UCBrowser
+accept: application/json, text/plain, */*
+accept-language: zh-CN,zh;q=0.9
+cache-control: no-cache
+cookie: UDRIVE_TRANSFER_SESS=PjvNRi7KTc55QvE9cxLKQKTWRNH_9C8dTVuWdgOJm9eKVLxXZy7_bXk92ma8wNw9XIOlqhtVTZ8BXNkV4jbTQjYjTrG8Z0FqcE_PMPDsctcmnxujbLa1jnm7SpVB2i3i-fltzwwwoI9RhkkfLZVMW3_cw2llA6Yip847Pr-auhXC-ZJpNp3nzPLANTgn19lz; b-user-id=d3b7a19e-c576-0fb1-602a-e3cf7821d90e
+dnt: 1
+origin: https://fast.qqq.cn
+pragma: no-cache
+priority: u=1, i
+referer: https://fast.qqq.cn/s/33197dd53ace4
+sec-ch-ua: "Not A(Brand";v="8", "Chromium";v="132", "Microsoft Edge";v="132"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "Windows"
+sec-fetch-dest: empty
+sec-fetch-mode: cors
+sec-fetch-site: same-origin
+user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0
+x-biz-retry: 0
+Content-Type: application/json
+
+{
+  "st": "xx"
+}
+
+###
+
+
+wx -> st -> pus->puus
+
+pus-> st + /info
+https://fast-api.uc.cn/1/transfer/member puus
+###
