@@ -111,22 +111,22 @@ json返回数据格式示例:
     "success": true,
     "count": 0,
     "data": {
-        "downLink": "https://lz.qaiu.top/d/fj/FuE96Rgg",
-        "apiLink": "https://lz.qaiu.top/json/fj/FuE96Rgg",
+        "downLink": "https://lz.qaiu.top/d/fj/xx",
+        "apiLink": "https://lz.qaiu.top/json/fj/xx",
         "cacheHitTotal": 5,
         "parserTotal": 2,
         "sumTotal": 7,
         "shareLinkInfo": {
-            "shareKey": "FuE96Rgg",
+            "shareKey": "xx",
             "panName": "小飞机网盘",
             "type": "fj",
             "sharePassword": "",
-            "shareUrl": "https://share.feijipan.com/s/FuE96Rgg",
-            "standardUrl": "https://www.feijix.com/s/FuE96Rgg",
+            "shareUrl": "https://share.feijipan.com/s/xx",
+            "standardUrl": "https://www.feijix.com/s/xx",
             "otherParam": {
                 "UA": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0"
             },
-            "cacheKey": "fj:FuE96Rgg"
+            "cacheKey": "fj:xx"
         }
     },
     "timestamp": 1736489219402
