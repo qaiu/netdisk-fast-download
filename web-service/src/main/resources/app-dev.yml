@@ -48,21 +48,21 @@ cache:
   defaultDuration: 59
   # 具体网盘的缓存配置，如果不加配置则不缓存，每次请求都会请求网盘API，格式：网盘标识: 时长
   duration:
-#    ce: 5
-#    cow:
-#    ec: 5
-#    fc:
-#    fj: 20
-#    iz: 20
-#    le: 2879
-#    lz: 20
-#    qq: 9999999
-#    ws: 10
-#    ye: -1
-#    mne: 30
-#    mqq: 30
-#    mkg: 30
-#    p115: 5
+    ce: 5
+    cow:
+    ec: 5
+    fc:
+    fj: 20
+    iz: 20
+    le: 2879
+    lz: 20
+    qq: 9999999
+    ws: 10
+    ye: -1
+    mne: 30
+    mqq: 30
+    mkg: 30
+    p115: 5
 
 # httpClient静态代理服务器配置(外网代理)
 proxy:
