@@ -1,6 +1,7 @@
 package cn.qaiu.lz.web.controller;
 
 
+import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.lz.common.cache.CacheManager;
 import cn.qaiu.lz.common.util.URLParamUtil;
@@ -35,7 +36,7 @@ public class ParserApi {
     private final UserService userService = AsyncServiceUtil.getAsyncServiceInstance(UserService.class);
     private final DbService dbService = AsyncServiceUtil.getAsyncServiceInstance(DbService.class);
 
-    @RouteMapping(value = "/login", method = RouteMethod.POST)
+    @RouteMapping(value = "/login", method = RouteMethod.GET)
     public Future<SysUser> login(SysUser user) {
         log.info("<------- login: {}", user.getUsername());
         return userService.login(user);
@@ -98,4 +99,10 @@ public class ParserApi {
         }}).collect(Collectors.toList());
     }
 
+    @RouteMapping("/getFileList")
+    public Future<List<FileInfo>> getFileList(HttpServerRequest request, String pwd) {
+        String url = URLParamUtil.parserParams(request);
+        ParserCreate parserCreate = ParserCreate.fromShareUrl(url).setShareLinkInfoPwd(pwd);
+        return parserCreate.createTool().parseFileList();
+    }
 }

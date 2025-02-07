@@ -124,7 +124,10 @@ public interface JsContent {
                   },
                   ajax: function (obj) {
                     signObj = obj
-                  }
+                  },
+                  val: function(a) {
+                        
+                  },
                         
                 }
               },
@@ -134,7 +137,6 @@ public interface JsContent {
             jQuery.fn.init.prototype = jQuery.fn;
                         
                         
-            // 伪装jquery.ajax函数获取关键数据
             $.ajax = function (obj) {
               signObj = obj
             }
@@ -142,11 +144,16 @@ public interface JsContent {
             var document = {
               getElementById: function (v) {
                 return {
-                  value: 'v'
+                  value: 'v',
+                  style: {
+                    display: ''
+                  },
+                  addEventListener: function() {}
                 }
               },
             }
-                        
+            
+            var window = {location: {}}
             """;
 
     String kwSignString = """

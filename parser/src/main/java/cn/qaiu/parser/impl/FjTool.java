@@ -1,12 +1,16 @@
 package cn.qaiu.parser.impl;
 
+import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.AESUtils;
+import cn.qaiu.util.FileSizeConverter;
 import cn.qaiu.util.UUIDUtil;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.uritemplate.UriTemplate;
@@ -16,6 +20,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -42,7 +48,18 @@ public class FjTool extends PanBase {
             "={uuid}&extra=2&timestamp={ts}";
     // https://api.feijipan.com/ws/buy/vip/list?devType=6&devModel=Chrome&uuid=WQAl5yBy1naGudJEILBvE&extra=2&timestamp=E2C53155F6D09417A27981561134CB73
 
+    // https://api.feijipan.com/ws/share/list?devType=6&devModel=Chrome&uuid=pwRWqwbk1J-KMTlRZowrn&extra=2&timestamp=C5F8A68C53121AB21FA35BA3529E8758&shareId=fmAuOh3m&folderId=28986333&offset=1&limit=60
+
+    private static final String FILE_LIST_URL = API_URL_PREFIX + "/share/list?devType=6&devModel=Chrome&uuid" +
+            "={uuid}&extra=2&timestamp={ts}&shareId={shareId}&folderId" +
+            "={folderId}&offset=1&limit=60";
+
     private static final MultiMap header;
+
+
+    long nowTs = System.currentTimeMillis();
+    String tsEncode = AESUtils.encrypt2Hex(Long.toString(nowTs));
+    String uuid = UUIDUtil.fjUuid(); // 也可以使用 UUID.randomUUID().toString()
 
     static {
         header = MultiMap.caseInsensitiveMultiMap();
@@ -71,13 +88,10 @@ public class FjTool extends PanBase {
     }
 
     public Future<String> parse() {
-        final String dataKey = shareLinkInfo.getShareKey();
 
         // 240530 此处shareId又改为了原始的shareId
-        String shareId = dataKey; // String.valueOf(AESUtils.idEncrypt(dataKey));
-        long nowTs = System.currentTimeMillis();
-        String tsEncode = AESUtils.encrypt2Hex(Long.toString(nowTs));
-        String uuid = UUIDUtil.fjUuid(); // 也可以使用 UUID.randomUUID().toString()
+        // String.valueOf(AESUtils.idEncrypt(dataKey));
+        final String shareId = shareLinkInfo.getShareKey();
 
         // 24.5.12 飞机盘 规则修改 需要固定UUID先请求会员接口, 再请求后续接口
         client.postAbs(UriTemplate.of(VIP_REQUEST_URL))
@@ -132,6 +146,13 @@ public class FjTool extends PanBase {
                                 }
                                 // 文件Id
                                 JsonObject fileInfo = resJson.getJsonArray("list").getJsonObject(0);
+                                // 如果是目录返回目录ID
+                                JsonObject fileList = fileInfo.getJsonArray("fileList").getJsonObject(0);
+                                if (fileList.getInteger("fileType") == 2) {
+                                    promise.complete(fileList.getInteger("folderId").toString());
+                                    return;
+                                }
+
                                 String fileId = fileInfo.getString("fileIds");
                                 String userId = fileInfo.getString("userId");
                                 // 其他参数
@@ -148,7 +169,7 @@ public class FjTool extends PanBase {
                                         .setTemplateParam("uuid", uuid)
                                         .setTemplateParam("ts", tsEncode2)
                                         .setTemplateParam("auth", auth)
-                                        .setTemplateParam("dataKey", dataKey);
+                                        .setTemplateParam("dataKey", shareId);
                                 System.out.println(httpRequest.toString());
                                 httpRequest.send().onSuccess(res2 -> {
                                     MultiMap headers = res2.headers();
@@ -162,6 +183,67 @@ public class FjTool extends PanBase {
 
                 }).onFailure(handleFail(FIRST_REQUEST_URL));
 
+        return promise.future();
+    }
+
+    @Override
+    public Future<List<FileInfo>> parseFileList() {
+        Promise<List<FileInfo>> promise = Promise.promise();
+
+        String shareId = shareLinkInfo.getShareKey(); // String.valueOf(AESUtils.idEncrypt(dataKey));
+        parse().onSuccess(id -> {
+            // 拿到目录ID
+            client.postAbs(UriTemplate.of(FILE_LIST_URL))
+                    .putHeaders(header)
+                    .setTemplateParam("shareId", shareId)
+                    .setTemplateParam("uuid", uuid)
+                    .setTemplateParam("ts", tsEncode)
+                    .setTemplateParam("folderId", id)
+                    .send().onSuccess(res -> {
+                        JsonObject jsonObject = asJson(res);
+                        System.out.println(jsonObject.encodePrettily());
+                        /*
+                        {
+                                   "iconId" : 13,
+                                   "fileName" : "酷我音乐车机版 6.4.2.20.apk",
+                                   "fileSaves" : 52,
+                                   "fileStars" : 5.0,
+                                   "type" : 1,
+                                   "userId" : 1392902,
+                                   "fileComments" : 0,
+                                   "fileSize" : 68854,
+                                   "fileIcon" : "https://d.feijix.com/storage/files/icon/2024/06/08/7/8146637/6534494874910391.gz?t=67a5ea7c&rlimit=20&us=nMfuftjBN5&sign=f72be03007a301217f90dcc20333bd9a",
+                                   "updTime" : "2024-06-10 17:26:53",
+                                   "sortId" : 1487918143,
+                                   "name" : "酷我音乐车机版 6.4.2.20.apk",
+                                   "fileDownloads" : 109,
+                                   "fileUrl" : null,
+                                   "fileLikes" : 0,
+                                   "fileType" : 1,
+                                   "fileId" : 1487918143
+                          }
+                        */
+                        JsonArray list = jsonObject.getJsonArray("list");
+                        ArrayList<FileInfo> result = new ArrayList<>();
+                        list.forEach(item->{
+                            JsonObject fileJson = (JsonObject) item;
+                            FileInfo fileInfo = new FileInfo();
+                            // 映射已知字段
+                            fileInfo.setFileName(fileJson.getString("fileName"))
+                                    .setFileId(fileJson.getString("fileId"))
+                                    .setCreateTime(fileJson.getString("createTime"))
+                                    .setFileType(fileJson.getString("fileType"))
+                                    .setSize(fileJson.getLong("fileSize"))
+                                    .setSizeStr(FileSizeConverter.convertToReadableSize(fileJson.getLong("fileSize")))
+                                    .setCreateBy(fileJson.getLong("userId").toString())
+                                    .setDownloadCount(fileJson.getInteger("fileDownloads"))
+                                    .setCreateTime(fileJson.getString("updTime"))
+                                    .setFileIcon(fileJson.getString("fileIcon"));
+                            result.add(fileInfo);
+                        });
+                        promise.complete(result);
+                    });
+        });
         return promise.future();
     }
 }

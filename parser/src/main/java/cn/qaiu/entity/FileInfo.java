@@ -7,57 +7,61 @@ public class FileInfo {
     /**
      * 文件名
      */
-    String fileName;
+    private String fileName;
 
     /**
      * 文件ID
      */
-    String fileId;
+    private String fileId;
+
+    private String fileIcon;
 
     /**
      * 文件大小(byte)
      */
-    Long size;
+    private Long size;
+
+    private String sizeStr;
 
     /**
      * 类型
      */
-    String fileType;
+    private String fileType;
 
     /**
      * 文件路径
      */
-    String filePath;
+    private String filePath;
 
     /**
      * 创建(上传)时间 yyyy-MM-dd HH:mm:ss格式
      */
-    String createTime;
+    private String createTime;
 
     /**
      * 上次修改时间
      */
-    String updateTime;
+    private String updateTime;
 
     /**
      * 创建者
      */
-    String createBy;
+    private String createBy;
 
     /**
      * 文件描述
      */
-    String description;
+    private String description;
 
     /**
      * 下载次数
      */
-    Integer downloadCount;
+    private Integer downloadCount;
 
     /**
      * 扩展参数
      */
-    Map<String, Object> extParameters;
+    private Map<String, Object> extParameters;;
 
     public String getFileName() {
         return fileName;
@@ -83,6 +87,15 @@ public class FileInfo {
 
     public FileInfo setSize(Long size) {
         this.size = size;
+        return this;
+    }
+
+    public String getSizeStr() {
+        return sizeStr;
+    }
+
+    public FileInfo setSizeStr(String sizeStr) {
+        this.sizeStr = sizeStr;
         return this;
     }
 
@@ -156,5 +169,31 @@ public class FileInfo {
     public FileInfo setExtParameters(Map<String, Object> extParameters) {
         this.extParameters = extParameters;
         return this;
+    }
+
+    public String getFileIcon() {
+        return fileIcon;
+    }
+
+    public FileInfo setFileIcon(String fileIcon) {
+        this.fileIcon = fileIcon;
+        return this;
+    }
+
+    @Override
+    public String toString() {
+        return "FileInfo{" +
+                "fileName='" + fileName + '\'' +
+                ", fileId='" + fileId + '\'' +
+                ", size=" + size +
+                ", fileType='" + fileType + '\'' +
+                ", filePath='" + filePath + '\'' +
+                ", createTime='" + createTime + '\'' +
+                ", updateTime='" + updateTime + '\'' +
+                ", createBy='" + createBy + '\'' +
+                ", description='" + description + '\'' +
+                ", downloadCount=" + downloadCount +
+                ", extParameters=" + extParameters +
+                '}';
     }
 }

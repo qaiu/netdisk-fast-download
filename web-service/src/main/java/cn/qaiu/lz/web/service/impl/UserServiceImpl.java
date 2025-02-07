@@ -19,11 +19,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public Future<SysUser> login(SysUser user) {
 
-        try {
-            TimeUnit.SECONDS.sleep(2);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+//        try {
+//            TimeUnit.SECONDS.sleep(2);
+//        } catch (InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
         return Future.succeededFuture(user);
     }
 }

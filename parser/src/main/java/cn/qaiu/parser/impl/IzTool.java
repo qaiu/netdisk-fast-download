@@ -1,13 +1,20 @@
 package cn.qaiu.parser.impl;
 
+import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.AESUtils;
+import cn.qaiu.util.FileSizeConverter;
+import cn.qaiu.util.UUIDUtil;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Promise;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.uritemplate.UriTemplate;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -27,6 +34,15 @@ public class IzTool extends PanBase {
 
     private static final String VIP_REQUEST_URL = API_URL_PREFIX + "/buy/vip/list?devType=6&devModel=Chrome&uuid" +
             "={uuid}&extra=2&timestamp={ts}";
+
+    private static final String FILE_LIST_URL = API_URL_PREFIX + "/share/list?devType=6&devModel=Chrome&uuid" +
+            "={uuid}&extra=2&timestamp={ts}&shareId={shareId}&folderId" +
+            "={folderId}&offset=1&limit=60";
+
+    long nowTs = System.currentTimeMillis();
+    String tsEncode = AESUtils.encrypt2HexIz(Long.toString(nowTs));
+    String uuid = UUID.randomUUID().toString();
+
     private static final MultiMap header;
 
     static {
@@ -57,9 +73,6 @@ public class IzTool extends PanBase {
 
     public Future<String> parse() {
         String shareId = shareLinkInfo.getShareKey();
-        long nowTs = System.currentTimeMillis();
-        String tsEncode = AESUtils.encrypt2HexIz(Long.toString(nowTs));
-        String uuid = UUID.randomUUID().toString();
 
         // 24.5.12 ilanzou改规则无需计算shareId
         // String shareId = String.valueOf(AESUtils.idEncryptIz(dataKey));
@@ -73,7 +86,10 @@ public class IzTool extends PanBase {
                 .send().onSuccess(r0 -> { // 忽略res
                     // 第一次请求 获取文件信息
                     // POST https://api.feijipan.com/ws/recommend/list?devType=6&devModel=Chrome&extra=2&shareId=146731&type=0&offset=1&limit=60
-                    client.postAbs(UriTemplate.of(FIRST_REQUEST_URL))
+                    client.postAbs(UriTemplate.of(
+                            shareLinkInfo.getSharePassword() == null ?
+                                    FIRST_REQUEST_URL : (FIRST_REQUEST_URL + "&code=" + shareLinkInfo.getSharePassword()))
+                            )
                             .putHeaders(header)
                             .setTemplateParam("shareId", shareId)
                             .setTemplateParam("uuid", uuid)
@@ -90,6 +106,14 @@ public class IzTool extends PanBase {
                                 }
                                 // 文件Id
                                 JsonObject fileInfo = resJson.getJsonArray("list").getJsonObject(0);
+
+                                // 如果是目录返回目录ID
+                                JsonObject fileList = fileInfo.getJsonArray("fileList").getJsonObject(0);
+                                if (fileList.getInteger("fileType") == 2) {
+                                    promise.complete(fileList.getInteger("folderId").toString());
+                                    return;
+                                }
+
                                 String fileId = fileInfo.getString("fileIds");
                                 String userId = fileInfo.getString("userId");
                                 // 其他参数
@@ -113,6 +137,46 @@ public class IzTool extends PanBase {
                                         }).onFailure(handleFail(SECOND_REQUEST_URL));
                             }).onFailure(handleFail(FIRST_REQUEST_URL));
                 });
+        return promise.future();
+    }
+
+    @Override
+    public Future<List<FileInfo>> parseFileList() {
+        Promise<List<FileInfo>> promise = Promise.promise();
+
+        String shareId = shareLinkInfo.getShareKey(); // String.valueOf(AESUtils.idEncrypt(dataKey));
+        parse().onSuccess(id -> {
+            // 拿到目录ID
+            client.postAbs(UriTemplate.of(FILE_LIST_URL))
+                    .putHeaders(header)
+                    .setTemplateParam("shareId", shareId)
+                    .setTemplateParam("uuid", uuid)
+                    .setTemplateParam("ts", tsEncode)
+                    .setTemplateParam("folderId", id)
+                    .send().onSuccess(res -> {
+                        JsonObject jsonObject = asJson(res);
+                        System.out.println(jsonObject.encodePrettily());
+                        JsonArray list = jsonObject.getJsonArray("list");
+                        ArrayList<FileInfo> result = new ArrayList<>();
+                        list.forEach(item->{
+                            JsonObject fileJson = (JsonObject) item;
+                            FileInfo fileInfo = new FileInfo();
+                            // 映射已知字段
+                            fileInfo.setFileName(fileJson.getString("fileName"))
+                                    .setFileId(fileJson.getString("fileId"))
+                                    .setCreateTime(fileJson.getString("createTime"))
+                                    .setFileType(fileJson.getString("fileType"))
+                                    .setSize(fileJson.getLong("fileSize"))
+                                    .setSizeStr(FileSizeConverter.convertToReadableSize(fileJson.getLong("fileSize")))
+                                    .setCreateBy(fileJson.getLong("userId").toString())
+                                    .setDownloadCount(fileJson.getInteger("fileDownloads"))
+                                    .setCreateTime(fileJson.getString("updTime"))
+                                    .setFileIcon(fileJson.getString("fileIcon"));
+                            result.add(fileInfo);
+                        });
+                        promise.complete(result);
+                    });
+        });
         return promise.future();
     }
 }
