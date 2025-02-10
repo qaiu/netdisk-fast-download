@@ -233,4 +233,8 @@ public abstract class PanBase implements IPanTool {
         }
 
     }
+
+    protected String getDomainName(){
+        return shareLinkInfo.getOtherParam().getOrDefault("domainName", "").toString();
+    }
 }

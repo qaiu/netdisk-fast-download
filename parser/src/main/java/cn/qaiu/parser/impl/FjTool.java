@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 
@@ -99,8 +100,6 @@ public class FjTool extends PanBase {
                 .setTemplateParam("ts", tsEncode)
                 .send().onSuccess(r0 -> { // 忽略res
 
-                    // long nowTs0 = System.currentTimeMillis();
-                    String tsEncode0 = AESUtils.encrypt2Hex(Long.toString(nowTs));
                     // 第一次请求 获取文件信息
                     // POST https://api.feijipan.com/ws/recommend/list?devType=6&devModel=Chrome&extra=2&shareId=146731&type=0&offset=1&limit=60
                     client.postAbs(UriTemplate.of(FIRST_REQUEST_URL))
@@ -228,22 +227,81 @@ public class FjTool extends PanBase {
                         list.forEach(item->{
                             JsonObject fileJson = (JsonObject) item;
                             FileInfo fileInfo = new FileInfo();
-                            // 映射已知字段
+
+                            // 映射已知字段fileInfo
+                            String fileId = fileJson.getString("fileId");
+                            String userId = fileJson.getString("userId");
+
+                            // 其他参数
+                            long nowTs2 = System.currentTimeMillis();
+                            String tsEncode2 = AESUtils.encrypt2Hex(Long.toString(nowTs2));
+                            String fidEncode = AESUtils.encrypt2Hex(fileId + "|" + userId);
+                            String auth = AESUtils.encrypt2Hex(fileId + "|" + nowTs2);
+
+                            // 回传用到的参数
+                            //"fidEncode", paramJson.getString("fidEncode"))
+                            //"uuid", paramJson.getString("uuid"))
+                            //"ts", paramJson.getString("ts"))
+                            //"auth", paramJson.getString("auth"))
+                            //"shareId", paramJson.getString("shareId"))
+                            JsonObject entries = JsonObject.of(
+                                    "fidEncode", fidEncode,
+                                    "uuid", uuid,
+                                    "ts", tsEncode2,
+                                    "auth", auth,
+                                    "shareId", shareId);
+                            byte[] encode = Base64.getEncoder().encode(entries.encode().getBytes());
+                            String param = new String(encode);
+
+                            long fileSize = fileJson.getLong("fileSize") * 1024;
                             fileInfo.setFileName(fileJson.getString("fileName"))
                                     .setFileId(fileJson.getString("fileId"))
                                     .setCreateTime(fileJson.getString("createTime"))
                                     .setFileType(fileJson.getString("fileType"))
-                                    .setSize(fileJson.getLong("fileSize"))
-                                    .setSizeStr(FileSizeConverter.convertToReadableSize(fileJson.getLong("fileSize")))
+                                    .setSize(fileSize)
+                                    .setSizeStr(FileSizeConverter.convertToReadableSize(fileSize))
                                     .setCreateBy(fileJson.getLong("userId").toString())
                                     .setDownloadCount(fileJson.getInteger("fileDownloads"))
                                     .setCreateTime(fileJson.getString("updTime"))
-                                    .setFileIcon(fileJson.getString("fileIcon"));
+                                    .setFileIcon(fileJson.getString("fileIcon"))
+                                    .setPanType(shareLinkInfo.getType())
+                                    .setParserUrl(String.format("%s/v2/redirectUrl/%s/%s", getDomainName(),
+                                            shareLinkInfo.getType(), param));
                             result.add(fileInfo);
                         });
                         promise.complete(result);
                     });
         });
+        return promise.future();
+    }
+
+    @Override
+    public Future<String> parseById() {
+        // 第二次请求
+        JsonObject paramJson = (JsonObject)shareLinkInfo.getOtherParam().get("paramJson");
+
+//        clientNoRedirects.getAbs(UriTemplate.of(SECOND_REQUEST_URL))
+//                .putHeaders(header)
+//                .setTemplateParam("fidEncode", fidEncode)
+//                .setTemplateParam("uuid", uuid)
+//                .setTemplateParam("ts", tsEncode2)
+//                .setTemplateParam("auth", auth)
+//                .setTemplateParam("dataKey", shareId)
+
+        clientNoRedirects.getAbs(UriTemplate.of(SECOND_REQUEST_URL))
+                .setTemplateParam("fidEncode", paramJson.getString("fidEncode"))
+                .setTemplateParam("uuid", paramJson.getString("uuid"))
+                .setTemplateParam("ts", paramJson.getString("ts"))
+                .setTemplateParam("auth", paramJson.getString("auth"))
+                .setTemplateParam("dataKey", paramJson.getString("shareId"))
+                .putHeaders(header).send().onSuccess(res2 -> {
+                    MultiMap headers = res2.headers();
+                    if (!headers.contains("Location")) {
+                        fail(SECOND_REQUEST_URL + " 未找到重定向URL: \n" + res2.headers());
+                        return;
+                    }
+                    promise.complete(headers.get("Location"));
+                }).onFailure(handleFail(SECOND_REQUEST_URL));
         return promise.future();
     }
 }

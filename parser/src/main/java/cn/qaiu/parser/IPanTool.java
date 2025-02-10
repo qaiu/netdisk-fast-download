@@ -27,7 +27,7 @@ public interface IPanTool {
      * 根据文件ID获取下载链接
      * @return url
      */
-    default Future<String> parseById(String id) {
+    default Future<String> parseById() {
         Promise<String> promise = Promise.promise();
         promise.complete();
         return promise.future();

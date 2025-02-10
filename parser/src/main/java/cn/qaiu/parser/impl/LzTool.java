@@ -101,14 +101,12 @@ public class LzTool extends PanBase {
         }
         int startPos = index + jsTagStart.length();
         int endPos = html.indexOf(jsTagEnd, startPos);
-        return html.substring(startPos, endPos).replaceAll("<!--.*-->","");
+        return html.substring(startPos, endPos).replaceAll("<!--.*-->", "");
     }
 
     private void getDownURL(String key, WebClient client, Map<String, Object> signMap) {
         MultiMap map = MultiMap.caseInsensitiveMultiMap();
-        signMap.forEach((k, v) -> {
-            map.set(k, v.toString());
-        });
+        signMap.forEach((k, v) -> map.set(k, v.toString()));
         MultiMap headers = getHeaders(key);
 
         String url = SHARE_URL_PREFIX + "/ajaxm.php";
@@ -155,9 +153,7 @@ public class LzTool extends PanBase {
                 Map<String, Object> data = CastUtil.cast(scriptObjectMirror.get("data"));
                 System.out.println(data);
                 MultiMap map = MultiMap.caseInsensitiveMultiMap();
-                data.forEach((k, v) -> {
-                    map.set(k, v.toString());
-                });
+                data.forEach((k, v) -> map.set(k, v.toString()));
                 MultiMap headers = getHeaders(sUrl);
 
                 String url = SHARE_URL_PREFIX + "/filemoreajax.php?file=" + data.get("fid");
@@ -185,12 +181,16 @@ public class LzTool extends PanBase {
                         FileInfo fileInfo = new FileInfo();
                         String size = fileJson.getString("size");
                         Long sizeNum = FileSizeConverter.convertToBytes(size);
+                        String panType = shareLinkInfo.getType();
+                        String id = fileJson.getString("id");
                         fileInfo.setFileName(fileJson.getString("name_all"))
-                                .setFileId(fileJson.getString("id"))
+                                .setFileId(id)
                                 .setCreateTime(fileJson.getString("time"))
                                 .setFileType(fileJson.getString("icon"))
                                 .setSizeStr(fileJson.getString("size"))
-                                .setSize(sizeNum);
+                                .setSize(sizeNum)
+                                .setPanType(panType)
+                                .setParserUrl(getDomainName() + "/d/" + panType + "/" + id);
                         System.out.println(fileInfo);
                         list.add(fileInfo);
                     });
