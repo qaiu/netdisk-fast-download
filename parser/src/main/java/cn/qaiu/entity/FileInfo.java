@@ -59,9 +59,20 @@ public class FileInfo {
     private Integer downloadCount;
 
     /**
+     * 网盘标识
+     */
+    private String panType;
+
+    /**
+     * nfd下载链接(可能获取不到)
+     * note: 不是下载直链
+     */
+    private String parserUrl;
+
+    /**
      * 扩展参数
      */
-    private Map<String, Object> extParameters;;
+    private Map<String, Object> extParameters;
 
     public String getFileName() {
         return fileName;
@@ -78,6 +89,15 @@ public class FileInfo {
 
     public FileInfo setFileId(String fileId) {
         this.fileId = fileId;
+        return this;
+    }
+
+    public String getFileIcon() {
+        return fileIcon;
+    }
+
+    public FileInfo setFileIcon(String fileIcon) {
+        this.fileIcon = fileIcon;
         return this;
     }
 
@@ -162,21 +182,30 @@ public class FileInfo {
         return this;
     }
 
+    public String getPanType() {
+        return panType;
+    }
+
+    public FileInfo setPanType(String panType) {
+        this.panType = panType;
+        return this;
+    }
+
+    public String getParserUrl() {
+        return parserUrl;
+    }
+
+    public FileInfo setParserUrl(String parserUrl) {
+        this.parserUrl = parserUrl;
+        return this;
+    }
+
     public Map<String, Object> getExtParameters() {
         return extParameters;
     }
 
     public FileInfo setExtParameters(Map<String, Object> extParameters) {
         this.extParameters = extParameters;
-        return this;
-    }
-
-    public String getFileIcon() {
-        return fileIcon;
-    }
-
-    public FileInfo setFileIcon(String fileIcon) {
-        this.fileIcon = fileIcon;
         return this;
     }
 

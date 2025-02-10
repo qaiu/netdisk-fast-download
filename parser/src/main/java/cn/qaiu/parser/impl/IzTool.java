@@ -13,9 +13,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.uritemplate.UriTemplate;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * 蓝奏云优享
@@ -130,7 +128,7 @@ public class IzTool extends PanBase {
                                         .putHeaders(header).send().onSuccess(res2 -> {
                                             MultiMap headers = res2.headers();
                                             if (!headers.contains("Location")) {
-                                                fail(SECOND_REQUEST_URL + " 未找到重定向URL: \n" + res.headers());
+                                                fail(SECOND_REQUEST_URL + " 未找到重定向URL: \n" + headers);
                                                 return;
                                             }
                                             promise.complete(headers.get("Location"));
@@ -161,22 +159,69 @@ public class IzTool extends PanBase {
                         list.forEach(item->{
                             JsonObject fileJson = (JsonObject) item;
                             FileInfo fileInfo = new FileInfo();
+
                             // 映射已知字段
+                            String fileId = fileJson.getString("fileId");
+                            String userId = fileJson.getString("userId");
+
+                            // 回传用到的参数
+                            //"fidEncode", paramJson.getString("fidEncode"))
+                            //"uuid", paramJson.getString("uuid"))
+                            //"ts", paramJson.getString("ts"))
+                            //"auth", paramJson.getString("auth"))
+                            //"shareId", paramJson.getString("shareId"))
+                            String fidEncode = AESUtils.encrypt2HexIz(fileId + "|" + userId);
+                            String auth = AESUtils.encrypt2HexIz(fileId + "|" + nowTs);
+                            JsonObject entries = JsonObject.of(
+                                    "fidEncode", fidEncode,
+                                    "uuid", uuid,
+                                    "ts", tsEncode,
+                                    "auth", auth,
+                                    "shareId", shareId);
+                            byte[] encode = Base64.getEncoder().encode(entries.encode().getBytes());
+                            String param = new String(encode);
+
+
+                            long fileSize = fileJson.getLong("fileSize") * 1024;
                             fileInfo.setFileName(fileJson.getString("fileName"))
-                                    .setFileId(fileJson.getString("fileId"))
+                                    .setFileId(fileId)
                                     .setCreateTime(fileJson.getString("createTime"))
                                     .setFileType(fileJson.getString("fileType"))
-                                    .setSize(fileJson.getLong("fileSize"))
-                                    .setSizeStr(FileSizeConverter.convertToReadableSize(fileJson.getLong("fileSize")))
+                                    .setSize(fileSize)
+                                    .setSizeStr(FileSizeConverter.convertToReadableSize(fileSize))
                                     .setCreateBy(fileJson.getLong("userId").toString())
                                     .setDownloadCount(fileJson.getInteger("fileDownloads"))
                                     .setCreateTime(fileJson.getString("updTime"))
-                                    .setFileIcon(fileJson.getString("fileIcon"));
+                                    .setFileIcon(fileJson.getString("fileIcon"))
+                                    .setPanType(shareLinkInfo.getType())
+                                    .setParserUrl(String.format("%s/v2/redirectUrl/%s/%s", getDomainName(),
+                                            shareLinkInfo.getType(), param));
                             result.add(fileInfo);
                         });
                         promise.complete(result);
                     });
         });
+        return promise.future();
+    }
+
+    @Override
+    public Future<String> parseById() {
+        // 第二次请求
+        JsonObject paramJson = (JsonObject)shareLinkInfo.getOtherParam().get("paramJson");
+        clientNoRedirects.getAbs(UriTemplate.of(SECOND_REQUEST_URL))
+                .setTemplateParam("fidEncode", paramJson.getString("fidEncode"))
+                .setTemplateParam("uuid", paramJson.getString("uuid"))
+                .setTemplateParam("ts", paramJson.getString("ts"))
+                .setTemplateParam("auth", paramJson.getString("auth"))
+                .setTemplateParam("shareId", paramJson.getString("shareId"))
+                .putHeaders(header).send().onSuccess(res2 -> {
+                    MultiMap headers = res2.headers();
+                    if (!headers.contains("Location")) {
+                        fail(SECOND_REQUEST_URL + " 未找到重定向URL: \n" + res2.headers());
+                        return;
+                    }
+                    promise.complete(headers.get("Location"));
+                }).onFailure(handleFail(SECOND_REQUEST_URL));
         return promise.future();
     }
 }

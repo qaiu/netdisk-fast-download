@@ -16,17 +16,17 @@ import cn.qaiu.vx.core.annotaions.RouteHandler;
 import cn.qaiu.vx.core.annotaions.RouteMapping;
 import cn.qaiu.vx.core.enums.RouteMethod;
 import cn.qaiu.vx.core.util.AsyncServiceUtil;
+import cn.qaiu.vx.core.util.ResponseUtil;
 import cn.qaiu.vx.core.util.SharedDataUtil;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonObject;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RouteHandler(value = "/v2", order = 10)
@@ -103,6 +103,41 @@ public class ParserApi {
     public Future<List<FileInfo>> getFileList(HttpServerRequest request, String pwd) {
         String url = URLParamUtil.parserParams(request);
         ParserCreate parserCreate = ParserCreate.fromShareUrl(url).setShareLinkInfoPwd(pwd);
+        String linkPrefix = SharedDataUtil.getJsonConfig("server").getString("domainName");
+        parserCreate.getShareLinkInfo().getOtherParam().put("domainName", linkPrefix);
         return parserCreate.createTool().parseFileList();
+    }
+
+    // 目录解析下载文件
+    // @RouteMapping("/getFileDownUrl/:type/:param")
+    public Future<String> getFileDownUrl(String type, String param) {
+        ParserCreate parserCreate = ParserCreate.fromType(type).shareKey("-") // shareKey not null
+                .setShareLinkInfoPwd("-");
+
+        if (param.isEmpty()) {
+            Promise<String> promise = Promise.promise();
+            promise.fail("下载参数为空");
+            return promise.future();
+        }
+
+        String paramStr = new String(Base64.getDecoder().decode(param));
+        ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();
+        shareLinkInfo.getOtherParam().put("paramJson", new JsonObject(paramStr));
+
+        // domainName
+        String linkPrefix = SharedDataUtil.getJsonConfig("server").getString("domainName");
+        shareLinkInfo.getOtherParam().put("domainName", linkPrefix);
+        return parserCreate.createTool().parseById();
+    }
+
+
+    @RouteMapping("/redirectUrl/:type/:param")
+    public Future<Void> redirectUrl(HttpServerResponse response, String type, String param) {
+        Promise<Void> promise = Promise.promise();
+
+        getFileDownUrl(type, param)
+                .onSuccess(res -> ResponseUtil.redirect(response, res))
+                .onFailure(t -> promise.fail(t.fillInStackTrace()));
+        return promise.future();
     }
 }
