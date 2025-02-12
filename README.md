@@ -320,9 +320,10 @@ Core模块集成Vert.x实现类似spring的注解式路由API
 
 ## 支持该项目
 开源不易，用爱发电，本项目长期维护如果觉得有帮助, 可以请作者喝杯咖啡, 感谢支持  
+<!-- 
 赞助88元以上, 可以优先体验专享版--大文件解析,目录解析  
 赞助188元，提供部署服务  
-可以提供功能定制开发, 加v价格详谈: qaiu-cn
+可以提供功能定制开发, 加v价格详谈: qaiu-cn -->
 ![image](https://github.com/qaiu/netdisk-fast-download/assets/29825328/54276aee-cc3f-4ebd-8973-2e15f6295819)
 
 [手机端支付宝打赏跳转链接](https://qr.alipay.com/fkx01882dnoxxtjenhlxt53)
