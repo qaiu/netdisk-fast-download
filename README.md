@@ -24,8 +24,6 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 
 网盘名称-网盘标识:  
 
-开源版:  
-
 - [蓝奏云-lz](https://pc.woozooo.com/)
 - [蓝奏云优享-iz](https://www.ilanzou.com/)
 - [奶牛快传-cow](https://cowtransfer.com/)
@@ -49,9 +47,7 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 - Google云盘-pgd
 - Onedrive-pod
 - Dropbox-pdp
-- iCloud-pic
-
-专属版新增:  
+- iCloud-pic  
 - [移动云盘-p139](https://yun.139.com/)
 - [联通云盘-pwo](https://pan.wo.cn/)
 - [天翼云盘-p189](https://cloud.189.cn/)
