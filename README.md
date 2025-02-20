@@ -1,14 +1,21 @@
+
+<div align=center><img src="https://lz.qaiu.top/img/lanzou111.403f7881.png" height="160" width="160"></div>
+
+<p align="center">
+<a href="https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml"><img src="https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml/badge.svg?style=flat"></a>
+<a href="https://www.oracle.com/cn/java/technologies/downloads"><img src="https://img.shields.io/badge/jdk-%3E%3D17-blue"></a>
+<a href="https://vertx-china.github.io"><img src="https://img.shields.io/badge/vert.x-4.5.6-blue?style=flat"></a>
+<a href="https://raw.githubusercontent.com/qaiu/netdisk-fast-download/master/LICENSE"><img src="https://img.shields.io/github/license/qaiu/netdisk-fast-download?style=flat"></a>
+<a href="https://github.com/qaiu/netdisk-fast-download/releases/"><img src="https://img.shields.io/github/v/release/qaiu/netdisk-fast-download?style=flat"></a>
+</p>
+
+
 云盘解析服务 (nfd云解析)
 预览地址 https://lz.qaiu.top  
 预览地址2(可以解析onedrive) http://8.209.249.88:6402  
 main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/netdisk-fast-download/tree/main-jdk11)  
 **注意: 请不要过度依赖lz.qaiu.top预览地址服务，建议本地搭建或者云服务器自行搭建。
 解析次数过多IP会被部分网盘厂商限制，不推荐做公共解析。**
-
-[![Java CI with Maven](https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml/badge.svg)](https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml)
-[![jdk](https://img.shields.io/badge/jdk-%3E%3D17-blue)](https://www.oracle.com/cn/java/technologies/downloads/)
-[![vert.x](https://img.shields.io/badge/vert.x-4.5.6-blue)](https://vertx-china.github.io/)
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/qaiu/netdisk-fast-download)](https://github.com/qaiu/netdisk-fast-download/releases/latest)
 
 ## 项目介绍
 网盘直链解析工具能把网盘分享下载链接转化为直链，已支持蓝奏云/蓝奏云优享/奶牛快传/移动云云空间/小飞机盘/亿方云/123云盘/Cloudreve等，支持加密分享。  
