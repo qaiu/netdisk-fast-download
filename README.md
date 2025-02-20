@@ -1,5 +1,5 @@
 
-<div align=center><img src="https://lz.qaiu.top/img/lanzou111.403f7881.png" height="160" width="160"></div>
+<div align=center><img src="https://lz.qaiu.top/img/lanzou111.403f7881.png" height="200" width="200"></div>
 
 <p align="center">
 <a href="https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml"><img src="https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml/badge.svg?style=flat"></a>
