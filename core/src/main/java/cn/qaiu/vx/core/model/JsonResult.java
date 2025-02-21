@@ -8,6 +8,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * 响应实体 用于和前端交互
@@ -144,7 +145,11 @@ public class JsonResult<T> implements Serializable {
 
     // 响应数据实体
     public static <T> JsonResult<T> data(T data) {
-        return new JsonResult<>(SUCCESS_CODE, SUCCESS_MESSAGE, true, data, 0);
+        int count = 0;
+        if (data instanceof List<?>) {
+            count = ((List<?>) data).size();
+        }
+        return new JsonResult<>(SUCCESS_CODE, SUCCESS_MESSAGE, true, data, count);
     }
 
     // 响应数据实体

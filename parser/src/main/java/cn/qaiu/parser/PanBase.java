@@ -98,6 +98,14 @@ public abstract class PanBase implements IPanTool {
     protected PanBase() {
     }
 
+    protected String baseMsg() {
+        if (shareLinkInfo.getShareUrl() != null) {
+            return shareLinkInfo.getPanName() + "-" + shareLinkInfo.getType() + ": url=" + shareLinkInfo.getShareUrl();
+        }
+        return shareLinkInfo.getPanName() + "-" + shareLinkInfo.getType() + ": key=" + shareLinkInfo.getShareKey() +
+                ";pwd=" + shareLinkInfo.getSharePassword();
+    }
+
 
     /**
      * 失败时生成异常消息
@@ -110,11 +118,11 @@ public abstract class PanBase implements IPanTool {
         try {
             String s = String.format(errorMsg.replaceAll("\\{}", "%s"), args);
             log.error("解析异常: " + s, t.fillInStackTrace());
-            promise.fail(shareLinkInfo.getPanName() + "-" + shareLinkInfo.getType() + ": 解析异常: " + s + " -> " + t);
+            promise.fail(baseMsg() + ": 解析异常: " + s + " -> " + t);
         } catch (Exception e) {
             log.error("ErrorMsg format fail. The parameter has been discarded", e);
             log.error("解析异常: " + errorMsg, t.fillInStackTrace());
-            promise.fail(shareLinkInfo.getPanName() + "-" + shareLinkInfo.getType() + ": 解析异常: " + errorMsg + " -> " + t);
+            promise.fail(baseMsg() + ": 解析异常: " + errorMsg + " -> " + t);
         }
     }
 
@@ -127,10 +135,10 @@ public abstract class PanBase implements IPanTool {
     protected void fail(String errorMsg, Object... args) {
         try {
             String s = String.format(errorMsg.replaceAll("\\{}", "%s"), args);
-            promise.fail(shareLinkInfo.getPanName() + "-" + shareLinkInfo.getType() + " - 解析异常: " + s);
+            promise.fail(baseMsg() + " - 解析异常: " + s);
         } catch (Exception e) {
             log.error("ErrorMsg format fail. The parameter has been discarded", e);
-            promise.fail(shareLinkInfo.getPanName() + "-" + shareLinkInfo.getType() + " - 解析异常: " + errorMsg);
+            promise.fail(baseMsg() + " - 解析异常: " + errorMsg);
         }
     }
 
@@ -145,7 +153,7 @@ public abstract class PanBase implements IPanTool {
      * @return Handler
      */
     protected Handler<Throwable> handleFail(String errorMsg) {
-        return t -> fail(shareLinkInfo.getPanName() + "-" + shareLinkInfo.getType() + " - 请求异常 {}: -> {}", errorMsg, t.fillInStackTrace());
+        return t -> fail(baseMsg() + " - 请求异常 {}: -> {}", errorMsg, t.fillInStackTrace());
     }
 
     protected Handler<Throwable> handleFail() {
