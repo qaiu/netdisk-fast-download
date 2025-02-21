@@ -160,7 +160,7 @@ public class LzTool extends PanBase {
                 client.postAbs(url).putHeaders(headers).sendForm(map).onSuccess(res2 -> {
                     JsonObject fileListJson = asJson(res2);
                     if (fileListJson.getInteger("zt") != 1) {
-                        fail(fileListJson.getString("inf"));
+                        promise.fail(baseMsg() + fileListJson.getString("info"));
                         return;
                     }
                     List<FileInfo> list = new ArrayList<>();
