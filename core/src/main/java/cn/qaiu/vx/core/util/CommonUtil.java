@@ -149,7 +149,7 @@ public class CommonUtil {
             try {
                 properties.load(CommonUtil.class.getClassLoader().getResourceAsStream("app.properties"));
                 if (!properties.isEmpty()) {
-                    appVersion = properties.getProperty("app.version");
+                    appVersion = properties.getProperty("app.version") + "build" + properties.getProperty("build");
                 }
             } catch (IOException e) {
                 e.printStackTrace();

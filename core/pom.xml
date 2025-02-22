@@ -12,6 +12,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.build.timestamp.format>yyMMdd_HHmm</maven.build.timestamp.format>
     </properties>
 
     <dependencies>
