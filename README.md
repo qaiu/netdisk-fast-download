@@ -225,6 +225,7 @@ mvn package
 
 ### Docker 部署（Main分支）
 
+#### 海外服务器Docker部署
 ```shell
 # 创建目录
 mkdir -p netdisk-fast-download
@@ -233,7 +234,6 @@ cd netdisk-fast-download
 # 拉取镜像
 docker pull ghcr.io/qaiu/netdisk-fast-download:main
 # 国内加速镜像
-# docker pull ghcr.nju.edu.cn/qaiu/netdisk-fast-download:main
 
 # 复制配置文件（或下载仓库web-service\src\main\resources）
 docker create --name netdisk-fast-download ghcr.io/qaiu/netdisk-fast-download:main
@@ -242,6 +242,29 @@ docker rm netdisk-fast-download
 
 # 启动容器
 docker run -d -it --name netdisk-fast-download -p 6401:6401 --restart unless-stopped -e TZ=Asia/Shanghai -v ./resources:/app/resources -v ./db:/app/db -v ./logs:/app/logs ghcr.io/qaiu/netdisk-fast-download:main
+
+# 反代6401端口
+
+# 升级容器
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock containrrr/watchtower --cleanup --run-once netdisk-fast-download
+```
+
+#### 国内Docker部署
+```shell
+# 创建目录
+mkdir -p netdisk-fast-download
+cd netdisk-fast-download
+
+# 拉取镜像
+docker pull ghcr.nju.edu.cn/qaiu/netdisk-fast-download:main
+
+# 复制配置文件（或下载仓库web-service\src\main\resources）
+docker create --name netdisk-fast-download ghcr.nju.edu.cn/qaiu/netdisk-fast-download:main
+docker cp netdisk-fast-download:/app/resources ./resources
+docker rm netdisk-fast-download
+
+# 启动容器
+docker run -d -it --name netdisk-fast-download -p 6401:6401 --restart unless-stopped -e TZ=Asia/Shanghai -v ./resources:/app/resources -v ./db:/app/db -v ./logs:/app/logs ghcr.nju.edu.cn/qaiu/netdisk-fast-download:main
 
 # 反代6401端口
 
