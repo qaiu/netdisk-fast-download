@@ -233,7 +233,6 @@ cd netdisk-fast-download
 
 # 拉取镜像
 docker pull ghcr.io/qaiu/netdisk-fast-download:main
-# 国内加速镜像
 
 # 复制配置文件（或下载仓库web-service\src\main\resources）
 docker create --name netdisk-fast-download ghcr.io/qaiu/netdisk-fast-download:main
