@@ -269,6 +269,8 @@ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock containrrr/watchtow
 ```
 
 ### 宝塔部署指引 -> [点击进入宝塔部署教程](https://blog.qaiu.top/archives/netdisk-fast-download-bao-ta-an-zhuang-jiao-cheng)
+
+### Linux命令行部署
 > 注意: netdisk-fast-download.service中的ExecStart的路径改为实际路径
 ```shell
 cd ~
