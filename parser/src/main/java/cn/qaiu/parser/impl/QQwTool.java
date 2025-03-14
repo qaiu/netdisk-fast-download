@@ -2,8 +2,6 @@ package cn.qaiu.parser.impl;
 
 import cn.qaiu.entity.ShareLinkInfo;
 import io.vertx.core.Future;
-import io.vertx.core.MultiMap;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -22,6 +20,9 @@ public class QQwTool extends QQTool {
             String url = extractVariables(html).get("url");
             if (url != null) {
                 String url302 = url.replace("\\x26", "&");
+                promise.complete(url302);
+
+                /*
                 clientNoRedirects.getAbs(url302).send().onSuccess(res2 -> {
                     MultiMap headers = res2.headers();
                     if (headers.contains("Location")) {
@@ -29,7 +30,11 @@ public class QQwTool extends QQTool {
                     } else {
                         fail("找不到重定向URL");
                     }
+
                 }).onFailure(handleFail());
+                */
+            } else {
+                fail("分享链接解析失败, 可能是链接失效");
             }
         }).onFailure(handleFail());
 

@@ -60,8 +60,8 @@ public enum PanDomainTemplate {
             "https://mail.qq.com",
             QQTool.class),
     // https://wx.mail.qq.com/s?k=uAG9JR42Rqgt010mFp
-    QQW("QQ邮箱中转站(微信账户)",
-            compile("https://wx\\.mail\\.qq\\.com/s\\?k=(?<KEY>.+)"),
+    QQW("QQ邮箱云盘",
+            compile("https://i?wx\\.mail\\.qq\\.com/s\\?k=(?<KEY>.+)"),
             "https://wx.mail.qq.com/s?k={shareKey}",
             "https://mail.qq.com",
             QQwTool.class),
@@ -185,7 +185,7 @@ public enum PanDomainTemplate {
     MMGS("咪咕音乐分享",
             compile("https://music\\.migu\\.cn/v3/music/song/(?<KEY>.+)(\\?.*)?"),
             "https://music.migu.cn/v3/music/song/{shareKey}",
-            MkwTool.class),
+            MmgTool.class),
     // =====================私有盘解析==========================
 
     // Cloudreve自定义域名解析, 解析器CeTool兜底策略, 即任意域名如果匹配不到对应的规则, 则由CeTool统一处理,
