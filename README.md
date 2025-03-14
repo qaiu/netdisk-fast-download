@@ -1,5 +1,5 @@
 
-<div align=center><img src="https://bd2.qaiu.cn/blog/lanzou111.403f7881.png" height="200" width="200"></div>
+<div align=center><img src="https://bd2.qaiu.cn/blog/lanzou111.403f7881.png" height="160" width="160"></div>
 
 <p align="center">
 <a href="https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml"><img src="https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml/badge.svg?style=flat"></a>
@@ -10,19 +10,16 @@
 </p>
 
 
-云盘解析服务 (nfd云解析)
+# netdisk-fast-download 网盘分享链接云解析服务
+
+netdisk-fast-download网盘直链云解析(nfd云解析)能把网盘分享下载链接转化为直链，支持多款云盘，已支持蓝奏云/蓝奏云优享/奶牛快传/移动云云空间/小飞机盘/亿方云/123云盘/Cloudreve等，支持加密分享。  
+
 预览地址 https://lz.qaiu.top  
 预览地址2(可以解析onedrive) http://8.209.249.88:6402  
 main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/netdisk-fast-download/tree/main-jdk11)  
-**注意: 请不要过度依赖lz.qaiu.top预览地址服务，建议本地搭建或者云服务器自行搭建。
-解析次数过多IP会被部分网盘厂商限制，不推荐做公共解析。**
-
-## 项目介绍
-网盘直链解析工具能把网盘分享下载链接转化为直链，已支持蓝奏云/蓝奏云优享/奶牛快传/移动云云空间/小飞机盘/亿方云/123云盘/Cloudreve等，支持加密分享。  
-**0.1.8及以上版本json接口格式有调整，尤其依赖lz.qaiu.top做下载服务的朋友们记得修改， 参考json返回数据格式示例**
-
-
-*重要声明：本项目仅供学习参考；请不要将此项目用于任何商业用途，否则可能带来严重的后果。转发/分享该项目请注明来源*
+**0.1.8及以上版本json接口格式有调整 参考json返回数据格式示例**  
+**小飞机解析有IP限制，多数云服务商的大陆IP会被拦截（可以自行配置代理），和本程序无关**  
+**注意: 请不要过度依赖lz.qaiu.top预览地址服务，建议本地搭建或者云服务器自行搭建。解析次数过多IP会被部分网盘厂商限制，不推荐做公共解析。**  
 
 ## 网盘支持情况:
 > 20230905 奶牛云直链做了防盗链，需加入请求头：Referer: https://cowtransfer.com/  
@@ -233,7 +230,6 @@ cd netdisk-fast-download
 
 # 拉取镜像
 docker pull ghcr.io/qaiu/netdisk-fast-download:main
-# 国内加速镜像
 
 # 复制配置文件（或下载仓库web-service\src\main\resources）
 docker create --name netdisk-fast-download ghcr.io/qaiu/netdisk-fast-download:main
@@ -272,7 +268,9 @@ docker run -d -it --name netdisk-fast-download -p 6401:6401 --restart unless-sto
 docker run --rm -v /var/run/docker.sock:/var/run/docker.sock containrrr/watchtower --cleanup --run-once netdisk-fast-download
 ```
 
-### [点我查看宝塔部署教程](https://blog.qaiu.top/archives/netdisk-fast-download-bao-ta-an-zhuang-jiao-cheng)
+### 宝塔部署指引 -> [点击进入宝塔部署教程](https://blog.qaiu.top/archives/netdisk-fast-download-bao-ta-an-zhuang-jiao-cheng)
+
+### Linux命令行部署
 > 注意: netdisk-fast-download.service中的ExecStart的路径改为实际路径
 ```shell
 cd ~
@@ -314,7 +312,7 @@ resources目录下包含服务端配置文件 配置文件自带说明，具体�
 app-dev.yml 可以配置解析服务相关信息， 包括端口，域名，缓存时长等  
 server-proxy.yml 可以配置代理服务运行的相关信息， 包括前端反向代理端口，路径等  
 
-## ip代理配置说明  
+### ip代理配置说明  
 有时候解析量很大，IP容易被ban，这时候可以使用其他服务器搭建nfd-proxy代理服务。
 
 修改配置文件：
@@ -345,6 +343,9 @@ Core模块集成Vert.x实现类似spring的注解式路由API
 
 [![Star History Chart](https://api.star-history.com/svg?repos=qaiu/netdisk-fast-download&type=Date)](https://star-history.com/#qaiu/netdisk-fast-download&Date)
 
+## **免责声明**  
+   - 用户在使用本项目时，应自行承担风险，并确保其行为符合当地法律法规及网盘服务提供商的使用条款。  
+   - 开发者不对用户因使用本项目而导致的任何后果负责，包括但不限于数据丢失、隐私泄露、账号封禁或其他任何形式的损害。
 
 ## 支持该项目
 开源不易，用爱发电，本项目长期维护如果觉得有帮助, 可以请作者喝杯咖啡, 感谢支持  
