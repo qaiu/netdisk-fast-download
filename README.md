@@ -81,8 +81,6 @@ API规则:
 2. 获取解析后的直链--JSON格式
     http://your_host/json/parser?url=分享链接&pwd=xxx
     http://your_host/json/网盘标识/分享key@分享密码
-
-1. 获取下载直链 http://your_host/json/parser?url=分享链接&pwd=xxx
 ```
 json返回数据格式示例:  
 `shareKey`:    全局分享key  
