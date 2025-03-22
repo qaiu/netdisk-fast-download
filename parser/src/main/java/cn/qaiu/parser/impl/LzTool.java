@@ -5,6 +5,7 @@ import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.CastUtil;
 import cn.qaiu.util.FileSizeConverter;
+import cn.qaiu.util.HeaderUtils;
 import cn.qaiu.util.JsExecUtils;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -49,7 +50,7 @@ public class LzTool extends PanBase {
                 try {
                     String jsText = getJsByPwd(pwd, html, "document.getElementById('rpt')");
                     ScriptObjectMirror scriptObjectMirror = JsExecUtils.executeDynamicJs(jsText, "down_p");
-                    getDownURL(sUrl, client, CastUtil.cast(scriptObjectMirror.get("data")));
+                    getDownURL(sUrl, client, scriptObjectMirror);
                 } catch (ScriptException | NoSuchMethodException e) {
                     fail(e, "js引擎执行失败");
                 }
@@ -68,7 +69,7 @@ public class LzTool extends PanBase {
                     }
                     try {
                         ScriptObjectMirror scriptObjectMirror = JsExecUtils.executeDynamicJs(jsText, null);
-                        getDownURL(sUrl, client, CastUtil.cast(scriptObjectMirror.get("data")));
+                        getDownURL(sUrl, client, scriptObjectMirror);
                     } catch (ScriptException | NoSuchMethodException e) {
                         fail(e, "js引擎执行失败");
                     }
@@ -104,22 +105,53 @@ public class LzTool extends PanBase {
         return html.substring(startPos, endPos).replaceAll("<!--.*-->", "");
     }
 
-    private void getDownURL(String key, WebClient client, Map<String, Object> signMap) {
+    private void getDownURL(String key, WebClient client, Map<String, ?> obj) {
+        if (obj == null) {
+            fail("需要访问密码");
+            return;
+        }
+        Map<?, ?> signMap = (Map<?, ?>)obj.get("data");
+        String url0 = obj.get("url").toString();
         MultiMap map = MultiMap.caseInsensitiveMultiMap();
-        signMap.forEach((k, v) -> map.set(k, v.toString()));
-        MultiMap headers = getHeaders(key);
+        signMap.forEach((k, v) -> {
+            map.add((String) k, v.toString());
+        });
+        MultiMap headers = HeaderUtils.parseHeaders("""
+                Accept: application/json, text/javascript, */*
+                Accept-Encoding: gzip, deflate, br, zstd
+                Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+                Cache-Control: no-cache
+                Connection: keep-alive
+                Content-Type: application/x-www-form-urlencoded
+                Pragma: no-cache
+                Sec-Fetch-Dest: empty
+                Sec-Fetch-Mode: cors
+                Sec-Fetch-Site: same-origin
+                User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0
+                X-Requested-With: XMLHttpRequest
+                sec-ch-ua: "Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"
+                sec-ch-ua-mobile: ?0
+                sec-ch-ua-platform: "Windows"
+                """);
 
-        String url = SHARE_URL_PREFIX + "/ajaxm.php";
+        headers.set("referer", key);
+        // action=downprocess&signs=%3Fctdf&websignkey=I5gl&sign=BWMGOF1sBTRWXwI9BjZdYVA7BDhfNAIyUG9UawJtUGMIPlAhACkCa1UyUTAAYFxvUj5XY1E7UGFXaFVq&websign=&kd=1&ves=1
+        String url = SHARE_URL_PREFIX + url0;
         client.postAbs(url).putHeaders(headers).sendForm(map).onSuccess(res2 -> {
-            JsonObject urlJson = asJson(res2);
-            if (urlJson.getInteger("zt") != 1) {
-                fail(urlJson.getString("inf"));
-                return;
+            try {
+                JsonObject urlJson = asJson(res2);
+                if (urlJson.getInteger("zt") != 1) {
+                    fail(urlJson.getString("inf"));
+                    return;
+                }
+                String downUrl = urlJson.getString("dom") + "/file/" + urlJson.getString("url");
+                headers.remove("Referer");
+                client.getAbs(downUrl).putHeaders(headers).send()
+                        .onSuccess(res3 -> promise.complete(res3.headers().get("Location")))
+                        .onFailure(handleFail(downUrl));
+            } catch (Exception e) {
+                fail("解析异常");
             }
-            String downUrl = urlJson.getString("dom") + "/file/" + urlJson.getString("url");
-            client.getAbs(downUrl).putHeaders(headers).send()
-                    .onSuccess(res3 -> promise.complete(res3.headers().get("Location")))
-                    .onFailure(handleFail(downUrl));
         }).onFailure(handleFail(url));
     }
 
