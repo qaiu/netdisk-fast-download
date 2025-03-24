@@ -168,9 +168,9 @@ public abstract class PanBase implements IPanTool {
      * @return JsonObject
      */
     protected JsonObject asJson(HttpResponse<?> res) {
+        // 检查响应头中的Content-Encoding是否为gzip
+        String contentEncoding = res.getHeader("Content-Encoding");
         try {
-            // 检查响应头中的Content-Encoding是否为gzip
-            String contentEncoding = res.getHeader("Content-Encoding");
             if ("gzip".equalsIgnoreCase(contentEncoding)) {
                 // 如果是gzip压缩的响应体，解压
                 return new JsonObject(decompressGzip((Buffer) res.body()));
@@ -179,8 +179,43 @@ public abstract class PanBase implements IPanTool {
             }
 
         } catch (Exception e) {
-            fail("解析失败: json格式异常: {}", res.bodyAsString());
-            throw new RuntimeException("解析失败: json格式异常");
+            if ("gzip".equalsIgnoreCase(contentEncoding)) {
+                // 如果是gzip压缩的响应体，解压
+                try {
+                    log.error(decompressGzip((Buffer) res.body()));
+                    fail(decompressGzip((Buffer) res.body()));
+                    throw new RuntimeException("响应不是JSON格式");
+                } catch (IOException ex) {
+                    log.error("响应gzip解压失败");
+                    fail("响应gzip解压失败: {}", ex.getMessage());
+                    throw new RuntimeException("响应gzip解压失败", ex);
+                }
+            } else {
+                log.error("解析失败: json格式异常: {}", res.bodyAsString());
+                fail("解析失败: json格式异常: {}", res.bodyAsString());
+                throw new RuntimeException("解析失败: json格式异常");
+            }
+        }
+    }
+
+    /**
+     * body To text的封装, 会自动处理异常, 会自动解压gzip
+     * @param res HttpResponse
+     * @return String
+     */
+    protected String asText(HttpResponse<?> res) {
+        // 检查响应头中的Content-Encoding是否为gzip
+        String contentEncoding = res.getHeader("Content-Encoding");
+        try {
+            if ("gzip".equalsIgnoreCase(contentEncoding)) {
+                // 如果是gzip压缩的响应体，解压
+                return decompressGzip((Buffer) res.body());
+            } else {
+                return res.bodyAsString();
+            }
+        } catch (Exception e) {
+            fail("解析失败: res格式异常");
+            throw new RuntimeException("解析失败: res格式异常");
         }
     }
 
