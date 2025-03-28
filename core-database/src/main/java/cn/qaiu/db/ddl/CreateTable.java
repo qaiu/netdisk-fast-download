@@ -6,6 +6,8 @@ import io.vertx.codegen.format.CamelCase;
 import io.vertx.codegen.format.Case;
 import io.vertx.codegen.format.LowerCamelCase;
 import io.vertx.codegen.format.SnakeCase;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.jdbcclient.JDBCPool;
 import io.vertx.sqlclient.templates.annotations.Column;
 import io.vertx.sqlclient.templates.annotations.RowMapped;
@@ -14,9 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 创建表
@@ -161,17 +161,27 @@ public class CreateTable {
         return sql.substring(0, sql.length() - 1) + endStr;
     }
 
-    public static void createTable(JDBCPool pool, JDBCType type) {
+    public static Future<Void> createTable(JDBCPool pool, JDBCType type) {
         Set<Class<?>> tableClassList = ReflectionUtil.getReflections().getTypesAnnotatedWith(Table.class);
         if (tableClassList.isEmpty()) LOGGER.info("Table model class not fount");
+        List<Future<Object>> futures = new ArrayList<>();
         tableClassList.forEach(clazz -> {
             String createTableSQL = getCreateTableSQL(clazz, type);
-
-            pool.query(createTableSQL).execute().onSuccess(
-                    rs -> LOGGER.info("table auto generate:\n" + createTableSQL)
-            ).onFailure(e -> {
+            Future<Object> future = pool.query(createTableSQL).execute().compose(rs -> {
+                LOGGER.info("table auto generate:\n" + createTableSQL);
+                return Future.succeededFuture();
+            }).onFailure(e -> {
                 LOGGER.error(e.getMessage() + "  SQL: \n" + createTableSQL);
             });
+            futures.add(future);
         });
+
+        Promise<Void> promise = Promise.promise();
+        Future.all(futures).onSuccess(r -> {
+            LOGGER.info("create table success");
+            promise.complete();
+        }).onFailure(promise::fail);
+
+        return promise.future();
     }
 }
