@@ -11,6 +11,8 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.json.jackson.DatabindCodec;
 import io.vertx.core.shareddata.LocalMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static cn.qaiu.vx.core.util.ConfigConstant.LOCAL;
 
@@ -22,6 +24,8 @@ import static cn.qaiu.vx.core.util.ConfigConstant.LOCAL;
  * @author qaiu
  */
 public class AppMain {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AppMain.class);
 
     public static void main(String[] args) {
         Deploy.instance().start(args, AppMain::exec);
@@ -38,7 +42,13 @@ public class AppMain {
         DatabindCodec.mapper().registerModule(new JavaTimeModule());
         // 数据库
         if (jsonObject.getJsonObject(ConfigConstant.SERVER).getBoolean("enableDatabase")) {
-            JDBCPoolInit.builder().config(jsonObject.getJsonObject("dataSource")).build().initPool();
+            JDBCPoolInit.builder().config(jsonObject.getJsonObject("dataSource"))
+                    .build()
+                    .initPool().onSuccess(PreparedStatement -> {
+                        LOGGER.info("数据库连接成功");
+                        String addr = jsonObject.getJsonObject(ConfigConstant.SERVER).getString("domainName");
+                        LOGGER.info("启动成功: \n本地服务地址: {}", addr);
+                    });
         }
         // 缓存
         if (jsonObject.containsKey(ConfigConstant.CACHE)) {

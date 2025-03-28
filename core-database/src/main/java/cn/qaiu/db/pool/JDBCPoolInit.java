@@ -3,6 +3,7 @@ package cn.qaiu.db.pool;
 import cn.qaiu.db.ddl.CreateTable;
 import cn.qaiu.db.ddl.CreateDatabase;
 import cn.qaiu.vx.core.util.VertxHolder;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.jdbcclient.JDBCPool;
@@ -80,10 +81,10 @@ public class JDBCPoolInit {
      * init h2db<br>
      * 这个方法只允许调用一次
      */
-    synchronized public void initPool() {
+    synchronized public Future<Void> initPool() {
         if (pool != null) {
             LOGGER.error("pool 重复初始化");
-            return;
+            return null;
         }
 
         // 初始化数据库连接
@@ -92,8 +93,8 @@ public class JDBCPoolInit {
             CreateDatabase.createDatabase(dbConfig);
         }
         pool = JDBCPool.pool(vertx, dbConfig);
-        CreateTable.createTable(pool, type);
         LOGGER.info("数据库连接初始化: URL=" + url);
+        return CreateTable.createTable(pool, type);
     }
 
     /**
