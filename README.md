@@ -49,7 +49,6 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 - [Cloudreve自建网盘-ce](https://github.com/cloudreve/Cloudreve)
 - ~[微雨云存储-pvvy](https://www.vyuyun.com/)~
 - [超星云盘(需要referer: https://pan-yz.chaoxing.com)-pcx](https://pan-yz.chaoxing.com)
-- [360云盘(需要referer: https://link.yunpan.com/)-pcx](https://yunpan.com)
 - Google云盘-pgd
 - Onedrive-pod
 - Dropbox-pdp

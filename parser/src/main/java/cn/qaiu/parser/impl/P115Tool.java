@@ -13,7 +13,7 @@ import io.vertx.uritemplate.UriTemplate;
  * 需要请求API的UA和请求下载链接的UA保持一致，安卓Chrome需要访问电脑版才能下载
  */
 public class P115Tool extends PanBase {
-    private static final String API_URL_PREFIX = "https://anxia.com/webapi/";
+    private static final String API_URL_PREFIX = "https://115cdn.com/webapi/";
 
     private static final String FIRST_REQUEST_URL = API_URL_PREFIX + "share/snap?share_code={dataKey}&offset=0" +
             "&limit=20&receive_code={dataPwd}&cid=";
@@ -31,10 +31,10 @@ public class P115Tool extends PanBase {
         header.set("Connection", "keep-alive");
         header.set("Content-Length", "0");
         header.set("DNT", "1");
-        header.set("Host", "anxia.com");
-        header.set("Origin", "https://anxia.com");
+        header.set("Host", "115cdn.com");
+        header.set("Origin", "https://115cdn.com");
         header.set("Pragma", "no-cache");
-        header.set("Referer", "https://anxia.com");
+        header.set("Referer", "https://115cdn.com");
         header.set("Sec-Fetch-Dest", "empty");
         header.set("Sec-Fetch-Mode", "cors");
         header.set("Sec-Fetch-Site", "cross-site");

@@ -87,7 +87,7 @@ public enum PanDomainTemplate {
             "https://cowtransfer.com/s/{shareKey}",
             CowTool.class),
     CT("城通网盘",
-            compile("https://(?:[a-zA-Z\\d-]+\\.)?(ctfile|545c|u062|ghpym|474b)\\.com/file/(?<KEY>.+)"),
+            compile("https://(?:[a-zA-Z\\d-]+\\.)?(ctfile|545c|u062|ghpym|474b)\\.com/f(ile)?/(?<KEY>.+)"),
             "https://474b.com/file/{shareKey}",
             CtTool.class),
     // https://xxx.118pan.com/bxxx
@@ -128,10 +128,10 @@ public enum PanDomainTemplate {
             "https://115.com/s/{shareKey}?password={pwd}",
             P115Tool.class),
     // 链接：https://www.yunpan.com/surl_yD7wz4VgU9v（提取码：fc70）
-    P360("360云盘(需要referer头)",
-            compile("https://www\\.yunpan\\.com/(?<KEY>\\w+)"),
-            "https://www.yunpan.com/{shareKey}",
-            P360Tool.class),
+//    P360("360云盘(需要referer头)",
+//            compile("https://www\\.yunpan\\.com/(?<KEY>\\w+)"),
+//            "https://www.yunpan.com/{shareKey}",
+//            P360Tool.class),
 
     // https://pan-yz.cldisk.com/external/m/file/953658049102462976
     Pcx("超星云盘(需要referer头)",
