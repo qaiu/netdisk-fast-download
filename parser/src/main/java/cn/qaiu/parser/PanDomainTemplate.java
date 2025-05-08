@@ -87,7 +87,8 @@ public enum PanDomainTemplate {
             "https://cowtransfer.com/s/{shareKey}",
             CowTool.class),
     CT("城通网盘",
-            compile("https://(?:[a-zA-Z\\d-]+\\.)?(ctfile|545c|u062|ghpym|474b)\\.com/f(ile)?/(?<KEY>.+)"),
+            compile("https://(?:[a-zA-Z\\d-]+\\.)?(ctfile|545c|u062|ghpym|474b)\\.com/f(ile)?/" +
+                    "(?<KEY>[0-9a-zA-Z_-]+)(\\?p=(?<PWD>\\w+))?"),
             "https://474b.com/file/{shareKey}",
             CtTool.class),
     // https://xxx.118pan.com/bxxx

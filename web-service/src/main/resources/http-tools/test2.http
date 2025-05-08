@@ -1,0 +1,18 @@
+###
+POST http://127.0.0.1:6400/v2/shout/submit
+Content-Type: application/json
+
+{
+  "content": "CREATE UNIQUE INDEX `idx_uk_code` ON `t_messages` (`code`);"
+}
+
+###
+GET http://127.0.0.1:6400/v2/shout/retrieve?code=878696
+
+###
+响应:
+{
+"data": "这是一条秘密消息",
+"code": 200,
+"msg": "success"
+}
