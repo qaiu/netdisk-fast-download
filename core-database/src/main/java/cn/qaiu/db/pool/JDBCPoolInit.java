@@ -11,9 +11,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 /**
  * 初始化JDBC
  * <br>Create date 2021/8/10 12:04
@@ -45,9 +42,6 @@ public class JDBCPoolInit {
         this.type = JDBCType.getJDBCTypeByURL(builder.url);
         if (StringUtils.isBlank(builder.dbConfig.getString("provider_class"))) {
             builder.dbConfig.put("provider_class", providerClass);
-        }
-        if (StringUtils.isBlank(builder.dbConfig.getString("driverClassName"))) {
-            builder.dbConfig.put("driverClassName", this.type.getDriverClassName());
         }
     }
 
@@ -96,6 +90,8 @@ public class JDBCPoolInit {
         LOGGER.info("数据库连接初始化: URL=" + url);
         return CreateTable.createTable(pool, type);
     }
+
+
 
     /**
      * 获取连接池

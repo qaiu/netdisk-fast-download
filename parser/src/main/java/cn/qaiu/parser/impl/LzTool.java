@@ -183,9 +183,9 @@ public class LzTool extends PanBase {
                 String jsText = getJsByPwd(pwd, html, "var urls =window.location.href");
                 ScriptObjectMirror scriptObjectMirror = JsExecUtils.executeDynamicJs(jsText, "file");
                 Map<String, Object> data = CastUtil.cast(scriptObjectMirror.get("data"));
-                System.out.println(data);
                 MultiMap map = MultiMap.caseInsensitiveMultiMap();
                 data.forEach((k, v) -> map.set(k, v.toString()));
+                log.debug("解析参数: {}", map);
                 MultiMap headers = getHeaders(sUrl);
 
                 String url = SHARE_URL_PREFIX + "/filemoreajax.php?file=" + data.get("fid");
@@ -223,7 +223,7 @@ public class LzTool extends PanBase {
                                 .setSize(sizeNum)
                                 .setPanType(panType)
                                 .setParserUrl(getDomainName() + "/d/" + panType + "/" + id);
-                        System.out.println(fileInfo);
+                        log.debug("文件信息: {}", fileInfo);
                         list.add(fileInfo);
                     });
                     promise.complete(list);

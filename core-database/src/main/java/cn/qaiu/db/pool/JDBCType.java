@@ -8,36 +8,19 @@ import org.apache.commons.lang3.StringUtils;
  */
 public enum JDBCType {
     // 添加驱动类型字段
-    MySQL("com.mysql.cj.jdbc.Driver", "jdbc:mysql:"),
-    H2DB("org.h2.Driver", "jdbc:h2:");
-
-    private final String driverClassName; // 驱动类名
+    MySQL("jdbc:mysql:"),
+    H2DB("jdbc:h2:"),
+    PostgreSQL("jdbc:postgresql:");
     private final String urlPrefix; // JDBC URL 前缀
 
     // 构造函数
-    JDBCType(String driverClassName, String urlPrefix) {
-        this.driverClassName = driverClassName;
+    JDBCType(String urlPrefix) {
         this.urlPrefix = urlPrefix;
-    }
-
-    // 获取驱动类名
-    public String getDriverClassName() {
-        return driverClassName;
     }
 
     // 获取 JDBC URL 前缀
     public String getUrlPrefix() {
         return urlPrefix;
-    }
-
-    // 根据驱动类名获取 JDBC 类型
-    public static JDBCType getJDBCType(String driverClassName) {
-        for (JDBCType jdbcType : values()) {
-            if (jdbcType.getDriverClassName().equalsIgnoreCase(driverClassName)) {
-                return jdbcType;
-            }
-        }
-        throw new RuntimeException("不支持的SQL驱动类型: " + driverClassName);
     }
 
     // 根据 JDBC URL 获取 JDBC 类型
@@ -47,6 +30,6 @@ public enum JDBCType {
                 return jdbcType;
             }
         }
-        throw new RuntimeException("不支持的SQL驱动类型: " + jdbcURL);
+        throw new RuntimeException("不支持的SQL类型: " + jdbcURL);
     }
 }

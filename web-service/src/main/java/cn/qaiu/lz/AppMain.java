@@ -3,6 +3,7 @@ package cn.qaiu.lz;
 import cn.qaiu.WebClientVertxInit;
 import cn.qaiu.db.pool.JDBCPoolInit;
 import cn.qaiu.lz.common.cache.CacheConfigLoader;
+import cn.qaiu.lz.common.interceptorImpl.RateLimiter;
 import cn.qaiu.vx.core.Deploy;
 import cn.qaiu.vx.core.util.ConfigConstant;
 import cn.qaiu.vx.core.util.VertxHolder;
@@ -11,8 +12,9 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.json.jackson.DatabindCodec;
 import io.vertx.core.shareddata.LocalMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.lang3.time.DateFormatUtils;
+
+import java.util.Date;
 
 import static cn.qaiu.vx.core.util.ConfigConstant.LOCAL;
 
@@ -24,8 +26,6 @@ import static cn.qaiu.vx.core.util.ConfigConstant.LOCAL;
  * @author qaiu
  */
 public class AppMain {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(AppMain.class);
 
     public static void main(String[] args) {
         Deploy.instance().start(args, AppMain::exec);
@@ -40,14 +40,22 @@ public class AppMain {
     private static void exec(JsonObject jsonObject) {
         WebClientVertxInit.init(VertxHolder.getVertxInstance());
         DatabindCodec.mapper().registerModule(new JavaTimeModule());
+        // 限流
+        if (jsonObject.containsKey("rateLimit")) {
+            JsonObject rateLimit = jsonObject.getJsonObject("rateLimit");
+            RateLimiter.init(rateLimit);
+        }
         // 数据库
         if (jsonObject.getJsonObject(ConfigConstant.SERVER).getBoolean("enableDatabase")) {
             JDBCPoolInit.builder().config(jsonObject.getJsonObject("dataSource"))
                     .build()
                     .initPool().onSuccess(PreparedStatement -> {
-                        LOGGER.info("数据库连接成功");
-                        String addr = jsonObject.getJsonObject(ConfigConstant.SERVER).getString("domainName");
-                        LOGGER.info("启动成功: \n本地服务地址: {}", addr);
+                        VertxHolder.getVertxInstance().setTimer(1000, id -> {
+                            System.out.println(DateFormatUtils.format(new Date(), "yyyy-MM-dd HH:mm:ss.SSS"));
+                            System.out.println("数据库连接成功");
+                            String addr = jsonObject.getJsonObject(ConfigConstant.SERVER).getString("domainName");
+                            System.out.println("启动成功: \n本地服务地址: " + addr);
+                        });
                     });
         }
         // 缓存

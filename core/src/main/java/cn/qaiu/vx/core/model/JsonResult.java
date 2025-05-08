@@ -8,7 +8,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.util.List;
 
 /**
  * 响应实体 用于和前端交互
@@ -31,11 +30,9 @@ public class JsonResult<T> implements Serializable {
 
     private int code = SUCCESS_CODE;//状态码
 
-    private String msg = SUCCESS_MESSAGE;//消息
+    private String msg = SUCCESS_MESSAGE; //消息
 
     private boolean success = true; //是否成功
-
-    private int count;
 
     private T data;
 
@@ -53,20 +50,6 @@ public class JsonResult<T> implements Serializable {
         this.msg = msg;
         this.data = data;
         this.success = success;
-    }
-
-    public JsonResult(int code, String msg, boolean success, T data, int count) {
-        this(code, msg, success, data);
-        this.count = count;
-    }
-
-    public int getCount() {
-        return count;
-    }
-
-    public JsonResult<T> setCount(int count) {
-        this.count = count;
-        return this;
     }
 
     public int getCode() {
@@ -137,24 +120,9 @@ public class JsonResult<T> implements Serializable {
         return new JsonResult<>(SUCCESS_CODE, msg, true, data);
     }
 
-    // 响应成功消息和数据实体
-    public static <T> JsonResult<T> data(String msg, T data, int count) {
-        if (StringUtils.isEmpty(msg)) msg = SUCCESS_MESSAGE;
-        return new JsonResult<>(SUCCESS_CODE, msg, true, data, count);
-    }
-
     // 响应数据实体
     public static <T> JsonResult<T> data(T data) {
-        int count = 0;
-        if (data instanceof List<?>) {
-            count = ((List<?>) data).size();
-        }
-        return new JsonResult<>(SUCCESS_CODE, SUCCESS_MESSAGE, true, data, count);
-    }
-
-    // 响应数据实体
-    public static <T> JsonResult<T> data(T data, int count) {
-        return new JsonResult<>(SUCCESS_CODE, SUCCESS_MESSAGE, true, data, count);
+        return new JsonResult<>(SUCCESS_CODE, SUCCESS_MESSAGE, true, data);
     }
 
     // 响应成功消息

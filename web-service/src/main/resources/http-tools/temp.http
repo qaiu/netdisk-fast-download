@@ -101,6 +101,128 @@ referer: https://www.vyuyun.com
 https://down2.bilnn.top/uploads/11283/306bdccd233ffd2c.jar?filename=C400003mAan70zUy5O+%282%29.m4a&mime=audio%2Fx-m4a&verify=1729911697-SLZtEHXB4TM*ze1j31WMyNA**p743DY*GN2sajUx5w*2mM**
 
 
+###
+# @no-cookie-jar
+# curl 'https://www.vyuyun.com/apiv1/share/getShareDownUrl/QPyZsb/gDZBTm?password=&downcode=Iv7YsjhM_6kzHijjtHyTLfPqlr6xwR5kqVNfMMAdWBEBcW1iNNIK-hDvrwLyzF4a'
+#  -H 'Accept: */*'
+#  -H 'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8'
+#  -H 'Cache-Control: no-cache'
+#  -H 'Connection: keep-alive'
+#  -H 'Cookie: Hm_lvt_6e5421de7bb814e1dfc49bbc577c04d3=1734489414,1736133991,1736139184; HMACCOUNT=7C4EDB1414D4E56F; ginmin-session=MTczNjEzOTY5OHxEWDhFQVFMX2dBQUJFQUVRQUFBRV80QUFBQT09fE1kmd-TQNIU-AcLRbEhAMzpcoaTIqnDkU_z1Z2kW64A; Hm_lpvt_6e5421de7bb814e1dfc49bbc577c04d3=1736139719; __gads=ID=710230eb796d6baf:T=1736139187:RT=1736139729:S=ALNI_MauDIW3Tl0IYOZILi-6C0qMU328RA; __gpi=UID=00000fa7e525a50e:T=1736139187:RT=1736139729:S=ALNI_MYOvo89qg4zJq0s35CanMI3lx-zLw; __eoi=ID=df2245386092f112:T=1736139187:RT=1736139729:S=AA-AfjbzvOhiQPaERKQKlmEEC7Ds'
+#  -H 'DNT: 1'
+#  -H 'Pragma: no-cache'
+#  -H 'Referer: https://www.vyuyun.com/s/QPyZsb/file?password='
+#  -H 'Sec-Fetch-Dest: empty'
+#  -H 'Sec-Fetch-Mode: cors'
+#  -H 'Sec-Fetch-Site: same-origin'
+#  -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+#  -H 'sec-ch-ua: "Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"'
+#  -H 'sec-ch-ua-mobile: ?0'
+#  -H 'sec-ch-ua-platform: "Windows"'
+#  -H 'token;'
+GET https://www.vyuyun.com/apiv1/share/getShareDownUrl/QPyZsb/gDZBTm?password=&downcode=Iv7YsjhM_6kzHijjtHyTLfPqlr6xwR5kqVNfMMAdWBEBcW1iNNIK-hDvrwLyzF4a
+Accept: */*
+Accept-Language: zh-CN,zh;q=0.9,en;q=0.8
+Cache-Control: no-cache
+Connection: keep-alive
+Cookie: Hm_lvt_6e5421de7bb814e1dfc49bbc577c04d3=1734489414,1736133991,1736139184; HMACCOUNT=7C4EDB1414D4E56F; ginmin-session=MTczNjEzOTY5OHxEWDhFQVFMX2dBQUJFQUVRQUFBRV80QUFBQT09fE1kmd-TQNIU-AcLRbEhAMzpcoaTIqnDkU_z1Z2kW64A; Hm_lpvt_6e5421de7bb814e1dfc49bbc577c04d3=1736139719; __gads=ID=710230eb796d6baf:T=1736139187:RT=1736139729:S=ALNI_MauDIW3Tl0IYOZILi-6C0qMU328RA; __gpi=UID=00000fa7e525a50e:T=1736139187:RT=1736139729:S=ALNI_MYOvo89qg4zJq0s35CanMI3lx-zLw; __eoi=ID=df2245386092f112:T=1736139187:RT=1736139729:S=AA-AfjbzvOhiQPaERKQKlmEEC7Ds
+DNT: 1
+Pragma: no-cache
+Referer: https://www.vyuyun.com/s/QPyZsb/file?password=
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
+sec-ch-ua: "Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "Windows"
+token:
+
+###
+
+
+
+###
+# curl 'https://www.vyuyun.com/apiv1/share/file/QPyZsb?password='
+#  -H 'Accept: application/json, text/plain, */*'
+#  -H 'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8'
+#  -H 'Cache-Control: no-cache'
+#  -H 'Connection: keep-alive'
+#  -H 'Cookie: Hm_lvt_6e5421de7bb814e1dfc49bbc577c04d3=1734489414,1736133991; HMACCOUNT=845216228CFDAEF3; ginmin-session=MTczNjEzNzIwNXxEWDhFQVFMX2dBQUJFQUVRQUFBaV80QUFBUVp6ZEhKcGJtY01CUUFEWVdsa0JuTjBjbWx1Wnd3SEFBVXhNVGt3T0E9PXygMqAo7e0FsZpAm5tggrVEAmipmptNAe4RF-StdbItOA==; __gads=ID=02846a0224427b16:T=1729911643:RT=1736137206:S=ALNI_MYN-82qd45RW0rYq1JewWVxCmoZAQ; __gpi=UID=00000f553e085dd5:T=1729911643:RT=1736137206:S=ALNI_Mb2dIMzZrO14lDlqCBOShH29OEfng; __eoi=ID=3e810b8ce65b0a46:T=1729911643:RT=1736137206:S=AA-AfjbN5kpzrPK6QBBlTEmMlxXx; Hm_lpvt_6e5421de7bb814e1dfc49bbc577c04d3=1736137222'
+#  -H 'DNT: 1'
+#  -H 'Pragma: no-cache'
+#  -H 'Referer: https://www.vyuyun.com/s/QPyZsb/file?password='
+#  -H 'Sec-Fetch-Dest: empty'
+#  -H 'Sec-Fetch-Mode: cors'
+#  -H 'Sec-Fetch-Site: same-origin'
+#  -H 'Token;'
+#  -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+#  -H 'X-Requested-With: XMLHttpRequest'
+#  -H 'sec-ch-ua: "Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"'
+#  -H 'sec-ch-ua-mobile: ?0'
+#  -H 'sec-ch-ua-platform: "Windows"'
+GET https://www.vyuyun.com/apiv1/share/file/QPyZsb?password=
+Accept: application/json, text/plain, */*
+Accept-Language: zh-CN,zh;q=0.9,en;q=0.8
+Cache-Control: no-cache
+Connection: keep-alive
+Cookie: Hm_lvt_6e5421de7bb814e1dfc49bbc577c04d3=1734489414,1736133991; HMACCOUNT=845216228CFDAEF3; ginmin-session=MTczNjEzNzIwNXxEWDhFQVFMX2dBQUJFQUVRQUFBaV80QUFBUVp6ZEhKcGJtY01CUUFEWVdsa0JuTjBjbWx1Wnd3SEFBVXhNVGt3T0E9PXygMqAo7e0FsZpAm5tggrVEAmipmptNAe4RF-StdbItOA==; __gads=ID=02846a0224427b16:T=1729911643:RT=1736137206:S=ALNI_MYN-82qd45RW0rYq1JewWVxCmoZAQ; __gpi=UID=00000f553e085dd5:T=1729911643:RT=1736137206:S=ALNI_Mb2dIMzZrO14lDlqCBOShH29OEfng; __eoi=ID=3e810b8ce65b0a46:T=1729911643:RT=1736137206:S=AA-AfjbN5kpzrPK6QBBlTEmMlxXx; Hm_lpvt_6e5421de7bb814e1dfc49bbc577c04d3=1736137222
+DNT: 1
+Pragma: no-cache
+Referer: https://www.vyuyun.com/s/QPyZsb/file?password=
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+Token:
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
+X-Requested-With: XMLHttpRequest
+sec-ch-ua: "Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "Windows"
+
+###
+# curl 'https://www.vyuyun.com/apiv1/share/getShareDownUrl/QPyZsb/gDZBTm?password=&downcode=Iv7YsjhM_6kzHijjtHyTLT2CySejYHyXEtW_2oI9kqCnevPaRjMpzFDaq4dT4z3R'
+#  -H 'Accept: */*'
+#  -H 'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6'
+#  -H 'Cache-Control: no-cache'
+#  -H 'Connection: keep-alive'
+#  -H 'Cookie: noticeId=1; Hm_lvt_6e5421de7bb814e1dfc49bbc577c04d3=1736134006; HMACCOUNT=DD7A065B1B5C7BCF; ginmin-session=MTczNjEzNDExNXxEWDhFQVFMX2dBQUJFQUVRQUFELUFRal9nQUFEQm5OMGNtbHVad3dIQUFWMGIydGxiZ1p6ZEhKcGJtY01fNjhBXzZ4b1pVOVNMWGRwVVRWemVrTlFhRGxzTjNCRlNHOW5jMWRLU2pKVFluUlZOVWR2UlhkWGNEbElUMEZNYlV0RVMwRkJTeloxVlhaS1UycE5aMXBrTW1jMWJYVlRPVjlOWkVVMWNHMU1iMkZMTW1sR1NHcFhRbWhPWjAxb05FWmpWV2swVWpOU01GZE9aRk5UZUd0WVJFSmphMWw0WVZKVkxYRlhSalZ5UlhSSmRYaG9jbVJuTWpkbmRFWlBWRlpDV0ZkWGMzWjJaVFZtUjFwSWMwRnBlbXhhUVROVFowaEtZakJqTlc4cUJuTjBjbWx1Wnd3SUFBWnZjR1Z1YVdRR2MzUnlhVzVuREFJQUFBWnpkSEpwYm1jTUNnQUlZV1J0YVc1ZmFYTUdjM1J5YVc1bkRBTUFBVEE9fMMethsDCW-b_YQHRj_0KHUVB1AcmohDXI4L4en8_8Nd; Hm_lpvt_6e5421de7bb814e1dfc49bbc577c04d3=1736138831'
+#  -H 'DNT: 1'
+#  -H 'Pragma: no-cache'
+#  -H 'Referer: https://www.vyuyun.com/s/QPyZsb/file?password='
+#  -H 'Sec-Fetch-Dest: empty'
+#  -H 'Sec-Fetch-Mode: cors'
+#  -H 'Sec-Fetch-Site: same-origin'
+#  -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0'
+#  -H 'sec-ch-ua: "Microsoft Edge";v="131", "Chromium";v="131", "Not_A Brand";v="24"'
+#  -H 'sec-ch-ua-mobile: ?0'
+#  -H 'sec-ch-ua-platform: "Windows"'
+#  -H 'token: heOR-wiQ5szCPh9l7pEHogsWJJ2SbtU5GoEwWp9HOALmKDKAAK6uUvJSjMgZd2g5muS9_MdE5pmLoaK2iFHjWBhNgMh4FcUi4R3R0WNdSSxkXDBckYxaRU-qWF5rEtIuxhrdg27gtFOTVBXWWsvve5fGZHsAizlZA3SgHJb0c5o*'
+GET https://www.vyuyun.com/apiv1/share/getShareDownUrl/QPyZsb/gDZBTm?password=&downcode=Iv7YsjhM_6kzHijjtHyTLT2CySejYHyXEtW_2oI9kqCnevPaRjMpzFDaq4dT4z3R
+Accept: */*
+Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+Cache-Control: no-cache
+Connection: keep-alive
+Cookie: noticeId=1; Hm_lvt_6e5421de7bb814e1dfc49bbc577c04d3=1736134006; HMACCOUNT=DD7A065B1B5C7BCF; ginmin-session=MTczNjEzNDExNXxEWDhFQVFMX2dBQUJFQUVRQUFELUFRal9nQUFEQm5OMGNtbHVad3dIQUFWMGIydGxiZ1p6ZEhKcGJtY01fNjhBXzZ4b1pVOVNMWGRwVVRWemVrTlFhRGxzTjNCRlNHOW5jMWRLU2pKVFluUlZOVWR2UlhkWGNEbElUMEZNYlV0RVMwRkJTeloxVlhaS1UycE5aMXBrTW1jMWJYVlRPVjlOWkVVMWNHMU1iMkZMTW1sR1NHcFhRbWhPWjAxb05FWmpWV2swVWpOU01GZE9aRk5UZUd0WVJFSmphMWw0WVZKVkxYRlhSalZ5UlhSSmRYaG9jbVJuTWpkbmRFWlBWRlpDV0ZkWGMzWjJaVFZtUjFwSWMwRnBlbXhhUVROVFowaEtZakJqTlc4cUJuTjBjbWx1Wnd3SUFBWnZjR1Z1YVdRR2MzUnlhVzVuREFJQUFBWnpkSEpwYm1jTUNnQUlZV1J0YVc1ZmFYTUdjM1J5YVc1bkRBTUFBVEE9fMMethsDCW-b_YQHRj_0KHUVB1AcmohDXI4L4en8_8Nd; Hm_lpvt_6e5421de7bb814e1dfc49bbc577c04d3=1736138831
+DNT: 1
+Pragma: no-cache
+Referer: https://www.vyuyun.com/s/QPyZsb/file?password=
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0
+sec-ch-ua: "Microsoft Edge";v="131", "Chromium";v="131", "Not_A Brand";v="24"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "Windows"
+token: heOR-wiQ5szCPh9l7pEHogsWJJ2SbtU5GoEwWp9HOALmKDKAAK6uUvJSjMgZd2g5muS9_MdE5pmLoaK2iFHjWBhNgMh4FcUi4R3R0WNdSSxkXDBckYxaRU-qWF5rEtIuxhrdg27gtFOTVBXWWsvve5fGZHsAizlZA3SgHJb0c5o*
+
+###
+
+
+
+
+
+
 ### 118网盘 https://qaiu.118pan.com/b1228264
 #密码：qaiu
 https://qaiu.118pan.com/b1228264

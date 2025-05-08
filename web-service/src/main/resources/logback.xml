@@ -55,6 +55,7 @@
     <logger name="io.netty" level="warn"/>
     <logger name="io.vertx" level="info"/>
     <logger name="com.zaxxer.hikari" level="info"/>
+    <logger name="cn.qaiu" level="debug"/>
     <root level="info">
         <appender-ref ref="STDOUT"/>
 <!--        <appender-ref ref="FILE"/>-->

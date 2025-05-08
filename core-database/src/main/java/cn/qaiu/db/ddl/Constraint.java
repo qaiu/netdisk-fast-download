@@ -21,7 +21,6 @@ public @interface Constraint {
     boolean notNull() default false;
 
     /**
-     * 唯一键约束 TODO 待实现
      * @return 唯一键约束
      */
     String uniqueKey() default "";
