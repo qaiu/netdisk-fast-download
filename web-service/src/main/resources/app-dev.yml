@@ -5,8 +5,8 @@ server:
   # 使用数据库
   enableDatabase: true
   # 服务域名或者IP 生成二维码链接时需要
-#  domainName: http://127.0.0.1:6401
-  domainName: https://lz.qaiu.top
+  domainName: http://127.0.0.1:6401
+#  domainName: https://lz.qaiu.top
 
 # 反向代理服务器配置路径(不用加后缀)
 proxyConf: server-proxy
