@@ -25,7 +25,7 @@ public enum PanDomainTemplate {
 
     // 网盘定义
     LZ("蓝奏云",
-             compile("https://(?:[a-zA-Z\\d-]+\\.)?lanzou[a-z]\\.com/(.+/)?(?<KEY>.+)"),
+             compile("https://(?:[a-zA-Z\\d-]+\\.)?((lanzou[a-z])|(lanzn))\\.com/(.+/)?(?<KEY>.+)"),
             "https://lanzoux.com/{shareKey}",
             LzTool.class),
 

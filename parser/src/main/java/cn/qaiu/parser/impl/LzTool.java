@@ -51,7 +51,7 @@ public class LzTool extends PanBase {
                     String jsText = getJsByPwd(pwd, html, "document.getElementById('rpt')");
                     ScriptObjectMirror scriptObjectMirror = JsExecUtils.executeDynamicJs(jsText, "down_p");
                     getDownURL(sUrl, client, scriptObjectMirror);
-                } catch (ScriptException | NoSuchMethodException e) {
+                } catch (Exception e) {
                     fail(e, "js引擎执行失败");
                 }
             } else {

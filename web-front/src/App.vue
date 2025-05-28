@@ -10,7 +10,7 @@
             <img :height="150" src="../public/images/lanzou111.png" alt="lz"></img>
           </div>
         </div>
-        <h3 style="text-align: center;">NFD网盘直链解析0.1.8_bate31</h3>
+        <h3 style="text-align: center;">NFD网盘直链解析0.1.8_bate32</h3>
         <div class="typo">
           <p style="text-align: center;">
             <span>
