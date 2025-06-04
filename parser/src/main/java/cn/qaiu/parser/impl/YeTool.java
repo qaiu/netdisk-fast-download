@@ -6,7 +6,9 @@ import cn.qaiu.util.CommonUtils;
 import cn.qaiu.util.JsExecUtils;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.json.pointer.JsonPointer;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.uritemplate.UriTemplate;
 import org.apache.commons.lang3.StringUtils;
@@ -33,6 +35,7 @@ public class YeTool extends PanBase {
             "&shareKey={shareKey}&SharePwd={pwd}&ParentFileId=0&Page=1&event=homeListFile&operateType=1";
     private static final String DOWNLOAD_API_URL = "https://www.123pan.com/a/api/share/download/info?{authK}={authV}";
 
+    private static final String BATCH_DOWNLOAD_API_URL = "https://www.123pan.com/b/api/file/batch_download_share_info?{authK}={authV}";
     private final MultiMap header = MultiMap.caseInsensitiveMultiMap();
 
     public YeTool(ShareLinkInfo shareLinkInfo) {
@@ -41,8 +44,8 @@ public class YeTool extends PanBase {
         header.set("App-Version", "3");
         header.set("Cache-Control", "no-cache");
         header.set("Connection", "keep-alive");
-        header.set("DNT", "1");
-        header.set("Host", "www.123pan.com");
+        //header.set("DNT", "1");
+        //header.set("Host", "www.123pan.com");
         header.set("LoginUuid", gen36String());
         header.set("Pragma", "no-cache");
         header.set("Referer", shareLinkInfo.getStandardUrl());
@@ -103,9 +106,23 @@ public class YeTool extends PanBase {
                                     fail("{} 状态码异常 {}", dataKey, infoJson);
                                     return;
                                 }
+
                                 JsonObject getFileInfoJson =
                                         infoJson.getJsonObject("data").getJsonArray("InfoList").getJsonObject(0);
                                 getFileInfoJson.put("ShareKey", shareKey);
+
+                                // 判断是否为文件夹: data->InfoList->0->Type: 1为文件夹, 0为文件
+                                try {
+                                    int type = (Integer)JsonPointer.from("/data/InfoList/0/Type").queryJson(infoJson);
+                                    if (type == 1) {
+                                        getZipDownUrl(client, getFileInfoJson);
+                                        return;
+                                    }
+                                } catch (Exception exception) {
+                                    fail("该分享[{}]解析异常: {}", dataKey, exception.getMessage());
+                                    return;
+                                }
+
                                 getDownUrl(client, getFileInfoJson);
                             }).onFailure(this.handleFail(GET_FILE_INFO_URL));
                 } else {
@@ -116,6 +133,11 @@ public class YeTool extends PanBase {
 
             JsonObject reqBodyJson = resListJson.getJsonObject("data").getJsonArray("InfoList").getJsonObject(0);
             reqBodyJson.put("ShareKey", shareKey);
+            if (reqBodyJson.getInteger("Type") == 1) {
+                // 文件夹
+                getZipDownUrl(client, reqBodyJson);
+                return;
+            }
             getDownUrl(client, reqBodyJson);
         }).onFailure(this.handleFail(FIRST_REQUEST_URL));
 
@@ -134,6 +156,21 @@ public class YeTool extends PanBase {
         jsonObject.put("Etag", reqBodyJson.getString("Etag"));
 
         // 调用JS文件获取签名
+        down(client, jsonObject, DOWNLOAD_API_URL);
+    }
+
+
+    private void getZipDownUrl(WebClient client, JsonObject reqBodyJson) {
+        log.info(reqBodyJson.encodePrettily());
+        JsonObject jsonObject = new JsonObject();
+        // {"ShareKey":"LH3rTd-1ENed","fileIdList":[{"fileId":17525952}]}
+        jsonObject.put("ShareKey", reqBodyJson.getString("ShareKey"));
+        jsonObject.put("fileIdList", new JsonArray().add(JsonObject.of("fileId", reqBodyJson.getInteger("FileId"))));
+        // 调用JS文件获取签名
+        down(client, jsonObject, BATCH_DOWNLOAD_API_URL);
+    }
+
+    private void down(WebClient client, JsonObject jsonObject, String api) {
         ScriptObjectMirror getSign;
         try {
             getSign = JsExecUtils.executeJs("getSign", "/a/api/share/download/info");
@@ -143,7 +180,7 @@ public class YeTool extends PanBase {
         }
         log.info("ye getSign: {}={}", getSign.get("0").toString(), getSign.get("1").toString());
 
-        client.postAbs(UriTemplate.of(DOWNLOAD_API_URL))
+        client.postAbs(UriTemplate.of(api))
                 .setTemplateParam("authK", getSign.get("0").toString())
                 .setTemplateParam("authV", getSign.get("1").toString())
                 .putHeader("Platform", "web")
@@ -160,7 +197,8 @@ public class YeTool extends PanBase {
                         fail("Ye: downURLJson格式异常->" + downURLJson);
                         return;
                     }
-                    String downURL = downURLJson.getJsonObject("data").getString("DownloadURL");
+                    String downURL = downURLJson.getJsonObject("data")
+                            .getString(api.contains("batch_download_share_info")? "DownloadUrl" : "DownloadURL");
                     try {
                         Map<String, String> urlParams = CommonUtils.getURLParams(downURL);
                         String params = urlParams.get("params");
