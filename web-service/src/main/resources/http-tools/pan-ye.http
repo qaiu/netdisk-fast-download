@@ -119,3 +119,19 @@ Platform:web
 {"ShareKey":"iaKtVv-6OECd","behavior":1}
 
 ### eaefamemdead
+https://www.123684.com/b/api/share/get?2393880368=1749017805-9397896-3041863692&limit=100&next=0&orderBy=file_name&orderDirection=asc&shareKey=LH3rTd-pENed&SharePwd=qaiu&ParentFileId=0&Page=1&event=homeListFile&operateType=1
+Referer: https://www.123684.com/s/LH3rTd-pENed
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0
+platform: web
+sec-ch-ua: "Chromium";v="136", "Microsoft Edge";v="136", "Not.A/Brand";v="99"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "Windows"
+
+###
+POST https://www.123684.com/b/api/file/batch_download_share_info?3697171543=1749019332-221279-1801740277
+Content-Type: application/json;charset=UTF-8
+
+{"ShareKey":"LH3rTd-pENed","fileIdList":[{"fileId":17525951}]}

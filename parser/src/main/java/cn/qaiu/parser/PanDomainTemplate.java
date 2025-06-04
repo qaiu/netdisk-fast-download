@@ -72,7 +72,7 @@ public enum PanDomainTemplate {
             WsTool.class),
     // https://www.123pan.com/s/
     YE("123网盘",
-            compile("https://www\\.(123pan|123865|123684)\\.com/s/(?<KEY>.+)(.html)?"),
+            compile("https://www\\.(123pan\\.com|123865\\.com|123684\\.com|123912\\.com|123pan\\.cn)/s/(?<KEY>.+)(.html)?"),
             "https://www.123pan.com/s/{shareKey}",
             YeTool.class),
     // https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data={code}&isShare=1

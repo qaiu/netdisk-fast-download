@@ -15,15 +15,9 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.uritemplate.UriTemplate;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
-import java.util.zip.GZIPInputStream;
 
 /**
  * 小飞机网盘
@@ -108,33 +102,7 @@ public class FjTool extends PanBase {
                             .setTemplateParam("uuid", uuid)
                             .setTemplateParam("ts", tsEncode)
                             .send().onSuccess(res -> {
-                                // 处理GZ压缩
-                                // 使用GZIPInputStream来解压数据
-                                String decompressedString;
-                                try (ByteArrayInputStream bais = new ByteArrayInputStream(res.body().getBytes());
-                                     GZIPInputStream gzis = new GZIPInputStream(bais);
-                                     BufferedReader reader = new BufferedReader(new InputStreamReader(gzis, StandardCharsets.UTF_8))) {
-
-                                    // 用于存储解压后的字符串
-                                    StringBuilder decompressedData = new StringBuilder();
-
-                                    // 逐行读取解压后的数据
-                                    String line;
-                                    while ((line = reader.readLine()) != null) {
-                                        decompressedData.append(line);
-                                    }
-
-                                    // 此时decompressedData.toString()包含了解压后的字符串
-                                    decompressedString = decompressedData.toString();
-
-                                } catch (IOException e) {
-                                    // 处理可能的IO异常
-                                    fail(FIRST_REQUEST_URL + " 响应异常");
-                                    return;
-                                }
-                                // 处理GZ压缩结束
-
-                                JsonObject resJson = new JsonObject(decompressedString);
+                                JsonObject resJson = asJson(res);
                                 if (resJson.getInteger("code") != 200) {
                                     fail(FIRST_REQUEST_URL + " 返回异常: " + resJson);
                                     return;
