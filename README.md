@@ -10,12 +10,18 @@
 </p>
 
 
+
+
 # netdisk-fast-download 网盘分享链接云解析服务
 
 netdisk-fast-download网盘直链云解析(nfd云解析)能把网盘分享下载链接转化为直链，支持多款云盘，已支持蓝奏云/蓝奏云优享/奶牛快传/移动云云空间/小飞机盘/亿方云/123云盘/Cloudreve等，支持加密分享，以及部分网盘文件夹分享。  
 
 预览地址 https://lz.qaiu.top  
 预览地址2(可以解析onedrive) http://8.209.249.88:6402  
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/87401aae-b0b6-4ffb-bbeb-44756404d26f" alt="项目预览图" />
+</p>
+
 main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/netdisk-fast-download/tree/main-jdk11)  
 **0.1.8及以上版本json接口格式有调整 参考json返回数据格式示例**  
 **小飞机解析有IP限制，多数云服务商的大陆IP会被拦截（可以自行配置代理），和本程序无关**  
