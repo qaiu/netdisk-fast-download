@@ -81,6 +81,8 @@ API规则:
 2. 获取解析后的直链--JSON格式
     http://your_host/json/parser?url=分享链接&pwd=xxx
     http://your_host/json/网盘标识/分享key@分享密码
+3. 文件夹解析v0.1.8fixed3新增
+    http://your_host/json/getFileList?url=分享链接&pwd=xxx
 ```
 json返回数据格式示例:  
 `shareKey`:    全局分享key  
@@ -132,7 +134,34 @@ json返回数据格式示例:
     "timestamp": 1736489219402
 }
 ```
-3. 解析次数统计接口 /v2/statisticsInfo
+3. 文件夹解析(仅支持蓝奏云/蓝奏优享/小飞机网盘)
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "success": true,
+  "data": [
+    {
+      "fileName": "xxx",
+      "fileId": "xxx",
+      "fileIcon": null,
+      "size": 999,
+      "sizeStr": "999 M",
+      "fileType": "apk",
+      "filePath": null,
+      "createTime": "17 小时前",
+      "updateTime": null,
+      "createBy": null,
+      "description": null,
+      "downloadCount": null,
+      "panType": "lz",
+      "parserUrl": "下载链接", 
+      "extParameters": null
+    }
+  ]
+}
+```
+4. 解析次数统计接口 /v2/statisticsInfo
 ```json
 {
     "code": 200,
