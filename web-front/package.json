@@ -17,7 +17,7 @@
     "qrcode": "^1.5.4",
     "vue": "^3.5.12",
     "vue-clipboard3": "^2.0.0",
-    "vue3-json-viewer": "^2.2.2"
+    "vue3-json-viewer": "2.2.2"
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",
