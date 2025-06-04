@@ -1,5 +1,6 @@
-
-<div align=center><img src="https://bd2.qaiu.cn/blog/lanzou111.403f7881.png" height="160" width="160"></div>
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/87401aae-b0b6-4ffb-bbeb-44756404d26f" alt="项目预览图" />
+</p>
 
 <p align="center">
 <a href="https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml"><img src="https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml/badge.svg?style=flat"></a>
@@ -18,9 +19,6 @@ netdisk-fast-download网盘直链云解析(nfd云解析)能把网盘分享下载
 
 预览地址 https://lz.qaiu.top  
 预览地址2(可以解析onedrive) http://8.209.249.88:6402  
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/87401aae-b0b6-4ffb-bbeb-44756404d26f" alt="项目预览图" />
-</p>
 
 main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/netdisk-fast-download/tree/main-jdk11)  
 **0.1.8及以上版本json接口格式有调整 参考json返回数据格式示例**  
