@@ -380,7 +380,7 @@ Core模块集成Vert.x实现类似spring的注解式路由API
 
 ## 支持该项目
 开源不易，用爱发电，本项目长期维护如果觉得有帮助, 可以请作者喝杯咖啡, 感谢支持  
-
+<!--
 ### 关于专属版
 99元, 提供对小飞机,蓝奏优享大文件解析的支持, 提供天翼云盘,移动云盘,联调云盘的解析支持  
 199元, 包含部署服务和首页定制, 需提供宝塔环境  
@@ -388,6 +388,7 @@ Core模块集成Vert.x实现类似spring的注解式路由API
 ![image](https://github.com/qaiu/netdisk-fast-download/assets/29825328/54276aee-cc3f-4ebd-8973-2e15f6295819)
 
 [手机端支付宝打赏跳转链接](https://qr.alipay.com/fkx01882dnoxxtjenhlxt53)
+-->
 
 
 
