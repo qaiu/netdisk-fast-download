@@ -11,7 +11,7 @@
     <artifactId>parser</artifactId>
 
     <packaging>jar</packaging>
-    <name>${project.groupId}:${project.artifactId}</name>
+    <name>cn.qaiu:parser</name>
     <description>NFD parser</description>
     <url>https://qaiu.top</url>
 
