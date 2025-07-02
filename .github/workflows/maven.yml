@@ -76,6 +76,13 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+
+    - name: Extract git tag
+      id: tag
+      run: |
+        GIT_TAG=$(git tag --points-at HEAD | head -n 1)
+        echo "tag=$GIT_TAG" >> $GITHUB_OUTPUT
+
     - name: Build and push Docker image
       if: github.event_name != 'pull_request'
       uses: docker/build-push-action@v5
@@ -83,6 +90,5 @@ jobs:
         context: .
         push: true
         tags: |
-          ghcr.io/${{ github.repository }}:$(echo $(git tag --points-at HEAD) | sed 's/ /,/g')
-          ghcr.io/${{ github.repository }}:${{ github.sha }}
-          ghcr.io/${{ github.repository }}:main
+          ghcr.io/qaiu/netdisk-fast-download:${{ steps.tag.outputs.tag }}
+          ghcr.io/qaiu/netdisk-fast-download:latest
