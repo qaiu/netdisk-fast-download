@@ -28,6 +28,7 @@ import static cn.qaiu.vx.core.util.ConfigConstant.LOCAL;
 public class AppMain {
 
     public static void main(String[] args) {
+        // start
         Deploy.instance().start(args, AppMain::exec);
     }
 
