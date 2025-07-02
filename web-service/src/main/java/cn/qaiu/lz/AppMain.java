@@ -20,9 +20,8 @@ import static cn.qaiu.vx.core.util.ConfigConstant.LOCAL;
 
 
 /**
- * 程序入口
+ * APP程序入口
  * <br>Create date 2021-05-08 13:00:01
- *
  * @author qaiu yyzy
  */
 public class AppMain {
