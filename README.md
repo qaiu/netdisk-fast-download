@@ -17,8 +17,8 @@
 
 netdisk-fast-download网盘直链云解析(nfd云解析)能把网盘分享下载链接转化为直链，支持多款云盘，已支持蓝奏云/蓝奏云优享/奶牛快传/移动云云空间/小飞机盘/亿方云/123云盘/Cloudreve等，支持加密分享，以及部分网盘文件夹分享。  
 
-预览地址 https://lz.qaiu.top  
-[预览地址2](http://www.722shop.top:6401/) 
+[预览地址1](https://lz.qaiu.top)
+[预览地址2](http://www.722shop.top:6401)
 
 main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/netdisk-fast-download/tree/main-jdk11)  
 **0.1.8及以上版本json接口格式有调整 参考json返回数据格式示例**  
@@ -380,15 +380,16 @@ Core模块集成Vert.x实现类似spring的注解式路由API
 
 ## 支持该项目
 开源不易，用爱发电，本项目长期维护如果觉得有帮助, 可以请作者喝杯咖啡, 感谢支持  
-<!--
+
 ### 关于专属版
 99元, 提供对小飞机,蓝奏优享大文件解析的支持, 提供天翼云盘,移动云盘,联调云盘的解析支持  
 199元, 包含部署服务和首页定制, 需提供宝塔环境  
-可以提供功能定制开发, 加v价格详谈: qaiu-cn 
+可以提供功能定制开发, 加v价格详谈:
+wechat1: qaiu-cn
+wechat2: imcoding_
 ![image](https://github.com/qaiu/netdisk-fast-download/assets/29825328/54276aee-cc3f-4ebd-8973-2e15f6295819)
 
 [手机端支付宝打赏跳转链接](https://qr.alipay.com/fkx01882dnoxxtjenhlxt53)
--->
 
 
 
