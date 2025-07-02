@@ -18,7 +18,7 @@
 netdisk-fast-download网盘直链云解析(nfd云解析)能把网盘分享下载链接转化为直链，支持多款云盘，已支持蓝奏云/蓝奏云优享/奶牛快传/移动云云空间/小飞机盘/亿方云/123云盘/Cloudreve等，支持加密分享，以及部分网盘文件夹分享。  
 
 预览地址 https://lz.qaiu.top  
-[预览地址2](https://www.722shop.top:6401/) 
+[预览地址2](http://www.722shop.top:6401/) 
 
 main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/netdisk-fast-download/tree/main-jdk11)  
 **0.1.8及以上版本json接口格式有调整 参考json返回数据格式示例**  
