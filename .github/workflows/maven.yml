@@ -83,5 +83,6 @@ jobs:
         context: .
         push: true
         tags: |
+          ghcr.io/${{ github.repository }}:${{ steps.extract_tag.outputs.tag }}
           ghcr.io/${{ github.repository }}:${{ github.sha }}
           ghcr.io/${{ github.repository }}:main
