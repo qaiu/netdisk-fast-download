@@ -16,17 +16,24 @@ public interface BeforeInterceptor extends Handler<RoutingContext> {
     default Handler<RoutingContext> doHandle() {
 
         return ctx -> {
-            ctx.put(IS_NEXT, false);
-            BeforeInterceptor.this.handle(ctx);
-            if (!(Boolean) ctx.get(IS_NEXT) && !ctx.response().ended()) {
-                sendError(ctx, 403);
+            // 加同步锁
+            synchronized (BeforeInterceptor.class) {
+                ctx.put(IS_NEXT, false);
+                BeforeInterceptor.this.handle(ctx);
+                if (!(Boolean) ctx.get(IS_NEXT) && !ctx.response().ended()) {
+                    sendError(ctx, 403);
+                }
             }
         };
     }
 
     default void doNext(RoutingContext context) {
-        context.put(IS_NEXT, true);
-        context.next();
+        // 设置上下文状态为可以继续执行
+        // 添加同步锁保障多线程下执行时序
+        synchronized (BeforeInterceptor.class) {
+            context.put(IS_NEXT, true);
+            context.next();
+        }
     }
 
     void handle(RoutingContext context);

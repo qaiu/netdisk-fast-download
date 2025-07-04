@@ -26,6 +26,8 @@ import io.vertx.core.json.JsonObject;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -33,14 +35,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ParserApi {
 
-    private final UserService userService = AsyncServiceUtil.getAsyncServiceInstance(UserService.class);
     private final DbService dbService = AsyncServiceUtil.getAsyncServiceInstance(DbService.class);
 
-    @RouteMapping(value = "/login", method = RouteMethod.GET)
-    public Future<SysUser> login(SysUser user) {
-        log.info("<------- login: {}", user.getUsername());
-        return userService.login(user);
-    }
 
     @RouteMapping(value = "/statisticsInfo", method = RouteMethod.GET, order = 99)
     public Future<StatisticsInfo> statisticsInfo() {
@@ -100,11 +96,17 @@ public class ParserApi {
     }
 
     @RouteMapping("/getFileList")
-    public Future<List<FileInfo>> getFileList(HttpServerRequest request, String pwd) {
+    public Future<List<FileInfo>> getFileList(HttpServerRequest request, String pwd, String dirId, String uuid) {
         String url = URLParamUtil.parserParams(request);
         ParserCreate parserCreate = ParserCreate.fromShareUrl(url).setShareLinkInfoPwd(pwd);
         String linkPrefix = SharedDataUtil.getJsonConfig("server").getString("domainName");
         parserCreate.getShareLinkInfo().getOtherParam().put("domainName", linkPrefix);
+        if (StringUtils.isNotBlank(dirId)) {
+            parserCreate.getShareLinkInfo().getOtherParam().put("dirId", dirId);
+        }
+        if (StringUtils.isNotBlank(uuid)) {
+            parserCreate.getShareLinkInfo().getOtherParam().put("uuid", uuid);
+        }
         return parserCreate.createTool().parseFileList();
     }
 
@@ -130,13 +132,26 @@ public class ParserApi {
         return parserCreate.createTool().parseById();
     }
 
-
     @RouteMapping("/redirectUrl/:type/:param")
     public Future<Void> redirectUrl(HttpServerResponse response, String type, String param) {
         Promise<Void> promise = Promise.promise();
 
         getFileDownUrl(type, param)
                 .onSuccess(res -> ResponseUtil.redirect(response, res))
+                .onFailure(t -> promise.fail(t.fillInStackTrace()));
+        return promise.future();
+    }
+
+    @RouteMapping("/viewUrl/:type/:param")
+    public Future<Void> viewUrl(HttpServerResponse response, String type, String param) {
+        Promise<Void> promise = Promise.promise();
+
+        String viewPrefix = SharedDataUtil.getJsonConfig("server").getString("previewURL");
+        getFileDownUrl(type, param)
+                .onSuccess(res -> {
+                    String url = viewPrefix + URLEncoder.encode(res, StandardCharsets.UTF_8);
+                    ResponseUtil.redirect(response, url);
+                })
                 .onFailure(t -> promise.fail(t.fillInStackTrace()));
         return promise.future();
     }
