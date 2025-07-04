@@ -10,7 +10,7 @@
             <img :height="150" src="../public/images/lanzou111.png" alt="lz"></img>
           </div>
         </div>
-        <h3 style="text-align: center;">NFD网盘直链解析0.1.8_bate32</h3>
+        <h3 style="text-align: center;">NFD网盘直链解析0.1.9_bate1</h3>
         <div class="typo">
           <p style="text-align: center;">
             <span>
@@ -27,7 +27,8 @@
                      rel="nofollow"><u>QAIU博客</u>
               </el-link>
             </span></p>
-          <p><strong>目前支持 </strong>蓝奏云/蓝奏云优享/小飞机盘/123云盘/奶牛快传/移动云云空间/亿方云/文叔叔/QQ邮箱文件中转站</p>
+          <p><strong>文件解析支持 </strong>蓝奏云/蓝奏云优享/小飞机盘/123云盘/奶牛快传/移动云云空间/亿方云/文叔叔/QQ邮箱文件中转站</p>
+          <p><strong>目录解析支持 </strong>蓝奏云/蓝奏云优享/小飞机盘/123云盘（接入中）</p>
           <p>已加入缓存机制, 如果遇到解析出的下载链接失效的情况请及时到<a href="https://github.com/qaiu/netdisk-fast-download/issues">
             <u><strong>项目GitHub反馈</strong></u></a></p>
           <p>节点1: 回源请求数:{{ node1Info.parserTotal }}, 缓存请求数:{{ node1Info.cacheTotal }}, 总数:{{ node1Info.total }}</p>
@@ -64,8 +65,10 @@
             </el-input>
 
             <p style="text-align: center">
-              <el-button style="margin-left: 40px;margin-bottom: 10px" @click="onSubmit">解析测试</el-button>
-              <el-button style="margin-left: 20px;margin-bottom: 10px" @click="genMd">生成Markdown链接</el-button>
+              <el-button style="margin-left: 40px" @click="onSubmit">文件解析</el-button>
+<!--              目录解析-->
+              <el-button style="margin-left: 20px" @click="getFileList">目录解析</el-button>
+              <el-button style="margin-left: 20px" @click="genMd">生成Markdown链接</el-button>
               <el-button style="margin-left: 20px" @click="generateQRCode">扫码下载</el-button>
               <el-button style="margin-left: 20px" @click="getTj">链接信息统计</el-button>
             </p>
@@ -146,37 +149,6 @@ export default {
       select: "lz",
       respData: {},
       tjData: {},
-      panList: [
-        {
-          name: "蓝奏云",
-          value: 'lz'
-        },
-        {
-          name: "奶牛快传",
-          value: 'cow'
-        },
-        {
-          name: "移动云空间",
-          value: 'ec'
-        },
-        {
-          name: "UC网盘",
-          value: 'uc',
-          disabled: true
-        },
-        {
-          name: "小飞机网盘",
-          value: 'fj'
-        },
-        {
-          name: "360亿方云",
-          value: 'fc'
-        },
-        {
-          name: "123云盘",
-          value: 'ye'
-        },
-      ],
       getLink: null,
       getLink2: '',
       getLinkInfo:  null,
@@ -310,6 +282,28 @@ export default {
             this.$message.error(response.data.msg)
           }
         });
+    },
+    getFileList() {
+      this.check()
+      this.isLoading = true
+      axios.get(this.getLinkInfo, {params: {url: this.link, pwd: this.password}}).then(
+          response => {
+            this.isLoading = false
+            if (response.data.code === 200) {
+              this.$message({
+                message: response.data.msg,
+                type: 'success'
+              })
+              const data = response.data.data
+              const panList = ["iz", "lz", "fj"];
+              const listUrl = `${window.location.origin}/list.html?url=${encodeURIComponent(this.link)}&pwd=${this.password}`
+              if (panList.includes(data.shareLinkInfo.type)) {
+                window.open(listUrl, '_blank');
+              }
+            } else {
+              this.$message.error(response.data.msg)
+            }
+          });
     },
 
     async getPaste(v) {

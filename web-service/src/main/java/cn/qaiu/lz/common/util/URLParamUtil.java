@@ -59,7 +59,7 @@ public class URLParamUtil {
         boolean firstParam = !decodedUrl.contains("?");
 
         for (String paramName : params.names()) {
-            if (!paramName.equals("url") && !paramName.equals("pwd")) {  // 忽略 "url" 和 "pwd" 参数
+            if (!paramName.equals("url") && !paramName.equals("pwd") && !paramName.equals("dirId") && !paramName.equals("uuid")) {  // 忽略 "url" 和 "pwd" 参数
                 if (firstParam) {
                     urlBuilder.append("?");
                     firstParam = false;

@@ -15,6 +15,7 @@ public class ShareLinkInfo {
 
     /**
      * 其他参数预定义
+     * dirId: 目录ID 传入
      * auths: 认证相关 传入
      * UA: 浏览器请求头 传入
      * fileInfo: 解析成功的文件信息对象 传出

@@ -69,6 +69,9 @@ public class FileInfo {
      */
     private String parserUrl;
 
+    //预览地址
+    private String previewUrl;
+
     /**
      * 扩展参数
      */
@@ -197,6 +200,13 @@ public class FileInfo {
 
     public FileInfo setParserUrl(String parserUrl) {
         this.parserUrl = parserUrl;
+        return this;
+    }
+    public String getPreviewUrl() {
+        return previewUrl;
+    }
+    public FileInfo setPreviewUrl(String previewUrl) {
+        this.previewUrl = previewUrl;
         return this;
     }
 

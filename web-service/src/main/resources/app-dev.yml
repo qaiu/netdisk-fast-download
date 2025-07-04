@@ -6,6 +6,8 @@ server:
   enableDatabase: true
   # 服务域名或者IP 生成二维码链接时需要
   domainName: http://127.0.0.1:6401
+  # 预览服务URL
+  previewURL: https://nfd-parser.github.io/nfd-preview/preview.html?src=
 #  domainName: https://lz.qaiu.top
 
 # 反向代理服务器配置路径(不用加后缀)
@@ -38,7 +40,7 @@ rateLimit:
   # 是否启用限流
   enable: true
   # 限流的请求数
-  limit: 5
+  limit: 10
   # 限流的时间窗口(单位秒)
   timeWindow: 10
   # 路径匹配规则

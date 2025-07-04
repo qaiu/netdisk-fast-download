@@ -14,6 +14,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.uritemplate.UriTemplate;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Base64;
@@ -89,6 +90,9 @@ public class FjTool extends PanBase {
         final String shareId = shareLinkInfo.getShareKey();
 
         // 24.5.12 飞机盘 规则修改 需要固定UUID先请求会员接口, 再请求后续接口
+        String url = StringUtils.isBlank(shareLinkInfo.getSharePassword()) ? FIRST_REQUEST_URL
+                : (FIRST_REQUEST_URL + "&code=" + shareLinkInfo.getSharePassword());
+
         client.postAbs(UriTemplate.of(VIP_REQUEST_URL))
                 .setTemplateParam("uuid", uuid)
                 .setTemplateParam("ts", tsEncode)
@@ -96,7 +100,7 @@ public class FjTool extends PanBase {
 
                     // 第一次请求 获取文件信息
                     // POST https://api.feijipan.com/ws/recommend/list?devType=6&devModel=Chrome&extra=2&shareId=146731&type=0&offset=1&limit=60
-                    client.postAbs(UriTemplate.of(FIRST_REQUEST_URL))
+                    client.postAbs(UriTemplate.of(url))
                             .putHeaders(header)
                             .setTemplateParam("shareId", shareId)
                             .setTemplateParam("uuid", uuid)
@@ -107,7 +111,7 @@ public class FjTool extends PanBase {
                                     fail(FIRST_REQUEST_URL + " 返回异常: " + resJson);
                                     return;
                                 }
-                                if (resJson.getJsonArray("list").size() == 0) {
+                                if (resJson.getJsonArray("list").isEmpty()) {
                                     fail(FIRST_REQUEST_URL + " 解析文件列表为空: " + resJson);
                                     return;
                                 }
@@ -158,104 +162,109 @@ public class FjTool extends PanBase {
         Promise<List<FileInfo>> promise = Promise.promise();
 
         String shareId = shareLinkInfo.getShareKey(); // String.valueOf(AESUtils.idEncrypt(dataKey));
+
+        // 如果参数里的目录ID不为空，则直接解析目录
+        String dirId = (String) shareLinkInfo.getOtherParam().get("dirId");
+        if (dirId != null && !dirId.isEmpty()) {
+            uuid = shareLinkInfo.getOtherParam().get("uuid").toString();
+            parserDir(dirId, shareId, promise);
+            return promise.future();
+        }
         parse().onSuccess(id -> {
-            // 拿到目录ID
-            client.postAbs(UriTemplate.of(FILE_LIST_URL))
-                    .putHeaders(header)
-                    .setTemplateParam("shareId", shareId)
-                    .setTemplateParam("uuid", uuid)
-                    .setTemplateParam("ts", tsEncode)
-                    .setTemplateParam("folderId", id)
-                    .send().onSuccess(res -> {
-                        JsonObject jsonObject = asJson(res);
-                        System.out.println(jsonObject.encodePrettily());
-                        /*
-                        {
-                                   "iconId" : 13,
-                                   "fileName" : "酷我音乐车机版 6.4.2.20.apk",
-                                   "fileSaves" : 52,
-                                   "fileStars" : 5.0,
-                                   "type" : 1,
-                                   "userId" : 1392902,
-                                   "fileComments" : 0,
-                                   "fileSize" : 68854,
-                                   "fileIcon" : "https://d.feijix.com/storage/files/icon/2024/06/08/7/8146637/6534494874910391.gz?t=67a5ea7c&rlimit=20&us=nMfuftjBN5&sign=f72be03007a301217f90dcc20333bd9a",
-                                   "updTime" : "2024-06-10 17:26:53",
-                                   "sortId" : 1487918143,
-                                   "name" : "酷我音乐车机版 6.4.2.20.apk",
-                                   "fileDownloads" : 109,
-                                   "fileUrl" : null,
-                                   "fileLikes" : 0,
-                                   "fileType" : 1,
-                                   "fileId" : 1487918143
-                          }
-                        */
-                        JsonArray list = jsonObject.getJsonArray("list");
-                        ArrayList<FileInfo> result = new ArrayList<>();
-                        list.forEach(item->{
-                            JsonObject fileJson = (JsonObject) item;
-                            FileInfo fileInfo = new FileInfo();
+            parserDir(id, shareId, promise);
+        });
+        return promise.future();
+    }
 
-                            // 映射已知字段fileInfo
-                            String fileId = fileJson.getString("fileId");
-                            String userId = fileJson.getString("userId");
+    private void parserDir(String id, String shareId, Promise<List<FileInfo>> promise) {
+        log.debug("开始解析目录: {}, shareId: {}, uuid: {}, ts: {}", id, shareId, uuid, tsEncode);
+        // 开始解析目录: 164312216, shareId: bPMsbg5K, uuid: 0fmVWTx2Ea4zFwkpd7KXf, ts: 20865d7b7f00828279f437cd1f097860
+        // 拿到目录ID
+        client.postAbs(UriTemplate.of(FILE_LIST_URL))
+                .putHeaders(header)
+                .setTemplateParam("shareId", shareId)
+                .setTemplateParam("uuid", uuid)
+                .setTemplateParam("ts", tsEncode)
+                .setTemplateParam("folderId", id)
+                .send().onSuccess(res -> {
+                    JsonObject jsonObject = asJson(res);
+                    System.out.println(jsonObject.encodePrettily());
+                    JsonArray list = jsonObject.getJsonArray("list");
+                    ArrayList<FileInfo> result = new ArrayList<>();
+                    list.forEach(item->{
+                        JsonObject fileJson = (JsonObject) item;
+                        FileInfo fileInfo = new FileInfo();
 
-                            // 其他参数
-                            long nowTs2 = System.currentTimeMillis();
-                            String tsEncode2 = AESUtils.encrypt2Hex(Long.toString(nowTs2));
-                            String fidEncode = AESUtils.encrypt2Hex(fileId + "|" + userId);
-                            String auth = AESUtils.encrypt2Hex(fileId + "|" + nowTs2);
+                        // 映射已知字段fileInfo
+                        String fileId = fileJson.getString("fileId");
+                        String userId = fileJson.getString("userId");
 
-                            // 回传用到的参数
-                            //"fidEncode", paramJson.getString("fidEncode"))
-                            //"uuid", paramJson.getString("uuid"))
-                            //"ts", paramJson.getString("ts"))
-                            //"auth", paramJson.getString("auth"))
-                            //"shareId", paramJson.getString("shareId"))
-                            JsonObject entries = JsonObject.of(
-                                    "fidEncode", fidEncode,
-                                    "uuid", uuid,
-                                    "ts", tsEncode2,
-                                    "auth", auth,
-                                    "shareId", shareId);
-                            byte[] encode = Base64.getEncoder().encode(entries.encode().getBytes());
-                            String param = new String(encode);
+                        // 其他参数
+                        long nowTs2 = System.currentTimeMillis();
+                        String tsEncode2 = AESUtils.encrypt2Hex(Long.toString(nowTs2));
+                        String fidEncode = AESUtils.encrypt2Hex(fileId + "|" + userId);
+                        String auth = AESUtils.encrypt2Hex(fileId + "|" + nowTs2);
 
-                            long fileSize = fileJson.getLong("fileSize") * 1024;
-                            fileInfo.setFileName(fileJson.getString("fileName"))
-                                    .setFileId(fileJson.getString("fileId"))
-                                    .setCreateTime(fileJson.getString("createTime"))
-                                    .setFileType(fileJson.getString("fileType"))
-                                    .setSize(fileSize)
-                                    .setSizeStr(FileSizeConverter.convertToReadableSize(fileSize))
+                        // 回传用到的参数
+                        //"fidEncode", paramJson.getString("fidEncode"))
+                        //"uuid", paramJson.getString("uuid"))
+                        //"ts", paramJson.getString("ts"))
+                        //"auth", paramJson.getString("auth"))
+                        //"shareId", paramJson.getString("shareId"))
+                        JsonObject entries = JsonObject.of(
+                                "fidEncode", fidEncode,
+                                "uuid", uuid,
+                                "ts", tsEncode2,
+                                "auth", auth,
+                                "shareId", shareId);
+                        byte[] encode = Base64.getEncoder().encode(entries.encode().getBytes());
+                        String param = new String(encode);
+
+                        if (fileJson.getInteger("fileType") == 2) {
+                            // 如果是目录
+                            fileInfo.setFileName(fileJson.getString("name"))
+                                    .setFileId(fileJson.getString("folderId"))
+                                    .setCreateTime(fileJson.getString("updTime"))
+                                    .setFileType("folder")
+                                    .setSize(0L)
+                                    .setSizeStr("0B")
                                     .setCreateBy(fileJson.getLong("userId").toString())
                                     .setDownloadCount(fileJson.getInteger("fileDownloads"))
                                     .setCreateTime(fileJson.getString("updTime"))
                                     .setFileIcon(fileJson.getString("fileIcon"))
                                     .setPanType(shareLinkInfo.getType())
-                                    .setParserUrl(String.format("%s/v2/redirectUrl/%s/%s", getDomainName(),
-                                            shareLinkInfo.getType(), param));
+                                    // 设置目录解析的URL
+                                    .setParserUrl(String.format("%s/v2/getFileList?url=%s&dirId=%s&uuid=%s", getDomainName(),
+                                            shareLinkInfo.getShareUrl(), fileJson.getString("folderId"), uuid));
                             result.add(fileInfo);
-                        });
-                        promise.complete(result);
+                            return;
+                        }
+                        long fileSize = fileJson.getLong("fileSize") * 1024;
+                        fileInfo.setFileName(fileJson.getString("fileName"))
+                                .setFileId(fileJson.getString("fileId"))
+                                .setCreateTime(fileJson.getString("createTime"))
+                                .setFileType("file")
+                                .setSize(fileSize)
+                                .setSizeStr(FileSizeConverter.convertToReadableSize(fileSize))
+                                .setCreateBy(fileJson.getLong("userId").toString())
+                                .setDownloadCount(fileJson.getInteger("fileDownloads"))
+                                .setCreateTime(fileJson.getString("updTime"))
+                                .setFileIcon(fileJson.getString("fileIcon"))
+                                .setPanType(shareLinkInfo.getType())
+                                .setParserUrl(String.format("%s/v2/redirectUrl/%s/%s", getDomainName(),
+                                        shareLinkInfo.getType(), param))
+                                .setPreviewUrl(String.format("%s/v2/viewUrl/%s/%s", getDomainName(),
+                                        shareLinkInfo.getType(), param));
+                        result.add(fileInfo);
                     });
-        });
-        return promise.future();
+                    promise.complete(result);
+                });
     }
 
     @Override
     public Future<String> parseById() {
         // 第二次请求
         JsonObject paramJson = (JsonObject)shareLinkInfo.getOtherParam().get("paramJson");
-
-//        clientNoRedirects.getAbs(UriTemplate.of(SECOND_REQUEST_URL))
-//                .putHeaders(header)
-//                .setTemplateParam("fidEncode", fidEncode)
-//                .setTemplateParam("uuid", uuid)
-//                .setTemplateParam("ts", tsEncode2)
-//                .setTemplateParam("auth", auth)
-//                .setTemplateParam("dataKey", shareId)
-
         clientNoRedirects.getAbs(UriTemplate.of(SECOND_REQUEST_URL))
                 .setTemplateParam("fidEncode", paramJson.getString("fidEncode"))
                 .setTemplateParam("uuid", paramJson.getString("uuid"))
