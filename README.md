@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-<a href="https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml"><img src="https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml/badge.svg?style=flat"></a>
+<a href="https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml"><img src="https://img.shields.io/github/actions/workflow/status/{user}/{repo}/{workflow_file}?branch={tag}"></a>
 <a href="https://www.oracle.com/cn/java/technologies/downloads"><img src="https://img.shields.io/badge/jdk-%3E%3D17-blue"></a>
 <a href="https://vertx-china.github.io"><img src="https://img.shields.io/badge/vert.x-4.5.6-blue?style=flat"></a>
 <a href="https://raw.githubusercontent.com/qaiu/netdisk-fast-download/master/LICENSE"><img src="https://img.shields.io/github/license/qaiu/netdisk-fast-download?style=flat"></a>
