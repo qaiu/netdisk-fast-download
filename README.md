@@ -89,9 +89,8 @@ API规则:
     http://your_host/json/getFileList?url=分享链接&pwd=xxx  
 
 
------  
 
-1. 文件解析：/json/parser?url=分享链接&pwd=xxx
+1. 文件解析：/json/parser?url=分享链接&pwd=xxx  
 ```
 json返回数据格式示例:  
 `shareKey`:    全局分享key  
