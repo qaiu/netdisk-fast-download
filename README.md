@@ -256,7 +256,7 @@ mvn package
 ### Docker 部署（Main分支）
 
 #### 海外服务器Docker部署
-``shell
+```shell
 # 创建目录
 mkdir -p netdisk-fast-download
 cd netdisk-fast-download
