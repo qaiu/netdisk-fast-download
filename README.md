@@ -87,6 +87,10 @@ API规则:
     http://your_host/json/网盘标识/分享key@分享密码
 3. 文件夹解析v0.1.8fixed3新增
     http://your_host/json/getFileList?url=分享链接&pwd=xxx
+
+---  
+
+1. 文件解析：/json/parser?url=分享链接&pwd=xxx
 ```
 json返回数据格式示例:  
 `shareKey`:    全局分享key  
@@ -153,15 +157,15 @@ json返回数据格式示例:
       "fileIcon": null,
       "size": 999,
       "sizeStr": "999 M",
-      "fileType": "apk",
+      "fileType": "file/folder",
       "filePath": null,
       "createTime": "17 小时前",
       "updateTime": null,
       "createBy": null,
       "description": null,
-      "downloadCount": null,
+      "downloadCount": 下载次数,
       "panType": "lz",
-      "parserUrl": "下载链接", 
+      "parserUrl": "下载链接/文件夹链接", 
       "extParameters": null
     }
   ]
