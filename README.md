@@ -78,11 +78,11 @@ API规则:
 > 建议使用UrlEncode编码分享链接
 
 1. 解析并自动302跳转
-    http://your_host/parser?url=分享链接&pwd=xxx
-    或者 http://your_host/parser?url=UrlEncode(分享链接)&pwd=xxx  
+    http://your_host/parser?url=分享链接&pwd=xxx   
+    http://your_host/parser?url=UrlEncode(分享链接)&pwd=xxx  
     http://your_host/d/网盘标识/分享key@分享密码
 2. 获取解析后的直链--JSON格式
-    http://your_host/json/parser?url=分享链接&pwd=xxx
+    http://your_host/json/parser?url=分享链接&pwd=xxx  
     http://your_host/json/网盘标识/分享key@分享密码
 3. 文件夹解析v0.1.8fixed3新增
     http://your_host/json/getFileList?url=分享链接&pwd=xxx
@@ -97,6 +97,8 @@ json返回数据格式示例:
 `directLink`:  下载链接  
 `cacheHit`:    是否为缓存链接  
 `expires`:     缓存到期时间  
+```
+
 ```json
 {
   "code": 200,
