@@ -91,13 +91,12 @@ API规则:
 ### json接口说明
 
 1. 文件解析：/json/parser?url=分享链接&pwd=xxx  
-```
+
 json返回数据格式示例:  
 `shareKey`:    全局分享key  
 `directLink`:  下载链接  
 `cacheHit`:    是否为缓存链接  
 `expires`:     缓存到期时间  
-```
 
 ```json
 {
