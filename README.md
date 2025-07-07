@@ -86,9 +86,10 @@ API规则:
     http://your_host/json/parser?url=分享链接&pwd=xxx
     http://your_host/json/网盘标识/分享key@分享密码
 3. 文件夹解析v0.1.8fixed3新增
-    http://your_host/json/getFileList?url=分享链接&pwd=xxx
+    http://your_host/json/getFileList?url=分享链接&pwd=xxx  
 
----  
+
+-----  
 
 1. 文件解析：/json/parser?url=分享链接&pwd=xxx
 ```
