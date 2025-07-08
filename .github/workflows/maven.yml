@@ -16,8 +16,9 @@ permissions:
 on:
   push:
     tags:
-      - '*'
-    branches: [ "main" ]
+      - '*'  # 只有推送tag时才会触发构建
+    branches-ignore:
+      - '*'  # 排除所有分支的提交
     paths-ignore:
       - 'bin/**'
       - '.github/**'
@@ -27,7 +28,8 @@ on:
       - '*.txt'
       - '*.md'
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - "main"
 
 jobs:
   build:
