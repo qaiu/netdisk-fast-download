@@ -101,9 +101,17 @@ public class IzTool extends PanBase {
                                     fail(FIRST_REQUEST_URL + " 解析文件列表为空: " + resJson);
                                     return;
                                 }
+                                if (!resJson.containsKey("list") || resJson.getJsonArray("list").isEmpty()) {
+                                    fail(FIRST_REQUEST_URL + " 解析文件列表为空: " + resJson);
+                                    return;
+                                }
                                 // 文件Id
                                 JsonObject fileInfo = resJson.getJsonArray("list").getJsonObject(0);
                                 // 如果是目录返回目录ID
+                                if (!fileInfo.containsKey("fileList") || fileInfo.getJsonArray("fileList").isEmpty()) {
+                                    fail(FIRST_REQUEST_URL + " 文件列表为空: " + fileInfo);
+                                    return;
+                                }
                                 JsonObject fileList = fileInfo.getJsonArray("fileList").getJsonObject(0);
                                 if (fileList.getInteger("fileType") == 2) {
                                     promise.complete(fileList.getInteger("folderId").toString());
@@ -151,6 +159,9 @@ public class IzTool extends PanBase {
         }
         parse().onSuccess(id -> {
             parserDir(id, shareId, promise);
+        }).onFailure(failRes -> {
+            log.error("解析目录失败: {}", failRes.getMessage());
+            promise.fail(failRes);
         });
         return promise.future();
     }

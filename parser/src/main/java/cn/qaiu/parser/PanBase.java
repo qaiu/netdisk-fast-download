@@ -116,12 +116,21 @@ public abstract class PanBase implements IPanTool {
      */
     protected void fail(Throwable t, String errorMsg, Object... args) {
         try {
+            // 判断是否已经完成
+            if (promise.future().isComplete()) {
+                log.warn("Promise 已经完成, 无法再次失败: {}, {}", errorMsg, promise.future().cause());
+                return;
+            }
             String s = String.format(errorMsg.replaceAll("\\{}", "%s"), args);
             log.error("解析异常: " + s, t.fillInStackTrace());
             promise.fail(baseMsg() + ": 解析异常: " + s + " -> " + t);
         } catch (Exception e) {
             log.error("ErrorMsg format fail. The parameter has been discarded", e);
             log.error("解析异常: " + errorMsg, t.fillInStackTrace());
+            if (promise.future().isComplete()) {
+                log.warn("ErrorMsg format. Promise 已经完成, 无法再次失败: {}", errorMsg);
+                return;
+            }
             promise.fail(baseMsg() + ": 解析异常: " + errorMsg + " -> " + t);
         }
     }
@@ -134,9 +143,18 @@ public abstract class PanBase implements IPanTool {
      */
     protected void fail(String errorMsg, Object... args) {
         try {
+            // 判断是否已经完成
+            if (promise.future().isComplete()) {
+                log.warn("Promise 已经完成, 无法再次失败: {}, {}", errorMsg, promise.future().cause());
+                return;
+            }
             String s = String.format(errorMsg.replaceAll("\\{}", "%s"), args);
             promise.fail(baseMsg() + " - 解析异常: " + s);
         } catch (Exception e) {
+            if (promise.future().isComplete()) {
+                log.warn("ErrorMsg format. Promise 已经完成, 无法再次失败: {}", errorMsg);
+                return;
+            }
             log.error("ErrorMsg format fail. The parameter has been discarded", e);
             promise.fail(baseMsg() + " - 解析异常: " + errorMsg);
         }

@@ -10,7 +10,7 @@
             <img :height="150" src="../public/images/lanzou111.png" alt="lz"></img>
           </div>
         </div>
-        <h3 style="text-align: center;">NFD网盘直链解析0.1.9_bate1</h3>
+        <h3 style="text-align: center;">NFD网盘直链解析0.1.9_bate2</h3>
         <div class="typo">
           <p style="text-align: center;">
             <span>
@@ -296,10 +296,27 @@ export default {
               })
               const data = response.data.data
               const panList = ["iz", "lz", "fj"];
-              const listUrl = `${window.location.origin}/list.html?url=${encodeURIComponent(this.link)}&pwd=${this.password}`
-              if (panList.includes(data.shareLinkInfo.type)) {
-                window.open(listUrl, '_blank');
+
+              if (!panList.includes(data.shareLinkInfo.type)) {
+                this.$message.error("当前网盘不支持目录解析")
               }
+              let listUrl = `${window.location.origin}/list.html?url=${encodeURIComponent(this.link)}`
+              let apiUrl = new URL(data.apiLink).origin + `/v2/getFileList?url=${this.link}`;
+              // 动态添加密码参数
+              if (this.password) {
+                listUrl += `&pwd=${this.password}`;
+                apiUrl += `&pwd=${this.password}`;
+              }
+              this.$alert(
+                  `目录解析API: <a href="${apiUrl}" target="_blank">${apiUrl}</a><br>打开文件列表: <a href="${listUrl}" target="_blank">点击这里</a>`,
+                  '目录解析信息',
+                  {
+                    dangerouslyUseHTMLString: true,
+                    confirmButtonText: '确定',
+                    type: 'info'
+                  }
+              );
+
             } else {
               this.$message.error(response.data.msg)
             }
