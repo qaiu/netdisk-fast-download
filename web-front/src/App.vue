@@ -295,10 +295,11 @@ export default {
                 type: 'success'
               })
               const data = response.data.data
-              const panList = ["iz", "lz", "fj"];
+              const panList = ["iz", "lz", "fj", "ye"];
 
               if (!panList.includes(data.shareLinkInfo.type)) {
                 this.$message.error("当前网盘不支持目录解析")
+                return;
               }
               let listUrl = `${window.location.origin}/list.html?url=${encodeURIComponent(this.link)}`
               let apiUrl = new URL(data.apiLink).origin + `/v2/getFileList?url=${this.link}`;

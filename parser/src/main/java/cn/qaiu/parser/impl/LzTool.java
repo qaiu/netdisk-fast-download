@@ -222,7 +222,10 @@ public class LzTool extends PanBase {
                                 .setSizeStr(fileJson.getString("size"))
                                 .setSize(sizeNum)
                                 .setPanType(panType)
-                                .setParserUrl(getDomainName() + "/d/" + panType + "/" + id);
+                                .setParserUrl(getDomainName() + "/d/" + panType + "/" + id)
+                                .setPreviewUrl(String.format("%s/v2/view/%s/%s", getDomainName(),
+                                        shareLinkInfo.getType(), id));
+                        ;
                         log.debug("文件信息: {}", fileInfo);
                         list.add(fileInfo);
                     });
