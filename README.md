@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-<a href="https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml"><img src="https://img.shields.io/github/actions/workflow/status/{user}/{repo}/{workflow_file}?branch={tag}"></a>
+<a href="https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml"><img src="https://img.shields.io/github/actions/workflow/status/qaiu/netdisk-fast-download/maven.yml?branch=v0.1.9b1&style=flat"></a>
 <a href="https://www.oracle.com/cn/java/technologies/downloads"><img src="https://img.shields.io/badge/jdk-%3E%3D17-blue"></a>
 <a href="https://vertx-china.github.io"><img src="https://img.shields.io/badge/vert.x-4.5.6-blue?style=flat"></a>
 <a href="https://raw.githubusercontent.com/qaiu/netdisk-fast-download/master/LICENSE"><img src="https://img.shields.io/github/license/qaiu/netdisk-fast-download?style=flat"></a>
@@ -76,23 +76,28 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 
 API规则: 
 > 建议使用UrlEncode编码分享链接
-```
 
 1. 解析并自动302跳转
-    http://your_host/parser?url=分享链接&pwd=xxx
-    或者 http://your_host/parser?url=UrlEncode(分享链接)&pwd=xxx  
+    http://your_host/parser?url=分享链接&pwd=xxx   
+    http://your_host/parser?url=UrlEncode(分享链接)&pwd=xxx  
     http://your_host/d/网盘标识/分享key@分享密码
 2. 获取解析后的直链--JSON格式
-    http://your_host/json/parser?url=分享链接&pwd=xxx
+    http://your_host/json/parser?url=分享链接&pwd=xxx  
     http://your_host/json/网盘标识/分享key@分享密码
 3. 文件夹解析v0.1.8fixed3新增
     http://your_host/json/getFileList?url=分享链接&pwd=xxx
-```
+
+
+### json接口说明
+
+1. 文件解析：/json/parser?url=分享链接&pwd=xxx  
+
 json返回数据格式示例:  
 `shareKey`:    全局分享key  
 `directLink`:  下载链接  
 `cacheHit`:    是否为缓存链接  
 `expires`:     缓存到期时间  
+
 ```json
 {
   "code": 200,
@@ -153,15 +158,15 @@ json返回数据格式示例:
       "fileIcon": null,
       "size": 999,
       "sizeStr": "999 M",
-      "fileType": "apk",
+      "fileType": "file/folder",
       "filePath": null,
       "createTime": "17 小时前",
       "updateTime": null,
       "createBy": null,
       "description": null,
-      "downloadCount": null,
+      "downloadCount": 下载次数,
       "panType": "lz",
-      "parserUrl": "下载链接", 
+      "parserUrl": "下载链接/文件夹链接", 
       "extParameters": null
     }
   ]
@@ -262,15 +267,15 @@ mkdir -p netdisk-fast-download
 cd netdisk-fast-download
 
 # 拉取镜像
-docker pull ghcr.io/qaiu/netdisk-fast-download:main
+docker pull ghcr.io/qaiu/netdisk-fast-download:lastest
 
 # 复制配置文件（或下载仓库web-service\src\main\resources）
-docker create --name netdisk-fast-download ghcr.io/qaiu/netdisk-fast-download:main
+docker create --name netdisk-fast-download ghcr.io/qaiu/netdisk-fast-download:lastest
 docker cp netdisk-fast-download:/app/resources ./resources
 docker rm netdisk-fast-download
 
 # 启动容器
-docker run -d -it --name netdisk-fast-download -p 6401:6401 --restart unless-stopped -e TZ=Asia/Shanghai -v ./resources:/app/resources -v ./db:/app/db -v ./logs:/app/logs ghcr.io/qaiu/netdisk-fast-download:main
+docker run -d -it --name netdisk-fast-download -p 6401:6401 --restart unless-stopped -e TZ=Asia/Shanghai -v ./resources:/app/resources -v ./db:/app/db -v ./logs:/app/logs ghcr.io/qaiu/netdisk-fast-download:lastest
 
 # 反代6401端口
 
@@ -285,15 +290,15 @@ mkdir -p netdisk-fast-download
 cd netdisk-fast-download
 
 # 拉取镜像
-docker pull ghcr.nju.edu.cn/qaiu/netdisk-fast-download:main
+docker pull ghcr.nju.edu.cn/qaiu/netdisk-fast-download:lastest
 
 # 复制配置文件（或下载仓库web-service\src\main\resources）
-docker create --name netdisk-fast-download ghcr.nju.edu.cn/qaiu/netdisk-fast-download:main
+docker create --name netdisk-fast-download ghcr.nju.edu.cn/qaiu/netdisk-fast-download:lastest
 docker cp netdisk-fast-download:/app/resources ./resources
 docker rm netdisk-fast-download
 
 # 启动容器
-docker run -d -it --name netdisk-fast-download -p 6401:6401 --restart unless-stopped -e TZ=Asia/Shanghai -v ./resources:/app/resources -v ./db:/app/db -v ./logs:/app/logs ghcr.nju.edu.cn/qaiu/netdisk-fast-download:main
+docker run -d -it --name netdisk-fast-download -p 6401:6401 --restart unless-stopped -e TZ=Asia/Shanghai -v ./resources:/app/resources -v ./db:/app/db -v ./logs:/app/logs ghcr.nju.edu.cn/qaiu/netdisk-fast-download:lastest
 
 # 反代6401端口
 
