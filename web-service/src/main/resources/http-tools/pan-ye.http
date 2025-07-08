@@ -135,3 +135,23 @@ POST https://www.123684.com/b/api/file/batch_download_share_info?3697171543=1749
 Content-Type: application/json;charset=UTF-8
 
 {"ShareKey":"LH3rTd-pENed","fileIdList":[{"fileId":17525951}]}
+
+###
+
+https://www.123865.com/b/api/share/get?limit=100&next=-1&orderBy=file_name&orderDirection=asc&shareKey=iaKtVv-FTaCd&SharePwd=qaiu&ParentFileId=0&Page=1&event=homeListFile&operateType=1&OrderId=
+Accept: */*
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+App-Version: 3
+Connection: keep-alive
+DNT: 1
+Host: www.123865.com
+Referer: https://www.123865.com/s/iaKtVv-FTaCd?%E6%8F%90%E5%8F%96%E7%A0%81%3Aqaiu
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0
+platform: web
+sec-ch-ua: "Not)A;Brand";v="8", "Chromium";v="138", "Microsoft Edge";v="138"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "Windows"
