@@ -5,6 +5,7 @@ import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.lz.common.cache.CacheManager;
 import cn.qaiu.lz.common.util.URLParamUtil;
+import cn.qaiu.lz.web.model.CacheLinkInfo;
 import cn.qaiu.lz.web.model.LinkInfoResp;
 import cn.qaiu.lz.web.model.StatisticsInfo;
 import cn.qaiu.lz.web.model.SysUser;
@@ -15,6 +16,7 @@ import cn.qaiu.parser.ParserCreate;
 import cn.qaiu.vx.core.annotaions.RouteHandler;
 import cn.qaiu.vx.core.annotaions.RouteMapping;
 import cn.qaiu.vx.core.enums.RouteMethod;
+import cn.qaiu.vx.core.model.JsonResult;
 import cn.qaiu.vx.core.util.AsyncServiceUtil;
 import cn.qaiu.vx.core.util.ResponseUtil;
 import cn.qaiu.vx.core.util.SharedDataUtil;
@@ -141,6 +143,39 @@ public class ParserApi {
                 .onFailure(t -> promise.fail(t.fillInStackTrace()));
         return promise.future();
     }
+
+
+    /**
+     * 预览媒体文件
+     */
+    @RouteMapping(value = "/view/:type/:key", method = RouteMethod.GET, order = 2)
+    public void view(HttpServerRequest request, HttpServerResponse response, String type, String key) {
+        String previewURL = SharedDataUtil.getJsonStringForServerConfig("previewURL");
+        new ServerApi().parseKeyJson(request, type, key).onSuccess(res -> {
+            redirect(response, previewURL, res);
+        }).onFailure(e -> {
+            ResponseUtil.fireJsonResultResponse(response, JsonResult.error(e.toString()));
+        });
+    }
+
+    private static void redirect(HttpServerResponse response, String previewURL, CacheLinkInfo res) {
+        String directLink = res.getDirectLink();
+        ResponseUtil.redirect(response, previewURL + URLEncoder.encode(directLink, StandardCharsets.UTF_8));
+    }
+
+    /**
+     * 预览媒体文件
+     */
+    @RouteMapping(value = "/preview", method = RouteMethod.GET, order = 9)
+    public void viewURL(HttpServerRequest request, HttpServerResponse response, String pwd) {
+        String previewURL = SharedDataUtil.getJsonStringForServerConfig("previewURL");
+        new ServerApi().parseJson(request, pwd).onSuccess(res -> {
+            redirect(response, previewURL, res);
+        }).onFailure(e -> {
+            ResponseUtil.fireJsonResultResponse(response, JsonResult.error(e.toString()));
+        });
+    }
+
 
     @RouteMapping("/viewUrl/:type/:param")
     public Future<Void> viewUrl(HttpServerResponse response, String type, String param) {
