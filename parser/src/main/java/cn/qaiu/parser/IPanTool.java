@@ -19,7 +19,7 @@ public interface IPanTool {
      */
     default Future<List<FileInfo>> parseFileList() {
         Promise<List<FileInfo>> promise = Promise.promise();
-        promise.complete();
+        promise.fail("Not implemented yet");
         return promise.future();
     }
 
@@ -29,7 +29,7 @@ public interface IPanTool {
      */
     default Future<String> parseById() {
         Promise<String> promise = Promise.promise();
-        promise.complete();
+        promise.complete("Not implemented yet");
         return promise.future();
     }
 }

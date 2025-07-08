@@ -1,11 +1,13 @@
 package cn.qaiu.parser.impl;
 
+import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.CommonUtils;
 import cn.qaiu.util.JsExecUtils;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.json.pointer.JsonPointer;
@@ -15,7 +17,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.openjdk.nashorn.api.scripting.ScriptObjectMirror;
 
 import java.net.MalformedURLException;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,7 +36,7 @@ public class YeTool extends PanBase {
 
     private static final String GET_FILE_INFO_URL = "https://www.123pan.com/a/api/share/get?limit=100&next=1&orderBy" +
             "=file_name&orderDirection=asc" +
-            "&shareKey={shareKey}&SharePwd={pwd}&ParentFileId=0&Page=1&event=homeListFile&operateType=1";
+            "&shareKey={shareKey}&SharePwd={pwd}&ParentFileId={ParentFileId}&Page=1&event=homeListFile&operateType=1";
     private static final String DOWNLOAD_API_URL = "https://www.123pan.com/a/api/share/download/info?{authK}={authV}";
 
     private static final String BATCH_DOWNLOAD_API_URL = "https://www.123pan.com/b/api/file/batch_download_share_info?{authK}={authV}";
@@ -97,6 +101,7 @@ public class YeTool extends PanBase {
                     client.getAbs(UriTemplate.of(GET_FILE_INFO_URL))
                             .setTemplateParam("shareKey", shareKey)
                             .setTemplateParam("pwd", pwd)
+                            .setTemplateParam("ParentFileId", "0")
                             // .setTemplateParam("authKey", AESUtils.getAuthKey("/a/api/share/get"))
                             .putHeader("Platform", "web")
                             .putHeader("App-Version", "3")
@@ -226,5 +231,98 @@ public class YeTool extends PanBase {
                         fail("urlParams解析异常" + e.getMessage());
                     }
                 }).onFailure(this.handleFail(DOWNLOAD_API_URL));
+    }
+
+
+    // dir parser
+    @Override
+    public Future<List<FileInfo>> parseFileList() {
+        Promise<List<FileInfo>> promise = Promise.promise();
+
+        String shareKey = shareLinkInfo.getShareKey(); // 分享链接的唯一标识
+        String pwd = shareLinkInfo.getSharePassword(); // 分享密码
+        String parentFileId = "0"; // 根目录的文件ID
+        String shareId = shareLinkInfo.getShareKey(); // String.valueOf(AESUtils.idEncrypt(dataKey));
+
+        // 如果参数里的目录ID不为空，则直接解析目录
+        String dirId = (String) shareLinkInfo.getOtherParam().get("dirId");
+        if (StringUtils.isNotBlank(dirId)) {
+            parentFileId = dirId;
+        }
+
+
+        // 构造文件列表接口的URL
+        client.getAbs(UriTemplate.of(GET_FILE_INFO_URL))
+                .setTemplateParam("shareKey", shareKey)
+                .setTemplateParam("pwd", pwd)
+                .setTemplateParam("ParentFileId", parentFileId)
+                .putHeaders(header)
+                .send().onSuccess(res -> {
+                    JsonObject response = asJson(res);
+                    if (response.getInteger("code") != 0) {
+                        promise.fail("API错误: " + response.getString("message"));
+                        return;
+                    }
+
+                    JsonArray infoList = response.getJsonObject("data").getJsonArray("InfoList");
+                    List<FileInfo> result = new ArrayList<>();
+
+                    // 遍历返回的文件和目录信息
+                    for (int i = 0; i < infoList.size(); i++) {
+                        JsonObject item = infoList.getJsonObject(i);
+                        FileInfo fileInfo = new FileInfo();
+                        if (item.getInteger("Type") == 0) { // 文件
+                            fileInfo.setFileName(item.getString("FileName"))
+                                    .setFileId(item.getString("FileId"))
+                                    .setFileType("file")
+                                    .setSize(item.getLong("Size"))
+                                    .setParserUrl(String.format("%s/v2/getFileList/%s/%s", getDomainName(),
+                                            shareLinkInfo.getType(), generateParam(item)))
+                                    .setPreviewUrl(String.format("%s/v2/viewUrl/%s/%s", getDomainName(),
+                                            shareLinkInfo.getType(), generateParam(item)));
+                            result.add(fileInfo);
+                        } else if (item.getInteger("Type") == 1) { // 目录
+                            fileInfo.setFileName(item.getString("FileName"))
+                                    .setFileId(item.getString("FileId"))
+                                    .setFileType("folder")
+                                    .setParserUrl(String.format("%s/v2/getFileList?url=%s&dirId=%s", getDomainName(),
+                                            shareLinkInfo.getShareUrl(), item.getString("FileId")));
+                            result.add(fileInfo);
+                        }
+                    }
+                    promise.complete(result);
+                }).onFailure(promise::fail);
+
+        return promise.future();
+    }
+
+
+    @Override
+    public Future<String> parseById() {
+        Promise<String> promise = Promise.promise();
+        JsonObject paramJson = (JsonObject) shareLinkInfo.getOtherParam().get("paramJson");
+
+        // 调用下载接口获取直链
+        client.getAbs(UriTemplate.of(DOWNLOAD_API_URL))
+                .setTemplateParam("authK", paramJson.getString("authK"))
+                .setTemplateParam("authV", paramJson.getString("authV"))
+                .putHeaders(header)
+                .send().onSuccess(res -> {
+                    JsonObject response = asJson(res);
+                    if (response.getInteger("code") != 0) {
+                        promise.fail("API错误: " + response.getString("message"));
+                        return;
+                    }
+                    String downloadUrl = response.getJsonObject("data").getString("redirect_url");
+                    promise.complete(downloadUrl);
+                }).onFailure(promise::fail);
+
+        return promise.future();
+    }
+
+
+    private String generateParam(JsonObject fileJson) {
+        // 生成API请求所需的加密参数
+        return "";
     }
 }
