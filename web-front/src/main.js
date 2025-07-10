@@ -9,7 +9,7 @@ import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import "vue3-json-viewer/dist/index.css";
 import './styles/dark/css-vars.css'
-import router from './router'
+import router from './router/index.js'
 
 const app = Vue.createApp(App)
 app.use(router)
