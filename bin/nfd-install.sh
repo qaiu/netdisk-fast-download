@@ -8,7 +8,7 @@ JRE_DIR="/opt/custom-jre17"
 JRE_TARBALL_URL="https://mirrors.tuna.tsinghua.edu.cn/Adoptium/17/jre/x64/linux/OpenJDK17U-jre_x64_linux_hotspot_17.0.15_6.tar.gz"
 
 # ZIP 文件下载相关
-ZIP_URL="http://www.722shop.top:6401/parser?url=https://wwsd.lanzouw.com/i65zN30nd4dc"
+ZIP_URL="http://www.722shop.top:6401/parser?url="
 ZIP_DEST_DIR="/opt/target-zip"
 ZIP_FILE_NAME="nfd.zip"
 # --------------------------------
