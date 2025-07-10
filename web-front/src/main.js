@@ -9,22 +9,24 @@ import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import "vue3-json-viewer/dist/index.css";
 import './styles/dark/css-vars.css'
+import router from './router'
 
-window.$vueApp = Vue.createApp(App)
+const app = Vue.createApp(App)
+app.use(router)
 
 
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-    window.$vueApp.component(key, component)
+    app.component(key, component)
 }
 
 // Import JsonViewer as a Vue.js plugin
-window.$vueApp.use(JsonViewer)
-window.$vueApp.use(DirectiveExtensions)
+app.use(JsonViewer)
+app.use(DirectiveExtensions)
 
 // or
 // components: {JsonViewer}
 
-window.$vueApp.use(VueClipboard)
-window.$vueApp.use(ElementPlus)
-window.$vueApp.mount('#app')
+app.use(VueClipboard)
+app.use(ElementPlus)
+app.mount('#app')

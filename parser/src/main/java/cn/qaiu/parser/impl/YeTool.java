@@ -4,6 +4,7 @@ import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.CommonUtils;
+import cn.qaiu.util.FileSizeConverter;
 import cn.qaiu.util.JsExecUtils;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -271,22 +272,68 @@ public class YeTool extends PanBase {
                     for (int i = 0; i < infoList.size(); i++) {
                         JsonObject item = infoList.getJsonObject(i);
                         FileInfo fileInfo = new FileInfo();
+                        //                "FileId": 16603582,
+                        //                "FileName": "pdf",
+                        //                "Type": 1,
+                        //                "Size": 0,
+                        //                "ContentType": "0",
+                        //                "S3KeyFlag": "",
+                        //                "CreateAt": "2025-07-09T06:56:20+08:00",
+                        //                "UpdateAt": "2025-07-09T06:56:20+08:00",
+                        //                "Etag": "",
+                        //                "DownloadUrl": "",
+                        //                "Status": 0,
+                        //                "ParentFileId": 16603579,
+                        //                "Category": 0,
+                        //                "PunishFlag": 0,
+                        //                "StorageNode": "m0",
+                        //                "PreviewType": 0
+
+                        // =>
+                        // {
+                        // "ShareKey":"iaKtVv-FTaCd",
+                        // "FileID":16604189,
+                        // "S3keyFlag":"1815268665-0",
+                        // "Size":425929,
+                        // "Etag":"70049de67075ab2b269c62d690424601",
+                        // "OrderId":""}
+                        JsonObject postData = JsonObject.of()
+                                .put("ShareKey", shareKey)
+                                .put("FileID", item.getInteger("FileId"))
+                                .put("S3keyFlag", item.getString("S3KeyFlag"))
+                                .put("Size", item.getLong("Size"))
+                                .put("Etag", item.getString("Etag"));
+
+                        byte[] encode = Base64.getEncoder().encode(postData.encode().getBytes());
+                        String param = new String(encode);
+
                         if (item.getInteger("Type") == 0) { // 文件
                             fileInfo.setFileName(item.getString("FileName"))
                                     .setFileId(item.getString("FileId"))
                                     .setFileType("file")
                                     .setSize(item.getLong("Size"))
-                                    .setParserUrl(String.format("%s/v2/getFileList/%s/%s", getDomainName(),
-                                            shareLinkInfo.getType(), generateParam(item)))
+                                    .setCreateTime(item.getString("CreateAt"))
+                                    .setUpdateTime(item.getString("UpdateAt"))
+                                    .setSizeStr(FileSizeConverter.convertToReadableSize(item.getLong("Size")))
+                                    .setParserUrl(String.format("%s/v2/redirectUrl/%s/%s", getDomainName(),
+                                            shareLinkInfo.getType(), param))
                                     .setPreviewUrl(String.format("%s/v2/viewUrl/%s/%s", getDomainName(),
-                                            shareLinkInfo.getType(), generateParam(item)));
+                                            shareLinkInfo.getType(), param));
                             result.add(fileInfo);
                         } else if (item.getInteger("Type") == 1) { // 目录
                             fileInfo.setFileName(item.getString("FileName"))
                                     .setFileId(item.getString("FileId"))
+                                    .setCreateTime(item.getString("CreateAt"))
+                                    .setUpdateTime(item.getString("UpdateAt"))
+                                    .setSize(0L)
                                     .setFileType("folder")
-                                    .setParserUrl(String.format("%s/v2/getFileList?url=%s&dirId=%s", getDomainName(),
-                                            shareLinkInfo.getShareUrl(), item.getString("FileId")));
+                                    .setParserUrl(
+                                            String.format("%s/v2/getFileList?url=%s&dirId=%s&pwd=%s",
+                                                    getDomainName(),
+                                                    shareLinkInfo.getShareUrl(),
+                                                    item.getString("FileId"),
+                                                    pwd)
+                                    );
                             result.add(fileInfo);
                         }
                     }
@@ -296,33 +343,11 @@ public class YeTool extends PanBase {
         return promise.future();
     }
 
-
     @Override
     public Future<String> parseById() {
-        Promise<String> promise = Promise.promise();
         JsonObject paramJson = (JsonObject) shareLinkInfo.getOtherParam().get("paramJson");
-
         // 调用下载接口获取直链
-        client.getAbs(UriTemplate.of(DOWNLOAD_API_URL))
-                .setTemplateParam("authK", paramJson.getString("authK"))
-                .setTemplateParam("authV", paramJson.getString("authV"))
-                .putHeaders(header)
-                .send().onSuccess(res -> {
-                    JsonObject response = asJson(res);
-                    if (response.getInteger("code") != 0) {
-                        promise.fail("API错误: " + response.getString("message"));
-                        return;
-                    }
-                    String downloadUrl = response.getJsonObject("data").getString("redirect_url");
-                    promise.complete(downloadUrl);
-                }).onFailure(promise::fail);
-
+        down(client, paramJson, DOWNLOAD_API_URL);
         return promise.future();
-    }
-
-
-    private String generateParam(JsonObject fileJson) {
-        // 生成API请求所需的加密参数
-        return "";
     }
 }

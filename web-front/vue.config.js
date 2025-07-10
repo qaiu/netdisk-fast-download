@@ -16,15 +16,27 @@ module.exports = {
     host: '127.0.0.1',
     port: 6444,
     proxy: {
-      '/': {
-        target: 'http://127.0.0.1:6400',  // 请求本地
+      '/parser': {
+        target: 'http://127.0.0.1:6400/',  // 请求本地
+        ws: false
+      },
+      '/v2': {
+        target: 'http://127.0.0.1:6400/',  // 请求本地
+        ws: false
+      },
+      '/json': {
+        target: 'http://127.0.0.1:6400/',  // 请求本地
+        ws: false
+      },
+      '/d': {
+        target: 'http://127.0.0.1:6400/',  // 请求本地
         ws: false
       },
     }
   },
   configureWebpack: {
     // provide the app's title in webpack's name field, so that
-    // it can be accessed in index.html to inject the correct title.
+    // it can be accessed in list.html to inject the correct title.
     name: 'Netdisk fast download',
     resolve: {
       alias: {
