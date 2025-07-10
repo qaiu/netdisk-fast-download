@@ -1,0 +1,90 @@
+# 网盘分享链接云解析服务 API 测试
+# 本文件包含了系统所有API接口的测试请求
+# 使用方法：
+# 1. 先运行登录接口获取token
+# 2. 将返回的token替换所有请求中的YOUR_TOKEN_HERE
+# 3. 对于需要ID的请求，将实际ID替换TOKEN_ID
+
+### 用户接口 ###
+
+### 登录接口
+POST http://localhost:6400/api/user/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+### 用户注册
+POST http://localhost:6400/api/user/register
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "password123",
+  "email": "testuser@example.com",
+  "phone": "13800138000"
+}
+
+### 获取用户信息
+# 使用登录接口返回的token替换下面的YOUR_TOKEN_HERE
+GET http://localhost:6400/api/user/info
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjhhN2E3ZDc1LWUxNDEtNDFiOS05ODFhLWJmZGNjNzU2NjQyZCIsInVzZXJuYW1lIjoiYWRtaW4iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NTA4MjUxMDMxOTEsImlhdCI6MTc1MDczODcwMzE5MSwiaXNzIjoibmV0ZGlzay1mYXN0LWRvd25sb2FkIn0.z4Dhwji1_yHEVx0sb3DN1n6HjlRmG8-Qr0Th5XIVeHc
+
+### 验证Token
+POST http://localhost:6400/api/user/validate-token
+Content-Type: application/json
+
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjhhN2E3ZDc1LWUxNDEtNDFiOS05ODFhLWJmZGNjNzU2NjQyZCIsInVzZXJuYW1lIjoiYWRtaW4iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NTA4MjUxMDMxOTEsImlhdCI6MTc1MDczODcwMzE5MSwiaXNzIjoibmV0ZGlzay1mYXN0LWRvd25sb2FkIn0.z4Dhwji1_yHEVx0sb3DN1n6HjlRmG8-Qr0Th5XIVeHc"
+}
+
+### 更新用户信息
+PUT http://localhost:6400/api/user/update
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjhhN2E3ZDc1LWUxNDEtNDFiOS05ODFhLWJmZGNjNzU2NjQyZCIsInVzZXJuYW1lIjoiYWRtaW4iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NTA4MjUxMDMxOTEsImlhdCI6MTc1MDczODcwMzE5MSwiaXNzIjoibmV0ZGlzay1mYXN0LWRvd25sb2FkIn0.z4Dhwji1_yHEVx0sb3DN1n6HjlRmG8-Qr0Th5XIVeHc
+
+{
+  "email": "new-email@example.com",
+  "phone": "13900139000",
+  "avatar": "https://example.com/avatar.jpg"
+}
+
+### 管理员接口 ###
+
+### 获取所有网盘Token
+GET http://localhost:6400/api/admin/tokens
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjhhN2E3ZDc1LWUxNDEtNDFiOS05ODFhLWJmZGNjNzU2NjQyZCIsInVzZXJuYW1lIjoiYWRtaW4iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3NTA4MjUxMDMxOTEsImlhdCI6MTc1MDczODcwMzE5MSwiaXNzIjoibmV0ZGlzay1mYXN0LWRvd25sb2FkIn0.z4Dhwji1_yHEVx0sb3DN1n6HjlRmG8-Qr0Th5XIVeHc
+
+### 添加网盘Token
+POST http://localhost:6400/api/admin/token
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+  "type": "yidong",
+  "description": "移动云盘token",
+  "token": "abc123xyz456"
+}
+
+### 获取单个网盘Token
+# 替换下面的TOKEN_ID为实际的token ID
+GET http://localhost:6400/api/admin/token/TOKEN_ID
+Authorization: Bearer YOUR_TOKEN_HERE
+
+### 更新网盘Token
+# 替换下面的TOKEN_ID为实际的token ID
+PUT http://localhost:6400/api/admin/token/TOKEN_ID
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+  "description": "更新后的描述",
+  "token": "new-token-value"
+}
+
+### 删除网盘Token
+# 替换下面的TOKEN_ID为实际的token ID
+DELETE http://localhost:6400/api/admin/token/TOKEN_ID
+Authorization: Bearer YOUR_TOKEN_HERE
