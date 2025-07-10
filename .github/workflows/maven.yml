@@ -51,7 +51,7 @@ jobs:
         cache: maven
 
     - name: Build Frontend
-      run: cd web-front && yarn install && yarn run build
+      run: cd web-front && npm install && npm run build
 
     - name: Build with Maven
       run: mvn -B package --file pom.xml
