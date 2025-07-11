@@ -16,7 +16,7 @@
     <div v-if="loading" style="text-align:center;margin-top:40px;">加载中...</div>
     <div v-else-if="error" style="color:red;text-align:center;margin-top:40px;">{{ error }}</div>
     <div v-else>
-      <DirectoryTree
+      <DirectoryTree  
         :file-list="directoryData"
         :share-url="url"
         :password="''"
