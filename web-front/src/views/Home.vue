@@ -587,9 +587,17 @@ body.dark-theme {
 }
 
 @media screen and (max-width: 700px) {
-  .box-card {
-    margin-top: 1em !important;
-    margin-bottom: 1em !important;
+  #app {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin: 0 !important; /* 关键：去掉 auto 居中 */
+    max-width: 100vw !important;
+  }
+  #app .box-card {
+    margin: 1em 4px !important; /* 上下1em，左右4px */
+    width: auto !important;
+    max-width: 100vw !important;
+    box-sizing: border-box;
   }
 }
 
@@ -789,5 +797,22 @@ hr {
 }
 #app.jv-container .jv-item.jv-object {
     color: #32ba6d;
+}
+
+.feedback-bar {
+  width: 100%;
+  max-width: 700px;      /* 和 .box-card 保持一致 */
+  margin: 0 auto;        /* 居中 */
+  text-align: right;
+  padding: 10px 24px 0 0; /* 右侧内边距和卡片内容对齐 */
+  box-sizing: border-box;
+}
+
+@media screen and (max-width: 700px) {
+  .feedback-bar {
+    max-width: 480px;    /* 和移动端卡片宽度一致 */
+    padding-right: 8px;  /* 和卡片内容对齐 */
+    padding-left: 8px;
+  }
 }
 </style>
