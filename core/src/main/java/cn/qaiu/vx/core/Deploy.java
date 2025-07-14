@@ -54,9 +54,9 @@ public final class Deploy {
     public void start(String[] args, Handler<JsonObject> handle) {
         this.mainThread = Thread.currentThread();
         this.handle = handle;
-        if (args.length > 0) {
+        if (args.length > 0 && args[0].startsWith("app-")) {
             // 启动参数dev或者prod
-            path.append("-").append(args[0]);
+            path.append("-").append(args[0].replace("app-",""));
         }
 
         // 读取yml配置
