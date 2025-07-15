@@ -36,14 +36,14 @@
         部署
       </a>
     </div>
-    <el-row :gutter="20">
+    <el-row :gutter="20" style="margin-left: 0; margin-right: 0;">
       <el-card class="box-card">
         <div style="text-align: right">
           <DarkMode @theme-change="handleThemeChange" />
         </div>
         <div class="demo-basic--circle">
           <div class="block" style="text-align: center;">
-            <img :height="150" src="../../public/images/lanzou111.png" alt="lz"></img>
+            <img :height="150" src="../../public/images/lanzou111.png" alt="lz">
           </div>
         </div>
         <!-- 项目简介移到卡片内 -->
@@ -570,6 +570,7 @@ body.dark-theme {
 }
 
 .box-card {
+  flex: 1;
   margin-top: 4em !important;
   margin-bottom: 4em !important;
   opacity: 1 !important; /* 只要不透明 */
@@ -801,10 +802,8 @@ hr {
 
 .feedback-bar {
   width: 100%;
-  max-width: 700px;      /* 和 .box-card 保持一致 */
   margin: 0 auto;        /* 居中 */
   text-align: right;
-  padding: 10px 24px 0 0; /* 右侧内边距和卡片内容对齐 */
   box-sizing: border-box;
 }
 
