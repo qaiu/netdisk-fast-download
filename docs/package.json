@@ -1,0 +1,17 @@
+{
+  "name": "netdisk-fast-download-docs",
+  "version": "1.0.0",
+  "description": "Documentation for netdisk-fast-download",
+  "type": "module",
+  "scripts": {
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "vitepress": "^1.0.0-rc.36"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

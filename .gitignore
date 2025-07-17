@@ -40,3 +40,9 @@ unused.txt
 /web-service/src/main/generated/
 /db
 /webroot/nfd-front/
+
+# Documentation build artifacts
+docs/node_modules/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+docs/package-lock.json
