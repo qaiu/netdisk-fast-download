@@ -149,7 +149,7 @@ public class FjTool extends PanBase {
                                         .setTemplateParam("ts", tsEncode2)
                                         .setTemplateParam("auth", auth)
                                         .setTemplateParam("dataKey", shareId);
-                                System.out.println(httpRequest.toString());
+                                // System.out.println(httpRequest.toString());
                                 httpRequest.send().onSuccess(res2 -> {
                                     MultiMap headers = res2.headers();
                                     if (!headers.contains("Location")) {
@@ -179,7 +179,11 @@ public class FjTool extends PanBase {
             return promise.future();
         }
         parse().onSuccess(id -> {
-            parserDir(id, shareId, promise);
+            if (id != null && id.matches("^[a-zA-Z0-9]+$")) {
+                parserDir(id, shareId, promise);
+            } else {
+                promise.fail("解析目录ID失败");
+            }
         }).onFailure(failRes -> {
             log.error("解析目录失败: {}", failRes.getMessage());
             promise.fail(failRes);
@@ -198,8 +202,14 @@ public class FjTool extends PanBase {
                 .setTemplateParam("ts", tsEncode)
                 .setTemplateParam("folderId", id)
                 .send().onSuccess(res -> {
-                    JsonObject jsonObject = asJson(res);
-                    System.out.println(jsonObject.encodePrettily());
+                    JsonObject jsonObject;
+                    try {
+                        jsonObject = asJson(res);
+                    } catch (Exception e) {
+                        promise.fail(FIRST_REQUEST_URL + " 解析JSON失败: " + res.bodyAsString());
+                        return;
+                    }
+                    // System.out.println(jsonObject.encodePrettily());
                     JsonArray list = jsonObject.getJsonArray("list");
                     ArrayList<FileInfo> result = new ArrayList<>();
                     list.forEach(item->{
@@ -269,7 +279,10 @@ public class FjTool extends PanBase {
                         result.add(fileInfo);
                     });
                     promise.complete(result);
-                });
+                }).onFailure(failRes -> {
+                    log.error("解析目录请求失败: {}", failRes.getMessage());
+                    promise.fail(failRes);
+                });;
     }
 
     @Override

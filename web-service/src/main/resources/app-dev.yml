@@ -63,7 +63,7 @@ cache:
   # 该配置未使用，后续加入其他Cache实现时，区分类型
   type: h2db
   # 默认时长: 单位分钟，大部分网盘未严格验证，建议不要太大
-  defaultDuration: 59
+  defaultDuration: 5
   # 具体网盘的缓存配置，如果不加配置则不缓存，每次请求都会请求网盘API，格式：网盘标识: 时长
   duration:
     ce: 5
@@ -93,7 +93,3 @@ proxy:
 #    username:
 #    password:
 
-
-# 代理池配置
-#ip-pool:
-#  api-url:

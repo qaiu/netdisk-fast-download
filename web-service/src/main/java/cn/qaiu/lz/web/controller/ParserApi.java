@@ -46,6 +46,7 @@ public class ParserApi {
     }
 
     private final CacheManager cacheManager = new CacheManager();
+    private final ServerApi serverApi = new ServerApi();
 
     @RouteMapping(value = "/linkInfo", method = RouteMethod.GET)
     public Future<LinkInfoResp> parse(HttpServerRequest request, String pwd) {
@@ -56,6 +57,7 @@ public class ParserApi {
         LinkInfoResp build = LinkInfoResp.builder()
                 .downLink(getDownLink(parserCreate, false))
                 .apiLink(getDownLink(parserCreate, true))
+                .viewLink(getViewLink(parserCreate))
                 .shareLinkInfo(shareLinkInfo).build();
         // 解析次数统计
         shareLinkInfo.getOtherParam().put("UA",request.headers().get("user-agent"));
@@ -81,6 +83,15 @@ public class ParserApi {
         }
         // 下载短链前缀 /d
         return linkPrefix + (isJson ? "/json/" : "/d/") + create.genPathSuffix();
+    }
+
+    private static String getViewLink(ParserCreate create) {
+
+        String linkPrefix = SharedDataUtil.getJsonStringForServerConfig("domainName");
+        if (StringUtils.isBlank(linkPrefix)) {
+            return "";
+        }
+        return linkPrefix + "/v2/view/" + create.genPathSuffix();
     }
 
     /**
@@ -151,7 +162,7 @@ public class ParserApi {
     @RouteMapping(value = "/view/:type/:key", method = RouteMethod.GET, order = 2)
     public void view(HttpServerRequest request, HttpServerResponse response, String type, String key) {
         String previewURL = SharedDataUtil.getJsonStringForServerConfig("previewURL");
-        new ServerApi().parseKeyJson(request, type, key).onSuccess(res -> {
+        serverApi.parseKeyJson(request, type, key).onSuccess(res -> {
             redirect(response, previewURL, res);
         }).onFailure(e -> {
             ResponseUtil.fireJsonResultResponse(response, JsonResult.error(e.toString()));
@@ -164,7 +175,7 @@ public class ParserApi {
     }
 
     /**
-     * 预览媒体文件
+     * 预览媒体文件-目录预览
      */
     @RouteMapping(value = "/preview", method = RouteMethod.GET, order = 9)
     public void viewURL(HttpServerRequest request, HttpServerResponse response, String pwd) {
