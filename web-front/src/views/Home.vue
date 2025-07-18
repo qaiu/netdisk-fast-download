@@ -48,7 +48,7 @@
         </div>
         <!-- 项目简介移到卡片内 -->
         <div class="project-intro">
-          <div class="intro-title">NFD网盘直链解析0.1.9_bate6</div>
+          <div class="intro-title">NFD网盘直链解析0.1.9_bate7</div>
           <div class="intro-desc">
             <div>支持网盘：蓝奏云、蓝奏云优享、小飞机盘、123云盘、奶牛快传、移动云空间、亿方云、文叔叔、QQ邮箱文件中转站等</div>
             <div>文件夹解析支持：蓝奏云、蓝奏云优享、小飞机盘、123云盘</div>
@@ -161,6 +161,9 @@
               <el-descriptions-item label="302下载链接">
                 <el-link target="_blank" :href="statisticsData.downLink">{{ statisticsData.downLink }}</el-link>
               </el-descriptions-item>
+              <el-descriptions-item label="302预览链接">
+                <el-link target="_blank" :href="statisticsData.viewLink">{{ statisticsData.viewLink }}</el-link>
+              </el-descriptions-item>
               <el-descriptions-item label="解析次数">{{ statisticsData.parserTotal }}</el-descriptions-item>
               <el-descriptions-item label="缓存命中次数">{{ statisticsData.cacheHitTotal }}</el-descriptions-item>
               <el-descriptions-item label="总请求次数">{{ statisticsData.sumTotal }}</el-descriptions-item>
@@ -187,13 +190,19 @@
       </el-card>
     </el-row>
     <!-- 文件解析结果区下方加分享按钮 -->
-    <div v-if="parseResult.code && downloadUrl" style="margin-top: 10px; text-align: right;">
-      <el-button type="primary" @click="copyShowFileLink">分享文件直链</el-button>
-    </div>
+<!--    <div v-if="parseResult.code && downloadUrl" style="margin-top: 10px; text-align: right;">-->
+<!--      <el-button type="primary" @click="copyShowFileLink">分享文件直链</el-button>-->
+<!--    </div>-->
     <!-- 目录解析结果区下方加分享按钮 -->
-    <div v-if="showDirectoryTree && directoryData.length" style="margin-top: 10px; text-align: right;">
-      <el-button type="primary" @click="copyShowListLink">分享目录直链</el-button>
-    </div>
+<!--    <div v-if="showDirectoryTree && directoryData.length" style="margin-top: 10px; text-align: right;">-->
+<!--      <el-input :value="showListLink" readonly style="width: 350px; margin-right: 10px;">-->
+<!--        <template #append>-->
+<!--          <el-button v-clipboard:copy="showListLink" v-clipboard:success="onCopy" v-clipboard:error="onError">-->
+<!--            <el-icon><CopyDocument /></el-icon>复制分享链接-->
+<!--          </el-button>-->
+<!--        </template>-->
+<!--      </el-input>-->
+<!--    </div>-->
   </div>
 </template>
 
@@ -246,7 +255,8 @@ export default {
       directoryViewMode: 'pane', // 新增，目录树展示模式
       hasClipboardSuccessTip: false, // 新增，聚焦期间只提示一次
       showRiskDialog: false,
-      baseUrl: location.origin
+      baseUrl: location.origin,
+      showListLink: '',
     }
   },
   methods: {
@@ -334,7 +344,9 @@ export default {
         const directoryResult = await this.callAPI('/v2/getFileList', params)
         this.directoryData = directoryResult.data || []
         this.showDirectoryTree = true
-        
+        // 自动赋值分享链接
+        this.showListLink = `${this.baseUrl}/showList?url=${encodeURIComponent(this.link)}`
+
         this.$message.success(`目录解析成功！共找到 ${this.directoryData.length} 个文件/文件夹`)
       } catch (error) {
         console.error('目录解析失败:', error)
