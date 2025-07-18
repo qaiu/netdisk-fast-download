@@ -394,8 +394,8 @@ Core模块集成Vert.x实现类似spring的注解式路由API
 99元, 提供对小飞机,蓝奏优享大文件解析的支持, 提供天翼云盘,移动云盘,联调云盘的解析支持  
 199元, 包含部署服务和首页定制, 需提供宝塔环境  
 可以提供功能定制开发, 加v价格详谈:
-<p>wechat1: qaiu-cn</p>
-<p>wechat2: imcoding_</p>
+<p>qq: 197575894</p>
+<p>wechat: imcoding_</p>
 
 <!--
 ![image](https://github.com/qaiu/netdisk-fast-download/assets/29825328/54276aee-cc3f-4ebd-8973-2e15f6295819)
