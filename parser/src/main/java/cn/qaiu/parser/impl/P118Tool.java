@@ -31,18 +31,20 @@ public class P118Tool extends PanBase {
                     Pattern compile = Pattern.compile("href=\"([^\"]+)\"");
                     Matcher matcher = compile.matcher(res.bodyAsString());
                     if (matcher.find()) {
-                        System.out.println(matcher.group(1));
-                        complete(matcher.group(1));
+                        //c:  0x63
+                        //o:  0x6F
+                        //m:  0x6D
+                        //1:  0x31
+                        ///:  0x2F
+                        char[] chars1 = new char[]{99, 111, 109, 49, 47};
+                        char[] chars2 = new char[]{99, 111, 109, 47};
+                        String group = matcher.group(1).replace(String.valueOf(chars1), String.valueOf(chars2));
+                        System.out.println(group);
+                        complete(group);
                     } else {
                         fail();
                     }
                 }).onFailure(handleFail(""));
         return future();
     }
-
-//    public static void main(String[] args) {
-//        String s = new P118Tool(ShareLinkInfo.newBuilder().shareUrl("https://xiguage.118pan.com/b11848261").shareKey(
-//                "11848261").build()).parseSync();
-//        System.out.println(s);
-//    }
 }
