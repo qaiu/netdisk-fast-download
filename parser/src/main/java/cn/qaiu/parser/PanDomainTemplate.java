@@ -24,8 +24,82 @@ public enum PanDomainTemplate {
 
 
     // 网盘定义
+    /*
+        lanzoul.com
+        lanzouh.com
+        lanosso.com
+        lanpv.com
+        bakstotre.com
+        lanzouo.com
+        lanzov.com
+        lanpw.com
+        ulanzou.com
+        lanzouf.com
+        lanzn.com
+        lanzouj.com
+        lanzouk.com
+        lanzouq.com
+        lanzouv.com
+        lanzoue.com
+        lanzouw.com
+        lanzoub.com
+        lanzouu.com
+        lanwp.com
+        lanzouy.com
+        lanzoup.com
+        woozooo.com
+        lanzv.com
+        dmpdmp.com
+        lanrar.com
+        webgetstore.com
+        lanzb.com
+        lanzoux.com
+        lanzout.com
+        lanzouc.com
+        ilanzou.com
+        lanzoui.com
+        lanzoug.com
+        lanzoum.com
+        t-is.cn
+     */
     LZ("蓝奏云",
-             compile("https://(?:[a-zA-Z\\d-]+\\.)?((lanzou[a-z])|(lanzn))\\.com/(.+/)?(?<KEY>.+)"),
+             compile("https://(?:[a-zA-Z\\d-]+\\.)?(" +
+                      "lanzoul|" +
+                      "lanzouh|" +
+                      "lanosso|" +
+                      "lanpv|" +
+                      "bakstotre|" +
+                      "lanzouo|" +
+                      "lanzov|" +
+                      "lanpw|" +
+                      "ulanzou|" +
+                      "lanzouf|" +
+                      "lanzn|" +
+                      "lanzouj|" +
+                      "lanzouk|" +
+                      "lanzouq|" +
+                      "lanzouv|" +
+                      "lanzoue|" +
+                      "lanzouw|" +
+                      "lanzoub|" +
+                      "lanzouu|" +
+                      "lanwp|" +
+                      "lanzouy|" +
+                      "lanzoup|" +
+                      "woozooo|" +
+                      "lanzv|" +
+                      "dmpdmp|" +
+                      "lanrar|" +
+                      "webgetstore|" +
+                      "lanzb|" +
+                      "lanzoux|" +
+                      "lanzout|" +
+                      "lanzouc|" +
+                      "ilanzou|" +
+                      "lanzoui|" +
+                      "lanzoug|" +
+                      "lanzoum" +
+                     ")\\.com/(.+/)?(?<KEY>.+)"),
             "https://lanzoux.com/{shareKey}",
             LzTool.class),
 
@@ -65,14 +139,68 @@ public enum PanDomainTemplate {
             "https://wx.mail.qq.com/s?k={shareKey}",
             "https://mail.qq.com",
             QQwTool.class),
+    // https://qfile.qq.com/q/xxx
+    QQSC("QQ闪传",
+            compile("https://qfile\\.qq\\.com/q/(?<KEY>.+)"),
+            "https://qfile.qq.com/q/{shareKey}",
+            QQscTool.class),
     // https://f.ws59.cn/f/或者https://www.wenshushu.cn/f/
     WS("文叔叔",
             compile("https://(f\\.ws(\\d{2})\\.cn|www\\.wenshushu\\.cn)/f/(?<KEY>.+)"),
             "https://www.wenshushu.cn/f/{shareKey}",
             WsTool.class),
     // https://www.123pan.com/s/
+    /*
+        123254.com
+        123957.com
+        123295.com
+        123panpay.com
+        123860.com
+        123pan.com
+        123245.com
+        123278.com
+        123842.com
+        123294.com
+        123865.com
+        123773.com
+        123624.com
+        123684.com
+        123641.com
+        123259.com
+        123912.com
+        123952.com
+        123652.com
+        123pan.cn
+        123635.com
+        123242.com
+        123795.com
+     */
     YE("123网盘",
-            compile("https://www\\.(123pan\\.com|123865\\.com|123684\\.com|123912\\.com|123pan\\.cn)/s/(?<KEY>.+)(.html)?"),
+            compile("https://www\\.(" +
+                    "123254\\.com|" +
+                    "123957\\.com|" +
+                    "123295\\.com|" +
+                    "123panpay\\.com|" +
+                    "123860\\.com|" +
+                    "123pan\\.com|" +
+                    "123245\\.com|" +
+                    "123278\\.com|" +
+                    "123842\\.com|" +
+                    "123294\\.com|" +
+                    "123865\\.com|" +
+                    "123773\\.com|" +
+                    "123624\\.com|" +
+                    "123684\\.com|" +
+                    "123641\\.com|" +
+                    "123259\\.com|" +
+                    "123912\\.com|" +
+                    "123952\\.com|" +
+                    "123652\\.com|" +
+                    "123pan\\.cn|" +
+                    "123635\\.com|" +
+                    "123242\\.com|" +
+                    "123795\\.com"  +
+                    ")/s/(?<KEY>.+)(.html)?"),
             "https://www.123pan.com/s/{shareKey}",
             YeTool.class),
     // https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data={code}&isShare=1
@@ -143,7 +271,7 @@ public enum PanDomainTemplate {
     // http://163cn.tv/xxx
     MNES("网易云音乐分享",
             compile("http(s)?://163cn\\.tv/(?<KEY>.+)"),
-            "http://163cn.tv/{shareKey}",
+            "https://163cn.tv/{shareKey}",
             MnesTool.class),
     // https://music.163.com/#/song?id=xxx
     MNE("网易云音乐歌曲详情",

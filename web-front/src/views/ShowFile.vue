@@ -7,7 +7,7 @@
         <div class="file-meta-info-card">
           <div class="file-meta-row">
             <span class="file-meta-label">下载链接：</span>
-            <a :href="downloadUrl" target="_blank" class="file-meta-link">{{ downloadUrl }}</a>
+            <a :href="downloadUrl" target="_blank" class="file-meta-link">点击下载</a>
           </div>
           <div class="file-meta-row">
             <span class="file-meta-label">文件名：</span>{{ fileTypeUtils.extractFileNameAndExt(downloadUrl).name }}
