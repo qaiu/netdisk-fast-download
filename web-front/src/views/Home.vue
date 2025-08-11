@@ -19,13 +19,13 @@
     </el-dialog> -->
     <!-- 顶部反馈栏（小号、灰色、无红边框） -->
     <div class="feedback-bar">
-      <a href="https://github.com/qaiu/lz.qaiu.top/issues" target="_blank" rel="noopener" class="feedback-link mini">
+      <a href="https://github.com/qaiu/netdisk-fast-download/issues" target="_blank" rel="noopener" class="feedback-link mini">
         <i class="fas fa-bug feedback-icon"></i>
         反馈
       </a>
-      <a href="https://github.com/qaiu/lz.qaiu.top" target="_blank" rel="noopener" class="feedback-link mini">
+      <a href="https://github.com/qaiu/netdisk-fast-download" target="_blank" rel="noopener" class="feedback-link mini">
         <i class="fab fa-github feedback-icon"></i>
-        GitHub
+        源码
       </a>
       <a href="https://blog.qaiu.top" target="_blank" rel="noopener" class="feedback-link mini">
         <i class="fas fa-blog feedback-icon"></i>
@@ -48,9 +48,9 @@
         </div>
         <!-- 项目简介移到卡片内 -->
         <div class="project-intro">
-          <div class="intro-title">NFD网盘直链解析0.1.9_bate7</div>
+          <div class="intro-title">NFD网盘直链解析0.1.9_bate8</div>
           <div class="intro-desc">
-            <div>支持网盘：蓝奏云、蓝奏云优享、小飞机盘、123云盘、奶牛快传、移动云空间、亿方云、文叔叔、QQ邮箱文件中转站等</div>
+            <div>支持网盘：蓝奏云、蓝奏云优享、小飞机盘、123云盘、奶牛快传、移动云空间、QQ邮箱云盘、QQ闪传等 <el-link style="color:#606cf5" href="https://github.com/qaiu/netdisk-fast-download?tab=readme-ov-file#%E7%BD%91%E7%9B%98%E6%94%AF%E6%8C%81%E6%83%85%E5%86%B5" target="_blank"> &gt;&gt; </el-link></div>
             <div>文件夹解析支持：蓝奏云、蓝奏云优享、小飞机盘、123云盘</div>
           </div>
         </div>
@@ -102,7 +102,7 @@
             <div v-if="downloadUrl" class="file-meta-info-card">
               <div class="file-meta-row">
                 <span class="file-meta-label">下载链接：</span>
-                <a :href="downloadUrl" target="_blank" class="file-meta-link">{{ downloadUrl }}</a>
+                <a :href="downloadUrl" target="_blank" class="file-meta-link" rel="noreferrer noopener">点击下载</a>
               </div>
               <div class="file-meta-row" v-if="parseResult.data?.downloadShortUrl">
                 <span class="file-meta-label">下载短链：</span>
@@ -170,6 +170,30 @@
             </el-descriptions>
           </div>
 
+          <!-- 错误时显示小按钮 -->
+          <div v-if="errorButtonVisible" style="text-align: center; margin-top: 10px;">
+            <el-button type="text" @click="errorDialogVisible = true"> 反馈错误详情>> </el-button>
+          </div>
+
+          <!-- 错误 JSON 弹窗 -->
+          <el-dialog
+              v-model="errorDialogVisible"
+              width="60%">
+            <template #title>
+              错误详情
+              <el-link
+                  @click.prevent="copyErrorDetails"
+                  target="_blank"
+                  style="margin-left:8px"
+                  type="primary">
+                复制当前错误信息，提交Issue
+              </el-link>
+            </template>
+            <json-viewer :value="errorDetail" :expand-depth="5" copyable boxed sort />
+            <template #footer>
+              <el-button @click="errorDialogVisible = false">关闭</el-button>
+            </template>
+          </el-dialog>
           <!-- 目录树组件 -->
           <div v-if="showDirectoryTree" class="directory-tree-container">
             <div style="margin-bottom: 10px; text-align: right;">
@@ -203,7 +227,9 @@
 <!--        </template>-->
 <!--      </el-input>-->
 <!--    </div>-->
+
   </div>
+
 </template>
 
 <script>
@@ -257,6 +283,10 @@ export default {
       showRiskDialog: false,
       baseUrl: location.origin,
       showListLink: '',
+
+      errorDialogVisible: false,
+      errorDetail: null,
+      errorButtonVisible: false
     }
   },
   methods: {
@@ -288,6 +318,7 @@ export default {
 
     // 统一API调用
     async callAPI(endpoint, params = {}) {
+      this.errorButtonVisible = false
       try {
         this.isLoading = true
         const response = await axios.get(`${this.baseAPI}${endpoint}`, { params })
@@ -296,6 +327,9 @@ export default {
           // this.$message.success(response.data.msg || '操作成功')
           return response.data
         } else {
+          // 在页面右下角显示一个“查看详情”按钮 可以查看原json
+          this.errorDetail = response?.data
+          this.errorButtonVisible = true
           throw new Error(response.data.msg || '操作失败')
         }
       } catch (error) {
@@ -508,6 +542,18 @@ export default {
       navigator.clipboard.writeText(url).then(() => {
         ElMessage.success('目录分享链接已复制！')
       })
+    },
+
+    copyErrorDetails() {
+      const text = `分享链接：${this.link}
+分享密码：${this.password || ''}
+错误信息：${JSON.stringify(this.errorDetail, null, 2)}`;
+      navigator.clipboard.writeText(text).then(() => {
+        this.$message.success('已复制分享信息和错误详情');
+        window.open('https://github.com/qaiu/netdisk-fast-download/issues/new', '_blank');
+      }).catch(() => {
+        this.$message.error('复制失败');
+      });
     }
   },
   
@@ -825,5 +871,9 @@ hr {
     padding-right: 8px;  /* 和卡片内容对齐 */
     padding-left: 8px;
   }
+}
+
+.jv-container.jv-light .jv-item.jv-object {
+  color: #888;
 }
 </style>

@@ -1,10 +1,5 @@
 // 修改自 https://github.com/syhyz1990/panAI
 
-    const util = {
-
-        isMobile: (() => !!navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone|HarmonyOS|MicroMessenger)/i))(),
-
-    }
 
     let opt = {
         // 'baidu': {
@@ -292,6 +287,12 @@
             reg: /https:\/\/iwx\.mail\.qq\.com\/ftn\/download\?.+/,
             host: /mail\.qq\.com/,
             name: 'QQ邮箱中转站'
+        },
+        QQsc: {
+            // qfile.qq.com
+            reg: /https:\/\/qfile\.qq\.com\/q\/.+/,
+            host: /qfile\.qq\.com/,
+            name: 'QQ闪传'
         },
         pan118: {
             reg: /https:\/\/(?:[a-zA-Z\d-]+\.)?118pan\.com\/b.+/,

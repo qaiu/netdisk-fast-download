@@ -202,17 +202,18 @@ public abstract class PanBase implements IPanTool {
                 try {
                     log.error(decompressGzip((Buffer) res.body()));
                     fail(decompressGzip((Buffer) res.body()));
-                    throw new RuntimeException("响应不是JSON格式");
+                    //throw new RuntimeException("响应不是JSON格式");
                 } catch (IOException ex) {
                     log.error("响应gzip解压失败");
                     fail("响应gzip解压失败: {}", ex.getMessage());
-                    throw new RuntimeException("响应gzip解压失败", ex);
+                    //throw new RuntimeException("响应gzip解压失败", ex);
                 }
             } else {
                 log.error("解析失败: json格式异常: {}", res.bodyAsString());
                 fail("解析失败: json格式异常: {}", res.bodyAsString());
-                throw new RuntimeException("解析失败: json格式异常");
+                //throw new RuntimeException("解析失败: json格式异常");
             }
+            return JsonObject.of();
         }
     }
 
@@ -233,8 +234,9 @@ public abstract class PanBase implements IPanTool {
             }
         } catch (Exception e) {
             fail("解析失败: res格式异常");
-            throw new RuntimeException("解析失败: res格式异常");
+            //throw new RuntimeException("解析失败: res格式异常");
         }
+        return null;
     }
 
     protected void complete(String url) {

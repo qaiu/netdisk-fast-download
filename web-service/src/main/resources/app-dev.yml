@@ -36,15 +36,15 @@ custom:
     - ^cn\.qaiu\.lz\.web\.model\..*
 
 # 限流配置
-rateLimit:
-  # 是否启用限流
-  enable: true
-  # 限流的请求数
-  limit: 10
-  # 限流的时间窗口(单位秒)
-  timeWindow: 10
-  # 路径匹配规则
-  pathReg: ^/v2/.*
+#rateLimit:
+#  # 是否启用限流
+#  enable: true
+#  # 限流的请求数
+#  limit: 10
+#  # 限流的时间窗口(单位秒)
+#  timeWindow: 10
+#  # 路径匹配规则
+#  pathReg: ^/v2/.*
 
 
 # 数据源配置
