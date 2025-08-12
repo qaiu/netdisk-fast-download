@@ -12,7 +12,8 @@ import static io.vertx.core.http.HttpHeaders.CONTENT_TYPE;
 public class ResponseUtil {
 
     public static void redirect(HttpServerResponse response, String url) {
-        response.putHeader(HttpHeaders.LOCATION, url).setStatusCode(302).end();
+        response.putHeader(CONTENT_TYPE, "text/html; charset=utf-8")
+                .putHeader(HttpHeaders.LOCATION, url).setStatusCode(302).end();
     }
 
     public static void redirect(HttpServerResponse response, String url, Promise<?> promise) {
