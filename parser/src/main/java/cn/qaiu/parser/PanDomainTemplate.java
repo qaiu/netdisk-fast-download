@@ -23,6 +23,11 @@ import static java.util.regex.Pattern.compile;
 public enum PanDomainTemplate {
 
 
+    // https://www.ilanzou.com/s/
+    IZ("蓝奏云优享",
+            compile("https://www\\.ilanzou\\.com/s/(?<KEY>.+)"),
+            "https://www.ilanzou.com/s/{shareKey}",
+            IzTool.class),
     // 网盘定义
     /*
         lanzoul.com
@@ -95,7 +100,7 @@ public enum PanDomainTemplate {
                       "lanzoux|" +
                       "lanzout|" +
                       "lanzouc|" +
-                      "ilanzou|" +
+//                      "ilanzou|" +
                       "lanzoui|" +
                       "lanzoug|" +
                       "lanzoum" +
@@ -122,11 +127,6 @@ public enum PanDomainTemplate {
             "https://v2.fangcloud.com/s/{shareKey}",
             "https://www.fangcloud.com/",
             FcTool.class),
-    // https://www.ilanzou.com/s/
-    IZ("蓝奏云优享",
-            compile("https://www\\.ilanzou\\.com/s/(?<KEY>.+)"),
-            "https://www.ilanzou.com/s/{shareKey}",
-            IzTool.class),
     // https://wx.mail.qq.com/ftn/download?
     QQ("QQ邮箱中转站",
             compile("https://i?wx\\.mail\\.qq\\.com/ftn/download\\?(?<KEY>.+)"),
