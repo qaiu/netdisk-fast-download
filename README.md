@@ -18,6 +18,25 @@ QQ群：1017480890
 
 netdisk-fast-download网盘直链云解析(nfd云解析)能把网盘分享下载链接转化为直链，支持多款云盘，已支持蓝奏云/蓝奏云优享/奶牛快传/移动云云空间/小飞机盘/亿方云/123云盘/Cloudreve等，支持加密分享，以及部分网盘文件夹分享。  
 
+## 快速开始
+命令行下载分享文件：  
+```shell
+curl -LOJ "https://lz.qaiu.top/parser?url=https://share.feijipan.com/s/nQOaNRPW&pwd=1234"  
+```
+或者使用wget:  
+```shell
+wget -O bilibili.mp4 "https://lz.qaiu.top/parser?url=https://share.feijipan.com/s/nQOaNRPW&pwd=1234"
+```
+或者使用浏览器[直接访问](https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.top%2Fparser%3Furl%3Dhttps%3A%2F%2Fshare.feijipan.com%2Fs%2FnQOaNRPW&name=bilibili.mp4&ext=mp4):
+```http request
+### 调用演示站下载：
+https://lz.qaiu.top/parser?url=https://share.feijipan.com/s/nQOaNRPW&pwd=1234  
+### 调用演示站预览：
+https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.top%2Fparser%3Furl%3Dhttps%3A%2F%2Fshare.feijipan.com%2Fs%2FnQOaNRPW&name=bilibili.mp4&ext=mp4  
+
+```
+
+## 预览地址  
 [预览地址1](https://lz.qaiu.top)  
 [预览地址2](http://www.722shop.top:6401)  
 [天翼云盘大文件解析限时开放](https://189.qaiu.top)  
@@ -65,7 +84,7 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 - [联通云盘-pwo](https://pan.wo.cn/)
 - [天翼云盘-p189](https://cloud.189.cn/)
 
-### API接口说明
+## API接口说明
   your_host指的是您的域名或者IP，实际使用时替换为实际域名或者IP，端口默认6400，可以使用nginx代理来做域名访问。    
   解析方式分为两种类型直接跳转下载文件和获取下载链接,  
 每一种都提供了两种接口形式: `通用接口parser?url=`和`网盘标志/分享key拼接的短地址（标志短链）`，所有规则参考示例。
@@ -93,7 +112,7 @@ API规则:
 
 ### json接口说明
 
-1. 文件解析：/json/parser?url=分享链接&pwd=xxx  
+#### 1. 文件解析：/json/parser?url=分享链接&pwd=xxx  
 
 json返回数据格式示例:  
 `shareKey`:    全局分享key  
@@ -117,7 +136,7 @@ json返回数据格式示例:
   "timestamp": 1726637151902
 }
 ```
-2. 分享链接详情接口 /v2/linkInfo?url=分享链接
+#### 2. 分享链接详情接口 /v2/linkInfo?url=分享链接
 ```json
 {
     "code": 200,
@@ -146,7 +165,7 @@ json返回数据格式示例:
     "timestamp": 1736489219402
 }
 ```
-3. 文件夹解析(仅支持蓝奏云/蓝奏优享/小飞机网盘)
+#### 3. 文件夹解析(仅支持蓝奏云/蓝奏优享/小飞机网盘)
 /v2/getFileList?url=分享链接&pwd=分享密码
 
 ```json
@@ -167,7 +186,7 @@ json返回数据格式示例:
       "updateTime": null,
       "createBy": null,
       "description": null,
-      "downloadCount": 下载次数,
+      "downloadCount": "下载次数",
       "panType": "lz",
       "parserUrl": "下载链接/文件夹链接", 
       "extParameters": null
@@ -175,7 +194,7 @@ json返回数据格式示例:
   ]
 }
 ```
-4. 解析次数统计接口 /v2/statisticsInfo
+#### 4. 解析次数统计接口 /v2/statisticsInfo
 ```json
 {
     "code": 200,
