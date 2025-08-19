@@ -225,7 +225,6 @@ public class LzTool extends PanBase {
                                 .setParserUrl(getDomainName() + "/d/" + panType + "/" + id)
                                 .setPreviewUrl(String.format("%s/v2/view/%s/%s", getDomainName(),
                                         shareLinkInfo.getType(), id));
-                        ;
                         log.debug("文件信息: {}", fileInfo);
                         list.add(fileInfo);
                     });

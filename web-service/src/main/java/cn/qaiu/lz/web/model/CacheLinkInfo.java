@@ -5,8 +5,10 @@ import cn.qaiu.db.ddl.Table;
 import cn.qaiu.db.ddl.TableGenIgnore;
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.lz.common.ToJson;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.json.jackson.DatabindCodec;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -65,6 +67,11 @@ public class CacheLinkInfo implements ToJson {
         }
         if (json.containsKey("expiration")) {
             this.setExpiration(json.getLong("expiration"));
+        }
+
+        if (json.containsKey("fileInfo")) {
+            ObjectMapper mapper = DatabindCodec.mapper(); // Vert.x 自带的 mapper
+            this.setFileInfo(mapper.convertValue(json.getJsonObject("fileInfo"), FileInfo.class));
         }
         this.setCacheHit(json.getBoolean("cacheHit", false));
     }

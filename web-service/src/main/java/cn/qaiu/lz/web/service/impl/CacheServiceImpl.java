@@ -1,38 +1,33 @@
 package cn.qaiu.lz.web.service.impl;
 
+import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.lz.common.cache.CacheConfigLoader;
 import cn.qaiu.lz.common.cache.CacheManager;
 import cn.qaiu.lz.common.cache.CacheTotalField;
+import cn.qaiu.lz.common.util.URLParamUtil;
 import cn.qaiu.lz.web.model.CacheLinkInfo;
 import cn.qaiu.lz.web.service.CacheService;
+import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.ParserCreate;
 import cn.qaiu.vx.core.annotaions.Service;
-import cn.qaiu.vx.core.util.ConfigConstant;
-import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.shareddata.LocalMap;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.time.DateFormatUtils;
 
 import java.util.Date;
 
 @Service
+@Slf4j
 public class CacheServiceImpl implements CacheService {
 
     private final CacheManager cacheManager = new CacheManager();
 
     private Future<CacheLinkInfo> getAndSaveCachedShareLink(ParserCreate parserCreate) {
-        LocalMap<Object, Object> localMap = VertxHolder.getVertxInstance().sharedData()
-                .getLocalMap(ConfigConstant.LOCAL);
-        if (localMap.containsKey(ConfigConstant.PROXY)) {
-            JsonObject proxy = (JsonObject) localMap.get(ConfigConstant.PROXY);
-            String type = parserCreate.getShareLinkInfo().getType();
-            if (proxy.containsKey(type)) {
-                parserCreate.getShareLinkInfo().getOtherParam().put(ConfigConstant.PROXY, proxy.getJsonObject(type));
-            }
-        }
+
+        URLParamUtil.addParam(parserCreate);
 
         Promise<CacheLinkInfo> promise = Promise.promise();
         // 构建组合的缓存key
@@ -46,20 +41,36 @@ public class CacheServiceImpl implements CacheService {
                 // parse
                 result.setCacheHit(false);
                 result.setExpiration(0L);
-                parserCreate.createTool().parse().onSuccess(redirectUrl -> {
+                IPanTool tool;
+                try {
+                    tool = parserCreate.createTool();
+                } catch (Exception e) {
+                    promise.fail(e.getCause().getCause());
+                    return;
+                }
+                tool.parse().onSuccess(redirectUrl -> {
                     long expires = System.currentTimeMillis() +
                             CacheConfigLoader.getDuration(shareLinkInfo.getType()) * 60 * 1000L;
                     result.setDirectLink(redirectUrl);
-                    // result.setExpires(generateDate(expires));
-                    promise.complete(result);
-                    // 更新缓存
-                    // 将直链存储到缓存
+
                     CacheLinkInfo cacheLinkInfo = new CacheLinkInfo(JsonObject.of(
                             "directLink", redirectUrl,
                             "expiration", expires,
                             "shareKey", cacheKey
                     ));
-                    cacheManager.cacheShareLink(cacheLinkInfo).onFailure(Throwable::printStackTrace);
+                    if (shareLinkInfo.getOtherParam().containsKey("fileInfo")) {
+                        try {
+                            FileInfo fileInfo = (FileInfo) shareLinkInfo.getOtherParam().get("fileInfo");
+                            result.setFileInfo(fileInfo);
+                            cacheLinkInfo.setFileInfo(fileInfo);
+                        } catch (Exception ignored) {
+                            log.error("文件对象转换异常");
+                        }
+                    }
+                    promise.complete(result);
+                    // 更新缓存
+                    // 将直链存储到缓存
+                    cacheManager.cacheShareLink(cacheLinkInfo);
                     cacheManager.updateTotalByField(cacheKey, CacheTotalField.API_PARSER_TOTAL).onFailure(Throwable::printStackTrace);
                 }).onFailure(promise::fail);
             } else {

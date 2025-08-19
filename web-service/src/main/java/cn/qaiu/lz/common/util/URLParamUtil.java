@@ -1,7 +1,13 @@
 package cn.qaiu.lz.common.util;
 
+import cn.qaiu.parser.ParserCreate;
+import cn.qaiu.vx.core.util.ConfigConstant;
+import cn.qaiu.vx.core.util.SharedDataUtil;
+import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.json.JsonObject;
+import io.vertx.core.shareddata.LocalMap;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -71,5 +77,43 @@ public class URLParamUtil {
         }
 
         return urlBuilder.toString();
+    }
+
+    /**
+     * 添加共享链接的其他参数到ParserCreate对象中
+     * @param parserCreate ParserCreate对象，包含共享链接信息
+     */
+    public static void addParam(ParserCreate parserCreate) {
+        LocalMap<Object, Object> localMap = VertxHolder.getVertxInstance().sharedData()
+                .getLocalMap(ConfigConstant.LOCAL);
+
+        String type = parserCreate.getShareLinkInfo().getType();
+        if (localMap.containsKey(ConfigConstant.PROXY)) {
+            JsonObject proxy = (JsonObject) localMap.get(ConfigConstant.PROXY);
+            if (proxy.containsKey(type)) {
+                parserCreate.getShareLinkInfo().getOtherParam().put(ConfigConstant.PROXY, proxy.getJsonObject(type));
+            }
+        }
+        if (localMap.containsKey(ConfigConstant.AUTHS)) {
+            JsonObject auths = (JsonObject) localMap.get(ConfigConstant.AUTHS);
+            if (auths.containsKey(type)) {
+                // 需要处理引号
+                MultiMap entries = MultiMap.caseInsensitiveMultiMap();
+                JsonObject jsonObject = auths.getJsonObject(type);
+                if (jsonObject != null) {
+                    jsonObject.forEach(entity -> {
+                        if (entity == null || entity.getValue() == null) {
+                            return;
+                        }
+                        entries.set(entity.getKey(), entity.getValue().toString());
+                    });
+                }
+
+                parserCreate.getShareLinkInfo().getOtherParam().put(ConfigConstant.AUTHS, entries);
+            }
+        }
+
+        String linkPrefix = SharedDataUtil.getJsonConfig("server").getString("domainName");
+        parserCreate.getShareLinkInfo().getOtherParam().put("domainName", linkPrefix);
     }
 }

@@ -8,7 +8,11 @@ public interface ConfigConstant {
     String SERVER = "server";
     String CACHE = "cache";
 
+    String PROXY_SERVER = "proxy-server";
+
     String PROXY = "proxy";
+
+    String AUTHS = "auths";
     String GLOBAL_CONFIG = "globalConfig";
     String CUSTOM_CONFIG = "customConfig";
     String ASYNC_SERVICE_INSTANCES = "asyncServiceInstances";

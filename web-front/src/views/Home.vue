@@ -1,5 +1,5 @@
 <template>
-  <div id="app" :class="{ 'dark-theme': isDarkMode }">
+  <div id="app" v-cloak  :class="{ 'dark-theme': isDarkMode }">
     <!-- <el-dialog
       v-model="showRiskDialog"
       title="使用本网站您应改同意"
@@ -293,6 +293,9 @@ export default {
     // 主题切换
     handleThemeChange(isDark) {
       this.isDarkMode = isDark
+      document.body.classList.toggle('dark-theme', isDark)
+      window.localStorage.setItem('isDarkMode', isDark)
+
     },
 
     // 验证输入
@@ -600,6 +603,8 @@ export default {
 </script>
 
 <style>
+[v-cloak] { display: none; }
+
 body {
   background-color: #f5f7fa;
   color: #2c3e50;
