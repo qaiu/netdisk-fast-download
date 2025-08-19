@@ -153,6 +153,13 @@
           }
       }
   </style>
+    <script>
+        const saved = localStorage.getItem('isDarkMode') === 'true'
+        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (saved || (!saved && systemDark)) {
+            document.body.classList.add('dark-theme')
+        }
+    </script>
 </head>
 <body>
 <div id="app">

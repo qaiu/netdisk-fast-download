@@ -7,8 +7,17 @@ public class FileSizeConverter {
             throw new IllegalArgumentException("Invalid file size string");
         }
 
-        sizeStr = sizeStr.trim().toUpperCase();
-        char unit = sizeStr.charAt(sizeStr.length() - 1);
+        sizeStr = sizeStr.replace(",","").trim().toUpperCase();
+        // 判断是2位单位还是1位单位
+        // 判断单位是否为2位
+        int unitIndex = sizeStr.length() - 1;
+        char unit = sizeStr.charAt(unitIndex);
+        if (Character.isLetter(sizeStr.charAt(unitIndex - 1))) {
+            unit = sizeStr.charAt(unitIndex - 1);
+            sizeStr = sizeStr.substring(0, unitIndex - 1);
+        } else {
+            sizeStr = sizeStr.substring(0, unitIndex);
+        }
         double size = Double.parseDouble(sizeStr.substring(0, sizeStr.length() - 1));
 
         return switch (unit) {

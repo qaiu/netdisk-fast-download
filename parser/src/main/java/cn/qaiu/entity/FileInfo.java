@@ -72,6 +72,9 @@ public class FileInfo {
     //预览地址
     private String previewUrl;
 
+    // 文件hash默认类型为md5
+    private String hash;
+
     /**
      * 扩展参数
      */
@@ -207,6 +210,15 @@ public class FileInfo {
     }
     public FileInfo setPreviewUrl(String previewUrl) {
         this.previewUrl = previewUrl;
+        return this;
+    }
+
+    public String getHash() {
+        return hash;
+    }
+
+    public FileInfo setHash(String hash) {
+        this.hash = hash;
         return this;
     }
 

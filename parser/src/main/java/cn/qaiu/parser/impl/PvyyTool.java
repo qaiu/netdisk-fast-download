@@ -4,10 +4,13 @@ import cn.qaiu.WebClientVertxInit;
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
+import cn.qaiu.util.FileSizeConverter;
 import cn.qaiu.util.HeaderUtils;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
+import io.vertx.core.json.JsonObject;
+import io.vertx.core.json.pointer.JsonPointer;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.uritemplate.UriTemplate;
 
@@ -75,7 +78,18 @@ public class PvyyTool extends PanBase {
                 .putHeaders(header)
                 .send().onSuccess(res -> {
                     try {
-                        String id = asJson(res).getJsonObject("data").getJsonObject("data").getString("id");
+                        JsonObject resJson = asJson(res);
+                        if (!resJson.containsKey("code") || resJson.getInteger("code") != 0) {
+                            fail("获取文件信息失败: " + resJson.getString("message"));
+                            return;
+                        }
+                        JsonObject fileData = resJson.getJsonObject("data").getJsonObject("data");
+                        if (fileData == null) {
+                            fail("文件数据为空");
+                            return;
+                        }
+                        setFileInfo(fileData);
+                        String id = fileData.getString("id");
 
                         client.getAbs(UriTemplate.of(apiUrl))
                                 .setTemplateParam("key", shareLinkInfo.getShareKey())
@@ -95,6 +109,23 @@ public class PvyyTool extends PanBase {
                         fail();
                     }
                 });
+    }
+
+    private void setFileInfo(JsonObject fileData) {
+        JsonObject attributes = fileData.getJsonObject("attributes");
+        JsonObject user = (JsonObject)(JsonPointer.from("/relationships/user/data").queryJson(fileData));
+        int downCount = (Integer)(JsonPointer.from("/relationships/shared/data/attributes/down").queryJson(fileData));
+        String filesize = attributes.getString("filesize");
+        FileInfo fileInfo = new FileInfo()
+                .setFileId(fileData.getString("id"))
+                .setFileName(attributes.getString("basename"))
+                .setFileType(attributes.getString("mimetype"))
+                .setPanType(shareLinkInfo.getType())
+                .setCreateBy(user.getString("email"))
+                .setDownloadCount(downCount)
+                .setSize(FileSizeConverter.convertToBytes(filesize))
+                .setSizeStr(filesize);
+        shareLinkInfo.getOtherParam().put("fileInfo", fileInfo);
     }
 
     private static final String DIR_API = "https://www.vyuyun.com/apiv1/share/folders/809Pt6/bMjnUg?sort=created_at&direction=DESC&password={pwd}";
