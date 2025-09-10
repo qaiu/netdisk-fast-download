@@ -100,7 +100,6 @@ public enum PanDomainTemplate {
                       "lanzoux|" +
                       "lanzout|" +
                       "lanzouc|" +
-//                      "ilanzou|" +
                       "lanzoui|" +
                       "lanzoug|" +
                       "lanzoum" +
@@ -244,7 +243,7 @@ public enum PanDomainTemplate {
             PgdTool.class),
     // iCloud https://www.icloud.com.cn/iclouddrive/xxx#fonts
     PIC("iCloud",
-            compile("https://www\\.icloud\\.com\\.cn/iclouddrive/(?<KEY>[a-z_A-Z\\d-=]+)(#(.+))?"),
+            compile("https://www\\.icloud\\.com(\\.cn)?/iclouddrive/(?<KEY>[a-z_A-Z\\d-=]+)(#(.+))?"),
             "https://www.icloud.com.cn/iclouddrive/{shareKey}",
             PicTool.class),
     // https://www.dropbox.com/scl/fi/cwnbms1yn8u6rcatzyta7/emqx-5.0.26-el7-amd64.tar.gz?rlkey=3uoi4bxz5mv93jmlaws0nlol1&e=8&st=fe0lclc2&dl=0

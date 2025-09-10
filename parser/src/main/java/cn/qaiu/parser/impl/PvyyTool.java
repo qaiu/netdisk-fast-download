@@ -45,11 +45,10 @@ public class PvyyTool extends PanBase {
             user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
             """);
 
-    private String api;
+    private final String api;
     public PvyyTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
         api = new String(hexArray);
-        System.out.println(api);
     }
 
     @Override

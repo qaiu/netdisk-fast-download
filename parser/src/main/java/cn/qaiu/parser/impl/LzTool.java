@@ -28,7 +28,7 @@ import java.util.regex.Pattern;
  */
 public class LzTool extends PanBase {
 
-    public static final String SHARE_URL_PREFIX = "https://wwwa.lanzoux.com";
+    public static final String SHARE_URL_PREFIX = "https://wwww.lanzoup.com";
 
 
     public LzTool(ShareLinkInfo shareLinkInfo) {
