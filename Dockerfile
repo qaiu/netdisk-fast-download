@@ -2,6 +2,8 @@ FROM eclipse-temurin:17-jre-jammy
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y unzip && rm -rf /var/lib/apt/lists/*
+
 COPY ./web-service/target/netdisk-fast-download-bin.zip .
 
 RUN unzip netdisk-fast-download-bin.zip && \
