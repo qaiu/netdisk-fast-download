@@ -1,4 +1,4 @@
-FROM azul/zulu-openjdk:17-jre-headless
+FROM openjdk:17-jre-slim-bullseye
 
 WORKDIR /app
 
