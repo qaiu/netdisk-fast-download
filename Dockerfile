@@ -1,4 +1,4 @@
-FROM openjdk:17-jdk-alpine
+FROM azul/zulu-openjdk-alpine:17
 
 WORKDIR /app
 
