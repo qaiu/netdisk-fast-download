@@ -1,8 +1,9 @@
-FROM openjdk:17-jre-slim
+FROM openjdk:17-jdk-alpine
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y unzip && rm -rf /var/lib/apt/lists/*
+# 安装 unzip
+RUN apk add --no-cache unzip
 
 COPY ./web-service/target/netdisk-fast-download-bin.zip .
 
