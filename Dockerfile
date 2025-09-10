@@ -1,9 +1,9 @@
-FROM azul/zulu-openjdk-alpine:17
+FROM azul/zulu-openjdk:17-jre-headless
 
 WORKDIR /app
 
 # 安装 unzip
-RUN apk add --no-cache unzip
+RUN apt-get update && apt-get install -y unzip && rm -rf /var/lib/apt/lists/*
 
 COPY ./web-service/target/netdisk-fast-download-bin.zip .
 
