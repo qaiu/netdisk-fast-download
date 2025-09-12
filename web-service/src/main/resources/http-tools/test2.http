@@ -1,13 +1,13 @@
 ###
-POST http://127.0.0.1:6400/v2/shout/submit
+POST https://lzzz.qaiu.top/v2/shout/submit
 Content-Type: application/json
 
 {
-  "content": "CREATE UNIQUE INDEX `idx_uk_code` ON `t_messages` (`code`);"
+  "content": "ok 123123123123123123123123123123123123123123123123123123123123231123123"
 }
 
 ###
-GET http://127.0.0.1:6400/v2/shout/retrieve?code=878696
+GET http://lzzz.qaiu.top/v2/shout/retrieve?code=414016
 
 ###
 响应:
@@ -16,3 +16,6 @@ GET http://127.0.0.1:6400/v2/shout/retrieve?code=878696
 "code": 200,
 "msg": "success"
 }
+
+###
+https://gfs302n511.userstorage.mega.co.nz/dl/XwiiRG-Z97rz7wcbWdDmcd654FGkYU3FJncTobxhpPR9GVSggHJQsyMGdkLsWEiIIf71RUXcQPtV7ljVc0Z3tA_ThaUb9msdh7tS0z-2CbaRYSM5176DFxDKQtG84g
