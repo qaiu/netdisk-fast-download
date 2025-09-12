@@ -72,31 +72,17 @@ public class YeTool extends PanBase {
         client.getAbs(UriTemplate.of(FIRST_REQUEST_URL)).setTemplateParam("key", dataKey).send().onSuccess(res -> {
 
             String html = res.bodyAsString();
-            // 判断分享是否已经失效
-            if (html.contains("分享链接已失效")) {
-                fail("该分享已失效({})已失效", shareLinkInfo.getShareUrl());
+            // 分享页面是否存在判断\"UserID\"
+            if (!html.contains("\\\"UserID\\\"")) {
+                fail("该分享({})不存在, 可能分享已失效", shareLinkInfo.getShareUrl());
                 return;
             }
 
-            Pattern compile = Pattern.compile("window.g_initialProps\\s*=\\s*(.*);");
-            Matcher matcher = compile.matcher(html);
+            String fileInfoString = parserHtml(html);
 
-            if (!matcher.find()) {
-                fail("该分享({})文件信息找不到, 可能分享已失效", shareLinkInfo.getShareUrl());
-                return;
-            }
-            String fileInfoString = matcher.group(1);
-            JsonObject fileInfoJson = new JsonObject(fileInfoString);
-            JsonObject resJson = fileInfoJson.getJsonObject("res");
-            JsonObject resListJson = fileInfoJson.getJsonObject("reslist");
+            String shareKey = shareLinkInfo.getShareKey().replaceAll("(\\..*)|(#.*)", "");
 
-            if (resJson == null || resJson.getInteger("code") != 0) {
-                fail(dataKey + " 解析到异常JSON: " + resJson);
-                return;
-            }
-            String shareKey = resJson.getJsonObject("data").getString("ShareKey");
-
-            if (resListJson == null || resListJson.getInteger("code") != 0) {
+            if (fileInfoString == null) {
                 // 加密分享
                 if (StringUtils.isNotEmpty(pwd)) {
                     client.getAbs(UriTemplate.of(GET_FILE_INFO_URL))
@@ -137,7 +123,8 @@ public class YeTool extends PanBase {
                 return;
             }
 
-            JsonObject reqBodyJson = resListJson.getJsonObject("data").getJsonArray("InfoList").getJsonObject(0);
+            JsonObject fileInfoJson = new JsonObject(fileInfoString);
+            JsonObject reqBodyJson = fileInfoJson;
             reqBodyJson.put("ShareKey", shareKey);
             if (reqBodyJson.getInteger("Type") == 1) {
                 // 文件夹
@@ -349,5 +336,16 @@ public class YeTool extends PanBase {
         // 调用下载接口获取直链
         down(client, paramJson, DOWNLOAD_API_URL);
         return promise.future();
+    }
+
+    String parserHtml(String html) {
+        // 正则匹配 { ... } 中包含 S3KeyFlag 的对象
+        Pattern pattern = Pattern.compile("\\{[^{}]*?S3KeyFlag[^{}]*?\\}");
+        Matcher matcher = pattern.matcher(html);
+
+        if (matcher.find()) {
+            return matcher.group().replace("\\", "");
+        }
+        return null;
     }
 }

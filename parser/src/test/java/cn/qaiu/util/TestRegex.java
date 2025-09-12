@@ -29,4 +29,20 @@ public class TestRegex {
             System.out.println(matcher.group(1));
         }
     }
+
+    @Test
+    public void testYeShareKey() {
+        String url = "ABCD1234-asdasd";
+        String shareKey = url.replaceAll("(\\..*)|(#.*)", "");
+        System.out.println(shareKey);
+        url = "ABCD1234-adasd.html";
+        shareKey = url.replaceAll("(\\..*)|(#.*)", "");
+        System.out.println(shareKey);
+        url = "ABCD1234-adasd#123123";
+        shareKey = url.replaceAll("(\\..*)|(#.*)", "");
+        System.out.println(shareKey);
+        url = "ABCD1234-adasd.html#123123";
+        shareKey = url.replaceAll("(\\..*)|(#.*)", "");
+        System.out.println(shareKey);
+    }
 }
