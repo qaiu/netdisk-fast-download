@@ -69,71 +69,38 @@ public class YeTool extends PanBase {
         final String dataKey = shareLinkInfo.getShareKey();
         final String pwd = shareLinkInfo.getSharePassword();
 
-        client.getAbs(UriTemplate.of(FIRST_REQUEST_URL)).setTemplateParam("key", dataKey).send().onSuccess(res -> {
+        client.getAbs(UriTemplate.of(GET_FILE_INFO_URL))
+                .setTemplateParam("shareKey", dataKey)
+                .setTemplateParam("pwd", pwd)
+                .setTemplateParam("ParentFileId", "0")
+                // .setTemplateParam("authKey", AESUtils.getAuthKey("/a/api/share/get"))
+                .putHeader("Platform", "web")
+                .putHeader("App-Version", "3")
+                .send().onSuccess(res2 -> {
+                    JsonObject infoJson = asJson(res2);
+                    if (infoJson.getInteger("code") != 0) {
+                        fail("{} 状态码异常 {}", dataKey, infoJson);
+                        return;
+                    }
 
-            String html = res.bodyAsString();
-            // 分享页面是否存在判断\"UserID\"
-            if (!html.contains("\\\"UserID\\\"")) {
-                fail("该分享({})不存在, 可能分享已失效", shareLinkInfo.getShareUrl());
-                return;
-            }
+                    JsonObject getFileInfoJson =
+                            infoJson.getJsonObject("data").getJsonArray("InfoList").getJsonObject(0);
+                    getFileInfoJson.put("ShareKey", dataKey);
 
-            String fileInfoString = parserHtml(html);
+                    // 判断是否为文件夹: data->InfoList->0->Type: 1为文件夹, 0为文件
+                    try {
+                        int type = (Integer)JsonPointer.from("/data/InfoList/0/Type").queryJson(infoJson);
+                        if (type == 1) {
+                            getZipDownUrl(client, getFileInfoJson);
+                            return;
+                        }
+                    } catch (Exception exception) {
+                        fail("该分享[{}]解析异常: {}", dataKey, exception.getMessage());
+                        return;
+                    }
 
-            String shareKey = shareLinkInfo.getShareKey().replaceAll("(\\..*)|(#.*)", "");
-
-            if (fileInfoString == null) {
-                // 加密分享
-                if (StringUtils.isNotEmpty(pwd)) {
-                    client.getAbs(UriTemplate.of(GET_FILE_INFO_URL))
-                            .setTemplateParam("shareKey", shareKey)
-                            .setTemplateParam("pwd", pwd)
-                            .setTemplateParam("ParentFileId", "0")
-                            // .setTemplateParam("authKey", AESUtils.getAuthKey("/a/api/share/get"))
-                            .putHeader("Platform", "web")
-                            .putHeader("App-Version", "3")
-                            .send().onSuccess(res2 -> {
-                                JsonObject infoJson = asJson(res2);
-                                if (infoJson.getInteger("code") != 0) {
-                                    fail("{} 状态码异常 {}", dataKey, infoJson);
-                                    return;
-                                }
-
-                                JsonObject getFileInfoJson =
-                                        infoJson.getJsonObject("data").getJsonArray("InfoList").getJsonObject(0);
-                                getFileInfoJson.put("ShareKey", shareKey);
-
-                                // 判断是否为文件夹: data->InfoList->0->Type: 1为文件夹, 0为文件
-                                try {
-                                    int type = (Integer)JsonPointer.from("/data/InfoList/0/Type").queryJson(infoJson);
-                                    if (type == 1) {
-                                        getZipDownUrl(client, getFileInfoJson);
-                                        return;
-                                    }
-                                } catch (Exception exception) {
-                                    fail("该分享[{}]解析异常: {}", dataKey, exception.getMessage());
-                                    return;
-                                }
-
-                                getDownUrl(client, getFileInfoJson);
-                            }).onFailure(this.handleFail(GET_FILE_INFO_URL));
-                } else {
-                    fail("该分享[{}]需要密码",dataKey);
-                }
-                return;
-            }
-
-            JsonObject fileInfoJson = new JsonObject(fileInfoString);
-            JsonObject reqBodyJson = fileInfoJson;
-            reqBodyJson.put("ShareKey", shareKey);
-            if (reqBodyJson.getInteger("Type") == 1) {
-                // 文件夹
-                getZipDownUrl(client, reqBodyJson);
-                return;
-            }
-            getDownUrl(client, reqBodyJson);
-        }).onFailure(this.handleFail(FIRST_REQUEST_URL));
-
+                    getDownUrl(client, getFileInfoJson);
+                }).onFailure(this.handleFail(GET_FILE_INFO_URL));
         return promise.future();
     }
 
@@ -336,16 +303,5 @@ public class YeTool extends PanBase {
         // 调用下载接口获取直链
         down(client, paramJson, DOWNLOAD_API_URL);
         return promise.future();
-    }
-
-    String parserHtml(String html) {
-        // 正则匹配 { ... } 中包含 S3KeyFlag 的对象
-        Pattern pattern = Pattern.compile("\\{[^{}]*?S3KeyFlag[^{}]*?\\}");
-        Matcher matcher = pattern.matcher(html);
-
-        if (matcher.find()) {
-            return matcher.group().replace("\\", "");
-        }
-        return null;
     }
 }
