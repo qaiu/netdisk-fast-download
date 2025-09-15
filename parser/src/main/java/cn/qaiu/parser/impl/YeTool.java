@@ -66,11 +66,11 @@ public class YeTool extends PanBase {
 
     public Future<String> parse() {
 
-        final String dataKey = shareLinkInfo.getShareKey();
+        final String shareKey = shareLinkInfo.getShareKey().replaceAll("(\\..*)|(#.*)", "");
         final String pwd = shareLinkInfo.getSharePassword();
 
         client.getAbs(UriTemplate.of(GET_FILE_INFO_URL))
-                .setTemplateParam("shareKey", dataKey)
+                .setTemplateParam("shareKey", shareKey)
                 .setTemplateParam("pwd", pwd)
                 .setTemplateParam("ParentFileId", "0")
                 // .setTemplateParam("authKey", AESUtils.getAuthKey("/a/api/share/get"))
@@ -79,13 +79,13 @@ public class YeTool extends PanBase {
                 .send().onSuccess(res2 -> {
                     JsonObject infoJson = asJson(res2);
                     if (infoJson.getInteger("code") != 0) {
-                        fail("{} 状态码异常 {}", dataKey, infoJson);
+                        fail("{} 状态码异常 {}", shareKey, infoJson);
                         return;
                     }
 
                     JsonObject getFileInfoJson =
                             infoJson.getJsonObject("data").getJsonArray("InfoList").getJsonObject(0);
-                    getFileInfoJson.put("ShareKey", dataKey);
+                    getFileInfoJson.put("ShareKey", shareKey);
 
                     // 判断是否为文件夹: data->InfoList->0->Type: 1为文件夹, 0为文件
                     try {
@@ -95,7 +95,7 @@ public class YeTool extends PanBase {
                             return;
                         }
                     } catch (Exception exception) {
-                        fail("该分享[{}]解析异常: {}", dataKey, exception.getMessage());
+                        fail("该分享[{}]解析异常: {}", shareKey, exception.getMessage());
                         return;
                     }
 
@@ -197,7 +197,6 @@ public class YeTool extends PanBase {
         String shareKey = shareLinkInfo.getShareKey(); // 分享链接的唯一标识
         String pwd = shareLinkInfo.getSharePassword(); // 分享密码
         String parentFileId = "0"; // 根目录的文件ID
-        String shareId = shareLinkInfo.getShareKey(); // String.valueOf(AESUtils.idEncrypt(dataKey));
 
         // 如果参数里的目录ID不为空，则直接解析目录
         String dirId = (String) shareLinkInfo.getOtherParam().get("dirId");
