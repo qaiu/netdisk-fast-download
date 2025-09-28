@@ -3,15 +3,14 @@ package cn.qaiu.parser.impl;
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
-import cn.qaiu.util.CastUtil;
-import cn.qaiu.util.FileSizeConverter;
-import cn.qaiu.util.HeaderUtils;
-import cn.qaiu.util.JsExecUtils;
+import cn.qaiu.util.*;
+import io.netty.handler.codec.http.cookie.DefaultCookie;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientSession;
 import org.openjdk.nashorn.api.scripting.ScriptObjectMirror;
 
 import javax.script.ScriptException;
@@ -28,7 +27,7 @@ import java.util.regex.Pattern;
  */
 public class LzTool extends PanBase {
 
-    public static final String SHARE_URL_PREFIX = "https://wwww.lanzoup.com";
+    public static final String SHARE_URL_PREFIX = "https://wwww.lanzoum.com";
 
 
     public LzTool(ShareLinkInfo shareLinkInfo) {
@@ -117,7 +116,7 @@ public class LzTool extends PanBase {
             map.add((String) k, v.toString());
         });
         MultiMap headers = HeaderUtils.parseHeaders("""
-                Accept: application/json, text/javascript, */*
+                Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
                 Accept-Encoding: gzip, deflate, br, zstd
                 Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
                 Cache-Control: no-cache
@@ -146,8 +145,38 @@ public class LzTool extends PanBase {
                 }
                 String downUrl = urlJson.getString("dom") + "/file/" + urlJson.getString("url");
                 headers.remove("Referer");
-                client.getAbs(downUrl).putHeaders(headers).send()
-                        .onSuccess(res3 -> promise.complete(res3.headers().get("Location")))
+                WebClientSession webClientSession = WebClientSession.create(client);
+                webClientSession.getAbs(downUrl).putHeaders(headers).send()
+                        .onSuccess(res3 -> {
+                            String location = res3.headers().get("Location");
+                            if (location == null) {
+                                String text = asText(res3);
+                                // 使用cookie 再请求一次
+                                headers.add("Referer", downUrl);
+                                int beginIndex = text.indexOf("arg1='") + 6;
+                                String arg1 = text.substring(beginIndex, text.indexOf("';", beginIndex));
+                                String acw_sc__v2 = AcwScV2Generator.acwScV2Simple(arg1);
+                                // 创建一个 Cookie 并放入 CookieStore
+                                DefaultCookie nettyCookie = new DefaultCookie("acw_sc__v2", acw_sc__v2);
+                                nettyCookie.setDomain(".lanrar.com"); // 设置域名
+                                nettyCookie.setPath("/");             // 设置路径
+                                nettyCookie.setSecure(false);
+                                nettyCookie.setHttpOnly(false);
+                                webClientSession.cookieStore().put(nettyCookie);
+                                webClientSession.getAbs(downUrl).putHeaders(headers).send()
+                                        .onSuccess(res4 -> {
+                                                    String location0 = res4.headers().get("Location");
+                                                    if (location0 == null) {
+                                                        fail(downUrl + " -> 直链获取失败, 可能分享已失效");
+                                                    } else {
+                                                        promise.complete(location0);
+                                                    }
+                                                }).onFailure(handleFail(downUrl));
+                                return;
+                            }
+
+                            promise.complete(location);
+                        })
                         .onFailure(handleFail(downUrl));
             } catch (Exception e) {
                 fail("解析异常");
