@@ -354,10 +354,10 @@ bash service-install.sh
 `systemctl stop netdisk-fast-download.service`
 
 开机启动服务  
-`systemctl enable netdisk-fast-download.servic`
+`systemctl enable netdisk-fast-download.service`
 
 停止开机启动  
-`systemctl disable netdisk-fast-download.servic`
+`systemctl disable netdisk-fast-download.service`
 
 ## Windows服务部署
 1. 下载并解压releases版本netdisk-fast-download-bin.zip
