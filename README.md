@@ -334,7 +334,7 @@ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock containrrr/watchtow
 > 注意: netdisk-fast-download.service中的ExecStart的路径改为实际路径
 ```shell
 cd ~
-wget -O netdisk-fast-download.zip  https://github.com/qaiu/netdisk-fast-download/releases/download/0.1.8-release-fixed2/netdisk-fast-download-bin-fixed2.zip
+wget -O netdisk-fast-download.zip https://github.com/qaiu/netdisk-fast-download/releases/download/v0.1.9b7/netdisk-fast-download-bin.zip
 unzip netdisk-fast-download-bin.zip
 cd netdisk-fast-download
 bash service-install.sh
@@ -412,7 +412,7 @@ Core模块集成Vert.x实现类似spring的注解式路由API
 
 
 ### 关于专属版
-99元, 提供对小飞机,蓝奏优享大文件解析的支持, 提供天翼云盘,移动云盘,联调云盘的解析支持  
+99元, 提供对小飞机,蓝奏优享大文件解析的支持, 提供天翼云盘,移动云盘,联通云盘的解析支持  
 199元, 包含部署服务和首页定制, 需提供宝塔环境  
 可以提供功能定制开发, 加v价格详谈:
 <p>qq: 197575894</p>
