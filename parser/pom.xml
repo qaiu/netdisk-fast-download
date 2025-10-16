@@ -3,64 +3,29 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
-        <artifactId>netdisk-fast-download</artifactId>
         <groupId>cn.qaiu</groupId>
+        <artifactId>netdisk-fast-download</artifactId>
         <version>${revision}</version>
     </parent>
-    <artifactId>parser</artifactId>
 
+    <groupId>cn.qaiu</groupId>
+    <artifactId>parser</artifactId>
+    <version>10.1.9</version>
     <packaging>jar</packaging>
+
     <name>cn.qaiu:parser</name>
-    <description>NFD parser</description>
+    <description>NFD parser module</description>
     <url>https://qaiu.top</url>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
-    <dependencies>
-        <!--logback日志实现-->
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.vertx</groupId>
-            <artifactId>vertx-web-client</artifactId>
-            <version>${vertx.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>${commons-lang3.version}</version>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/org.openjdk.nashorn/nashorn-core -->
-        <dependency>
-            <groupId>org.openjdk.nashorn</groupId>
-            <artifactId>nashorn-core</artifactId>
-            <version>15.4</version>
-        </dependency>
-
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
     <licenses>
         <license>
             <name>MIT License</name>
             <url>https://opensource.org/license/mit</url>
         </license>
     </licenses>
+
     <developers>
         <developer>
             <name>qaiu</name>
@@ -68,11 +33,13 @@
             <organization>https://qaiu.top</organization>
         </developer>
     </developers>
+
     <scm>
-        <connection>scm:git@github.com:qaiu/netdisk-fast-download.git</connection>
-        <developerConnection>scm:git@github.com:qaiu/netdisk-fast-download.git</developerConnection>
-        <url>git@github.com:qaiu/netdisk-fast-download.git</url>
+        <connection>scm:git:https://github.com/qaiu/netdisk-fast-download.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com:qaiu/netdisk-fast-download.git</developerConnection>
+        <url>https://github.com/qaiu/netdisk-fast-download</url>
     </scm>
+
     <distributionManagement>
         <snapshotRepository>
             <id>sonatype</id>
@@ -84,41 +51,135 @@
         </repository>
     </distributionManagement>
 
+    <properties>
+        <revision>0.1.8</revision>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Versions -->
+        <vertx.version>4.5.21</vertx.version>
+        <org.reflections.version>0.10.2</org.reflections.version>
+        <lombok.version>1.18.38</lombok.version>
+        <slf4j.version>2.0.5</slf4j.version>
+        <commons-lang3.version>3.18.0</commons-lang3.version>
+        <jackson.version>2.14.2</jackson.version>
+        <logback.version>1.5.19</logback.version>
+        <junit.version>4.13.2</junit.version>
+    </properties>
+
+    <dependencies>
+        <!-- Logging -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+
+        <!-- Vert.x Web Client -->
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-web-client</artifactId>
+            <version>${vertx.version}</version>
+        </dependency>
+
+        <!-- Common Utils -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>${commons-lang3.version}</version>
+        </dependency>
+
+        <!-- Script Engine -->
+        <dependency>
+            <groupId>org.openjdk.nashorn</groupId>
+            <artifactId>nashorn-core</artifactId>
+            <version>15.4</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- Compression (Brotli) -->
+        <dependency>
+            <groupId>org.brotli</groupId>
+            <artifactId>dec</artifactId>
+            <version>0.1.2</version>
+        </dependency>
+
+        <!-- Unit Test -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 
     <build>
         <plugins>
+
+            <!-- 编译 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
+                <version>3.13.0</version>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                    <encoding>${project.build.sourceEncoding}</encoding>
                 </configuration>
             </plugin>
+
+            <!-- 打包源码 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>3.3.1</version>
-                <configuration>
-                    <attach>true</attach>
-                </configuration>
+                <version>3.3.0</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- Javadoc (空包防验证失败) -->
+            <!-- Javadoc（兼容新版配置，无需源码中存在注释） -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-site-plugin</artifactId>
-                <version>3.7.1</version>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.7.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <!-- 忽略 Javadoc 错误 -->
+                            <failOnError>false</failOnError>
+                            <!-- 禁用 doclint（新版参数名改为 additionalOptions） -->
+                            <additionalOptions>-Xdoclint:none</additionalOptions>
+                            <!-- 如果项目源码中几乎没有 Javadoc，可设 true -->
+                            <quiet>true</quiet>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
-            <!-- Gpg Signature -->
+
+            <!-- GPG 签名（新版插件推荐写法） -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
-                <version>1.6</version>
+                <version>3.2.7</version>
                 <executions>
                     <execution>
                         <id>sign-artifacts</id>
@@ -126,19 +187,31 @@
                         <goals>
                             <goal>sign</goal>
                         </goals>
+                        <configuration>
+                            <!-- 避免在 CI 环境出现 TTY 错误 -->
+                            <gpgArguments>
+                                <arg>--batch</arg>
+                                <arg>--yes</arg>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                            </gpgArguments>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- Sonatype Central 自动发布 -->
             <plugin>
                 <groupId>org.sonatype.central</groupId>
                 <artifactId>central-publishing-maven-plugin</artifactId>
                 <version>0.6.0</version>
                 <extensions>true</extensions>
                 <configuration>
-                    <publishingServerId>central</publishingServerId>
+                    <publishingServerId>sonatype</publishingServerId>
                     <autoPublish>true</autoPublish>
                 </configuration>
             </plugin>
+
         </plugins>
     </build>
 </project>

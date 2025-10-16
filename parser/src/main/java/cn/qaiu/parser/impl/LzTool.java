@@ -29,6 +29,24 @@ public class LzTool extends PanBase {
 
     public static final String SHARE_URL_PREFIX = "https://wwww.lanzoum.com";
 
+    MultiMap headers0 = HeaderUtils.parseHeaders("""
+        Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+        Accept-Encoding: gzip, deflate, br
+        Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+        Cache-Control: max-age=0
+        Cookie: codelen=1; pc_ad1=1
+        DNT: 1
+        Priority: u=0, i
+        Sec-CH-UA: "Chromium";v="140", "Not=A?Brand";v="24", "Microsoft Edge";v="140"
+        Sec-CH-UA-Mobile: ?0
+        Sec-CH-UA-Platform: "macOS"
+        Sec-Fetch-Dest: document
+        Sec-Fetch-Mode: navigate
+        Sec-Fetch-Site: cross-site
+        Sec-Fetch-User: ?1
+        Upgrade-Insecure-Requests: 1
+        User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0
+        """);
 
     public LzTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
@@ -39,7 +57,7 @@ public class LzTool extends PanBase {
         String pwd = shareLinkInfo.getSharePassword();
 
         WebClient client = clientNoRedirects;
-        client.getAbs(sUrl).send().onSuccess(res -> {
+        client.getAbs(sUrl).putHeaders(headers0).send().onSuccess(res -> {
             String html = res.bodyAsString();
             // 匹配iframe
             Pattern compile = Pattern.compile("src=\"(/fn\\?[a-zA-Z\\d_+/=]{16,})\"");
@@ -139,10 +157,13 @@ public class LzTool extends PanBase {
         client.postAbs(url).putHeaders(headers).sendForm(map).onSuccess(res2 -> {
             try {
                 JsonObject urlJson = asJson(res2);
+                String name = urlJson.getString("inf");
                 if (urlJson.getInteger("zt") != 1) {
-                    fail(urlJson.getString("inf"));
+                    fail(name);
                     return;
                 }
+                // 文件名
+                ((FileInfo)shareLinkInfo.getOtherParam().get("fileInfo")).setFileName(name);
                 String downUrl = urlJson.getString("dom") + "/file/" + urlJson.getString("url");
                 headers.remove("Referer");
                 WebClientSession webClientSession = WebClientSession.create(client);
