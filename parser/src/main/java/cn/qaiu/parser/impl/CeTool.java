@@ -2,16 +2,12 @@ package cn.qaiu.parser.impl;
 
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
-import cn.qaiu.parser.PanDomainTemplate;
-import cn.qaiu.parser.ParserCreate;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 
 import java.net.URL;
-import java.util.Arrays;
-import java.util.Iterator;
 
 /**
  * <a href="https://github.com/cloudreve/Cloudreve">Cloudreve自建网盘解析</a> <br>

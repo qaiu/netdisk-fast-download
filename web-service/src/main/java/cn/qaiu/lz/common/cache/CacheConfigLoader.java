@@ -1,6 +1,5 @@
 package cn.qaiu.lz.common.cache;
 
-import cn.qaiu.parser.PanDomainTemplate;
 import io.vertx.core.json.JsonObject;
 
 import java.util.HashMap;
@@ -30,9 +29,6 @@ public class CacheConfigLoader {
         });
     }
 
-    public static Integer getDuration(PanDomainTemplate pdt) {
-        return CONFIGS.get(pdt.name().toLowerCase());
-    }
     public static Integer getDuration(String type) {
         String key = type.toLowerCase();
         return CONFIGS.getOrDefault(key, -1);

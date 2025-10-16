@@ -2,6 +2,7 @@ package cn.qaiu.parser;
 
 import cn.qaiu.WebClientVertxInit;
 import cn.qaiu.entity.ShareLinkInfo;
+import cn.qaiu.util.HttpResponseHelper;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
@@ -17,10 +18,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -223,20 +221,7 @@ public abstract class PanBase implements IPanTool {
      * @return String
      */
     protected String asText(HttpResponse<?> res) {
-        // 检查响应头中的Content-Encoding是否为gzip
-        String contentEncoding = res.getHeader("Content-Encoding");
-        try {
-            if ("gzip".equalsIgnoreCase(contentEncoding)) {
-                // 如果是gzip压缩的响应体，解压
-                return decompressGzip((Buffer) res.body());
-            } else {
-                return res.bodyAsString();
-            }
-        } catch (Exception e) {
-            fail("解析失败: res格式异常");
-            //throw new RuntimeException("解析失败: res格式异常");
-        }
-        return null;
+        return HttpResponseHelper.asText(res);
     }
 
     protected void complete(String url) {
@@ -279,22 +264,16 @@ public abstract class PanBase implements IPanTool {
     private String decompressGzip(Buffer compressedData) throws IOException {
         try (ByteArrayInputStream bais = new ByteArrayInputStream(compressedData.getBytes());
              GZIPInputStream gzis = new GZIPInputStream(bais);
-             BufferedReader reader = new BufferedReader(new InputStreamReader(gzis,
-                     StandardCharsets.UTF_8))) {
+             InputStreamReader isr = new InputStreamReader(gzis, StandardCharsets.UTF_8);
+             StringWriter writer = new StringWriter()) {
 
-            // 用于存储解压后的字符串
-            StringBuilder decompressedData = new StringBuilder();
-
-            // 逐行读取解压后的数据
-            String line;
-            while ((line = reader.readLine()) != null) {
-                decompressedData.append(line);
+            char[] buffer = new char[4096];
+            int n;
+            while ((n = isr.read(buffer)) != -1) {
+                writer.write(buffer, 0, n);
             }
-
-            // 此时decompressedData.toString()包含了解压后的字符串
-            return decompressedData.toString();
+            return writer.toString();
         }
-
     }
 
     protected String getDomainName(){
