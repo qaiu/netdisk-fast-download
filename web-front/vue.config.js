@@ -52,15 +52,21 @@ module.exports = {
         events: {
           onEnd: {
             mkdir: ['./nfd-front'],
+            delete: [
+              { source: './nfd-front.zip', options: { force: true } },
+              { source: '../webroot/nfd-front', options: { force: true } },
+              { source: './nfd-front/view/.git', options: { force: true } },
+              { source: './nfd-front/view/.gitignore', options: { force: true } },
+              { source: '../webroot/nfd-front/view/.git', options: { force: true } },
+              { source: '../webroot/nfd-front/view/.gitignore', options: { force: true } },
+            ],
             copy: [
               { source: './nfd-front', destination: '../webroot/nfd-front' }
             ],
-            delete: [   //首先需要删除项目根目录下的dist.zip
-              './nfd-front.zip',
-              '../webroot/nfd-front',
-            ],
             archive: [ //然后我们选择dist文件夹将之打包成dist.zip并放在根目录
-              {source: './nfd-front', destination: './nfd-front.zip'},
+              {
+                source: './nfd-front', destination: './nfd-front.zip', options: {}
+              },
             ]
           }
         }

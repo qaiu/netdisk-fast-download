@@ -8,9 +8,7 @@ import cn.qaiu.lz.common.util.URLParamUtil;
 import cn.qaiu.lz.web.model.CacheLinkInfo;
 import cn.qaiu.lz.web.model.LinkInfoResp;
 import cn.qaiu.lz.web.model.StatisticsInfo;
-import cn.qaiu.lz.web.model.SysUser;
 import cn.qaiu.lz.web.service.DbService;
-import cn.qaiu.lz.web.service.UserService;
 import cn.qaiu.parser.PanDomainTemplate;
 import cn.qaiu.parser.ParserCreate;
 import cn.qaiu.vx.core.annotaions.RouteHandler;
@@ -18,6 +16,7 @@ import cn.qaiu.vx.core.annotaions.RouteMapping;
 import cn.qaiu.vx.core.enums.RouteMethod;
 import cn.qaiu.vx.core.model.JsonResult;
 import cn.qaiu.vx.core.util.AsyncServiceUtil;
+import cn.qaiu.vx.core.util.CommonUtil;
 import cn.qaiu.vx.core.util.ResponseUtil;
 import cn.qaiu.vx.core.util.SharedDataUtil;
 import io.vertx.core.Future;
@@ -200,5 +199,16 @@ public class ParserApi {
                 })
                 .onFailure(t -> promise.fail(t.fillInStackTrace()));
         return promise.future();
+    }
+
+    // 获取版本号
+    @RouteMapping("/build-version")
+    public String getVersion() {
+        return CommonUtil.getAppVersion()
+        .replace("-", "")
+        .replace("Z", "")
+        .replace("T", "_")
+        .replace("-", "")
+        .replace(":", "");
     }
 }
