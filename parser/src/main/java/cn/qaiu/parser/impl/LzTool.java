@@ -11,12 +11,14 @@ import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientSession;
+import org.apache.commons.lang3.RegExUtils;
 import org.openjdk.nashorn.api.scripting.ScriptObjectMirror;
 
 import javax.script.ScriptException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,10 +30,9 @@ import java.util.regex.Pattern;
 public class LzTool extends PanBase {
 
     public static final String SHARE_URL_PREFIX = "https://wwww.lanzoum.com";
-
     MultiMap headers0 = HeaderUtils.parseHeaders("""
         Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-        Accept-Encoding: gzip, deflate, br
+        Accept-Encoding: gzip, deflate
         Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
         Cache-Control: max-age=0
         Cookie: codelen=1; pc_ad1=1
@@ -48,6 +49,7 @@ public class LzTool extends PanBase {
         User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0
         """);
 
+
     public LzTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
     }
@@ -57,42 +59,49 @@ public class LzTool extends PanBase {
         String pwd = shareLinkInfo.getSharePassword();
 
         WebClient client = clientNoRedirects;
-        client.getAbs(sUrl).putHeaders(headers0).send().onSuccess(res -> {
-            String html = res.bodyAsString();
-            // 匹配iframe
-            Pattern compile = Pattern.compile("src=\"(/fn\\?[a-zA-Z\\d_+/=]{16,})\"");
-            Matcher matcher = compile.matcher(html);
-            // 没有Iframe说明是加密分享, 匹配sign通过密码请求下载页面
-            if (!matcher.find()) {
-                try {
-                    String jsText = getJsByPwd(pwd, html, "document.getElementById('rpt')");
-                    ScriptObjectMirror scriptObjectMirror = JsExecUtils.executeDynamicJs(jsText, "down_p");
-                    getDownURL(sUrl, client, scriptObjectMirror);
-                } catch (Exception e) {
-                    fail(e, "js引擎执行失败");
-                }
-            } else {
-                // 没有密码
-                String iframePath = matcher.group(1);
-                client.getAbs(SHARE_URL_PREFIX + iframePath).send().onSuccess(res2 -> {
-                    String html2 = res2.bodyAsString();
-
-                    // 去TMD正则
-                    // Matcher matcher2 = Pattern.compile("'sign'\s*:\s*'(\\w+)'").matcher(html2);
-                    String jsText = getJsText(html2);
-                    if (jsText == null) {
-                        fail(SHARE_URL_PREFIX + iframePath + " -> " + sUrl + ": js脚本匹配失败, 可能分享已失效");
-                        return;
-                    }
+        client.getAbs(sUrl)
+                .putHeaders(headers0)
+                .send().onSuccess(res -> {
+                    String html = asText(res);
                     try {
-                        ScriptObjectMirror scriptObjectMirror = JsExecUtils.executeDynamicJs(jsText, null);
-                        getDownURL(sUrl, client, scriptObjectMirror);
-                    } catch (ScriptException | NoSuchMethodException e) {
-                        fail(e, "js引擎执行失败");
+                        setFileInfo(html, shareLinkInfo);
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                }).onFailure(handleFail(SHARE_URL_PREFIX));
-            }
-        }).onFailure(handleFail(sUrl));
+                    // 匹配iframe
+                    Pattern compile = Pattern.compile("src=\"(/fn\\?[a-zA-Z\\d_+/=]{16,})\"");
+                    Matcher matcher = compile.matcher(html);
+                    // 没有Iframe说明是加密分享, 匹配sign通过密码请求下载页面
+                    if (!matcher.find()) {
+                        try {
+                            String jsText = getJsByPwd(pwd, html, "document.getElementById('rpt')");
+                            ScriptObjectMirror scriptObjectMirror = JsExecUtils.executeDynamicJs(jsText, "down_p");
+                            getDownURL(sUrl, client, scriptObjectMirror);
+                        } catch (Exception e) {
+                            fail(e, "js引擎执行失败");
+                        }
+                    } else {
+                        // 没有密码
+                        String iframePath = matcher.group(1);
+                        client.getAbs(SHARE_URL_PREFIX + iframePath).send().onSuccess(res2 -> {
+                            String html2 = res2.bodyAsString();
+
+                            // 去TMD正则
+                            // Matcher matcher2 = Pattern.compile("'sign'\s*:\s*'(\\w+)'").matcher(html2);
+                            String jsText = getJsText(html2);
+                            if (jsText == null) {
+                                fail(SHARE_URL_PREFIX + iframePath + " -> " + sUrl + ": js脚本匹配失败, 可能分享已失效");
+                                return;
+                            }
+                            try {
+                                ScriptObjectMirror scriptObjectMirror = JsExecUtils.executeDynamicJs(jsText, null);
+                                getDownURL(sUrl, client, scriptObjectMirror);
+                            } catch (ScriptException | NoSuchMethodException e) {
+                                fail(e, "js引擎执行失败");
+                            }
+                        }).onFailure(handleFail(SHARE_URL_PREFIX));
+                    }
+                }).onFailure(handleFail(sUrl));
         return promise.future();
     }
 
@@ -163,7 +172,10 @@ public class LzTool extends PanBase {
                     return;
                 }
                 // 文件名
-                ((FileInfo)shareLinkInfo.getOtherParam().get("fileInfo")).setFileName(name);
+                if (urlJson.containsKey("inf") && urlJson.getMap().get("inf") instanceof Character) {
+                    ((FileInfo)shareLinkInfo.getOtherParam().get("fileInfo")).setFileName(name);
+                }
+
                 String downUrl = urlJson.getString("dom") + "/file/" + urlJson.getString("url");
                 headers.remove("Referer");
                 WebClientSession webClientSession = WebClientSession.create(client);
@@ -186,23 +198,33 @@ public class LzTool extends PanBase {
                                 webClientSession.cookieStore().put(nettyCookie);
                                 webClientSession.getAbs(downUrl).putHeaders(headers).send()
                                         .onSuccess(res4 -> {
-                                                    String location0 = res4.headers().get("Location");
-                                                    if (location0 == null) {
-                                                        fail(downUrl + " -> 直链获取失败, 可能分享已失效");
-                                                    } else {
-                                                        promise.complete(location0);
-                                                    }
-                                                }).onFailure(handleFail(downUrl));
+                                            String location0 = res4.headers().get("Location");
+                                            if (location0 == null) {
+                                                fail(downUrl + " -> 直链获取失败, 可能分享已失效");
+                                            } else {
+                                                setDateAndComplate(location0);
+                                            }
+                                        }).onFailure(handleFail(downUrl));
                                 return;
                             }
-
-                            promise.complete(location);
+                            setDateAndComplate(location);
                         })
                         .onFailure(handleFail(downUrl));
             } catch (Exception e) {
                 fail("解析异常");
             }
         }).onFailure(handleFail(url));
+    }
+
+    private void setDateAndComplate(String location0) {
+        // 分享时间 提取url中的时间戳格式：lanzoui.com/abc/abc/yyyy/mm/dd/
+        String regex = "(\\d{4}/\\d{1,2}/\\d{1,2})";
+        Matcher matcher = Pattern.compile(regex).matcher(location0);
+        if (matcher.find()) {
+            String dateStr = matcher.group().replace("/", "-");
+            ((FileInfo)shareLinkInfo.getOtherParam().get("fileInfo")).setCreateTime(dateStr);
+        }
+        promise.complete(location0);
     }
 
     private static MultiMap getHeaders(String key) {
@@ -285,5 +307,37 @@ public class LzTool extends PanBase {
             }
         });
         return promise.future();
+    }
+
+    void setFileInfo(String html, ShareLinkInfo shareLinkInfo) {
+        // 写入 fileInfo
+        FileInfo fileInfo = new FileInfo();
+        shareLinkInfo.getOtherParam().put("fileInfo", fileInfo);
+        try {
+            // 提取文件名
+            String fileName = CommonUtils.extract(html, Pattern.compile("padding: 56px 0px 20px 0px;\">(.*?)<|filenajax\">(.*?)<"));
+            String sizeStr  = CommonUtils.extract(html, Pattern.compile(">文件大小：</span>(.*?)<br>|\"n_filesize\">大小：(.*?)</div>"));
+            String createBy = CommonUtils.extract(html, Pattern.compile(">分享用户：</span><font>(.*?)</font>|获取<span>(.*?)</span>的文件|\"user-name\">(.*?)</"));
+            String description = CommonUtils.extract(html, Pattern.compile("(?s)文件描述：</span><br>(.*?)</td>|class=\"n_box_des\">(.*?)</div>"));
+            // String icon = CommonUtils.extract(html, Pattern.compile("class=\"n_file_icon\" src=\"(.*?)\""));
+            String fileId = CommonUtils.extract(html, Pattern.compile("\\?f=(.*?)&|fid = (.*?);"));
+            String createTime = CommonUtils.extract(html, Pattern.compile(">上传时间：</span>(.*?)<"));
+            try {
+                long bytes = FileSizeConverter.convertToBytes(sizeStr);
+                fileInfo.setFileName(fileName)
+                        .setSize(bytes)
+                        .setSizeStr(FileSizeConverter.convertToReadableSize(bytes))
+                        .setCreateBy(createBy)
+                        .setPanType(shareLinkInfo.getType())
+                        .setDescription(description)
+                        .setFileType("file")
+                        .setFileId(fileId)
+                        .setCreateTime(createTime);
+            } catch (Exception e) {
+                log.warn("文件信息解析异常", e);
+            }
+        } catch (Exception e) {
+            log.warn("文件信息匹配异常", e);
+        }
     }
 }

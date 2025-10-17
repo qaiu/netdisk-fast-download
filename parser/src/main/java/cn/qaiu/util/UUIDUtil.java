@@ -4,7 +4,7 @@ import java.security.SecureRandom;
 
 /**
  * @author <a href="https://qaiu.top">QAIU</a>
- * @date 2024/5/13 4:10
+ * Create at 2024/5/13 4:10
  */
 public class UUIDUtil {
 

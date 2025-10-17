@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * @author <a href="https://qaiu.top">QAIU</a>
- * @date 2024/9/11 16:06
+ * Create at 2024/9/11 16:06
  */
 @Table(value = "cache_link_info", keyFields = "share_key")
 @Data

@@ -10,7 +10,7 @@ import org.apache.commons.lang3.StringUtils;
  * 奶牛快传解析工具
  *
  * @author <a href="https://qaiu.top">QAIU</a>
- * @date 2023/4/21 21:19
+ * Create at 2023/4/21 21:19
  */
 public class CowTool extends PanBase {
 

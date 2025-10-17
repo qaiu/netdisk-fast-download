@@ -2,7 +2,7 @@
 server-name: Vert.x-proxy-server(v4.1.2)
 
 proxy:
-  - listen: 6401
+  - listen: 6411
     # 404的路径
     page404: webroot/err/404.html
     static:
@@ -15,14 +15,14 @@ proxy:
     # 1.origin代理地址端口后有目录(包括 / )，转发后地址：代理地址+访问URL目录部分去除location匹配目录
     # 2.origin代理地址端口后无任何，转发后地址：代理地址+访问URL目录部
     location:
-      - path: ~^/(json/|v2/|d/|parser|ye/|lz/|cow/|ec/|fj/|fc/|le/|qq/|ws/|iz/|ce/).*
-        origin: 127.0.0.1:6400
+      - path: ~^/(json|v2|d|parser|ye|lz|cow|ec|fj|fc|le|qq|ws|iz|ce)/.*
+        origin: 127.0.0.1:6410
 
       # json/parser -> xxx/parser
 #      - path: /json/
 #        origin: 127.0.0.1:6400/
       - path: /n1/
-        origin: 127.0.0.1:6400/v2/
+        origin: 127.0.0.1:6410/v2/
 
 #    # SSL HTTPS配置
     ssl:

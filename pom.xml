@@ -60,7 +60,7 @@
             <dependency>
                 <groupId>cn.qaiu</groupId>
                 <artifactId>parser</artifactId>
-                <version>10.1.9</version>
+                <version>10.1.17</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -70,10 +70,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.6.2</version>
+                <version>3.13.0</version>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <release>${java.version}</release>
                 </configuration>
             </plugin>
 

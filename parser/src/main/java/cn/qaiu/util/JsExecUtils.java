@@ -17,7 +17,7 @@ import static cn.qaiu.util.AESUtils.encrypt;
  * 执行Js脚本
  *
  * @author <a href="https://qaiu.top">QAIU</a>
- * @date 2023/7/29 17:35
+ * Create at 2023/7/29 17:35
  */
 public class JsExecUtils {
     private static final Invocable inv;

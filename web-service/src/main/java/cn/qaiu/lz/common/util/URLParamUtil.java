@@ -16,7 +16,7 @@ import java.nio.charset.StandardCharsets;
  * 处理URL截断问题，拼接被截断的参数，特殊处理pwd参数。
  *
  * @author <a href="https://qaiu.top">QAIU</a>
- * @date 2024/9/13
+ * Create at 2024/9/13
  */
 public class URLParamUtil {
 
