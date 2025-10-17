@@ -213,6 +213,12 @@
         </div>
       </el-card>
     </el-row>
+    
+    <!-- 版本号显示 -->
+    <div class="version-info">
+      <span class="version-text">内部版本: {{ buildVersion }}</span>
+    </div>
+    
     <!-- 文件解析结果区下方加分享按钮 -->
 <!--    <div v-if="parseResult.code && downloadUrl" style="margin-top: 10px; text-align: right;">-->
 <!--      <el-button type="primary" @click="copyShowFileLink">分享文件直链</el-button>-->
@@ -286,7 +292,10 @@ export default {
 
       errorDialogVisible: false,
       errorDetail: null,
-      errorButtonVisible: false
+      errorButtonVisible: false,
+      
+      // 版本信息
+      buildVersion: ''
     }
   },
   methods: {
@@ -518,6 +527,17 @@ export default {
       }
     },
 
+    // 获取版本号
+    async getBuildVersion() {
+      try {
+        const response = await axios.get('/v2/build-version')
+        this.buildVersion = response.data.data
+      } catch (error) {
+        console.error('获取版本号失败:', error)
+        this.buildVersion = 'unknown'
+      }
+    },
+
     // 新增切换目录树展示模式方法
     setDirectoryViewMode(mode) {
       this.directoryViewMode = mode
@@ -569,6 +589,9 @@ export default {
 
     // 获取初始统计信息
     this.getInfo()
+
+    // 获取版本号
+    this.getBuildVersion()
 
     // 自动读取剪切板
     if (this.autoReadClipboard) {
@@ -880,5 +903,22 @@ hr {
 
 .jv-container.jv-light .jv-item.jv-object {
   color: #888;
+}
+
+/* 版本号显示样式 */
+.version-info {
+  text-align: center;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.version-text {
+  font-size: 0.85rem;
+  color: #999;
+  font-weight: 400;
+}
+
+#app.dark-theme .version-text {
+  color: #666;
 }
 </style>
