@@ -8,7 +8,7 @@ import io.vertx.core.json.JsonObject;
 
 /**
  * @author <a href="https://qaiu.top">QAIU</a>
- * @date 2024/9/12 8:26
+ * Create at 2024/9/12 8:26
  */
 @ProxyGen
 public interface CacheService extends BaseAsyncService {

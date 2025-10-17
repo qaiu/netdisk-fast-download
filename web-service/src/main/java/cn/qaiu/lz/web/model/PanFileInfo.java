@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * @author <a href="https://qaiu.top">QAIU</a>
- * @date 2025/8/4 12:38
+ * Create at 2025/8/4 12:38
  */
 @Table(keyFields = "share_key")
 @DataObject

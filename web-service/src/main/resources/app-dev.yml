@@ -1,6 +1,6 @@
 # 服务配置
 server:
-  port: 6400
+  port: 6410
   contextPath: /
   # 使用数据库
   enableDatabase: true

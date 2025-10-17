@@ -4,6 +4,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class CommonUtils {
 
@@ -44,4 +46,29 @@ public class CommonUtils {
         return map;
     }
 
+    /**
+     * 提取第一个匹配的非空捕捉组
+     * @param matcher 已创建的 Matcher
+     * @return 第一个非空 group，或 "" 如果没有
+     */
+    public static String firstNonEmptyGroup(Matcher matcher) {
+        if (!matcher.find()) {
+            return "";
+        }
+        for (int i = 1; i <= matcher.groupCount(); i++) {
+            String g = matcher.group(i);
+            if (g != null && !g.trim().isEmpty()) {
+                return g.trim();
+            }
+        }
+        return "";
+    }
+
+    /**
+     * 直接传 html 和 regex，返回第一个非空捕捉组
+     */
+    public static String extract(String input, Pattern pattern) {
+        Matcher matcher = pattern.matcher(input);
+        return firstNonEmptyGroup(matcher);
+    }
 }

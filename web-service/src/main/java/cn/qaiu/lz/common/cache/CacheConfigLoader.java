@@ -7,7 +7,7 @@ import java.util.Map;
 
 /**
  * @author <a href="https://qaiu.top">QAIU</a>
- * @date 2024/9/12 7:38
+ * Create at 2024/9/12 7:38
  */
 public class CacheConfigLoader {
     private static final Map<String, Integer> CONFIGS = new HashMap<>();

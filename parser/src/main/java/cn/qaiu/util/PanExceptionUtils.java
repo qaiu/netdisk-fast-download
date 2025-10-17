@@ -2,7 +2,7 @@ package cn.qaiu.util;
 
 /**
  * @author <a href="https://qaiu.top">QAIU</a>
- * @date 2023/7/16 1:53
+ * Create at 2023/7/16 1:53
  */
 public class PanExceptionUtils {
 

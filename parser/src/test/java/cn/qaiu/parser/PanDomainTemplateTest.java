@@ -15,7 +15,7 @@ import static org.junit.Assert.assertNotNull;
 
 /**
  * @author <a href="https://qaiu.top">QAIU</a>
- * @date 2024/8/8 2:39
+ * Create at 2024/8/8 2:39
  */
 public class PanDomainTemplateTest {
 
