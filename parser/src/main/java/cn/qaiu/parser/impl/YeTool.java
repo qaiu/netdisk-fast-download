@@ -18,6 +18,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.openjdk.nashorn.api.scripting.ScriptObjectMirror;
 
 import java.net.MalformedURLException;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -105,6 +107,7 @@ public class YeTool extends PanBase {
     }
 
     private void getDownUrl(WebClient client, JsonObject reqBodyJson) {
+        setFileInfo(reqBodyJson);
         log.info(reqBodyJson.encodePrettily());
         JsonObject jsonObject = new JsonObject();
         // {"ShareKey":"iaKtVv-6OECd","FileID":2193732,"S3keyFlag":"1811834632-0","Size":4203111,
@@ -302,5 +305,18 @@ public class YeTool extends PanBase {
         // 调用下载接口获取直链
         down(client, paramJson, DOWNLOAD_API_URL);
         return promise.future();
+    }
+
+    void setFileInfo(JsonObject reqBodyJson) {
+        FileInfo fileInfo = new FileInfo();
+        fileInfo.setFileId(reqBodyJson.getInteger("FileId").toString());
+        fileInfo.setFileName(reqBodyJson.getString("FileName"));
+        fileInfo.setSize(reqBodyJson.getLong("Size"));
+        fileInfo.setHash(reqBodyJson.getString("Etag"));
+        fileInfo.setCreateTime(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                .format(OffsetDateTime.parse(reqBodyJson.getString("CreateAt")).toLocalDateTime()));
+        fileInfo.setUpdateTime(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                .format(OffsetDateTime.parse(reqBodyJson.getString("UpdateAt")).toLocalDateTime()));
+        shareLinkInfo.getOtherParam().put("fileInfo", fileInfo);
     }
 }
