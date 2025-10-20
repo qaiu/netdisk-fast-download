@@ -59,11 +59,20 @@ mvn -pl parser test
 本模块支持用户自定义解析器扩展。通过简单的配置和注册，你可以添加自己的网盘解析实现：
 
 ```java
-// 1. 实现 IPanTool 接口
-public class MyPanTool implements IPanTool {
-    public MyPanTool(ShareLinkInfo info) { /* 必须提供此构造器 */ }
+// 1. 继承 PanBase 抽象类（推荐）
+public class MyPanTool extends PanBase {
+    public MyPanTool(ShareLinkInfo info) { 
+        super(info);
+    }
     @Override
-    public Future<String> parse() { /* 实现解析逻辑 */ }
+    public Future<String> parse() { 
+        // 使用 PanBase 提供的 HTTP 客户端
+        client.getAbs("https://api.example.com")
+            .send()
+            .onSuccess(res -> complete(asJson(res).getString("url")))
+            .onFailure(handleFail("请求失败"));
+        return future();
+    }
 }
 
 // 2. 注册到系统
