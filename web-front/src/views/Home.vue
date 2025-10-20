@@ -110,7 +110,7 @@
               </div>
               <div class="file-meta-row">
                 <span class="file-meta-label">文件预览：</span>
-                <a :href="previewBaseUrl + encodeURIComponent(downloadUrl)" target="_blank" class="file-meta-link">点击预览</a>
+                <a :href="getPreviewLink()" target="_blank" class="file-meta-link">点击预览</a>
               </div>
               <div class="file-meta-row">
                 <span class="file-meta-label">文件名：</span>{{ extractFileNameAndExt(downloadUrl).name }}
@@ -299,6 +299,18 @@ export default {
     }
   },
   methods: {
+    // 生成预览链接（WPS 云文档特殊处理）
+    getPreviewLink() {
+      // 判断 shareKey 是否以 pwps: 开头（WPS 云文档）
+      const shareKey = this.parseResult?.data?.shareKey
+      if (shareKey && shareKey.startsWith('pwps:')) {
+        // WPS 云文档直接使用原始分享链接
+        return this.link
+      }
+      // 其他类型使用默认预览服务
+      return this.previewBaseUrl + encodeURIComponent(this.downloadUrl)
+    },
+    
     // 主题切换
     handleThemeChange(isDark) {
       this.isDarkMode = isDark

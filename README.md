@@ -36,6 +36,8 @@ https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.
 
 ```
 
+**解析器模块文档：** [parser/README.md](parser/README.md)
+
 ## 预览地址  
 [预览地址1](https://lz.qaiu.top)  
 [预览地址2](http://www.722shop.top:6401)  
@@ -75,6 +77,7 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 - [Cloudreve自建网盘-ce](https://github.com/cloudreve/Cloudreve)
 - ~[微雨云存储-pvvy](https://www.vyuyun.com/)~
 - [超星云盘(需要referer: https://pan-yz.chaoxing.com)-pcx](https://pan-yz.chaoxing.com)
+- [WPS云文档-pwps](https://www.kdocs.cn/)
 - Google云盘-pgd
 - Onedrive-pod
 - Dropbox-pdp
@@ -258,6 +261,7 @@ GET http://127.0.0.1:6400/json/fc/e5079007dc31226096628870c7@QAIU
 | 360亿方云      | √       | √(密码可忽略) | 100G(须实名) | 不限大小            | 
 | 123云盘       | √       | √        | 2T        | 100G（>100M需要登录） | 
 | 文叔叔         | √       | √        | 10G       | 5GB             | 
+| WPS云文档      | √       | X        | 1G(免费)   | 10M(免费)/2G(会员)  |
 | 夸克网盘        | x       | √        | 10G       | 不限大小            | 
 | UC网盘        | x       | √        | 10G       | 不限大小            | 
 

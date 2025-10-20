@@ -340,6 +340,11 @@
             host: /migu\.cn/,
             name: '咪咕音乐分享'
         },
+        kdocs: {
+            reg: /https:\/\/www\.kdocs\.cn\/l\/.+/,
+            host: /www\.kdocs\.cn/,
+            name: 'WPS云文档'
+        },
         other: {
             reg: /https:\/\/([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\.)+[a-zA-Z]{2,}\/s\/.+/,
             host: /.*/,

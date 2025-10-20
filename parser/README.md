@@ -7,7 +7,6 @@ NFD 解析器模块：聚合各类网盘/分享页解析，统一输出文件列
 - 模块版本：10.1.17
 
 ## 依赖（Maven Central）
-- Maven（无需额外仓库配置）：
 ```xml
 <dependency>
   <groupId>cn.qaiu</groupId>
