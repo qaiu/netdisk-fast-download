@@ -160,6 +160,21 @@ public class ParserApi {
      */
     @RouteMapping(value = "/view/:type/:key", method = RouteMethod.GET, order = 2)
     public void view(HttpServerRequest request, HttpServerResponse response, String type, String key) {
+        // WPS 网盘类型特殊处理：直接使用原分享链接（WPS 支持在线预览）
+        if ("pwps".equalsIgnoreCase(type)) {
+            try {
+                // 重建原分享链接
+                ParserCreate parserCreate = ParserCreate.fromType(type).shareKey(key);
+                String originalUrl = parserCreate.getShareLinkInfo().getStandardUrl();
+                if (StringUtils.isNotBlank(originalUrl)) {
+                    ResponseUtil.redirect(response, originalUrl);
+                    return;
+                }
+            } catch (Exception e) {
+                log.warn("PWPS 预览链接构建失败: {}", e.getMessage());
+            }
+        }
+        
         String previewURL = SharedDataUtil.getJsonStringForServerConfig("previewURL");
         serverApi.parseKeyJson(request, type, key).onSuccess(res -> {
             redirect(response, previewURL, res);
@@ -178,6 +193,24 @@ public class ParserApi {
      */
     @RouteMapping(value = "/preview", method = RouteMethod.GET, order = 9)
     public void viewURL(HttpServerRequest request, HttpServerResponse response, String pwd) {
+        // WPS 网盘类型特殊处理：直接使用原分享链接（WPS 支持在线预览）
+        try {
+            String url = URLParamUtil.parserParams(request);
+            ParserCreate parserCreate = ParserCreate.fromShareUrl(url);
+            ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();
+            
+            // 如果是 PWPS 类型，直接重定向到原分享链接
+            if ("pwps".equalsIgnoreCase(shareLinkInfo.getType())) {
+                String originalUrl = shareLinkInfo.getStandardUrl();
+                if (StringUtils.isNotBlank(originalUrl)) {
+                    ResponseUtil.redirect(response, originalUrl);
+                    return;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("解析预览链接失败: {}", e.getMessage());
+        }
+        
         String previewURL = SharedDataUtil.getJsonStringForServerConfig("previewURL");
         new ServerApi().parseJson(request, pwd).onSuccess(res -> {
             redirect(response, previewURL, res);

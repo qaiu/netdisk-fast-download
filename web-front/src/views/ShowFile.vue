@@ -20,7 +20,7 @@
           </div>
           <div class="file-meta-row">
             <span class="file-meta-label">在线预览：</span>
-            <a :href="previewBaseUrl + encodeURIComponent(downloadUrl)" target="_blank" class="preview-btn">点击在线预览</a>
+            <a :href="getPreviewLink()" target="_blank" class="preview-btn">点击在线预览</a>
           </div>
         </div>
       </div>
@@ -42,11 +42,24 @@ export default {
       error: '',
       parseResult: {},
       downloadUrl: '',
+      shareUrl: '', // 添加原始分享链接
       fileTypeUtils,
       previewBaseUrl
     }
   },
   methods: {
+    // 生成预览链接（WPS 云文档特殊处理）
+    getPreviewLink() {
+      // 判断 shareKey 是否以 pwps: 开头（WPS 云文档）
+      const shareKey = this.parseResult?.data?.shareKey
+      if (shareKey && shareKey.startsWith('pwps:')) {
+        // WPS 云文档直接使用原始分享链接
+        return this.shareUrl
+      }
+      // 其他类型使用默认预览服务
+      return this.previewBaseUrl + encodeURIComponent(this.downloadUrl)
+    },
+    
     async fetchFile() {
       const url = this.$route.query.url
       if (!url) {
@@ -54,6 +67,7 @@ export default {
         this.loading = false
         return
       }
+      this.shareUrl = url // 保存原始分享链接
       try {
         const res = await axios.get('/json/parser', { params: { url } })
         this.parseResult = res.data

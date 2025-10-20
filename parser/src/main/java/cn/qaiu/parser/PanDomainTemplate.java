@@ -266,6 +266,12 @@ public enum PanDomainTemplate {
             compile("https://pan-yz\\.cldisk\\.com/external/m/file/(?<KEY>\\w+)"),
             "https://pan-yz.cldisk.com/external/m/file/{shareKey}",
             PcxTool.class),
+    // WPS：分享格式：https://www.kdocs.cn/l/ck0azivLlDi3 ；API格式：https://www.kdocs.cn/api/office/file/{shareKey}/download 
+    // 响应：{download_url: "https://hwc-bj.ag.kdocs.cn/api/xx",url: "",fize: 0,fver: 0,store: ""}
+    PWPS("WPS",
+            compile("https://www\\.kdocs\\.cn/l/(?<KEY>.+)"),
+            "https://www.kdocs.cn/l/{shareKey}",
+            PwpsTool.class),
     // =====================音乐类解析 分享链接标志->MxxS (单歌曲/普通音质)==========================
     // http://163cn.tv/xxx
     MNES("网易云音乐分享",
