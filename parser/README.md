@@ -36,10 +36,11 @@ dependencies {
 
 ## 使用示例（极简）
 ```java
-Vertx vx = Vertx.vertx();
-WebClientVertxInit.init(vx);
-IPanTool tool = ParserCreate.fromShareUrl("https://www.lanzoui.com/xxx").createTool();
-List<FileInfo> list = tool.parseFileList().toCompletionStage().toCompletableFuture().join();
+List<FileInfo> list = ParserCreate
+  .fromShareUrl("https://share.feijipan.com/s/3pMsofZd")
+  .createTool()
+  .parseFileList()
+  .toCompletionStage().toCompletableFuture().join();
 ```
 完整示例与调试脚本见 parser/doc/README.md。
 
