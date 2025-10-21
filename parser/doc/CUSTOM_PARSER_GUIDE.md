@@ -233,11 +233,22 @@ public class Example {
                 .setShareLinkInfoPwd("1234")  // 设置密码（可选）
                 .createTool();  // 创建工具实例
         
-        // 解析获取下载链接
+        // 方式1: 使用同步方法解析（推荐）
         String downloadUrl = tool.parseSync();
         System.out.println("下载链接: " + downloadUrl);
         
-        // 方式2: 异步解析
+        // 方式2: 使用同步方法解析文件列表
+        List<FileInfo> files = tool.parseFileListSync();
+        System.out.println("文件列表: " + files.size() + " 个文件");
+        
+        // 方式3: 使用同步方法根据文件ID获取下载链接
+        if (!files.isEmpty()) {
+            String fileId = files.get(0).getFileId();
+            String fileDownloadUrl = tool.parseByIdSync();
+            System.out.println("文件下载链接: " + fileDownloadUrl);
+        }
+        
+        // 方式4: 异步解析（仍支持）
         tool.parse().onSuccess(url -> {
             System.out.println("异步获取下载链接: " + url);
         }).onFailure(err -> {
@@ -246,6 +257,42 @@ public class Example {
     }
 }
 ```
+
+## 同步方法支持
+
+解析器现在支持三种同步方法，简化了使用方式：
+
+### 1. parseSync()
+解析单个文件的下载链接：
+```java
+String downloadUrl = tool.parseSync();
+```
+
+### 2. parseFileListSync()
+解析文件列表（目录）：
+```java
+List<FileInfo> files = tool.parseFileListSync();
+for (FileInfo file : files) {
+    System.out.println("文件: " + file.getFileName());
+}
+```
+
+### 3. parseByIdSync()
+根据文件ID获取下载链接：
+```java
+String fileDownloadUrl = tool.parseByIdSync();
+```
+
+### 同步方法优势
+- **简化使用**: 无需处理 Future 和回调
+- **异常处理**: 同步方法会抛出异常，便于错误处理
+- **代码简洁**: 减少异步代码的复杂性
+
+### 异步方法仍可用
+原有的异步方法仍然支持：
+- `parse()`: 返回 `Future<String>`
+- `parseFileList()`: 返回 `Future<List<FileInfo>>`
+- `parseById()`: 返回 `Future<String>`
 
 ## 注意事项
 
@@ -363,8 +410,20 @@ public class CompleteExample {
             
             // 创建工具并解析
             IPanTool tool = parser.createTool();
+            
+            // 使用同步方法解析
             String url = tool.parseSync();
             System.out.println("✓ 下载链接: " + url);
+            
+            // 解析文件列表
+            List<FileInfo> files = tool.parseFileListSync();
+            System.out.println("✓ 文件列表: " + files.size() + " 个文件");
+            
+            // 根据文件ID获取下载链接
+            if (!files.isEmpty()) {
+                String fileDownloadUrl = tool.parseByIdSync();
+                System.out.println("✓ 文件下载链接: " + fileDownloadUrl);
+            }
             
         } catch (Exception e) {
             System.err.println("✗ 解析失败: " + e.getMessage());

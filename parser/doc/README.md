@@ -29,19 +29,25 @@ public class ParserQuickStart {
                 // .setShareLinkInfoPwd("1234") // 如有提取码可设置
                 .createTool();
 
-        // 3) 异步 -> 同步等待，获取文件列表
-        List<FileInfo> files = tool.parseFileList()
-                .toCompletionStage().toCompletableFuture().join();
+        // 3) 使用同步方法获取文件列表（推荐）
+        List<FileInfo> files = tool.parseFileListSync();
         for (FileInfo f : files) {
             System.out.printf("%s\t%s\t%s\n",
                 f.getFileName(), f.getSizeStr(), f.getParserUrl());
         }
 
-        // 4) 原始解析输出（不同盘实现差异较大，仅供调试）
+        // 4) 使用同步方法获取原始解析输出（不同盘实现差异较大，仅供调试）
         String raw = tool.parseSync();
         System.out.println("raw: " + (raw == null ? "null" : raw.substring(0, Math.min(raw.length(), 200)) + "..."));
+        
+        // 5) 使用同步方法根据文件ID获取下载链接（可选）
+        if (!files.isEmpty()) {
+            String fileId = files.get(0).getFileId();
+            String downloadUrl = tool.parseByIdSync();
+            System.out.println("文件下载链接: " + downloadUrl);
+        }
 
-        // 5) 生成 parser 短链 path（可用于上层路由聚合显示）
+        // 6) 生成 parser 短链 path（可用于上层路由聚合显示）
         String path = ParserCreate.fromShareUrl(shareUrl).genPathSuffix();
         System.out.println("path suffix: /" + path);
 
@@ -56,13 +62,17 @@ IPanTool tool = ParserCreate.fromType("lz") // 对应 PanDomainTemplate.LZ
         .shareKey("abcd12")                   // 必填：分享 key
         .setShareLinkInfoPwd("1234")         // 可选：提取码
         .createTool();
-// 获取文件列表
-List<FileInfo> files = tool.parseFileList().toCompletionStage().toCompletableFuture().join();
+// 获取文件列表（使用同步方法）
+List<FileInfo> files = tool.parseFileListSync();
 ```
 
 要点：
 - 必须先 WebClientVertxInit.init(Vertx)；若未显式初始化，内部将懒加载 Vertx.vertx()，建议显式注入以统一生命周期。
-- parseFileList 返回 Future<List<FileInfo>>，可直接 join/await；parseSync 仅针对 parse() 的 String 结果。
+- 支持三种同步方法：
+  - `parseSync()`: 解析单个文件下载链接
+  - `parseFileListSync()`: 解析文件列表
+  - `parseByIdSync()`: 根据文件ID获取下载链接
+- 异步方法仍可用：parse()、parseFileList()、parseById() 返回 Future 对象
 - 生成短链 path：ParserCreate.genPathSuffix()（用于页面/服务端聚合）。
 
 ---

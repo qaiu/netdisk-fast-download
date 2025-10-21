@@ -2,6 +2,7 @@ package cn.qaiu.parser;
 
 import cn.qaiu.entity.ShareLinkInfo;
 
+import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
@@ -46,6 +47,21 @@ public class CustomParserConfig {
      */
     private final Pattern matchPattern;
 
+    /**
+     * JavaScript代码（用于JavaScript解析器）
+     */
+    private final String jsCode;
+
+    /**
+     * 是否为JavaScript解析器
+     */
+    private final boolean isJsParser;
+
+    /**
+     * 元数据信息（从脚本注释中解析）
+     */
+    private final Map<String, String> metadata;
+
     private CustomParserConfig(Builder builder) {
         this.type = builder.type;
         this.displayName = builder.displayName;
@@ -53,6 +69,9 @@ public class CustomParserConfig {
         this.standardUrlTemplate = builder.standardUrlTemplate;
         this.panDomain = builder.panDomain;
         this.matchPattern = builder.matchPattern;
+        this.jsCode = builder.jsCode;
+        this.isJsParser = builder.isJsParser;
+        this.metadata = builder.metadata;
     }
 
     public String getType() {
@@ -79,6 +98,18 @@ public class CustomParserConfig {
         return matchPattern;
     }
 
+    public String getJsCode() {
+        return jsCode;
+    }
+
+    public boolean isJsParser() {
+        return isJsParser;
+    }
+
+    public Map<String, String> getMetadata() {
+        return metadata;
+    }
+
     /**
      * 检查是否支持从分享链接自动识别
      * @return true表示支持，false表示不支持
@@ -101,6 +132,9 @@ public class CustomParserConfig {
         private String standardUrlTemplate;
         private String panDomain;
         private Pattern matchPattern;
+        private String jsCode;
+        private boolean isJsParser;
+        private Map<String, String> metadata;
 
         /**
          * 设置解析器类型标识（必填，唯一）
@@ -168,6 +202,33 @@ public class CustomParserConfig {
         }
 
         /**
+         * 设置JavaScript代码（用于JavaScript解析器）
+         * @param jsCode JavaScript代码
+         */
+        public Builder jsCode(String jsCode) {
+            this.jsCode = jsCode;
+            return this;
+        }
+
+        /**
+         * 设置是否为JavaScript解析器
+         * @param isJsParser 是否为JavaScript解析器
+         */
+        public Builder isJsParser(boolean isJsParser) {
+            this.isJsParser = isJsParser;
+            return this;
+        }
+
+        /**
+         * 设置元数据信息
+         * @param metadata 元数据信息
+         */
+        public Builder metadata(Map<String, String> metadata) {
+            this.metadata = metadata;
+            return this;
+        }
+
+        /**
          * 构建配置对象
          * @return CustomParserConfig
          */
@@ -178,20 +239,29 @@ public class CustomParserConfig {
             if (displayName == null || displayName.trim().isEmpty()) {
                 throw new IllegalArgumentException("displayName不能为空");
             }
-            if (toolClass == null) {
-                throw new IllegalArgumentException("toolClass不能为空");
-            }
             
-            // 验证toolClass是否实现了IPanTool接口
-            if (!IPanTool.class.isAssignableFrom(toolClass)) {
-                throw new IllegalArgumentException("toolClass必须实现IPanTool接口");
-            }
-            
-            // 验证toolClass是否有ShareLinkInfo单参构造器
-            try {
-                toolClass.getDeclaredConstructor(ShareLinkInfo.class);
-            } catch (NoSuchMethodException e) {
-                throw new IllegalArgumentException("toolClass必须有ShareLinkInfo单参构造器", e);
+            // 如果是JavaScript解析器，验证jsCode
+            if (isJsParser) {
+                if (jsCode == null || jsCode.trim().isEmpty()) {
+                    throw new IllegalArgumentException("JavaScript解析器的jsCode不能为空");
+                }
+            } else {
+                // 如果是Java解析器，验证toolClass
+                if (toolClass == null) {
+                    throw new IllegalArgumentException("Java解析器的toolClass不能为空");
+                }
+                
+                // 验证toolClass是否实现了IPanTool接口
+                if (!IPanTool.class.isAssignableFrom(toolClass)) {
+                    throw new IllegalArgumentException("toolClass必须实现IPanTool接口");
+                }
+                
+                // 验证toolClass是否有ShareLinkInfo单参构造器
+                try {
+                    toolClass.getDeclaredConstructor(ShareLinkInfo.class);
+                } catch (NoSuchMethodException e) {
+                    throw new IllegalArgumentException("toolClass必须有ShareLinkInfo单参构造器", e);
+                }
             }
             
             // 验证正则表达式（如果提供）
@@ -212,10 +282,13 @@ public class CustomParserConfig {
         return "CustomParserConfig{" +
                 "type='" + type + '\'' +
                 ", displayName='" + displayName + '\'' +
-                ", toolClass=" + toolClass.getName() +
+                ", toolClass=" + (toolClass != null ? toolClass.getName() : "null") +
                 ", standardUrlTemplate='" + standardUrlTemplate + '\'' +
                 ", panDomain='" + panDomain + '\'' +
                 ", matchPattern=" + (matchPattern != null ? matchPattern.pattern() : "null") +
+                ", jsCode=" + (jsCode != null ? "[JavaScript代码]" : "null") +
+                ", isJsParser=" + isJsParser +
+                ", metadata=" + metadata +
                 '}';
     }
 }

@@ -1,5 +1,9 @@
 package cn.qaiu.parser;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -11,6 +15,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * Create at 2025/10/17
  */
 public class CustomParserRegistry {
+
+    private static final Logger log = LoggerFactory.getLogger(CustomParserRegistry.class);
 
     /**
      * 存储自定义解析器配置的Map，key为类型标识，value为配置对象
@@ -51,6 +57,108 @@ public class CustomParserRegistry {
         }
 
         CUSTOM_PARSERS.put(type, config);
+        log.info("注册自定义解析器成功: {} ({})", config.getDisplayName(), type);
+    }
+
+    /**
+     * 注册JavaScript解析器
+     *
+     * @param config JavaScript解析器配置
+     * @throws IllegalArgumentException 如果type已存在或与内置解析器冲突
+     */
+    public static void registerJs(CustomParserConfig config) {
+        if (config == null) {
+            throw new IllegalArgumentException("config不能为空");
+        }
+        
+        if (!config.isJsParser()) {
+            throw new IllegalArgumentException("config必须是JavaScript解析器配置");
+        }
+        
+        register(config);
+    }
+
+    /**
+     * 从JavaScript代码字符串注册解析器
+     *
+     * @param jsCode JavaScript代码
+     * @throws IllegalArgumentException 如果解析失败
+     */
+    public static void registerJsFromCode(String jsCode) {
+        if (jsCode == null || jsCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("JavaScript代码不能为空");
+        }
+        
+        try {
+            CustomParserConfig config = JsScriptMetadataParser.parseScript(jsCode);
+            registerJs(config);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("解析JavaScript代码失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 从文件注册JavaScript解析器
+     *
+     * @param filePath 文件路径
+     * @throws IllegalArgumentException 如果文件不存在或解析失败
+     */
+    public static void registerJsFromFile(String filePath) {
+        if (filePath == null || filePath.trim().isEmpty()) {
+            throw new IllegalArgumentException("文件路径不能为空");
+        }
+        
+        try {
+            CustomParserConfig config = JsScriptLoader.loadFromFile(filePath);
+            registerJs(config);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("从文件加载JavaScript解析器失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 从资源文件注册JavaScript解析器
+     *
+     * @param resourcePath 资源路径
+     * @throws IllegalArgumentException 如果资源不存在或解析失败
+     */
+    public static void registerJsFromResource(String resourcePath) {
+        if (resourcePath == null || resourcePath.trim().isEmpty()) {
+            throw new IllegalArgumentException("资源路径不能为空");
+        }
+        
+        try {
+            CustomParserConfig config = JsScriptLoader.loadFromResource(resourcePath);
+            registerJs(config);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("从资源加载JavaScript解析器失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 自动加载所有JavaScript脚本
+     */
+    public static void autoLoadJsScripts() {
+        try {
+            List<CustomParserConfig> configs = JsScriptLoader.loadAllScripts();
+            int successCount = 0;
+            int failCount = 0;
+            
+            for (CustomParserConfig config : configs) {
+                try {
+                    registerJs(config);
+                    successCount++;
+                } catch (Exception e) {
+                    log.error("加载JavaScript脚本失败: {}", config.getType(), e);
+                    failCount++;
+                }
+            }
+            
+            log.info("自动加载JavaScript脚本完成: 成功 {} 个，失败 {} 个", successCount, failCount);
+            
+        } catch (Exception e) {
+            log.error("自动加载JavaScript脚本时发生异常", e);
+        }
     }
 
     /**
@@ -63,7 +171,13 @@ public class CustomParserRegistry {
         if (type == null || type.trim().isEmpty()) {
             return false;
         }
-        return CUSTOM_PARSERS.remove(type.toLowerCase()) != null;
+        
+        CustomParserConfig removed = CUSTOM_PARSERS.remove(type.toLowerCase());
+        if (removed != null) {
+            log.info("注销自定义解析器: {} ({})", removed.getDisplayName(), type);
+            return true;
+        }
+        return false;
     }
 
     /**
