@@ -148,13 +148,19 @@ public class ParserCreate {
         
         // 自定义解析器处理
         if (isCustomParser) {
-            try {
-                return this.customParserConfig.getToolClass()
-                        .getDeclaredConstructor(ShareLinkInfo.class)
-                        .newInstance(shareLinkInfo);
-            } catch (Exception e) {
-                throw new RuntimeException("无法创建自定义工具实例: " + 
-                        customParserConfig.getToolClass().getName(), e);
+            // 检查是否为JavaScript解析器
+            if (customParserConfig.isJsParser()) {
+                return new JsParserExecutor(shareLinkInfo, customParserConfig);
+            } else {
+                // Java实现的解析器
+                try {
+                    return this.customParserConfig.getToolClass()
+                            .getDeclaredConstructor(ShareLinkInfo.class)
+                            .newInstance(shareLinkInfo);
+                } catch (Exception e) {
+                    throw new RuntimeException("无法创建自定义工具实例: " + 
+                            customParserConfig.getToolClass().getName(), e);
+                }
             }
         }
         
@@ -226,10 +232,12 @@ public class ParserCreate {
     public ParserCreate setShareLinkInfoPwd(String pwd) {
         if (pwd != null) {
             shareLinkInfo.setSharePassword(pwd);
-            standardUrl = standardUrl.replace("{pwd}", pwd);
-            shareLinkInfo.setStandardUrl(standardUrl);
-            if (shareLinkInfo.getShareUrl().contains("{pwd}")) {
-                shareLinkInfo.setShareUrl(standardUrl);
+            if (standardUrl != null) {
+                standardUrl = standardUrl.replace("{pwd}", pwd);
+                shareLinkInfo.setStandardUrl(standardUrl);
+                if (shareLinkInfo.getShareUrl().contains("{pwd}")) {
+                    shareLinkInfo.setShareUrl(standardUrl);
+                }
             }
         }
         return this;

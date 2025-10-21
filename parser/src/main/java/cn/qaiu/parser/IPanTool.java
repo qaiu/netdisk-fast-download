@@ -7,6 +7,11 @@ import io.vertx.core.Promise;
 import java.util.List;
 
 public interface IPanTool {
+
+    /**
+     * 解析文件
+     * @return 文件内容
+     */
     Future<String> parse();
 
     default String parseSync() {
@@ -23,6 +28,10 @@ public interface IPanTool {
         return promise.future();
     }
 
+    default List<FileInfo> parseFileListSync() {
+        return parseFileList().toCompletionStage().toCompletableFuture().join();
+    }
+
     /**
      * 根据文件ID获取下载链接
      * @return url
@@ -31,5 +40,9 @@ public interface IPanTool {
         Promise<String> promise = Promise.promise();
         promise.complete("Not implemented yet");
         return promise.future();
+    }
+
+    default String parseByIdSync() {
+        return parseById().toCompletionStage().toCompletableFuture().join();
     }
 }
