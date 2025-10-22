@@ -29,9 +29,12 @@
 /**
  * @typedef {Object} JsHttpClient
  * @property {function(string): JsHttpResponse} get - 发起GET请求
+ * @property {function(string): JsHttpResponse} getWithRedirect - 发起GET请求并跟随重定向
+ * @property {function(string): JsHttpResponse} getNoRedirect - 发起GET请求但不跟随重定向（用于获取Location头）
  * @property {function(string, any=): JsHttpResponse} post - 发起POST请求
  * @property {function(string, string): JsHttpClient} putHeader - 设置请求头
- * @property {function(Object): JsHttpResponse} sendForm - 发送表单数据
+ * @property {function(Object): JsHttpResponse} sendForm - 发送简单表单数据
+ * @property {function(string, Object): JsHttpResponse} sendMultipartForm - 发送multipart表单数据（支持文件上传）
  * @property {function(any): JsHttpResponse} sendJson - 发送JSON数据
  */
 

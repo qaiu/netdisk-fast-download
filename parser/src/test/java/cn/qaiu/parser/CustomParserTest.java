@@ -1,6 +1,8 @@
 package cn.qaiu.parser;
 
 import cn.qaiu.entity.ShareLinkInfo;
+import cn.qaiu.parser.custom.CustomParserConfig;
+import cn.qaiu.parser.custom.CustomParserRegistry;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import org.junit.After;

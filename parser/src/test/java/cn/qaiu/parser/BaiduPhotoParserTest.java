@@ -2,8 +2,12 @@ package cn.qaiu.parser;
 
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
+import cn.qaiu.parser.custom.CustomParserConfig;
+import cn.qaiu.parser.custom.CustomParserRegistry;
+import cn.qaiu.parser.customjs.JsParserExecutor;
 import cn.qaiu.WebClientVertxInit;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import org.junit.Test;
 
 import java.util.HashMap;

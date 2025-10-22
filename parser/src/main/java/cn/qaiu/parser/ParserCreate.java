@@ -1,6 +1,10 @@
 package cn.qaiu.parser;
 
 import cn.qaiu.entity.ShareLinkInfo;
+import cn.qaiu.parser.custom.CustomParserConfig;
+import cn.qaiu.parser.custom.CustomParserRegistry;
+import cn.qaiu.parser.customjs.JsParserExecutor;
+
 import org.apache.commons.lang3.StringUtils;
 
 import java.net.URLEncoder;

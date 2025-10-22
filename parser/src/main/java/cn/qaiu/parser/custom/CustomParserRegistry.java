@@ -1,7 +1,11 @@
-package cn.qaiu.parser;
+package cn.qaiu.parser.custom;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import cn.qaiu.parser.PanDomainTemplate;
+import cn.qaiu.parser.customjs.JsScriptLoader;
+import cn.qaiu.parser.customjs.JsScriptMetadataParser;
 
 import java.util.List;
 import java.util.Map;

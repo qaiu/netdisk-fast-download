@@ -1,4 +1,4 @@
-package cn.qaiu.parser;
+package cn.qaiu.parser.customjs;
 
 import cn.qaiu.entity.ShareLinkInfo;
 import org.slf4j.Logger;

@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>cn.qaiu</groupId>
   <artifactId>parser</artifactId>
-  <version>10.1.17</version>
+  <version>10.2.1</version>
   <name>cn.qaiu:parser</name>
   <description>NFD parser module</description>
   <url>https://qaiu.top</url>

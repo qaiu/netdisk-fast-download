@@ -1,9 +1,10 @@
 package cn.qaiu;
 
-import cn.qaiu.parser.CustomParserRegistry;
 import io.vertx.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import cn.qaiu.parser.custom.CustomParserRegistry;
 
 public class WebClientVertxInit {
     private Vertx vertx = null;

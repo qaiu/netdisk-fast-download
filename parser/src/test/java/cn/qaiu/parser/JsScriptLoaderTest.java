@@ -2,6 +2,9 @@ package cn.qaiu.parser;
 
 import org.junit.Test;
 
+import cn.qaiu.parser.custom.CustomParserConfig;
+import cn.qaiu.parser.customjs.JsScriptLoader;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
