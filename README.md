@@ -422,8 +422,7 @@ Core模块集成Vert.x实现类似spring的注解式路由API
 [![Star History Chart](https://api.star-history.com/svg?repos=qaiu/netdisk-fast-download&type=Date)](https://star-history.com/#qaiu/netdisk-fast-download&Date)
 
 ## **免责声明**  
-   - 用户在使用本项目时，应自行承担风险，并确保其行为符合当地法律法规及网盘服务提供商的使用条款。  
-   - 开发者不对用户因使用本项目而导致的任何后果负责，包括但不限于数据丢失、隐私泄露、账号封禁或其他任何形式的损害。
+   - 用户在使用本项目时，应自行承担风险，并确保其行为符合当地法律法规。开发者不对用户因使用本项目而导致的任何后果负责。
 
 ## 支持该项目
 开源不易，用爱发电，本项目长期维护如果觉得有帮助, 可以请作者喝杯咖啡, 感谢支持  
