@@ -1,9 +1,12 @@
-package cn.qaiu.parser;
+package cn.qaiu.parser.customjs;
 
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
+import cn.qaiu.parser.IPanTool;
+import cn.qaiu.parser.custom.CustomParserConfig;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.json.JsonObject;
 import org.openjdk.nashorn.api.scripting.ScriptObjectMirror;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +42,14 @@ public class JsParserExecutor implements IPanTool {
         this.config = config;
         this.shareLinkInfo = shareLinkInfo;
         this.engine = initEngine();
-        this.httpClient = new JsHttpClient();
+        
+        // 检查是否有代理配置
+        JsonObject proxyConfig = null;
+        if (shareLinkInfo.getOtherParam().containsKey("proxy")) {
+            proxyConfig = (JsonObject) shareLinkInfo.getOtherParam().get("proxy");
+        }
+        
+        this.httpClient = new JsHttpClient(proxyConfig);
         this.jsLogger = new JsLogger("JsParser-" + config.getType());
         this.shareLinkInfoWrapper = new JsShareLinkInfoWrapper(shareLinkInfo);
     }

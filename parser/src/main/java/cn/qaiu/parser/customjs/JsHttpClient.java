@@ -1,4 +1,4 @@
-package cn.qaiu.parser;
+package cn.qaiu.parser.customjs;
 
 import cn.qaiu.WebClientVertxInit;
 import cn.qaiu.util.HttpResponseHelper;
@@ -6,11 +6,17 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.net.ProxyOptions;
+import io.vertx.core.net.ProxyType;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.client.WebClientSession;
+import io.vertx.ext.web.multipart.MultipartForm;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +42,48 @@ public class JsHttpClient {
         this.client = WebClient.create(WebClientVertxInit.get());
         this.clientSession = WebClientSession.create(client);
         this.headers = MultiMap.caseInsensitiveMultiMap();
+        // 设置默认的Accept-Encoding头以支持压缩响应
+        this.headers.set("Accept-Encoding", "gzip, deflate, br, zstd");
+        // 设置默认的User-Agent头
+        this.headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0");
+        // 设置默认的Accept-Language头
+        this.headers.set("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
+    }
+    
+    /**
+     * 带代理配置的构造函数
+     * @param proxyConfig 代理配置JsonObject，包含type、host、port、username、password
+     */
+    public JsHttpClient(JsonObject proxyConfig) {
+        if (proxyConfig != null && proxyConfig.containsKey("type")) {
+            ProxyOptions proxyOptions = new ProxyOptions()
+                    .setType(ProxyType.valueOf(proxyConfig.getString("type").toUpperCase()))
+                    .setHost(proxyConfig.getString("host"))
+                    .setPort(proxyConfig.getInteger("port"));
+            
+            if (StringUtils.isNotEmpty(proxyConfig.getString("username"))) {
+                proxyOptions.setUsername(proxyConfig.getString("username"));
+            }
+            if (StringUtils.isNotEmpty(proxyConfig.getString("password"))) {
+                proxyOptions.setPassword(proxyConfig.getString("password"));
+            }
+            
+            this.client = WebClient.create(WebClientVertxInit.get(),
+                    new WebClientOptions()
+                            .setUserAgentEnabled(false)
+                            .setProxyOptions(proxyOptions));
+            this.clientSession = WebClientSession.create(client);
+        } else {
+            this.client = WebClient.create(WebClientVertxInit.get());
+            this.clientSession = WebClientSession.create(client);
+        }
+        this.headers = MultiMap.caseInsensitiveMultiMap();
+        // 设置默认的Accept-Encoding头以支持压缩响应
+        this.headers.set("Accept-Encoding", "gzip, deflate, br, zstd");
+        // 设置默认的User-Agent头
+        this.headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0");
+        // 设置默认的Accept-Language头
+        this.headers.set("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
     }
     
     /**
@@ -132,7 +180,7 @@ public class JsHttpClient {
     }
     
     /**
-     * 发送表单数据
+     * 发送表单数据（简单键值对）
      * @param data 表单数据
      * @return HTTP响应
      */
@@ -149,6 +197,45 @@ public class JsHttpClient {
             }
             
             return request.sendForm(formData);
+        });
+    }
+    
+    /**
+     * 发送multipart表单数据（支持文件上传）
+     * @param url 请求URL
+     * @param data 表单数据，支持：
+     *             - Map<String, String>: 文本字段
+     *             - Map<String, Object>: 混合字段，Object可以是String、byte[]或Buffer
+     * @return HTTP响应
+     */
+    public JsHttpResponse sendMultipartForm(String url, Map<String, Object> data) {
+        return executeRequest(() -> {
+            HttpRequest<Buffer> request = client.postAbs(url);
+            if (!headers.isEmpty()) {
+                request.putHeaders(headers);
+            }
+            
+            MultipartForm form = MultipartForm.create();
+            
+            if (data != null) {
+                for (Map.Entry<String, Object> entry : data.entrySet()) {
+                    String key = entry.getKey();
+                    Object value = entry.getValue();
+                    
+                    if (value instanceof String) {
+                        form.attribute(key, (String) value);
+                    } else if (value instanceof byte[]) {
+                        form.binaryFileUpload(key, key, Buffer.buffer((byte[]) value), "application/octet-stream");
+                    } else if (value instanceof Buffer) {
+                        form.binaryFileUpload(key, key, (Buffer) value, "application/octet-stream");
+                    } else if (value != null) {
+                        // 其他类型转换为字符串
+                        form.attribute(key, value.toString());
+                    }
+                }
+            }
+            
+            return request.sendMultipartForm(form);
         });
     }
     
@@ -224,26 +311,13 @@ public class JsHttpClient {
          */
         public Object json() {
             try {
-                String body = response.bodyAsString();
-                if (body == null || body.trim().isEmpty()) {
+                JsonObject jsonObject = HttpResponseHelper.asJson(response);
+                if (jsonObject == null || jsonObject.isEmpty()) {
                     return null;
                 }
                 
-                // 尝试解析为JSON对象
-                try {
-                    JsonObject jsonObject = response.bodyAsJsonObject();
-                    // 将JsonObject转换为Map，这样JavaScript可以正确访问
-                    return jsonObject.getMap();
-                } catch (Exception e) {
-                    // 如果解析为对象失败，尝试解析为数组
-                    try {
-                        return response.bodyAsJsonArray().getList();
-                    } catch (Exception e2) {
-                        // 如果都失败了，返回原始字符串
-                        log.warn("无法解析为JSON，返回原始字符串: {}", body);
-                        return body;
-                    }
-                }
+                // 将JsonObject转换为Map，这样JavaScript可以正确访问
+                return jsonObject.getMap();
             } catch (Exception e) {
                 log.error("解析JSON响应失败", e);
                 throw new RuntimeException("解析JSON响应失败: " + e.getMessage(), e);

@@ -185,8 +185,8 @@ WebClient 是基于 Vert.x 的异步 HTTP 客户端，其请求流程如下：
 在应用启动时注册你的解析器：
 
 ```java
-import cn.qaiu.parser.CustomParserConfig;
-import cn.qaiu.parser.CustomParserRegistry;
+import cn.qaiu.parser.custom.CustomParserConfig;
+import cn.qaiu.parser.custom.CustomParserRegistry;
 import com.example.parser.MyCustomPanTool;
 
 public class Application {
@@ -356,8 +356,8 @@ public MyCustomPanTool(ShareLinkInfo shareLinkInfo) {
 
 ```java
 import cn.qaiu.entity.ShareLinkInfo;
-import cn.qaiu.parser.CustomParserConfig;
-import cn.qaiu.parser.CustomParserRegistry;
+import cn.qaiu.parser.custom.CustomParserConfig;
+import cn.qaiu.parser.custom.CustomParserRegistry;
 import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.ParserCreate;
 import cn.qaiu.parser.PanBase;

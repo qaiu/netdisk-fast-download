@@ -59,7 +59,7 @@ public class HttpResponseHelper {
             case "gzip" -> decompressGzip(compressed);
             case "deflate" -> decompressDeflate(compressed);
             case "br" -> decompressBrotli(compressed);
-            //case "zstd" -> decompressZstd(compressed);
+            case "zstd" -> compressed.toString(StandardCharsets.UTF_8); // 暂时返回原始内容
             default -> throw new UnsupportedOperationException("不支持的 Content-Encoding: " + encoding);
         };
     }

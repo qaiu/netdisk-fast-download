@@ -15,7 +15,7 @@
 #### 1. 新增类
 
 ##### CustomParserConfig.java
-- **位置：** `cn.qaiu.parser.CustomParserConfig`
+- **位置：** `cn.qaiu.parser.custom.CustomParserConfig`
 - **功能：** 自定义解析器配置类
 - **主要字段：**
   - `type`: 解析器类型标识（唯一，必填）
@@ -30,7 +30,7 @@
   - 验证必填字段是否为空
 
 ##### CustomParserRegistry.java
-- **位置：** `cn.qaiu.parser.CustomParserRegistry`
+- **位置：** `cn.qaiu.parser.custom.CustomParserRegistry`
 - **功能：** 自定义解析器注册中心
 - **主要方法：**
   - `register(CustomParserConfig)`: 注册解析器
@@ -71,7 +71,7 @@
 #### 3. 测试类
 
 ##### CustomParserTest.java
-- **位置：** `cn.qaiu.parser.CustomParserTest`
+- **位置：** `cn.qaiu.parser.custom.CustomParserTest`
 - **测试覆盖：**
   - ✅ 注册自定义解析器
   - ✅ 重复注册检测

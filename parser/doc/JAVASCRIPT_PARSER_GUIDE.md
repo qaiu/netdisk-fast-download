@@ -4,6 +4,26 @@
 
 本指南介绍如何使用JavaScript编写自定义网盘解析器，支持通过JavaScript代码实现网盘解析逻辑，无需编写Java代码。
 
+## 目录
+
+- [快速开始](#快速开始)
+- [API参考](#api参考)
+  - [ShareLinkInfo对象](#sharelinkinfo对象)
+  - [JsHttpClient对象](#jshttpclient对象)
+  - [JsHttpResponse对象](#jshttpresponse对象)
+  - [JsLogger对象](#jslogger对象)
+- [重定向处理](#重定向处理)
+- [代理支持](#代理支持)
+- [文件上传支持](#文件上传支持)
+- [实现方法](#实现方法)
+  - [parse方法（必填）](#parse方法必填)
+  - [parseFileList方法（可选）](#parsefilelist方法可选)
+  - [parseById方法（可选）](#parsebyid方法可选)
+- [错误处理](#错误处理)
+- [调试技巧](#调试技巧)
+- [最佳实践](#最佳实践)
+- [示例解析器](#示例解析器)
+
 ## 快速开始
 
 ### 1. 创建JavaScript脚本
@@ -40,9 +60,6 @@ function parse(shareLinkInfo, http, logger) {
     var response = http.get(url);
     return response.body();
 }
-
-// 导出函数
-exports.parse = parse;
 ```
 
 ### 2. 重启应用
@@ -119,6 +136,16 @@ if (shareLinkInfo.hasOtherParam("customParam")) {
 // GET请求
 var response = http.get("https://api.example.com/data");
 
+// GET请求并跟随重定向
+var redirectResponse = http.getWithRedirect("https://api.example.com/redirect");
+
+// GET请求但不跟随重定向（用于获取Location头）
+var noRedirectResponse = http.getNoRedirect("https://api.example.com/redirect");
+if (noRedirectResponse.statusCode() >= 300 && noRedirectResponse.statusCode() < 400) {
+    var location = noRedirectResponse.header("Location");
+    console.log("重定向到: " + location);
+}
+
 // POST请求
 var response = http.post("https://api.example.com/submit", {
     key: "value",
@@ -129,10 +156,17 @@ var response = http.post("https://api.example.com/submit", {
 http.putHeader("User-Agent", "MyBot/1.0")
     .putHeader("Authorization", "Bearer token");
 
-// 发送表单数据
+// 发送简单表单数据
 var formResponse = http.sendForm({
     username: "user",
     password: "pass"
+});
+
+// 发送multipart表单数据（支持文件上传）
+var multipartResponse = http.sendMultipartForm("https://api.example.com/upload", {
+    textField: "value",
+    fileField: fileBuffer,  // Buffer或byte[]类型
+    binaryData: binaryArray // byte[]类型
 });
 
 // 发送JSON数据
@@ -187,6 +221,168 @@ logger.info("用户 {} 访问了 {}", username, url);
 // 检查日志级别
 if (logger.isDebugEnabled()) {
     logger.debug("详细的调试信息");
+}
+```
+
+## 重定向处理
+
+当网盘服务返回302重定向时，可以使用`getNoRedirect`方法获取真实的下载链接：
+
+```javascript
+/**
+ * 获取真实的下载链接（处理302重定向）
+ * @param {string} downloadUrl - 原始下载链接
+ * @param {JsHttpClient} http - HTTP客户端
+ * @param {JsLogger} logger - 日志记录器
+ * @returns {string} 真实的下载链接
+ */
+function getRealDownloadUrl(downloadUrl, http, logger) {
+    try {
+        logger.info("获取真实下载链接: " + downloadUrl);
+        
+        // 使用不跟随重定向的方法获取Location头
+        var headResponse = http.getNoRedirect(downloadUrl);
+        
+        if (headResponse.statusCode() >= 300 && headResponse.statusCode() < 400) {
+            // 处理重定向
+            var location = headResponse.header("Location");
+            if (location) {
+                logger.info("获取到重定向链接: " + location);
+                return location;
+            }
+        }
+        
+        // 如果没有重定向或无法获取Location，返回原链接
+        logger.debug("下载链接无需重定向或无法获取重定向信息");
+        return downloadUrl;
+        
+    } catch (e) {
+        logger.error("获取真实下载链接失败: " + e.message);
+        // 如果获取失败，返回原链接
+        return downloadUrl;
+    }
+}
+
+// 在parse方法中使用
+function parse(shareLinkInfo, http, logger) {
+    // ... 获取原始下载链接的代码 ...
+    var originalUrl = "https://example.com/download?id=123";
+    
+    // 获取真实的下载链接
+    var realUrl = getRealDownloadUrl(originalUrl, http, logger);
+    return realUrl;
+}
+```
+
+## 代理支持
+
+JavaScript解析器支持HTTP代理配置，代理信息通过`ShareLinkInfo`的`otherParam`传递：
+
+```javascript
+function parse(shareLinkInfo, http, logger) {
+    // 检查是否有代理配置
+    var proxyConfig = shareLinkInfo.getOtherParam("proxy");
+    if (proxyConfig) {
+        logger.info("使用代理: " + proxyConfig.host + ":" + proxyConfig.port);
+    }
+    
+    // HTTP客户端会自动使用代理配置
+    var response = http.get("https://api.example.com/data");
+    return response.body();
+}
+```
+
+代理配置格式：
+```json
+{
+    "type": "HTTP",  // 代理类型: HTTP, SOCKS4, SOCKS5
+    "host": "proxy.example.com",
+    "port": 8080,
+    "username": "user",  // 可选，代理认证用户名
+    "password": "pass"    // 可选，代理认证密码
+}
+```
+
+## 文件上传支持
+
+JavaScript解析器支持通过`sendMultipartForm`方法上传文件：
+
+### 1. 简单文件上传
+
+```javascript
+function uploadFile(shareLinkInfo, http, logger) {
+    // 模拟文件数据（实际使用中可能是从其他地方获取）
+    var fileData = new java.lang.String("Hello, World!").getBytes();
+    
+    // 使用sendMultipartForm上传文件
+    var response = http.sendMultipartForm("https://api.example.com/upload", {
+        file: fileData,
+        filename: "test.txt",
+        description: "测试文件"
+    });
+    
+    return response.body();
+}
+```
+
+### 2. 混合表单上传
+
+```javascript
+function uploadMixedForm(shareLinkInfo, http, logger) {
+    var fileData = getFileData();
+    
+    // 同时上传文本字段和文件
+    var response = http.sendMultipartForm("https://api.example.com/upload", {
+        username: "user123",
+        email: "user@example.com",
+        file: fileData,
+        description: "用户上传的文件"
+    });
+    
+    if (response.isSuccess()) {
+        var result = response.json();
+        return result.downloadUrl;
+    } else {
+        throw new Error("文件上传失败: " + response.statusCode());
+    }
+}
+```
+
+### 3. 多文件上传
+
+```javascript
+function uploadMultipleFiles(shareLinkInfo, http, logger) {
+    var files = [
+        { name: "file1.txt", data: getFileData1() },
+        { name: "file2.jpg", data: getFileData2() }
+    ];
+    
+    var uploadResults = [];
+    
+    for (var i = 0; i < files.length; i++) {
+        var file = files[i];
+        var response = http.sendMultipartForm("https://api.example.com/upload", {
+            file: file.data,
+            filename: file.name,
+            uploadIndex: i.toString()
+        });
+        
+        if (response.isSuccess()) {
+            uploadResults.push({
+                fileName: file.name,
+                success: true,
+                url: response.json().url
+            });
+        } else {
+            uploadResults.push({
+                fileName: file.name,
+                success: false,
+                error: response.statusCode()
+            });
+        }
+    }
+    
+    return uploadResults;
 }
 ```
 
@@ -301,43 +497,49 @@ String fileUrl = tool.parseByIdSync();           // 调用 parseById() 函数
 - 如果JavaScript方法抛出异常，Java同步方法会抛出相应的异常
 - 建议在JavaScript方法中添加适当的错误处理和日志记录
 
-## 导出方式
+## 函数定义方式
 
-支持三种导出方式：
-
-### 方式1：分别导出（推荐）
+JavaScript解析器使用全局函数定义，不需要`exports`对象：
 
 ```javascript
-function parse(shareLinkInfo, http, logger) { }
-function parseFileList(shareLinkInfo, http, logger) { }
-function parseById(shareLinkInfo, http, logger) { }
+/**
+ * 解析单个文件下载链接（必填）
+ * @param {ShareLinkInfo} shareLinkInfo - 分享链接信息
+ * @param {JsHttpClient} http - HTTP客户端
+ * @param {JsLogger} logger - 日志对象
+ * @returns {string} 下载链接
+ */
+function parse(shareLinkInfo, http, logger) {
+    // 实现解析逻辑
+    return "https://example.com/download";
+}
 
-exports.parse = parse;
-exports.parseFileList = parseFileList;
-exports.parseById = parseById;
+/**
+ * 解析文件列表（可选）
+ * @param {ShareLinkInfo} shareLinkInfo - 分享链接信息
+ * @param {JsHttpClient} http - HTTP客户端
+ * @param {JsLogger} logger - 日志对象
+ * @returns {Array} 文件信息数组
+ */
+function parseFileList(shareLinkInfo, http, logger) {
+    // 实现文件列表解析逻辑
+    return [];
+}
+
+/**
+ * 根据文件ID获取下载链接（可选）
+ * @param {ShareLinkInfo} shareLinkInfo - 分享链接信息
+ * @param {JsHttpClient} http - HTTP客户端
+ * @param {JsLogger} logger - 日志对象
+ * @returns {string} 下载链接
+ */
+function parseById(shareLinkInfo, http, logger) {
+    // 实现按ID解析逻辑
+    return "https://example.com/download";
+}
 ```
 
-### 方式2：直接挂载
-
-```javascript
-exports.parse = function(shareLinkInfo, http, logger) { };
-exports.parseFileList = function(shareLinkInfo, http, logger) { };
-exports.parseById = function(shareLinkInfo, http, logger) { };
-```
-
-### 方式3：module.exports
-
-```javascript
-function parse(shareLinkInfo, http, logger) { }
-function parseFileList(shareLinkInfo, http, logger) { }
-function parseById(shareLinkInfo, http, logger) { }
-
-module.exports = {
-    parse: parse,
-    parseFileList: parseFileList,
-    parseById: parseById
-};
-```
+**注意**：JavaScript解析器通过`engine.eval()`执行，函数必须定义为全局函数，不需要使用`exports`或`module.exports`。
 
 ## VSCode配置
 

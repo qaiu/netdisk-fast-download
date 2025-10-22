@@ -53,8 +53,8 @@ public class MyPanTool implements IPanTool {
 ```java
 package com.example.myapp.config;
 
-import cn.qaiu.parser.CustomParserConfig;
-import cn.qaiu.parser.CustomParserRegistry;
+import cn.qaiu.parser.custom.CustomParserConfig;
+import cn.qaiu.parser.custom.CustomParserRegistry;
 import com.example.myapp.parser.MyPanTool;
 
 public class ParserRegistry {
@@ -130,8 +130,8 @@ public class DownloadService {
 package com.example;
 
 import cn.qaiu.entity.ShareLinkInfo;
-import cn.qaiu.parser.CustomParserConfig;
-import cn.qaiu.parser.CustomParserRegistry;
+import cn.qaiu.parser.custom.CustomParserConfig;
+import cn.qaiu.parser.custom.CustomParserRegistry;
 import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.ParserCreate;
 import cn.qaiu.WebClientVertxInit;

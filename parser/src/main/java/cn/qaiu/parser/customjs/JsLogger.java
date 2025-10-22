@@ -1,4 +1,4 @@
-package cn.qaiu.parser;
+package cn.qaiu.parser.customjs;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,7 +1,9 @@
-package cn.qaiu.parser;
+package cn.qaiu.parser.customjs;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import cn.qaiu.parser.custom.CustomParserConfig;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -66,33 +68,28 @@ public class JsScriptLoader {
         List<CustomParserConfig> configs = new ArrayList<>();
         
         try {
-            // 获取资源目录的输入流
-            InputStream resourceStream = JsScriptLoader.class.getClassLoader()
-                    .getResourceAsStream(RESOURCE_PATH);
+            // 尝试使用反射方式获取JAR包内的资源文件列表
+            List<String> resourceFiles = getResourceFileList();
             
-            if (resourceStream == null) {
-                log.debug("资源目录 {} 不存在", RESOURCE_PATH);
-                return configs;
-            }
+            // 按文件名排序，确保加载顺序一致
+            resourceFiles.sort(String::compareTo);
             
-            // 读取资源目录下的所有文件
-            String resourcePath = JsScriptLoader.class.getClassLoader()
-                    .getResource(RESOURCE_PATH).getPath();
-            
-            try (Stream<Path> paths = Files.walk(Paths.get(resourcePath))) {
-                paths.filter(Files::isRegularFile)
-                        .filter(path -> path.toString().endsWith(".js"))
-                        .filter(path -> !isExcludedFile(path.getFileName().toString()))
-                        .forEach(path -> {
-                            try {
-                                String jsCode = Files.readString(path, StandardCharsets.UTF_8);
-                                CustomParserConfig config = JsScriptMetadataParser.parseScript(jsCode);
-                                configs.add(config);
-                                log.debug("从资源目录加载脚本: {}", path.getFileName());
-                            } catch (Exception e) {
-                                log.warn("加载资源脚本失败: {}", path.getFileName(), e);
-                            }
-                        });
+            for (String resourceFile : resourceFiles) {
+                try {
+                    InputStream inputStream = JsScriptLoader.class.getClassLoader()
+                            .getResourceAsStream(resourceFile);
+                    
+                    if (inputStream != null) {
+                        String jsCode = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+                        CustomParserConfig config = JsScriptMetadataParser.parseScript(jsCode);
+                        configs.add(config);
+                        
+                        String fileName = resourceFile.substring(resourceFile.lastIndexOf('/') + 1);
+                        log.debug("从资源目录加载脚本: {}", fileName);
+                    }
+                } catch (Exception e) {
+                    log.warn("加载资源脚本失败: {}", resourceFile, e);
+                }
             }
             
         } catch (Exception e) {
@@ -101,6 +98,92 @@ public class JsScriptLoader {
         
         return configs;
     }
+    
+    /**
+     * 尝试使用反射方式获取JAR包内的资源文件列表
+     */
+    private static List<String> getResourceFileList() {
+        List<String> resourceFiles = new ArrayList<>();
+        
+        try {
+            // 尝试获取资源目录的URL
+            java.net.URL resourceUrl = JsScriptLoader.class.getClassLoader()
+                    .getResource(RESOURCE_PATH);
+            
+            if (resourceUrl != null) {
+                String protocol = resourceUrl.getProtocol();
+                
+                if ("jar".equals(protocol)) {
+                    // JAR包内的资源
+                    resourceFiles = getJarResourceFiles(resourceUrl);
+                } else if ("file".equals(protocol)) {
+                    // 文件系统中的资源（开发环境）
+                    resourceFiles = getFileSystemResourceFiles(resourceUrl);
+                }
+            }
+        } catch (Exception e) {
+            log.debug("使用反射方式获取资源文件列表失败，将使用预定义列表", e);
+        }
+        
+        return resourceFiles;
+    }
+    
+    /**
+     * 获取JAR包内的资源文件列表
+     */
+    private static List<String> getJarResourceFiles(java.net.URL jarUrl) {
+        List<String> resourceFiles = new ArrayList<>();
+        
+        try {
+            String jarPath = jarUrl.getPath().substring(5, jarUrl.getPath().indexOf("!"));
+            java.util.jar.JarFile jarFile = new java.util.jar.JarFile(jarPath);
+            
+            java.util.Enumeration<java.util.jar.JarEntry> entries = jarFile.entries();
+            while (entries.hasMoreElements()) {
+                java.util.jar.JarEntry entry = entries.nextElement();
+                String entryName = entry.getName();
+                
+                if (entryName.startsWith(RESOURCE_PATH + "/") && 
+                    entryName.endsWith(".js") && 
+                    !isExcludedFile(entryName.substring(entryName.lastIndexOf('/') + 1))) {
+                    resourceFiles.add(entryName);
+                }
+            }
+            
+            jarFile.close();
+        } catch (Exception e) {
+            log.debug("解析JAR包资源文件失败", e);
+        }
+        
+        return resourceFiles;
+    }
+    
+    /**
+     * 获取文件系统中的资源文件列表
+     */
+    private static List<String> getFileSystemResourceFiles(java.net.URL fileUrl) {
+        List<String> resourceFiles = new ArrayList<>();
+        
+        try {
+            java.io.File resourceDir = new java.io.File(fileUrl.getPath());
+            if (resourceDir.exists() && resourceDir.isDirectory()) {
+                java.io.File[] files = resourceDir.listFiles();
+                if (files != null) {
+                    for (java.io.File file : files) {
+                        if (file.isFile() && file.getName().endsWith(".js") && 
+                            !isExcludedFile(file.getName())) {
+                            resourceFiles.add(RESOURCE_PATH + "/" + file.getName());
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("解析文件系统资源文件失败", e);
+        }
+        
+        return resourceFiles;
+    }
+    
     
     /**
      * 从外部目录加载JavaScript脚本
