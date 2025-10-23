@@ -269,7 +269,7 @@ public enum PanDomainTemplate {
     // WPS：分享格式：https://www.kdocs.cn/l/ck0azivLlDi3 ；API格式：https://www.kdocs.cn/api/office/file/{shareKey}/download 
     // 响应：{download_url: "https://hwc-bj.ag.kdocs.cn/api/xx",url: "",fize: 0,fver: 0,store: ""}
     PWPS("WPS云文档",
-            compile("https://www\\.kdocs\\.cn/l/(?<KEY>.+)"),
+            compile("https://(?:[a-zA-Z\\d-]+\\.)?kdocs\\.cn/l/(?<KEY>.+)"),
             "https://www.kdocs.cn/l/{shareKey}",
             PwpsTool.class),
     // =====================音乐类解析 分享链接标志->MxxS (单歌曲/普通音质)==========================
