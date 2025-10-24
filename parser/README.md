@@ -48,7 +48,7 @@ List<FileInfo> list = ParserCreate
 - 环境：JDK >= 17，Maven >= 3.9
 - 构建/安装：
 ```
-mvn -pl parser -am clean package
+mvn -pl parser -am clean package -DskipTests
 mvn -pl parser -am install
 ```
 - 测试：

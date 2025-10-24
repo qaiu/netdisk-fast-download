@@ -41,5 +41,5 @@ jobs:
 #    - name: 运行测试
 #      run: ./mvnw test
       
-#    - name: 打包项目
-#      run: ./mvnw package -DskipTests
+    - name: 打包项目
+      run: ./mvnw package -DskipTests

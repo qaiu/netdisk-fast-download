@@ -12,7 +12,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.stream.Stream;
 
 /**
@@ -136,11 +139,11 @@ public class JsScriptLoader {
         
         try {
             String jarPath = jarUrl.getPath().substring(5, jarUrl.getPath().indexOf("!"));
-            java.util.jar.JarFile jarFile = new java.util.jar.JarFile(jarPath);
+            JarFile jarFile = new JarFile(jarPath);
             
-            java.util.Enumeration<java.util.jar.JarEntry> entries = jarFile.entries();
+            Enumeration<JarEntry> entries = jarFile.entries();
             while (entries.hasMoreElements()) {
-                java.util.jar.JarEntry entry = entries.nextElement();
+                JarEntry entry = entries.nextElement();
                 String entryName = entry.getName();
                 
                 if (entryName.startsWith(RESOURCE_PATH + "/") && 

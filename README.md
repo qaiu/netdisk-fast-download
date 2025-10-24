@@ -278,7 +278,7 @@ GET http://127.0.0.1:6400/json/fc/e5079007dc31226096628870c7@QAIU
 ```shell
 # 环境要求: Jdk17 + maven;
 mvn clean
-mvn package
+mvn package -DskipTests
 
 ```
 打包好的文件位于 web-service/target/netdisk-fast-download-bin.zip

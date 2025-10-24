@@ -9,9 +9,8 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.uritemplate.UriTemplate;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.regex.Pattern;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * <a href="https://www.ctfile.com">诚通网盘</a>
@@ -88,7 +87,15 @@ public class CtTool extends PanBase {
                                     .send().onSuccess(res2 -> {
                                         JsonObject resJson2 = asJson(res2);
                                         if (resJson2.containsKey("downurl")) {
-                                            promise.complete(resJson2.getString("downurl"));
+                                            String downloadUrl = resJson2.getString("downurl");
+                                            
+                                            // 存储下载元数据，包括必要的请求头
+                                            Map<String, String> headers = new HashMap<>();
+                                            headers.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+                                            headers.put("Referer", shareLinkInfo.getShareUrl());
+                                            
+                                            // 使用新的 completeWithMeta 方法
+                                            completeWithMeta(downloadUrl, headers);
                                         } else {
                                             fail("解析失败, 可能分享已失效: json: {} 字段 {} 不存在", resJson2, "downurl");
                                         }

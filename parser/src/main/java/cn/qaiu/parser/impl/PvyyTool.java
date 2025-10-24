@@ -150,7 +150,7 @@ public class PvyyTool extends PanBase {
 //                                        var arr = asJson(res2).getJsonObject("data").getJsonArray("data");
 //                                        List<FileInfo> list = arr.stream().map(o -> {
 //                                            FileInfo fileInfo = new FileInfo();
-//                                            var jo = ((io.vertx.core.json.JsonObject) o).getJsonObject("data");
+//                                            var jo = ((JsonObject) o).getJsonObject("data");
 //                                            String fileType = jo.getString("type");
 //                                            fileInfo.setFileId(jo.getString("id"));
 //                                            fileInfo.setFileName(jo.getJsonObject("attributes").getString("name"));
