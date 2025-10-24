@@ -41,3 +41,40 @@ unused.txt
 /db
 /webroot/nfd-front/
 package-lock.json
+
+# Maven generated files
+.flattened-pom.xml
+**/.flattened-pom.xml
+
+# Test files
+test-filelist.java
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.bak
+*.swp
+*.swo
+*~
+
+# Node.js (if any)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build artifacts
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# IDE specific
+.vscode/
+.cursor/
+*.iml
+*.ipr
+*.iws

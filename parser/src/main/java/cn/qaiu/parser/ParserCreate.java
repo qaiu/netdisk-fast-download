@@ -73,7 +73,7 @@ public class ParserCreate {
                 throw new IllegalArgumentException("ShareLinkInfo shareUrl is empty");
             }
             
-            java.util.regex.Matcher matcher = customParserConfig.getMatchPattern().matcher(shareUrl);
+            Matcher matcher = customParserConfig.getMatchPattern().matcher(shareUrl);
             if (matcher.matches()) {
                 // 提取分享键
                 try {
@@ -252,7 +252,7 @@ public class ParserCreate {
         // 优先查找支持正则匹配的自定义解析器
         for (CustomParserConfig customConfig : CustomParserRegistry.getAll().values()) {
             if (customConfig.supportsFromShareUrl()) {
-                java.util.regex.Matcher matcher = customConfig.getMatchPattern().matcher(shareUrl);
+                Matcher matcher = customConfig.getMatchPattern().matcher(shareUrl);
                 if (matcher.matches()) {
                     ShareLinkInfo shareLinkInfo = ShareLinkInfo.newBuilder()
                             .type(customConfig.getType())

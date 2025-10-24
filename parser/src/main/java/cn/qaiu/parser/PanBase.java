@@ -5,6 +5,7 @@ import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.util.HttpResponseHelper;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
@@ -21,7 +22,9 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -225,7 +228,37 @@ public abstract class PanBase implements IPanTool {
     }
 
     protected void complete(String url) {
+        // 自动将直链存储到 otherParam 中，以便客户端链接生成器使用
+        shareLinkInfo.getOtherParam().put("downloadUrl", url);
         promise.complete(url);
+    }
+
+    /**
+     * 完成解析并存储下载元数据
+     * 
+     * @param url 下载直链
+     * @param headers 请求头Map
+     */
+    protected void completeWithMeta(String url, Map<String, String> headers) {
+        shareLinkInfo.getOtherParam().put("downloadUrl", url);
+        if (headers != null && !headers.isEmpty()) {
+            shareLinkInfo.getOtherParam().put("downloadHeaders", headers);
+        }
+        promise.complete(url);
+    }
+
+    /**
+     * 完成解析并存储下载元数据（MultiMap版本）
+     * 
+     * @param url 下载直链
+     * @param headers MultiMap格式的请求头
+     */
+    protected void completeWithMeta(String url, MultiMap headers) {
+        Map<String, String> headerMap = new HashMap<>();
+        if (headers != null) {
+            headers.forEach(entry -> headerMap.put(entry.getKey(), entry.getValue()));
+        }
+        completeWithMeta(url, headerMap);
     }
 
     protected Future<String> future() {
@@ -278,5 +311,10 @@ public abstract class PanBase implements IPanTool {
 
     protected String getDomainName(){
         return shareLinkInfo.getOtherParam().getOrDefault("domainName", "").toString();
+    }
+
+    @Override
+    public ShareLinkInfo getShareLinkInfo() {
+        return shareLinkInfo;
     }
 }

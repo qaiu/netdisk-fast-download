@@ -6,6 +6,9 @@ import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * 奶牛快传解析工具
  *
@@ -46,7 +49,14 @@ public class CowTool extends PanBase {
                         String downloadUrl = data2.getString("downloadUrl");
                         if (StringUtils.isNotEmpty(downloadUrl)) {
                             log.info("cow parse success: {}", downloadUrl);
-                            promise.complete(downloadUrl);
+                            
+                            // 存储下载元数据，包括必要的请求头
+                            Map<String, String> headers = new HashMap<>();
+                            headers.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+                            headers.put("Referer", shareLinkInfo.getShareUrl());
+                            
+                            // 使用新的 completeWithMeta 方法存储元数据
+                            completeWithMeta(downloadUrl, headers);
                             return;
                         }
                         fail("cow parse fail: {}; downloadUrl is empty", url2);

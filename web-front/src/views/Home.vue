@@ -91,6 +91,7 @@
               <el-button style="margin-left: 20px" @click="generateMarkdown">生成Markdown</el-button>
               <el-button style="margin-left: 20px" @click="generateQRCode">扫码下载</el-button>
               <el-button style="margin-left: 20px" @click="getStatistics">分享统计</el-button>
+              <el-button style="margin-left: 20px" @click="goToClientLinks" type="primary">客户端链接(实验)</el-button>
             </p>
           </div>
 
@@ -589,6 +590,55 @@ export default {
       }).catch(() => {
         this.$message.error('复制失败');
       });
+    },
+    
+    // 跳转到客户端链接页面
+    async goToClientLinks() {
+      // 验证输入
+      if (!this.link.trim()) {
+        this.$message.warning('请先输入分享链接')
+        return
+      }
+
+      if (!this.link.startsWith("https://") && !this.link.startsWith("http://")) {
+        this.$message.error("请输入有效链接!")
+        return
+      }
+
+      try {
+        // 显示加载状态
+        this.isLoading = true
+        
+        // 直接使用 axios 请求客户端链接 API，因为它的响应格式与其他 API 不同
+        const params = { url: this.link }
+        if (this.password) params.pwd = this.password
+        
+        const response = await axios.get(`${this.baseAPI}/v2/clientLinks`, { params })
+        const result = response.data
+        
+        // 处理包装格式的响应
+        const clientData = result.data || result
+        
+        if (clientData.success) {
+          // 将数据存储到 sessionStorage，供客户端链接页面使用
+          sessionStorage.setItem('clientLinksData', JSON.stringify(clientData))
+          sessionStorage.setItem('clientLinksForm', JSON.stringify({
+            shareUrl: this.link,
+            password: this.password
+          }))
+          
+          // 跳转到客户端链接页面
+          this.$router.push('/clientLinks')
+          this.$message.success('客户端链接生成成功，正在跳转...')
+        } else {
+          this.$message.error(clientData.error || '生成客户端链接失败')
+        }
+      } catch (error) {
+        console.error('生成客户端链接失败:', error)
+        this.$message.error('生成客户端链接失败')
+      } finally {
+        this.isLoading = false
+      }
     }
   },
   

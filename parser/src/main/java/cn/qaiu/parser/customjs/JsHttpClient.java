@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -347,7 +348,7 @@ public class JsHttpClient {
          */
         public Map<String, String> headers() {
             MultiMap responseHeaders = response.headers();
-            Map<String, String> result = new java.util.HashMap<>();
+            Map<String, String> result = new HashMap<>();
             for (String name : responseHeaders.names()) {
                 result.put(name, responseHeaders.get(name));
             }

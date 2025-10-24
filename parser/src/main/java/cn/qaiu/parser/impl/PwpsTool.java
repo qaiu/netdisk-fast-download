@@ -5,6 +5,9 @@ import cn.qaiu.parser.PanBase;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * <a href="https://www.kdocs.cn/">WPS云文档</a>
  * 分享格式：https://www.kdocs.cn/l/ck0azivLlDi3
@@ -38,7 +41,15 @@ public class PwpsTool extends PanBase {
                             
                             if (downloadUrl != null && !downloadUrl.isEmpty()) {
                                 log.info("WPS云文档解析成功: shareKey={}, downloadUrl={}", shareKey, downloadUrl);
-                                promise.complete(downloadUrl);
+                                
+                                // 存储下载元数据，包括必要的请求头
+                                Map<String, String> headers = new HashMap<>();
+                                headers.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+                                headers.put("Referer", shareLinkInfo.getShareUrl());
+                                
+                                // 使用新的 completeWithMeta 方法存储元数据
+                                completeWithMeta(downloadUrl, headers);
+                                return;
                             } else {
                                 fail("download_url字段为空");
                             }

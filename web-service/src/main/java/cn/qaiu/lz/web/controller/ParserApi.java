@@ -6,11 +6,13 @@ import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.lz.common.cache.CacheManager;
 import cn.qaiu.lz.common.util.URLParamUtil;
 import cn.qaiu.lz.web.model.CacheLinkInfo;
+import cn.qaiu.lz.web.model.ClientLinkResp;
 import cn.qaiu.lz.web.model.LinkInfoResp;
 import cn.qaiu.lz.web.model.StatisticsInfo;
 import cn.qaiu.lz.web.service.DbService;
 import cn.qaiu.parser.PanDomainTemplate;
 import cn.qaiu.parser.ParserCreate;
+import cn.qaiu.parser.clientlink.ClientLinkType;
 import cn.qaiu.vx.core.annotaions.RouteHandler;
 import cn.qaiu.vx.core.annotaions.RouteMapping;
 import cn.qaiu.vx.core.enums.RouteMethod;
@@ -243,5 +245,152 @@ public class ParserApi {
         .replace("T", "_")
         .replace("-", "")
         .replace(":", "");
+    }
+
+    /**
+     * 获取客户端下载链接
+     * 
+     * @param request HTTP请求
+     * @param pwd 提取码
+     * @return 客户端下载链接响应
+     */
+    @RouteMapping(value = "/clientLinks", method = RouteMethod.GET)
+    public Future<ClientLinkResp> getClientLinks(HttpServerRequest request, String pwd) {
+        Promise<ClientLinkResp> promise = Promise.promise();
+        
+        try {
+            String shareUrl = URLParamUtil.parserParams(request);
+            ParserCreate parserCreate = ParserCreate.fromShareUrl(shareUrl).setShareLinkInfoPwd(pwd);
+            ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();
+            
+            // 使用默认方法解析并生成客户端链接
+            parserCreate.createTool().parseWithClientLinks()
+                .onSuccess(clientLinks -> {
+                    try {
+                        ClientLinkResp response = buildClientLinkResponse(shareLinkInfo, clientLinks);
+                        promise.complete(response);
+                    } catch (Exception e) {
+                        log.error("处理客户端链接结果失败", e);
+                        promise.fail(new RuntimeException("处理客户端链接结果失败: " + e.getMessage()));
+                    }
+                })
+                .onFailure(error -> {
+                    log.error("解析分享链接失败", error);
+                    promise.fail(new RuntimeException("解析分享链接失败: " + error.getMessage()));
+                });
+                
+        } catch (Exception e) {
+            log.error("解析请求参数失败", e);
+            promise.fail(new RuntimeException("解析请求参数失败: " + e.getMessage()));
+        }
+        
+        return promise.future();
+    }
+
+    /**
+     * 获取指定类型的客户端下载链接
+     * 
+     * @param request HTTP请求
+     * @param pwd 提取码
+     * @param clientType 客户端类型 (curl, wget, aria2, idm, thunder, bitcomet, motrix, fdm, powershell)
+     * @return 指定类型的客户端下载链接
+     */
+    @RouteMapping(value = "/clientLink", method = RouteMethod.GET)
+    public Future<String> getClientLink(HttpServerRequest request, String pwd, String clientType) {
+        Promise<String> promise = Promise.promise();
+        
+        try {
+            String shareUrl = URLParamUtil.parserParams(request);
+            ParserCreate parserCreate = ParserCreate.fromShareUrl(shareUrl).setShareLinkInfoPwd(pwd);
+            
+            // 使用默认方法解析并生成客户端链接
+            parserCreate.createTool().parseWithClientLinks()
+                .onSuccess(clientLinks -> {
+                    try {
+                        String clientLink = extractClientLinkByType(clientLinks, clientType);
+                        if (clientLink != null) {
+                            promise.complete(clientLink);
+                        } else {
+                            promise.fail("无法生成 " + clientType + " 格式的下载链接");
+                        }
+                    } catch (IllegalArgumentException e) {
+                        promise.fail("不支持的客户端类型: " + clientType);
+                    } catch (Exception e) {
+                        log.error("获取客户端链接失败", e);
+                        promise.fail("获取客户端链接失败: " + e.getMessage());
+                    }
+                })
+                .onFailure(error -> {
+                    log.error("解析分享链接失败", error);
+                    promise.fail("解析分享链接失败: " + error.getMessage());
+                });
+                
+        } catch (Exception e) {
+            log.error("解析请求参数失败", e);
+            promise.fail("解析请求参数失败: " + e.getMessage());
+        }
+        
+        return promise.future();
+    }
+    
+    /**
+     * 构建客户端链接响应
+     * 
+     * @param shareLinkInfo 分享链接信息
+     * @param clientLinks 客户端链接映射
+     * @return 客户端链接响应
+     */
+    private ClientLinkResp buildClientLinkResponse(ShareLinkInfo shareLinkInfo, Map<ClientLinkType, String> clientLinks) {
+        // 从 otherParam 中获取直链
+        String directLink = (String) shareLinkInfo.getOtherParam().get("downloadUrl");
+        Map<String, String> supportedClients = buildSupportedClientsMap();
+        FileInfo fileInfo = extractFileInfo(shareLinkInfo);
+        
+        return ClientLinkResp.builder()
+            .success(true)
+            .directLink(directLink)
+            .fileName(fileInfo != null ? fileInfo.getFileName() : null)
+            .fileSize(fileInfo != null ? fileInfo.getSize() : null)
+            .clientLinks(clientLinks)
+            .supportedClients(supportedClients)
+            .parserInfo(shareLinkInfo.getPanName() + " - " + shareLinkInfo.getType())
+            .build();
+    }
+    
+    /**
+     * 构建支持的客户端类型映射
+     * 
+     * @return 客户端类型映射
+     */
+    private Map<String, String> buildSupportedClientsMap() {
+        Map<String, String> supportedClients = new HashMap<>();
+        for (ClientLinkType type : ClientLinkType.values()) {
+            supportedClients.put(type.getCode(), type.getDisplayName());
+        }
+        return supportedClients;
+    }
+    
+    /**
+     * 从ShareLinkInfo中提取文件信息
+     * 
+     * @param shareLinkInfo 分享链接信息
+     * @return 文件信息，如果不存在则返回null
+     */
+    private FileInfo extractFileInfo(ShareLinkInfo shareLinkInfo) {
+        Object fileInfo = shareLinkInfo.getOtherParam().get("fileInfo");
+        return fileInfo instanceof FileInfo ? (FileInfo) fileInfo : null;
+    }
+    
+    /**
+     * 根据客户端类型提取对应的客户端链接
+     * 
+     * @param clientLinks 客户端链接映射
+     * @param clientType 客户端类型
+     * @return 客户端链接，如果不存在则返回null
+     * @throws IllegalArgumentException 如果客户端类型不支持
+     */
+    private String extractClientLinkByType(Map<ClientLinkType, String> clientLinks, String clientType) {
+        ClientLinkType type = ClientLinkType.valueOf(clientType.toUpperCase());
+        return clientLinks.get(type);
     }
 }
