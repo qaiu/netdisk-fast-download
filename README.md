@@ -274,10 +274,10 @@ GET http://127.0.0.1:6400/parser?url=https://v2.fangcloud.com/sharing/e5079007dc
 # Rest请求自动302跳转(只提供共享文件Id):
 ### 蓝奏云普通分享
 # @no-redirect
-GET http://127.0.0.1:6400/lz/ia2cntg
+GET http://127.0.0.1:6400/d/lz/ia2cntg
 ### 奶牛快传普通分享
 # @no-redirect
-GET http://127.0.0.1:6400/cow/9a644fe3e3a748
+GET http://127.0.0.1:6400/d/cow/9a644fe3e3a748
 ### 360亿方云加密分享
 GET http://127.0.0.1:6400/json/fc/e5079007dc31226096628870c7@QAIU
 
@@ -312,9 +312,9 @@ GET http://127.0.0.1:6400/json/fc/e5079007dc31226096628870c7@QAIU
 # 打包部署
 
 ## JDK下载（lz.qaiu.top提供直链云解析服务）
-- [阿里jdk17(Dragonwell17-windows-x86)](https://lz.qaiu.top/ec/e957acef36ce89e1053979672a90d219n)
-- [阿里jdk17(Dragonwell17-linux-x86)](https://lz.qaiu.top/ec/6ebc9f2e0bbd53b4c4d5b11013f40a80NHvcYU)
-- [阿里jdk17(Dragonwell17-linux-aarch64)](https://lz.qaiu.top/ec/d14c2d06296f61b52a876b525265e0f8tzxTc5)
+- [阿里jdk17(Dragonwell17-windows-x86)](https://lz.qaiu.top/d/ec/e957acef36ce89e1053979672a90d219n)
+- [阿里jdk17(Dragonwell17-linux-x86)](https://lz.qaiu.top/d/ec/6ebc9f2e0bbd53b4c4d5b11013f40a80NHvcYU)
+- [阿里jdk17(Dragonwell17-linux-aarch64)](https://lz.qaiu.top/d/ec/d14c2d06296f61b52a876b525265e0f8tzxTc5)
 - [解析有效性测试-移动云云空间-阿里jdk17-linux-x86](https://lz.qaiu.top/json/ec/6ebc9f2e0bbd53b4c4d5b11013f40a80NHvcYU)
 
 ## 开发和打包
