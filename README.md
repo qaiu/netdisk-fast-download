@@ -257,41 +257,7 @@ json返回数据格式示例:
 }
 ```
 
-IDEA HttpClient示例:
 
-```
-# 解析并重定向到直链
-### 蓝奏云普通分享
-# @no-redirect
-GET http://127.0.0.1:6400/parser?url=https://lanzoux.com/ia2cntg
-### 奶牛快传普通分享
-# @no-redirect
-GET http://127.0.0.1:6400/parser?url=https://cowtransfer.com/s/9a644fe3e3a748
-### 360亿方云加密分享
-# @no-redirect
-GET http://127.0.0.1:6400/parser?url=https://v2.fangcloud.com/sharing/e5079007dc31226096628870c7&pwd=QAIU
-
-# Rest请求自动302跳转(只提供共享文件Id):
-### 蓝奏云普通分享
-# @no-redirect
-GET http://127.0.0.1:6400/d/lz/ia2cntg
-### 奶牛快传普通分享
-# @no-redirect
-GET http://127.0.0.1:6400/d/cow/9a644fe3e3a748
-### 360亿方云加密分享
-GET http://127.0.0.1:6400/json/fc/e5079007dc31226096628870c7@QAIU
-
-
-# 解析返回json直链
-### 蓝奏云普通分享
-GET http://127.0.0.1:6400/json/lz/ia2cntg
-### 奶牛快传普通分享
-GET http://127.0.0.1:6400/json/cow/9a644fe3e3a748
-### 360亿方云加密分享
-GET http://127.0.0.1:6400/json/fc/e5079007dc31226096628870c7@QAIU
-
-
-```
 
 # 网盘对比
 
