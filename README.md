@@ -57,7 +57,7 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 
 - [蓝奏云-lz](https://pc.woozooo.com/)
 - [蓝奏云优享-iz](https://www.ilanzou.com/)
-- [奶牛快传-cow](https://cowtransfer.com/)
+- ~[奶牛快传-cow(即将停服)](https://cowtransfer.com/)~
 - [移动云云空间-ec](https://www.ecpan.cn/web)
 - [小飞机网盘-fj](https://www.feijipan.com/)
 - [亿方云-fc](https://www.fangcloud.com/)
