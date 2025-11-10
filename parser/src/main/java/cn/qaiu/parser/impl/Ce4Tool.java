@@ -12,13 +12,12 @@ import java.net.URL;
 
 /**
  * <a href="https://github.com/cloudreve/Cloudreve">Cloudreve 4.x 自建网盘解析</a> <br>
- * Cloudreve 4.x API 版本解析器
+ * Cloudreve 4.x API 版本解析器 <br>
+ * 此解析器专门处理Cloudreve 4.x版本的API，使用新的下载流程
  */
 public class Ce4Tool extends PanBase {
 
     // Cloudreve 4.x uses /api/v3/ prefix for most APIs
-    private static final String PING_API_V3_PATH = "/api/v3/site/ping";
-    private static final String PING_API_V4_PATH = "/api/v4/site/ping";
     private static final String FILE_URL_API_PATH = "/api/v3/file/url";
     private static final String SHARE_API_PATH = "/api/v3/share/info/";
 
@@ -34,8 +33,8 @@ public class Ce4Tool extends PanBase {
             URL url = new URL(shareLinkInfo.getShareUrl());
             String baseUrl = url.getProtocol() + "://" + url.getHost();
             
-            // First, detect API version by pinging
-            detectVersion(baseUrl, key, pwd);
+            // 获取分享信息
+            getShareInfo(baseUrl, key, pwd);
         } catch (Exception e) {
             fail(e, "URL解析错误");
         }
@@ -43,61 +42,7 @@ public class Ce4Tool extends PanBase {
     }
 
     /**
-     * Detect Cloudreve version by pinging /api/v3/site/ping or /api/v4/site/ping
-     */
-    private void detectVersion(String baseUrl, String key, String pwd) {
-        String pingUrlV3 = baseUrl + PING_API_V3_PATH;
-        
-        // Try v3 ping first (which also works for 4.x)
-        clientSession.getAbs(pingUrlV3).send().onSuccess(res -> {
-            if (res.statusCode() == 200) {
-                try {
-                    JsonObject pingResponse = asJson(res);
-                    // If we get a valid JSON response, this is a Cloudreve instance
-                    // Check if it's 4.x by trying the share API
-                    getShareInfo(baseUrl, key, pwd);
-                } catch (Exception e) {
-                    // Not a valid JSON response, try v4 ping
-                    tryV4Ping(baseUrl, key, pwd);
-                }
-            } else if (res.statusCode() == 404) {
-                // Try v4 ping
-                tryV4Ping(baseUrl, key, pwd);
-            } else {
-                // Not a Cloudreve instance, try next parser
-                nextParser();
-            }
-        }).onFailure(t -> {
-            // Network error or not accessible, try next parser
-            nextParser();
-        });
-    }
-
-    private void tryV4Ping(String baseUrl, String key, String pwd) {
-        String pingUrlV4 = baseUrl + PING_API_V4_PATH;
-        
-        clientSession.getAbs(pingUrlV4).send().onSuccess(res -> {
-            if (res.statusCode() == 200) {
-                try {
-                    JsonObject pingResponse = asJson(res);
-                    // Valid v4 response
-                    getShareInfo(baseUrl, key, pwd);
-                } catch (Exception e) {
-                    // Not a Cloudreve instance
-                    nextParser();
-                }
-            } else {
-                // Not a Cloudreve instance
-                nextParser();
-            }
-        }).onFailure(t -> {
-            // Not accessible, try next parser
-            nextParser();
-        });
-    }
-
-    /**
-     * Get share information from Cloudreve 4.x
+     * 获取Cloudreve 4.x分享信息
      */
     private void getShareInfo(String baseUrl, String key, String pwd) {
         String shareApiUrl = baseUrl + SHARE_API_PATH + key;
@@ -114,49 +59,45 @@ public class Ce4Tool extends PanBase {
                     if (jsonObject.containsKey("code")) {
                         int code = jsonObject.getInteger("code");
                         if (code == 0) {
-                            // Success, get file info and download URL
+                            // 成功，获取文件信息和下载链接
                             JsonObject data = jsonObject.getJsonObject("data");
                             if (data != null) {
-                                // Get file path or use default
+                                // 获取文件路径，如果没有则使用默认路径
                                 String filePath = "/";
                                 if (data.containsKey("path")) {
                                     filePath = data.getString("path");
                                 }
-                                // For 4.x, we need to get the download URL via POST /api/v3/file/url
-                                getDownloadUrl(baseUrl, key, filePath);
+                                // 对于4.x，需要通过 POST /api/v3/file/url 获取下载链接
+                                getDownloadUrl(baseUrl, filePath);
                             } else {
                                 fail("分享信息获取失败: data字段为空");
                             }
                         } else {
-                            // Error code, might be wrong password or invalid share
+                            // 错误码，可能是密码错误或分享失效
                             String msg = jsonObject.getString("msg", "未知错误");
                             fail("分享验证失败: {}", msg);
                         }
                     } else {
-                        // Not a Cloudreve 4.x response, try next parser
-                        nextParser();
+                        // 响应格式不符合预期
+                        fail("响应格式不符合Cloudreve 4.x规范");
                     }
                 } else {
-                    // HTTP error, not a valid Cloudreve instance
-                    nextParser();
+                    // HTTP错误
+                    fail("获取分享信息失败: HTTP {}", res.statusCode());
                 }
             } catch (Exception e) {
-                // JSON parsing error, not a Cloudreve instance
-                nextParser();
+                fail(e, "解析分享信息响应失败");
             }
-        }).onFailure(t -> {
-            // Network error, try next parser
-            nextParser();
-        });
+        }).onFailure(handleFail(shareApiUrl));
     }
 
     /**
-     * Get download URL via POST /api/v3/file/url (Cloudreve 4.x API)
+     * 通过 POST /api/v3/file/url 获取下载链接 (Cloudreve 4.x API)
      */
-    private void getDownloadUrl(String baseUrl, String key, String filePath) {
+    private void getDownloadUrl(String baseUrl, String filePath) {
         String fileUrlApi = baseUrl + FILE_URL_API_PATH;
         
-        // Prepare request body for Cloudreve 4.x
+        // 准备Cloudreve 4.x的请求体
         JsonObject requestBody = new JsonObject()
                 .put("uris", new JsonArray().add(filePath))
                 .put("download", true);
@@ -182,7 +123,7 @@ public class Ce4Tool extends PanBase {
                                     fail("下载链接列表为空");
                                 }
                             } else {
-                                fail("响应中不包含urls字段");
+                                fail("响应中不包含urls字段: {}", jsonObject.encodePrettily());
                             }
                         } else {
                             fail("获取下载链接失败: HTTP {}", res.statusCode());

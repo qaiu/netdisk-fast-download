@@ -35,13 +35,7 @@ public class CeTool extends PanBase {
     public Future<String> parse() {
         String key = shareLinkInfo.getShareKey();
         String pwd = shareLinkInfo.getSharePassword();
-        // https://pan.huang1111.cn/s/wDz5TK
-        // https://pan.huang1111.cn/s/y12bI6 -> https://pan.huang1111
-        // .cn/api/v3/share/download/y12bI6?path=undefined%2Fundefined;
-        // 类型解析 -> /ce/pan.huang1111.cn_s_wDz5TK
-        // parser接口 -> /parser?url=https://pan.huang1111.cn/s/wDz5TK
         try {
-//            // 处理URL
             URL url = new URL(shareLinkInfo.getShareUrl());
             String baseUrl = url.getProtocol() + "://" + url.getHost();
             
@@ -55,8 +49,8 @@ public class CeTool extends PanBase {
     
     /**
      * 检测Cloudreve版本并选择合适的解析器
-     * 先调用 /api/v3/site/ping 或 /api/v4/site/ping 判断是哪个版本
-     * 如果都返回404说明不是Cloudreve盘，则调用nextParser
+     * 先调用 /api/v3/site/ping 判断哪个API 如果/v3 或者/v4 能查询到json响应，可以判断是哪个版本
+     * 不然返回404说明不是ce盘直接nextParser
      */
     private void detectVersionAndParse(String baseUrl, String key, String pwd) {
         String pingUrlV3 = baseUrl + PING_API_V3_PATH;
@@ -65,42 +59,43 @@ public class CeTool extends PanBase {
         clientSession.getAbs(pingUrlV3).send().onSuccess(res -> {
             if (res.statusCode() == 200) {
                 try {
-                    JsonObject pingResponse = asJson(res);
-                    // 获取到JSON响应，检查是否是4.x版本
-                    // 4.x的ping响应可能有不同的结构，我们通过share API来判断
-                    checkVersionByShareApi(baseUrl, key, pwd);
+                    asJson(res);
+                    // v3 ping成功，可能是3.x或4.x，尝试3.x的download API来判断
+                    String shareApiUrl = baseUrl + SHARE_API_PATH + key;
+                    String downloadApiUrl = baseUrl + DOWNLOAD_API_PATH + key + "?path=undefined/undefined;";
+                    checkIfV3(shareApiUrl, downloadApiUrl, pwd);
                 } catch (Exception e) {
                     // JSON解析失败，尝试v4 ping
-                    tryV4PingAndParse(baseUrl, key, pwd);
+                    tryV4Ping(baseUrl, key, pwd);
                 }
             } else if (res.statusCode() == 404) {
                 // v3 ping不存在，尝试v4
-                tryV4PingAndParse(baseUrl, key, pwd);
+                tryV4Ping(baseUrl, key, pwd);
             } else {
                 // 其他错误，不是Cloudreve盘
                 nextParser();
             }
         }).onFailure(t -> {
-            // 网络错误，尝试下一个解析器
-            nextParser();
+            // 网络错误或不可达，尝试v4 ping
+            tryV4Ping(baseUrl, key, pwd);
         });
     }
     
-    private void tryV4PingAndParse(String baseUrl, String key, String pwd) {
+    private void tryV4Ping(String baseUrl, String key, String pwd) {
         String pingUrlV4 = baseUrl + PING_API_V4_PATH;
         
         clientSession.getAbs(pingUrlV4).send().onSuccess(res -> {
             if (res.statusCode() == 200) {
                 try {
-                    JsonObject pingResponse = asJson(res);
+                    asJson(res);
                     // v4 ping成功，使用Ce4Tool
                     delegateToCe4Tool();
                 } catch (Exception e) {
-                    // 不是Cloudreve盘
+                    // JSON解析失败，不是Cloudreve盘
                     nextParser();
                 }
             } else {
-                // 不是Cloudreve盘
+                // v4 ping失败，不是Cloudreve盘
                 nextParser();
             }
         }).onFailure(t -> {
@@ -110,11 +105,9 @@ public class CeTool extends PanBase {
     }
     
     /**
-     * 通过Share API的响应来判断版本
-     * 3.x和4.x的share API响应格式可能不同
+     * 检查是否是3.x版本，通过尝试调用3.x的API
      */
-    private void checkVersionByShareApi(String baseUrl, String key, String pwd) {
-        String shareApiUrl = baseUrl + SHARE_API_PATH + key;
+    private void checkIfV3(String shareApiUrl, String downloadApiUrl, String pwd) {
         HttpRequest<Buffer> httpRequest = clientSession.getAbs(shareApiUrl);
         if (pwd != null) {
             httpRequest.addQueryParam("password", pwd);
@@ -123,12 +116,22 @@ public class CeTool extends PanBase {
         httpRequest.send().onSuccess(res -> {
             try {
                 if (res.statusCode() == 200 && res.bodyAsJsonObject().containsKey("code")) {
-                    JsonObject jsonObject = asJson(res);
-                    // 检查响应结构来判断版本
-                    // 如果share API成功，但download API返回404，说明是4.x
-                    // 这里我们先尝试3.x的download API
-                    String downloadApiUrl = baseUrl + DOWNLOAD_API_PATH + key + "?path=undefined/undefined;";
-                    checkDownloadApi(downloadApiUrl, baseUrl, key, pwd);
+                    // share API成功，尝试download API
+                    clientSession.putAbs(downloadApiUrl).send().onSuccess(res2 -> {
+                        if (res2.statusCode() == 200 || res2.statusCode() == 400) {
+                            // 3.x版本的download API存在
+                            getDownURL(downloadApiUrl);
+                        } else if (res2.statusCode() == 404 || res2.statusCode() == 405) {
+                            // download API不存在，说明是4.x
+                            delegateToCe4Tool();
+                        } else {
+                            // 其他错误，可能是4.x
+                            delegateToCe4Tool();
+                        }
+                    }).onFailure(t -> {
+                        // 请求失败，尝试4.x
+                        delegateToCe4Tool();
+                    });
                 } else {
                     nextParser();
                 }
@@ -137,28 +140,6 @@ public class CeTool extends PanBase {
             }
         }).onFailure(t -> {
             nextParser();
-        });
-    }
-    
-    /**
-     * 检查3.x的download API是否存在
-     * 如果不存在，说明是4.x版本
-     */
-    private void checkDownloadApi(String downloadApiUrl, String baseUrl, String key, String pwd) {
-        clientSession.putAbs(downloadApiUrl).send().onSuccess(res -> {
-            if (res.statusCode() == 404 || res.statusCode() == 405) {
-                // download API不存在或方法不允许，说明是4.x
-                delegateToCe4Tool();
-            } else if (res.statusCode() == 200) {
-                // 3.x版本，继续使用当前逻辑
-                getDownURL(downloadApiUrl);
-            } else {
-                // 其他错误
-                fail("无法确定Cloudreve版本或接口调用失败");
-            }
-        }).onFailure(t -> {
-            // 尝试使用4.x
-            delegateToCe4Tool();
         });
     }
     
