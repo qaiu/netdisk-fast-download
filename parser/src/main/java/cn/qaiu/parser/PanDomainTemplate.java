@@ -324,10 +324,10 @@ public enum PanDomainTemplate {
 
     // Cloudreve自定义域名解析, 解析器CeTool兜底策略, 即任意域名如果匹配不到对应的规则, 则由CeTool统一处理,
     // 如果不属于Cloudreve盘 则调用下一个自定义域名解析器, 若都处理不了则抛出异常, 这种匹配模式类似责任链
-    // https://pan.huang1111.cn/s/xxx
+    // http(s)://pan.huang1111.cn/s/xxx
     // 通用域名([a-z\\d]+(-[a-z\\d]+)*\.)+[a-z]{2,}
     CE("Cloudreve",
-            compile("http(s)?://([a-zA-Z\\d]+(-[a-zA-Z\\d]+)*\\.)+[a-zA-Z]{2,}(/s)?/(?<KEY>.+)"),
+            compile("http(s)?://([a-zA-Z\\d]+(-[a-zA-Z\\d]+)*\\.)+[a-zA-Z]{2,}(:\\d{1,5})?(/s)?/(?<KEY>.+)"),
             "https://{any}/s/{shareKey}",
             "https://cloudreve.org/",
             CeTool.class),

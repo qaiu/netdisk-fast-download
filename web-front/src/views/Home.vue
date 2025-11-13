@@ -91,7 +91,7 @@
               <el-button style="margin-left: 20px" @click="generateMarkdown">生成Markdown</el-button>
               <el-button style="margin-left: 20px" @click="generateQRCode">扫码下载</el-button>
               <el-button style="margin-left: 20px" @click="getStatistics">分享统计</el-button>
-              <el-button style="margin-left: 20px" @click="goToClientLinks" type="primary">客户端链接(实验)</el-button>
+              <el-button v-if="false" style="margin-left: 20px" @click="goToClientLinks" type="primary">客户端链接(实验)</el-button>
             </p>
           </div>
 
