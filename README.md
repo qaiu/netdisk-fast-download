@@ -57,13 +57,13 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 
 - [蓝奏云-lz](https://pc.woozooo.com/)
 - [蓝奏云优享-iz](https://www.ilanzou.com/)
-- [奶牛快传-cow](https://cowtransfer.com/)
+- ~[奶牛快传-cow(即将停服)](https://cowtransfer.com/)~
 - [移动云云空间-ec](https://www.ecpan.cn/web)
 - [小飞机网盘-fj](https://www.feijipan.com/)
 - [亿方云-fc](https://www.fangcloud.com/)
 - [123云盘-ye](https://www.123pan.com/)
 - ~[115网盘(失效)-p115](https://115.com/)~
-- [118网盘(已停服)-p118](https://www.118pan.com/)
+- ~[118网盘(已停服)-p118](https://www.118pan.com/)~
 - [文叔叔-ws](https://www.wenshushu.cn/)
 - [联想乐云-le](https://lecloud.lenovo.com/)
 - [QQ邮箱云盘-qqw](https://mail.qq.com/)
@@ -87,33 +87,77 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 - [联通云盘-pwo](https://pan.wo.cn/)
 - [天翼云盘-p189](https://cloud.189.cn/)
 
-## API接口说明
-  your_host指的是您的域名或者IP，实际使用时替换为实际域名或者IP，端口默认6400，可以使用nginx代理来做域名访问。    
-  解析方式分为两种类型直接跳转下载文件和获取下载链接,  
-每一种都提供了两种接口形式: `通用接口parser?url=`和`网盘标志/分享key拼接的短地址（标志短链）`，所有规则参考示例。
-- 通用接口: `/parser?url=分享链接&pwd=密码` 没有分享密码去掉&pwd参数;
-- 标志短链: `/d/网盘标识/分享key@密码` 没有分享密码去掉@密码;
-- 直链JSON: `/json/网盘标识/分享key@密码`和`/json/parser?url=分享链接&pwd=密码`
-- 网盘标识参考上面网盘支持情况
-- 当带有分享密码时需要加上密码参数(pwd)
-- 移动云云空间,小飞机网盘的加密分享的密码可以忽略
-- 移动云空间分享key取分享链接中的data参数,比如`&data=xxx`的参数就是xxx
+## API接口
+  
+### 服务端口
+- **6400**: API 服务端口（建议使用 Nginx 代理）
+- **6401**: 内置 Web 解析工具（个人使用可直接开放此端口）
 
-API规则: 
-> 建议使用UrlEncode编码分享链接
+### 接口说明
 
-1. 解析并自动302跳转
-    http://your_host/parser?url=分享链接&pwd=xxx   
-    http://your_host/parser?url=UrlEncode(分享链接)&pwd=xxx  
-    http://your_host/d/网盘标识/分享key@分享密码
-2. 获取解析后的直链--JSON格式
-    http://your_host/json/parser?url=分享链接&pwd=xxx  
-    http://your_host/json/网盘标识/分享key@分享密码
-3. 文件夹解析v0.1.8fixed3新增
-    http://your_host/json/getFileList?url=分享链接&pwd=xxx
+#### 1. 302 自动跳转下载
+
+**通用接口**
+```
+GET /parser?url={分享链接}&pwd={密码}
+```
+
+**标志短链**
+```
+GET /d/{网盘标识}/{分享key}@{密码}
+```
+
+#### 2. 获取直链 JSON
+
+**通用接口**
+```
+GET /json/parser?url={分享链接}&pwd={密码}
+```
+
+**标志短链**
+```
+GET /json/{网盘标识}/{分享key}@{密码}
+```
+
+#### 3. 文件夹解析（v0.1.8fixed3+）
+
+```
+GET /json/getFileList?url={分享链接}&pwd={密码}
+```
+
+### 使用规则
+
+- `{分享链接}` 建议使用 URL 编码
+- `{密码}` 无密码时省略 `&pwd=` 或 `@密码` 部分
+- `{网盘标识}` 参考支持的网盘列表
+- `your_host` 替换为您的域名或 IP
+
+### 特殊说明
+
+- 移动云云空间的 `分享key` 取分享链接中的 `data` 参数值
+- 移动云云空间、小飞机网盘的加密分享可忽略密码参数
+
+### 示例
+
+```bash
+# 302 跳转（通用接口 - 有密码）
+http://your_host/parser?url=https%3A%2F%2Fwww.ilanzou.com%2Fs%2FlGFndCM&pwd=KMnv
+
+# 302 跳转（标志短链 - 有密码）
+http://your_host/d/iz/lGFndCM@KMnv
+
+# 获取 JSON（通用接口 - 无密码）
+http://your_host/json/parser?url=https%3A%2F%2Fwww.ilanzou.com%2Fs%2FLEBZySxF
+
+# 获取 JSON（标志短链 - 无密码）
+http://your_host/json/iz/LEBZySxF
+
+```
+
+---
 
 
-### json接口说明
+### json接口详细说明
 
 #### 1. 文件解析：/json/parser?url=分享链接&pwd=xxx  
 
@@ -213,41 +257,7 @@ json返回数据格式示例:
 }
 ```
 
-IDEA HttpClient示例:
 
-```
-# 解析并重定向到直链
-### 蓝奏云普通分享
-# @no-redirect
-GET http://127.0.0.1:6400/parser?url=https://lanzoux.com/ia2cntg
-### 奶牛快传普通分享
-# @no-redirect
-GET http://127.0.0.1:6400/parser?url=https://cowtransfer.com/s/9a644fe3e3a748
-### 360亿方云加密分享
-# @no-redirect
-GET http://127.0.0.1:6400/parser?url=https://v2.fangcloud.com/sharing/e5079007dc31226096628870c7&pwd=QAIU
-
-# Rest请求自动302跳转(只提供共享文件Id):
-### 蓝奏云普通分享
-# @no-redirect
-GET http://127.0.0.1:6400/lz/ia2cntg
-### 奶牛快传普通分享
-# @no-redirect
-GET http://127.0.0.1:6400/cow/9a644fe3e3a748
-### 360亿方云加密分享
-GET http://127.0.0.1:6400/json/fc/e5079007dc31226096628870c7@QAIU
-
-
-# 解析返回json直链
-### 蓝奏云普通分享
-GET http://127.0.0.1:6400/json/lz/ia2cntg
-### 奶牛快传普通分享
-GET http://127.0.0.1:6400/json/cow/9a644fe3e3a748
-### 360亿方云加密分享
-GET http://127.0.0.1:6400/json/fc/e5079007dc31226096628870c7@QAIU
-
-
-```
 
 # 网盘对比
 
@@ -268,9 +278,9 @@ GET http://127.0.0.1:6400/json/fc/e5079007dc31226096628870c7@QAIU
 # 打包部署
 
 ## JDK下载（lz.qaiu.top提供直链云解析服务）
-- [阿里jdk17(Dragonwell17-windows-x86)](https://lz.qaiu.top/ec/e957acef36ce89e1053979672a90d219n)
-- [阿里jdk17(Dragonwell17-linux-x86)](https://lz.qaiu.top/ec/6ebc9f2e0bbd53b4c4d5b11013f40a80NHvcYU)
-- [阿里jdk17(Dragonwell17-linux-aarch64)](https://lz.qaiu.top/ec/d14c2d06296f61b52a876b525265e0f8tzxTc5)
+- [阿里jdk17(Dragonwell17-windows-x86)](https://lz.qaiu.top/d/ec/e957acef36ce89e1053979672a90d219n)
+- [阿里jdk17(Dragonwell17-linux-x86)](https://lz.qaiu.top/d/ec/6ebc9f2e0bbd53b4c4d5b11013f40a80NHvcYU)
+- [阿里jdk17(Dragonwell17-linux-aarch64)](https://lz.qaiu.top/d/ec/d14c2d06296f61b52a876b525265e0f8tzxTc5)
 - [解析有效性测试-移动云云空间-阿里jdk17-linux-x86](https://lz.qaiu.top/json/ec/6ebc9f2e0bbd53b4c4d5b11013f40a80NHvcYU)
 
 ## 开发和打包
