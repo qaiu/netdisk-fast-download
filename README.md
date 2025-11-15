@@ -41,7 +41,7 @@ https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.
 ## 预览地址  
 [预览地址1](https://lz.qaiu.top)  
 [预览地址2](http://www.722shop.top:6401)  
-[天翼云盘大文件解析限时开放](https://189.qaiu.top)  
+[移动/联通/天翼云盘大文件试用版](https://189.qaiu.top)  
 
 main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/netdisk-fast-download/tree/main-jdk11)  
 **0.1.8及以上版本json接口格式有调整 参考json返回数据格式示例**  
