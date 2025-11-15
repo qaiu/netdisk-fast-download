@@ -6,7 +6,6 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.ProxyOptions;
 import io.vertx.core.net.ProxyType;
@@ -40,7 +39,7 @@ public class JsHttpClient {
     private MultiMap headers;
     
     public JsHttpClient() {
-        this.client = WebClient.create(WebClientVertxInit.get());
+        this.client = WebClient.create(WebClientVertxInit.get(), new WebClientOptions());;
         this.clientSession = WebClientSession.create(client);
         this.headers = MultiMap.caseInsensitiveMultiMap();
         // 设置默认的Accept-Encoding头以支持压缩响应
@@ -264,7 +263,13 @@ public class JsHttpClient {
             Promise<HttpResponse<Buffer>> promise = Promise.promise();
             Future<HttpResponse<Buffer>> future = executor.execute();
             
-            future.onComplete(promise);
+            future.onComplete(result -> {
+                if (result.succeeded()) {
+                    promise.complete(result.result());
+                } else {
+                    promise.fail(result.cause());
+                }
+            }).onFailure(Throwable::printStackTrace);
             
             // 等待响应完成（最多30秒）
             HttpResponse<Buffer> response = promise.future().toCompletionStage()

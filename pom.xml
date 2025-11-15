@@ -60,7 +60,7 @@
             <dependency>
                 <groupId>cn.qaiu</groupId>
                 <artifactId>parser</artifactId>
-                <version>10.2.1</version>
+                <version>10.2.3</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
