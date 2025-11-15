@@ -1,23 +1,21 @@
 package cn.qaiu.parser.customjs;
 
+import cn.qaiu.WebClientVertxInit;
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.custom.CustomParserConfig;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
+import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
 import org.openjdk.nashorn.api.scripting.ScriptObjectMirror;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.script.Invocable;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * JavaScript解析器执行器
@@ -30,13 +28,14 @@ public class JsParserExecutor implements IPanTool {
     
     private static final Logger log = LoggerFactory.getLogger(JsParserExecutor.class);
     
+    private static final WorkerExecutor EXECUTOR = WebClientVertxInit.get().createSharedWorkerExecutor("parser-executor", 32);
+    
     private final CustomParserConfig config;
     private final ShareLinkInfo shareLinkInfo;
     private final ScriptEngine engine;
     private final JsHttpClient httpClient;
     private final JsLogger jsLogger;
     private final JsShareLinkInfoWrapper shareLinkInfoWrapper;
-    private final Promise<String> promise = Promise.promise();
     
     public JsParserExecutor(ShareLinkInfo shareLinkInfo, CustomParserConfig config) {
         this.config = config;
@@ -58,6 +57,7 @@ public class JsParserExecutor implements IPanTool {
      * 获取ShareLinkInfo对象
      * @return ShareLinkInfo对象
      */
+    @Override
     public ShareLinkInfo getShareLinkInfo() {
         return shareLinkInfo;
     }
@@ -93,47 +93,40 @@ public class JsParserExecutor implements IPanTool {
     
     @Override
     public Future<String> parse() {
-        try {
-            jsLogger.info("开始执行JavaScript解析器: {}", config.getType());
-            
+        jsLogger.info("开始执行JavaScript解析器: {}", config.getType());
+        
+        // 使用executeBlocking在工作线程上执行，避免阻塞EventLoop线程
+        return EXECUTOR.executeBlocking(() -> {
             // 直接调用全局parse函数
             Object parseFunction = engine.get("parse");
             if (parseFunction == null) {
                 throw new RuntimeException("JavaScript代码中未找到parse函数");
             }
             
-            if (parseFunction instanceof ScriptObjectMirror) {
-                ScriptObjectMirror parseMirror = (ScriptObjectMirror) parseFunction;
-                
+            if (parseFunction instanceof ScriptObjectMirror parseMirror) {
+
                 Object result = parseMirror.call(null, shareLinkInfoWrapper, httpClient, jsLogger);
                 
                 if (result instanceof String) {
                     jsLogger.info("解析成功: {}", result);
-                    promise.complete((String) result);
+                    return (String) result;
                 } else {
                     jsLogger.error("parse方法返回值类型错误，期望String，实际: {}", 
                             result != null ? result.getClass().getSimpleName() : "null");
-                    promise.fail("parse方法返回值类型错误");
+                    throw new RuntimeException("parse方法返回值类型错误");
                 }
             } else {
                 throw new RuntimeException("parse函数类型错误");
             }
-            
-        } catch (Exception e) {
-            jsLogger.error("JavaScript解析器执行失败", e);
-            promise.fail("JavaScript解析器执行失败: " + e.getMessage());
-        }
-        
-        return promise.future();
+        });
     }
     
     @Override
     public Future<List<FileInfo>> parseFileList() {
-        Promise<List<FileInfo>> promise = Promise.promise();
+        jsLogger.info("开始执行JavaScript文件列表解析: {}", config.getType());
         
-        try {
-            jsLogger.info("开始执行JavaScript文件列表解析: {}", config.getType());
-            
+        // 使用executeBlocking在工作线程上执行，避免阻塞EventLoop线程
+        return EXECUTOR.executeBlocking(() -> {
             // 直接调用全局parseFileList函数
             Object parseFileListFunction = engine.get("parseFileList");
             if (parseFileListFunction == null) {
@@ -141,41 +134,32 @@ public class JsParserExecutor implements IPanTool {
             }
             
             // 调用parseFileList方法
-            if (parseFileListFunction instanceof ScriptObjectMirror) {
-                ScriptObjectMirror parseFileListMirror = (ScriptObjectMirror) parseFileListFunction;
-                
+            if (parseFileListFunction instanceof ScriptObjectMirror parseFileListMirror) {
+
                 Object result = parseFileListMirror.call(null, shareLinkInfoWrapper, httpClient, jsLogger);
                 
-                if (result instanceof ScriptObjectMirror) {
-                    ScriptObjectMirror resultMirror = (ScriptObjectMirror) result;
+                if (result instanceof ScriptObjectMirror resultMirror) {
                     List<FileInfo> fileList = convertToFileInfoList(resultMirror);
                     
                     jsLogger.info("文件列表解析成功，共 {} 个文件", fileList.size());
-                    promise.complete(fileList);
+                    return fileList;
                 } else {
                     jsLogger.error("parseFileList方法返回值类型错误，期望数组，实际: {}", 
                             result != null ? result.getClass().getSimpleName() : "null");
-                    promise.fail("parseFileList方法返回值类型错误");
+                    throw new RuntimeException("parseFileList方法返回值类型错误");
                 }
             } else {
                 throw new RuntimeException("parseFileList函数类型错误");
             }
-            
-        } catch (Exception e) {
-            jsLogger.error("JavaScript文件列表解析失败", e);
-            promise.fail("JavaScript文件列表解析失败: " + e.getMessage());
-        }
-        
-        return promise.future();
+        });
     }
     
     @Override
     public Future<String> parseById() {
-        Promise<String> promise = Promise.promise();
+        jsLogger.info("开始执行JavaScript按ID解析: {}", config.getType());
         
-        try {
-            jsLogger.info("开始执行JavaScript按ID解析: {}", config.getType());
-            
+        // 使用executeBlocking在工作线程上执行，避免阻塞EventLoop线程
+        return EXECUTOR.executeBlocking(() -> {
             // 直接调用全局parseById函数
             Object parseByIdFunction = engine.get("parseById");
             if (parseByIdFunction == null) {
@@ -183,29 +167,22 @@ public class JsParserExecutor implements IPanTool {
             }
             
             // 调用parseById方法
-            if (parseByIdFunction instanceof ScriptObjectMirror) {
-                ScriptObjectMirror parseByIdMirror = (ScriptObjectMirror) parseByIdFunction;
-                
+            if (parseByIdFunction instanceof ScriptObjectMirror parseByIdMirror) {
+
                 Object result = parseByIdMirror.call(null, shareLinkInfoWrapper, httpClient, jsLogger);
                 
                 if (result instanceof String) {
                     jsLogger.info("按ID解析成功: {}", result);
-                    promise.complete((String) result);
+                    return (String) result;
                 } else {
                     jsLogger.error("parseById方法返回值类型错误，期望String，实际: {}", 
                             result != null ? result.getClass().getSimpleName() : "null");
-                    promise.fail("parseById方法返回值类型错误");
+                    throw new RuntimeException("parseById方法返回值类型错误");
                 }
             } else {
                 throw new RuntimeException("parseById函数类型错误");
             }
-            
-        } catch (Exception e) {
-            jsLogger.error("JavaScript按ID解析失败", e);
-            promise.fail("JavaScript按ID解析失败: " + e.getMessage());
-        }
-        
-        return promise.future();
+        });
     }
     
     /**

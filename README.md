@@ -5,7 +5,7 @@
 <p align="center">
 <a href="https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml"><img src="https://img.shields.io/github/actions/workflow/status/qaiu/netdisk-fast-download/maven.yml?branch=v0.1.9b8a&style=flat"></a>
 <a href="https://www.oracle.com/cn/java/technologies/downloads"><img src="https://img.shields.io/badge/jdk-%3E%3D17-blue"></a>
-<a href="https://vertx-china.github.io"><img src="https://img.shields.io/badge/vert.x-4.5.6-blue?style=flat"></a>
+<a href="https://vertx-china.github.io"><img src="https://img.shields.io/badge/vert.x-4.5.22-blue?style=flat"></a>
 <a href="https://raw.githubusercontent.com/qaiu/netdisk-fast-download/master/LICENSE"><img src="https://img.shields.io/github/license/qaiu/netdisk-fast-download?style=flat"></a>
 <a href="https://github.com/qaiu/netdisk-fast-download/releases/"><img src="https://img.shields.io/github/v/release/qaiu/netdisk-fast-download?style=flat"></a>
 </p>
@@ -73,11 +73,13 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 - [酷狗音乐分享链接-mkgs](https://www.kugou.com)
 - [酷我音乐分享链接-mkws](https://kuwo.cn)
 - [QQ音乐分享链接-mqqs](https://y.qq.com)
-- 咪咕音乐分享链接(开发中)
 - [Cloudreve自建网盘-ce](https://github.com/cloudreve/Cloudreve)
 - ~[微雨云存储-pvvy](https://www.vyuyun.com/)~
 - [超星云盘(需要referer: https://pan-yz.chaoxing.com)-pcx](https://pan-yz.chaoxing.com)
 - [WPS云文档-pwps](https://www.kdocs.cn/)
+- [汽水音乐-qishui_music](https://music.douyin.com/qishui/)
+- [咪咕音乐-migu](https://music.migu.cn/)
+- [一刻相册-baidu_photo](https://photo.baidu.com/)
 - Google云盘-pgd
 - Onedrive-pod
 - Dropbox-pdp

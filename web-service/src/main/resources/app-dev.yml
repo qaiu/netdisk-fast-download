@@ -83,6 +83,9 @@ cache:
     mkg: 30
     p115: 30
     ct: 30
+    qishui_music: 5
+    baidu_photo: 5
+    migu: 5
 
 # httpClient静态代理服务器配置(外网代理)
 proxy:
