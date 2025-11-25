@@ -2,6 +2,7 @@ package cn.qaiu.util;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -70,5 +71,35 @@ public class CommonUtils {
     public static String extract(String input, Pattern pattern) {
         Matcher matcher = pattern.matcher(input);
         return firstNonEmptyGroup(matcher);
+    }
+
+    /**
+     * urlEncode -> deBase64 -> string
+     * @param encoded 编码后的字符串
+     * @return 解码后的字符串
+     */
+    public static String urlBase64Decode(String encoded) {
+        try {
+            String urlDecoded = java.net.URLDecoder.decode(encoded, StandardCharsets.UTF_8);
+            byte[] base64DecodedBytes = java.util.Base64.getDecoder().decode(urlDecoded);
+            return new String(base64DecodedBytes, java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new RuntimeException("URL Base64 解码失败", e);
+        }
+    }
+    
+    /**
+     *  string -> base64Encode -> urlEncode
+     * @param str 原始字符串
+     * @return 编码后的字符串
+     */
+    public static String urlBase64Encode(String str) {
+        try {
+            byte[] base64EncodedBytes = java.util.Base64.getEncoder().encode(str.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            String base64Encoded = new String(base64EncodedBytes, java.nio.charset.StandardCharsets.UTF_8);
+            return java.net.URLEncoder.encode(base64Encoded, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new RuntimeException("URL Base64 编码失败", e);
+        }
     }
 }
