@@ -27,7 +27,7 @@ import java.util.List;
  */
 public class FjTool extends PanBase {
     public static final String REFERER_URL = "https://share.feijipan.com/";
-    private static final String API_URL_PREFIX = "https://api.feijipan.com/ws/";
+    private static final String API_URL_PREFIX = "https://api.feejii.com/ws/";
 
     private static final String FIRST_REQUEST_URL = API_URL_PREFIX + "recommend/list?devType=6&devModel=Chrome" +
             "&uuid={uuid}&extra=2&timestamp={ts}&shareId={shareId}&type=0&offset=1&limit=60";
@@ -83,6 +83,7 @@ public class FjTool extends PanBase {
         super(shareLinkInfo);
     }
 
+    @Override
     public Future<String> parse() {
 
         // 240530 此处shareId又改为了原始的shareId
