@@ -3,12 +3,14 @@ import Home from '@/views/Home.vue'
 import ShowFile from '@/views/ShowFile.vue'
 import ShowList from '@/views/ShowList.vue'
 import ClientLinks from '@/views/ClientLinks.vue'
+import Playground from '@/views/Playground.vue'
 
 const routes = [
   { path: '/', component: Home },
   { path: '/showFile', component: ShowFile },
   { path: '/showList', component: ShowList },
-  { path: '/clientLinks', component: ClientLinks }
+  { path: '/clientLinks', component: ClientLinks },
+  { path: '/playground', component: Playground }
 ]
 
 const router = createRouter({

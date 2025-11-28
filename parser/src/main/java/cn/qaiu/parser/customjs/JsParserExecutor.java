@@ -8,12 +8,12 @@ import cn.qaiu.parser.custom.CustomParserConfig;
 import io.vertx.core.Future;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
+import org.openjdk.nashorn.api.scripting.NashornScriptEngineFactory;
 import org.openjdk.nashorn.api.scripting.ScriptObjectMirror;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -63,12 +63,15 @@ public class JsParserExecutor implements IPanTool {
     }
     
     /**
-     * 初始化JavaScript引擎
+     * 初始化JavaScript引擎（带安全限制）
      */
     private ScriptEngine initEngine() {
         try {
-            ScriptEngineManager engineManager = new ScriptEngineManager();
-            ScriptEngine engine = engineManager.getEngineByName("JavaScript");
+            // 使用安全的ClassFilter创建Nashorn引擎
+            NashornScriptEngineFactory factory = new NashornScriptEngineFactory();
+            
+            // 正确的方法签名: getScriptEngine(String[] args, ClassLoader appLoader, ClassFilter classFilter)
+            ScriptEngine engine = factory.getScriptEngine(new String[0], null, new SecurityClassFilter());
             
             if (engine == null) {
                 throw new RuntimeException("无法创建JavaScript引擎，请确保Nashorn可用");
@@ -79,10 +82,19 @@ public class JsParserExecutor implements IPanTool {
             engine.put("logger", jsLogger);
             engine.put("shareLinkInfo", shareLinkInfoWrapper);
             
+            // 禁用Java对象访问
+            engine.eval("var Java = undefined;");
+            engine.eval("var JavaImporter = undefined;");
+            engine.eval("var Packages = undefined;");
+            engine.eval("var javax = undefined;");
+            engine.eval("var org = undefined;");
+            engine.eval("var com = undefined;");
+            
+            log.debug("🔒 安全的JavaScript引擎初始化成功，解析器类型: {}", config.getType());
+            
             // 执行JavaScript代码
             engine.eval(config.getJsCode());
             
-            log.debug("JavaScript引擎初始化成功，解析器类型: {}", config.getType());
             return engine;
             
         } catch (Exception e) {

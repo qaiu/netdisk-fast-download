@@ -303,8 +303,11 @@ public class RouterHandlerFactory implements BaseHttpApi {
 
         final MultiMap queryParams = ctx.queryParams();
         // 解析body-json参数
-        if (HttpHeaderValues.APPLICATION_JSON.toString().equals(ctx.parsedHeaders().contentType().value())
-                && ctx.body().asJsonObject() != null) {
+        // 只处理POST/PUT/PATCH等有body的请求方法，避免GET请求读取body导致"Request has already been read"错误
+        String httpMethod = ctx.request().method().name();
+        if (("POST".equals(httpMethod) || "PUT".equals(httpMethod) || "PATCH".equals(httpMethod))
+                && HttpHeaderValues.APPLICATION_JSON.toString().equals(ctx.parsedHeaders().contentType().value())
+                && ctx.body() != null && ctx.body().asJsonObject() != null) {
             JsonObject body = ctx.body().asJsonObject();
             if (body != null) {
                 methodParametersTemp.forEach((k, v) -> {
@@ -324,7 +327,8 @@ public class RouterHandlerFactory implements BaseHttpApi {
                     }
                 });
             }
-        } else if (ctx.body() != null) {
+        } else if (("POST".equals(httpMethod) || "PUT".equals(httpMethod) || "PATCH".equals(httpMethod))
+                && ctx.body() != null) {
             queryParams.addAll(ParamUtil.paramsToMap(ctx.body().asString()));
         }
 

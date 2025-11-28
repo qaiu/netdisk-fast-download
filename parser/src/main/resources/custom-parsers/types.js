@@ -69,6 +69,9 @@ var java;
  * @property {function(): number} statusCode - 获取HTTP状态码
  * @property {function(string): string|null} header - 获取响应头
  * @property {function(): Object} headers - 获取所有响应头
+ * @property {function(): boolean} isSuccess - 检查请求是否成功（2xx状态码）
+ * @property {function(): Array} bodyBytes - 获取响应体字节数组
+ * @property {function(): number} bodySize - 获取响应体大小（字节）
  */
 
 /**
@@ -77,10 +80,20 @@ var java;
  * @property {function(string): JsHttpResponse} getWithRedirect - 发起GET请求并跟随重定向
  * @property {function(string): JsHttpResponse} getNoRedirect - 发起GET请求但不跟随重定向（用于获取Location头）
  * @property {function(string, any=): JsHttpResponse} post - 发起POST请求
+ * @property {function(string, any=): JsHttpResponse} put - 发起PUT请求
+ * @property {function(string): JsHttpResponse} delete - 发起DELETE请求
+ * @property {function(string, any=): JsHttpResponse} patch - 发起PATCH请求
  * @property {function(string, string): JsHttpClient} putHeader - 设置请求头
+ * @property {function(Object): JsHttpClient} putHeaders - 批量设置请求头
+ * @property {function(string): JsHttpClient} removeHeader - 删除指定请求头
+ * @property {function(): JsHttpClient} clearHeaders - 清空所有请求头（保留默认头）
+ * @property {function(): Object} getHeaders - 获取所有请求头
+ * @property {function(number): JsHttpClient} setTimeout - 设置请求超时时间（秒）
  * @property {function(Object): JsHttpResponse} sendForm - 发送简单表单数据
- * @property {function(string, Object): JsHttpResponse} sendMultipartForm - 发送multipart表单数据（支持文件上传）
+ * @property {function(string, Object): JsHttpResponse} sendMultipartForm - 发送multipart表单数据（仅支持文本字段）
  * @property {function(any): JsHttpResponse} sendJson - 发送JSON数据
+ * @property {function(string): string} urlEncode - URL编码（静态方法）
+ * @property {function(string): string} urlDecode - URL解码（静态方法）
  */
 
 /**
