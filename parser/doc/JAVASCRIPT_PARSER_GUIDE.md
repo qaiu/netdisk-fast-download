@@ -14,7 +14,6 @@
   - [JsLogger对象](#jslogger对象)
 - [重定向处理](#重定向处理)
 - [代理支持](#代理支持)
-- [文件上传支持](#文件上传支持)
 - [实现方法](#实现方法)
   - [parse方法（必填）](#parse方法必填)
   - [parseFileList方法（可选）](#parsefilelist方法可选)
@@ -199,21 +198,51 @@ var response = http.post("https://api.example.com/submit", {
     data: "test"
 });
 
-// 设置请求头
+// 设置请求头（单个）
 http.putHeader("User-Agent", "MyBot/1.0")
     .putHeader("Authorization", "Bearer token");
+
+// 批量设置请求头
+http.putHeaders({
+    "User-Agent": "MyBot/1.0",
+    "Authorization": "Bearer token",
+    "Accept": "application/json"
+});
+
+// 删除指定请求头
+http.removeHeader("Authorization");
+
+// 清空所有请求头（保留默认头）
+http.clearHeaders();
+
+// 获取所有请求头
+var allHeaders = http.getHeaders();
+logger.debug("当前请求头: " + JSON.stringify(allHeaders));
+
+// 设置请求超时时间（秒）
+http.setTimeout(60); // 设置为60秒
+
+// PUT请求
+var putResponse = http.put("https://api.example.com/resource", {
+    key: "value"
+});
+
+// DELETE请求
+var deleteResponse = http.delete("https://api.example.com/resource/123");
+
+// PATCH请求
+var patchResponse = http.patch("https://api.example.com/resource/123", {
+    key: "newValue"
+});
+
+// URL编码/解码（静态方法）
+var encoded = JsHttpClient.urlEncode("hello world"); // "hello%20world"
+var decoded = JsHttpClient.urlDecode("hello%20world"); // "hello world"
 
 // 发送简单表单数据
 var formResponse = http.sendForm({
     username: "user",
     password: "pass"
-});
-
-// 发送multipart表单数据（支持文件上传）
-var multipartResponse = http.sendMultipartForm("https://api.example.com/upload", {
-    textField: "value",
-    fileField: fileBuffer,  // Buffer或byte[]类型
-    binaryData: binaryArray // byte[]类型
 });
 
 // 发送JSON数据
@@ -249,6 +278,13 @@ if (response.isSuccess()) {
 } else {
     logger.error("请求失败: " + status);
 }
+
+// 获取响应体字节数组
+var bytes = response.bodyBytes();
+
+// 获取响应体大小
+var size = response.bodySize();
+logger.info("响应体大小: " + size + " 字节");
 ```
 
 ### JsLogger对象
@@ -347,89 +383,6 @@ function parse(shareLinkInfo, http, logger) {
     "port": 8080,
     "username": "user",  // 可选，代理认证用户名
     "password": "pass"    // 可选，代理认证密码
-}
-```
-
-## 文件上传支持
-
-JavaScript解析器支持通过`sendMultipartForm`方法上传文件：
-
-### 1. 简单文件上传
-
-```javascript
-function uploadFile(shareLinkInfo, http, logger) {
-    // 模拟文件数据（实际使用中可能是从其他地方获取）
-    var fileData = new java.lang.String("Hello, World!").getBytes();
-    
-    // 使用sendMultipartForm上传文件
-    var response = http.sendMultipartForm("https://api.example.com/upload", {
-        file: fileData,
-        filename: "test.txt",
-        description: "测试文件"
-    });
-    
-    return response.body();
-}
-```
-
-### 2. 混合表单上传
-
-```javascript
-function uploadMixedForm(shareLinkInfo, http, logger) {
-    var fileData = getFileData();
-    
-    // 同时上传文本字段和文件
-    var response = http.sendMultipartForm("https://api.example.com/upload", {
-        username: "user123",
-        email: "user@example.com",
-        file: fileData,
-        description: "用户上传的文件"
-    });
-    
-    if (response.isSuccess()) {
-        var result = response.json();
-        return result.downloadUrl;
-    } else {
-        throw new Error("文件上传失败: " + response.statusCode());
-    }
-}
-```
-
-### 3. 多文件上传
-
-```javascript
-function uploadMultipleFiles(shareLinkInfo, http, logger) {
-    var files = [
-        { name: "file1.txt", data: getFileData1() },
-        { name: "file2.jpg", data: getFileData2() }
-    ];
-    
-    var uploadResults = [];
-    
-    for (var i = 0; i < files.length; i++) {
-        var file = files[i];
-        var response = http.sendMultipartForm("https://api.example.com/upload", {
-            file: file.data,
-            filename: file.name,
-            uploadIndex: i.toString()
-        });
-        
-        if (response.isSuccess()) {
-            uploadResults.push({
-                fileName: file.name,
-                success: true,
-                url: response.json().url
-            });
-        } else {
-            uploadResults.push({
-                fileName: file.name,
-                success: false,
-                error: response.statusCode()
-            });
-        }
-    }
-    
-    return uploadResults;
 }
 ```
 
@@ -698,6 +651,39 @@ A: 当前版本使用同步API，所有HTTP请求都是同步的。
 
 A: 使用 `logger.debug()` 输出调试信息，查看应用日志。
 
+### Q: 如何批量设置请求头？
+
+A: 使用 `http.putHeaders()` 方法批量设置多个请求头：
+
+```javascript
+// 批量设置请求头
+http.putHeaders({
+    "User-Agent": "Mozilla/5.0...",
+    "Accept": "application/json",
+    "Authorization": "Bearer token",
+    "Referer": "https://example.com"
+});
+```
+
+### Q: 如何清空所有请求头？
+
+A: 使用 `http.clearHeaders()` 方法清空所有请求头（会保留默认头）：
+
+```javascript
+// 清空所有请求头，保留默认头（Accept-Encoding、User-Agent、Accept-Language）
+http.clearHeaders();
+```
+
+### Q: 如何设置请求超时时间？
+
+A: 使用 `http.setTimeout()` 方法设置超时时间（秒）：
+
+```javascript
+// 设置超时时间为60秒
+http.setTimeout(60);
+var response = http.get("https://api.example.com/data");
+```
+
 ## 示例脚本
 
 参考以下示例文件，包含完整的解析器实现：
@@ -714,6 +700,7 @@ A: 使用 `logger.debug()` 输出调试信息，查看应用日志。
 - 文件信息构建
 - 重定向处理
 - 代理支持
+- Header管理（批量设置、清空等）
 
 ## 限制说明
 
@@ -732,6 +719,11 @@ A: 使用 `logger.debug()` 输出调试信息，查看应用日志。
 
 - v1.0.0: 初始版本，支持基本的JavaScript解析器功能
 - 支持外部解析器路径配置（系统属性、环境变量）
-- 支持文件上传功能（sendMultipartForm）
 - 支持重定向处理（getNoRedirect、getWithRedirect）
 - 支持代理配置（HTTP/SOCKS4/SOCKS5）
+- v1.1.0: 增强HTTP客户端功能
+  - 新增header管理方法：clearHeaders、removeHeader、putHeaders、getHeaders
+  - 新增HTTP请求方法：PUT、DELETE、PATCH
+  - 新增工具方法：URL编码/解码（urlEncode、urlDecode）
+  - 新增超时时间设置：setTimeout
+  - 响应对象增强：bodyBytes、bodySize

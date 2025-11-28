@@ -43,6 +43,15 @@ module.exports = {
         '@': resolve('src')
       }
     },
+    // Monaco Editor配置
+    module: {
+      rules: [
+        {
+          test: /\.ttf$/,
+          type: 'asset/resource'
+        }
+      ]
+    },
     plugins: [
       new CompressionPlugin({
         test: /\.js$|\.html$|\.css/, // 匹配文件

@@ -20,4 +20,34 @@ public interface DbService extends BaseAsyncService {
 
     Future<StatisticsInfo> getStatisticsInfo();
 
+    /**
+     * 获取演练场解析器列表
+     */
+    Future<JsonObject> getPlaygroundParserList();
+
+    /**
+     * 保存演练场解析器
+     */
+    Future<JsonObject> savePlaygroundParser(JsonObject parser);
+
+    /**
+     * 更新演练场解析器
+     */
+    Future<JsonObject> updatePlaygroundParser(Long id, JsonObject parser);
+
+    /**
+     * 删除演练场解析器
+     */
+    Future<JsonObject> deletePlaygroundParser(Long id);
+
+    /**
+     * 获取演练场解析器数量
+     */
+    Future<Integer> getPlaygroundParserCount();
+
+    /**
+     * 根据ID获取演练场解析器
+     */
+    Future<JsonObject> getPlaygroundParserById(Long id);
+
 }

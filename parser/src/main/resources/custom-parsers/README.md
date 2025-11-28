@@ -40,7 +40,11 @@ custom-parsers/
  */
 function parse(shareLinkInfo, http, logger) {
     // 你的解析逻辑
-    return "https://example.com/download/file.zip";
+    // 示例：解析后返回真实下载链接
+    var url = shareLinkInfo.getShareUrl();
+    var response = http.get(url);
+    // ... 解析逻辑 ...
+    return "https://download-server.com/file/xxx";
 }
 
 /**
@@ -64,7 +68,9 @@ function parseFileList(shareLinkInfo, http, logger) {
  */
 function parseById(shareLinkInfo, http, logger) {
     // 你的按ID解析逻辑
-    return "https://example.com/download/" + fileId;
+    var paramJson = shareLinkInfo.getOtherParam("paramJson");
+    var fileId = paramJson.fileId;
+    return "https://download-server.com/file/" + fileId;
 }
 ```
 

@@ -218,6 +218,7 @@
     <!-- 版本号显示 -->
     <div class="version-info">
       <span class="version-text">内部版本: {{ buildVersion }}</span>
+<!--      <el-link :href="'/playground'" class="playground-link">JS演练场</el-link>-->
     </div>
     
     <!-- 文件解析结果区下方加分享按钮 -->
@@ -969,9 +970,12 @@ hr {
 
 /* 版本号显示样式 */
 .version-info {
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-top: 20px;
   margin-bottom: 20px;
+  padding: 0 10px;
 }
 
 .version-text {
@@ -982,5 +986,23 @@ hr {
 
 #app.dark-theme .version-text {
   color: #666;
+}
+
+.playground-link {
+  font-size: 0.85rem;
+  color: #409eff;
+  text-decoration: none;
+}
+
+.playground-link:hover {
+  color: #66b1ff;
+}
+
+#app.dark-theme .playground-link {
+  color: #4a9eff;
+}
+
+#app.dark-theme .playground-link:hover {
+  color: #66b1ff;
 }
 </style>
