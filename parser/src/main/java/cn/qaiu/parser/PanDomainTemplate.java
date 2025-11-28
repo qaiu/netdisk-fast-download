@@ -201,7 +201,7 @@ public enum PanDomainTemplate {
                     "123795\\.com"  +
                     ")/s/(?<KEY>.+)(.html)?"),
             "https://www.123pan.com/s/{shareKey}",
-            YeTool.class),
+            Ye2Tool.class),
     // https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data={code}&isShare=1
     EC("移动云空间",
             compile("https://www\\.ecpan\\.cn/web(/%23|/#)?/yunpanProxy\\?path=.*&data=" +
