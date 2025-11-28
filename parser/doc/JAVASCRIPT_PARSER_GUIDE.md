@@ -62,9 +62,56 @@ function parse(shareLinkInfo, http, logger) {
 }
 ```
 
-### 2. 重启应用
+### 2. 解析器加载路径
 
-重启应用后，JavaScript解析器会自动加载并注册。
+JavaScript解析器支持两种加载方式：
+
+#### 内置解析器（jar包内）
+- **位置**：jar包内的 `custom-parsers/` 资源目录
+- **特点**：随jar包一起发布，无需额外配置
+- **路径**：`parser/src/main/resources/custom-parsers/`
+
+#### 外部解析器（用户自定义）
+- **默认位置**：应用运行目录下的 `./custom-parsers/` 文件夹
+- **配置方式**（优先级从高到低）：
+  1. **系统属性**：`-Dparser.custom-parsers.path=/path/to/your/parsers`
+  2. **环境变量**：`PARSER_CUSTOM_PARSERS_PATH=/path/to/your/parsers`
+  3. **默认路径**：`./custom-parsers/`（相对于应用运行目录）
+
+#### 配置示例
+
+**Maven项目中使用：**
+```bash
+# 方式1：系统属性
+mvn exec:java -Dexec.mainClass="your.MainClass" -Dparser.custom-parsers.path=./src/main/resources/custom-parsers
+
+# 方式2：环境变量
+export PARSER_CUSTOM_PARSERS_PATH=./src/main/resources/custom-parsers
+mvn exec:java -Dexec.mainClass="your.MainClass"
+```
+
+**jar包运行时：**
+```bash
+# 方式1：系统属性
+java -Dparser.custom-parsers.path=/path/to/your/parsers -jar your-app.jar
+
+# 方式2：环境变量
+export PARSER_CUSTOM_PARSERS_PATH=/path/to/your/parsers
+java -jar your-app.jar
+```
+
+**Docker部署：**
+```bash
+# 挂载外部解析器目录
+docker run -d -v /path/to/your/parsers:/app/custom-parsers your-image
+
+# 或使用环境变量
+docker run -d -e PARSER_CUSTOM_PARSERS_PATH=/app/custom-parsers your-image
+```
+
+### 3. 重启应用
+
+重启应用后，JavaScript解析器会自动加载并注册。查看应用日志确认解析器是否成功加载。
 
 ## 元数据格式
 
@@ -653,7 +700,20 @@ A: 使用 `logger.debug()` 输出调试信息，查看应用日志。
 
 ## 示例脚本
 
-参考 `parser/src/main/resources/custom-parsers/example-demo.js` 文件，包含完整的示例实现。
+参考以下示例文件，包含完整的解析器实现：
+
+- **`parser/src/main/resources/custom-parsers/example-demo.js`** - 完整的演示解析器，展示所有功能
+- **`parser/src/main/resources/custom-parsers/baidu-photo.js`** - 百度相册解析器示例
+- **`parser/src/main/resources/custom-parsers/migu-music.js`** - 咪咕音乐解析器示例
+- **`parser/src/main/resources/custom-parsers/qishui-music.js`** - 汽水音乐解析器示例
+
+这些示例展示了：
+- 元数据配置
+- 三个核心方法的实现（parse、parseFileList、parseById）
+- 错误处理和日志记录
+- 文件信息构建
+- 重定向处理
+- 代理支持
 
 ## 限制说明
 
@@ -662,6 +722,16 @@ A: 使用 `logger.debug()` 输出调试信息，查看应用日志。
 3. **内存限制**: 长时间运行可能存在内存泄漏风险
 4. **安全限制**: 无法访问文件系统或执行系统命令
 
+## 相关文档
+
+- [自定义解析器扩展指南](CUSTOM_PARSER_GUIDE.md) - Java自定义解析器扩展
+- [自定义解析器快速开始](CUSTOM_PARSER_QUICKSTART.md) - 快速上手指南
+- [解析器开发文档](README.md) - 解析器开发约定和规范
+
 ## 更新日志
 
 - v1.0.0: 初始版本，支持基本的JavaScript解析器功能
+- 支持外部解析器路径配置（系统属性、环境变量）
+- 支持文件上传功能（sendMultipartForm）
+- 支持重定向处理（getNoRedirect、getWithRedirect）
+- 支持代理配置（HTTP/SOCKS4/SOCKS5）

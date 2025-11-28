@@ -38,6 +38,8 @@ https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.
 
 **解析器模块文档：** [parser/README.md](parser/README.md)
 
+**JavaScript解析器文档：** [JavaScript解析器开发指南](parser/doc/JAVASCRIPT_PARSER_GUIDE.md) | [自定义解析器扩展指南](parser/doc/CUSTOM_PARSER_GUIDE.md) | [快速开始](parser/doc/CUSTOM_PARSER_QUICKSTART.md)
+
 ## 预览地址  
 [预览地址1](https://lz.qaiu.top)  
 [预览地址2](https://lzzz.qaiu.top)  
@@ -405,6 +407,23 @@ proxy:
 ```  
 nfd-proxy搭建http代理服务器 
 参考https://github.com/nfd-parser/nfd-proxy
+
+### 认证信息配置说明
+部分网盘（如123）解析大文件时需要登录认证，可以在配置文件中添加认证信息。
+
+修改配置文件：
+app-dev.yml
+
+```yaml
+### 解析认证相关
+auths:
+  # 123：配置用户名密码
+  ye:
+    username: 你的用户名
+    password: 你的密码
+```
+
+**注意：** 目前仅支持 123（ye）的认证配置。
 
 ## 开发计划
 ### v0.1.8~v0.1.9 ✓

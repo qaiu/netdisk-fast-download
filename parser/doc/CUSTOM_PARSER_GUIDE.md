@@ -6,6 +6,9 @@
 
 本模块支持用户自定义解析器扩展。用户在依赖本项目的 Maven 坐标后，可以实现自己的网盘解析器并注册到系统中使用。
 
+> **提示**：除了Java自定义解析器，本项目还支持使用JavaScript编写解析器，无需编译即可使用。  
+> 查看 [JavaScript解析器开发指南](JAVASCRIPT_PARSER_GUIDE.md) 了解更多。
+
 ## 核心组件
 
 ### 1. CustomParserConfig
@@ -490,6 +493,12 @@ A: 不可以。自定义解析器只能通过 `fromType` 方法创建。如果�
 
 ### Q5: 解析器需要依赖外部服务怎么办？
 A: 可以在解析器类中注入依赖，或使用单例模式管理外部服务连接。
+
+## 相关文档
+
+- [JavaScript解析器开发指南](JAVASCRIPT_PARSER_GUIDE.md) - 使用JavaScript编写解析器，无需编译
+- [自定义解析器快速开始](CUSTOM_PARSER_QUICKSTART.md) - 快速上手指南
+- [解析器开发文档](README.md) - 解析器开发约定和规范
 
 ## 贡献
 

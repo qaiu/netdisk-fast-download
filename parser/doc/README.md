@@ -118,8 +118,9 @@ function parse(shareLinkInfo, http, logger) {
 
 ### 3. 详细文档
 
-- [JavaScript解析器开发指南](JAVASCRIPT_PARSER_GUIDE.md)
-- [自定义解析器开发指南](CUSTOM_PARSER_GUIDE.md)
+- **[JavaScript解析器开发指南](JAVASCRIPT_PARSER_GUIDE.md)** - 完整的JavaScript解析器开发文档，包含API参考、示例代码和最佳实践
+- **[自定义解析器扩展指南](CUSTOM_PARSER_GUIDE.md)** - Java自定义解析器扩展完整指南
+- **[自定义解析器快速开始](CUSTOM_PARSER_QUICKSTART.md)** - 快速上手自定义解析器开发
 
 ---
 
