@@ -96,3 +96,9 @@ proxy:
 #    username:
 #    password:
 
+### 解析认证相关
+auths:
+  # 123网盘：配置用户名密码
+  ye:
+    username:
+    password:

@@ -82,5 +82,11 @@ public class AppMain {
                 localMap.put("proxy", jsonObject1);
             }
         }
+
+        // 认证
+        if (jsonObject.containsKey(ConfigConstant.AUTHS)) {
+            JsonObject auths = jsonObject.getJsonObject(ConfigConstant.AUTHS);
+            localMap.put(ConfigConstant.AUTHS, auths);
+        }
     }
 }

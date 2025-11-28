@@ -1,5 +1,8 @@
 # 自定义解析器快速开始
 
+> **提示**：除了Java自定义解析器，本项目还支持使用JavaScript编写解析器，无需编译即可使用。  
+> 查看 [JavaScript解析器开发指南](JAVASCRIPT_PARSER_GUIDE.md) 了解更多。
+
 ## 5分钟快速集成指南
 
 ### 步骤1: 添加依赖（pom.xml）
@@ -265,6 +268,12 @@ public class ParserConfig {
 - 📖 阅读[完整文档](CUSTOM_PARSER_GUIDE.md)了解高级用法
 - 🔍 查看[测试代码](../src/test/java/cn/qaiu/parser/CustomParserTest.java)了解更多示例
 - 💡 参考[内置解析器](../src/main/java/cn/qaiu/parser/impl/)了解最佳实践
+
+## 相关文档
+
+- [自定义解析器扩展完整指南](CUSTOM_PARSER_GUIDE.md) - Java自定义解析器详细文档
+- [JavaScript解析器开发指南](JAVASCRIPT_PARSER_GUIDE.md) - 使用JavaScript编写解析器
+- [解析器开发文档](README.md) - 解析器开发约定和规范
 
 ## 技术支持
 
