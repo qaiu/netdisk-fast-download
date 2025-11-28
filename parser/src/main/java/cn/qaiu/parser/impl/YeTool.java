@@ -66,6 +66,7 @@ public class YeTool extends PanBase {
         header.set("sec-ch-ua-platform", "Windows");
     }
 
+    @Override
     public Future<String> parse() {
 
         final String shareKey = shareLinkInfo.getShareKey().replaceAll("(\\..*)|(#.*)", "");
