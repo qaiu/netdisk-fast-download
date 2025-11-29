@@ -1,10 +1,9 @@
 package cn.qaiu.parser.customjs;
 
-import cn.qaiu.WebClientVertxInit;
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import io.vertx.core.Future;
-import io.vertx.core.WorkerExecutor;
+import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import org.openjdk.nashorn.api.scripting.NashornScriptEngineFactory;
 import org.openjdk.nashorn.api.scripting.ScriptObjectMirror;
@@ -14,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import javax.script.ScriptEngine;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.*;
 
 /**
  * JavaScript演练场执行器
@@ -25,7 +25,16 @@ public class JsPlaygroundExecutor {
     
     private static final Logger log = LoggerFactory.getLogger(JsPlaygroundExecutor.class);
     
-    private static final WorkerExecutor EXECUTOR = WebClientVertxInit.get().createSharedWorkerExecutor("playground-executor", 16);
+    // JavaScript执行超时时间（秒）
+    private static final long EXECUTION_TIMEOUT_SECONDS = 30;
+    
+    // 使用独立的线程池，不受Vert.x的BlockedThreadChecker监控
+    private static final ExecutorService INDEPENDENT_EXECUTOR = Executors.newCachedThreadPool(r -> {
+        Thread thread = new Thread(r);
+        thread.setName("playground-independent-" + System.currentTimeMillis());
+        thread.setDaemon(true); // 设置为守护线程，服务关闭时自动清理
+        return thread;
+    });
     
     private final ShareLinkInfo shareLinkInfo;
     private final String jsCode;
@@ -99,13 +108,16 @@ public class JsPlaygroundExecutor {
     }
     
     /**
-     * 执行parse方法（异步）
+     * 执行parse方法（异步，带超时控制）
+     * 使用独立线程池，不受Vert.x BlockedThreadChecker监控
      *
      * @return Future包装的执行结果
      */
     public Future<String> executeParseAsync() {
-        // 在worker线程中执行，避免阻塞事件循环
-        return EXECUTOR.executeBlocking(() -> {
+        Promise<String> promise = Promise.promise();
+        
+        // 使用独立的ExecutorService执行，避免Vert.x的BlockedThreadChecker输出警告
+        CompletableFuture<String> executionFuture = CompletableFuture.supplyAsync(() -> {
             playgroundLogger.infoJava("开始执行parse方法");
             try {
                 Object parseFunction = engine.get("parse");
@@ -135,19 +147,42 @@ public class JsPlaygroundExecutor {
                 }
             } catch (Exception e) {
                 playgroundLogger.errorJava("执行parse方法失败: " + e.getMessage(), e);
-                throw e;
+                throw new RuntimeException(e);
             }
-        });
+        }, INDEPENDENT_EXECUTOR);
+        
+        // 添加超时处理
+        executionFuture.orTimeout(EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .whenComplete((result, error) -> {
+                if (error != null) {
+                    if (error instanceof TimeoutException) {
+                        String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），可能存在无限循环";
+                        playgroundLogger.errorJava(timeoutMsg);
+                        log.error(timeoutMsg);
+                        promise.fail(new RuntimeException(timeoutMsg));
+                    } else {
+                        Throwable cause = error.getCause();
+                        promise.fail(cause != null ? cause : error);
+                    }
+                } else {
+                    promise.complete(result);
+                }
+            });
+        
+        return promise.future();
     }
     
     /**
-     * 执行parseFileList方法（异步）
+     * 执行parseFileList方法（异步，带超时控制）
+     * 使用独立线程池，不受Vert.x BlockedThreadChecker监控
      *
      * @return Future包装的文件列表
      */
     public Future<List<FileInfo>> executeParseFileListAsync() {
-        // 在worker线程中执行，避免阻塞事件循环
-        return EXECUTOR.executeBlocking(() -> {
+        Promise<List<FileInfo>> promise = Promise.promise();
+        
+        // 使用独立的ExecutorService执行，避免Vert.x的BlockedThreadChecker输出警告
+        CompletableFuture<List<FileInfo>> executionFuture = CompletableFuture.supplyAsync(() -> {
             playgroundLogger.infoJava("开始执行parseFileList方法");
             try {
                 Object parseFileListFunction = engine.get("parseFileList");
@@ -176,19 +211,42 @@ public class JsPlaygroundExecutor {
                 }
             } catch (Exception e) {
                 playgroundLogger.errorJava("执行parseFileList方法失败: " + e.getMessage(), e);
-                throw e;
+                throw new RuntimeException(e);
             }
-        });
+        }, INDEPENDENT_EXECUTOR);
+        
+        // 添加超时处理
+        executionFuture.orTimeout(EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .whenComplete((result, error) -> {
+                if (error != null) {
+                    if (error instanceof TimeoutException) {
+                        String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），可能存在无限循环";
+                        playgroundLogger.errorJava(timeoutMsg);
+                        log.error(timeoutMsg);
+                        promise.fail(new RuntimeException(timeoutMsg));
+                    } else {
+                        Throwable cause = error.getCause();
+                        promise.fail(cause != null ? cause : error);
+                    }
+                } else {
+                    promise.complete(result);
+                }
+            });
+        
+        return promise.future();
     }
     
     /**
-     * 执行parseById方法（异步）
+     * 执行parseById方法（异步，带超时控制）
+     * 使用独立线程池，不受Vert.x BlockedThreadChecker监控
      *
      * @return Future包装的执行结果
      */
     public Future<String> executeParseByIdAsync() {
-        // 在worker线程中执行，避免阻塞事件循环
-        return EXECUTOR.executeBlocking(() -> {
+        Promise<String> promise = Promise.promise();
+        
+        // 使用独立的ExecutorService执行，避免Vert.x的BlockedThreadChecker输出警告
+        CompletableFuture<String> executionFuture = CompletableFuture.supplyAsync(() -> {
             playgroundLogger.infoJava("开始执行parseById方法");
             try {
                 Object parseByIdFunction = engine.get("parseById");
@@ -216,9 +274,29 @@ public class JsPlaygroundExecutor {
                 }
             } catch (Exception e) {
                 playgroundLogger.errorJava("执行parseById方法失败: " + e.getMessage(), e);
-                throw e;
+                throw new RuntimeException(e);
             }
-        });
+        }, INDEPENDENT_EXECUTOR);
+        
+        // 添加超时处理
+        executionFuture.orTimeout(EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .whenComplete((result, error) -> {
+                if (error != null) {
+                    if (error instanceof TimeoutException) {
+                        String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），可能存在无限循环";
+                        playgroundLogger.errorJava(timeoutMsg);
+                        log.error(timeoutMsg);
+                        promise.fail(new RuntimeException(timeoutMsg));
+                    } else {
+                        Throwable cause = error.getCause();
+                        promise.fail(cause != null ? cause : error);
+                    }
+                } else {
+                    promise.complete(result);
+                }
+            });
+        
+        return promise.future();
     }
     
     /**
