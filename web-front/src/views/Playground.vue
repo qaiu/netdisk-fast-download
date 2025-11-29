@@ -712,6 +712,33 @@ function parseById(shareLinkInfo, http, logger) {
         ElMessage.warning('请输入分享链接');
         return;
       }
+      
+      // 检查代码中是否包含潜在的危险模式
+      const dangerousPatterns = [
+        { pattern: /while\s*\(\s*true\s*\)/gi, message: '检测到 while(true) 无限循环' },
+        { pattern: /for\s*\(\s*;\s*;\s*\)/gi, message: '检测到 for(;;) 无限循环' },
+        { pattern: /for\s*\(\s*var\s+\w+\s*=\s*\d+\s*;\s*true\s*;/gi, message: '检测到可能的无限循环' }
+      ];
+      
+      for (const { pattern, message } of dangerousPatterns) {
+        if (pattern.test(jsCode.value)) {
+          const confirmed = await ElMessageBox.confirm(
+            `⚠️ ${message}\n\n这可能导致脚本无法停止并占用服务器资源。\n\n建议修改代码，添加合理的循环退出条件。\n\n确定要继续执行吗？`,
+            '危险代码警告',
+            {
+              confirmButtonText: '我知道风险，继续执行',
+              cancelButtonText: '取消',
+              type: 'warning',
+              dangerouslyUseHTMLString: true
+            }
+          ).catch(() => false);
+          
+          if (!confirmed) {
+            return;
+          }
+          break;
+        }
+      }
 
       testing.value = true;
       testResult.value = null;

@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
 public class PlaygroundApi {
 
     private static final int MAX_PARSER_COUNT = 100;
+    private static final int MAX_CODE_LENGTH = 128 * 1024; // 128KB 代码长度限制
     private final DbService dbService = AsyncServiceUtil.getAsyncServiceInstance(DbService.class);
 
     /**
@@ -65,6 +66,15 @@ public class PlaygroundApi {
                 promise.complete(JsonObject.mapFrom(PlaygroundTestResp.builder()
                         .success(false)
                         .error("JavaScript代码不能为空")
+                        .build()));
+                return promise.future();
+            }
+            
+            // 代码长度验证
+            if (jsCode.length() > MAX_CODE_LENGTH) {
+                promise.complete(JsonObject.mapFrom(PlaygroundTestResp.builder()
+                        .success(false)
+                        .error("代码长度超过限制（最大128KB），当前长度: " + jsCode.length() + " 字节")
                         .build()));
                 return promise.future();
             }
@@ -255,6 +265,12 @@ public class PlaygroundApi {
 
             if (StringUtils.isBlank(jsCode)) {
                 promise.complete(JsonResult.error("JavaScript代码不能为空").toJsonObject());
+                return promise.future();
+            }
+            
+            // 代码长度验证
+            if (jsCode.length() > MAX_CODE_LENGTH) {
+                promise.complete(JsonResult.error("代码长度超过限制（最大128KB），当前长度: " + jsCode.length() + " 字节").toJsonObject());
                 return promise.future();
             }
 
