@@ -458,6 +458,13 @@ Core模块集成Vert.x实现类似spring的注解式路由API
 ## 支持该项目
 开源不易，用爱发电，本项目长期维护如果觉得有帮助, 可以请作者喝杯咖啡, 感谢支持  
 
+本项目的服务器由林枫云提供赞助<br>
+</a>
+<a href="https://www.dkdun.cn/aff/WDBRYKGH" target="_blank">
+<img src="https://www.dkdun.cn/themes/web/www/upload/local68c2dbb2ab148.png" width="200">
+</a>
+</p>
+
 
 ### 关于专属版
 99元, 提供对小飞机,蓝奏优享大文件解析的支持, 提供天翼云盘,移动云盘,联通云盘的解析支持  
