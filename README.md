@@ -296,6 +296,11 @@ mvn package -DskipTests
 
 ```
 打包好的文件位于 web-service/target/netdisk-fast-download-bin.zip
+
+## 快速部署
+
+https://app.rainyun.com/apps/rca/store/7273/ssl_?s=ndf
+
 ## Linux服务部署
 
 ### Docker 部署（Main分支）
