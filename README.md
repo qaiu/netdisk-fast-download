@@ -299,7 +299,7 @@ mvn package -DskipTests
 
 ## 快速部署
 
-https://app.rainyun.com/apps/rca/store/7273/ssl_?s=ndf
+[![通过雨云一键部署](https://rainyun-apps.cn-nb1.rains3.com/materials/deploy-on-rainyun-cn.svg)](https://app.rainyun.com/apps/rca/store/7273/ssl_?s=ndf)
 
 ## Linux服务部署
 
