@@ -42,6 +42,7 @@ public class JsPlaygroundExecutor {
     private final JsHttpClient httpClient;
     private final JsPlaygroundLogger playgroundLogger;
     private final JsShareLinkInfoWrapper shareLinkInfoWrapper;
+    private final JsFetchBridge fetchBridge;
     
     /**
      * 创建演练场执行器
@@ -62,6 +63,7 @@ public class JsPlaygroundExecutor {
         this.httpClient = new JsHttpClient(proxyConfig);
         this.playgroundLogger = new JsPlaygroundLogger();
         this.shareLinkInfoWrapper = new JsShareLinkInfoWrapper(shareLinkInfo);
+        this.fetchBridge = new JsFetchBridge(httpClient);
         this.engine = initEngine();
     }
     
@@ -84,6 +86,7 @@ public class JsPlaygroundExecutor {
             engine.put("http", httpClient);
             engine.put("logger", playgroundLogger);
             engine.put("shareLinkInfo", shareLinkInfoWrapper);
+            engine.put("JavaFetch", fetchBridge);
             
             // 禁用Java对象访问
             engine.eval("var Java = undefined;");
@@ -92,6 +95,13 @@ public class JsPlaygroundExecutor {
             engine.eval("var javax = undefined;");
             engine.eval("var org = undefined;");
             engine.eval("var com = undefined;");
+            
+            // 加载fetch运行时（Promise和fetch API polyfill）
+            String fetchRuntime = JsParserExecutor.loadFetchRuntime();
+            if (!fetchRuntime.isEmpty()) {
+                engine.eval(fetchRuntime);
+                playgroundLogger.infoJava("✅ Fetch API和Promise polyfill注入成功");
+            }
             
             playgroundLogger.infoJava("🔒 安全的JavaScript引擎初始化成功（演练场）");
             

@@ -14,8 +14,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.script.ScriptEngine;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * JavaScript解析器执行器
@@ -30,17 +35,19 @@ public class JsParserExecutor implements IPanTool {
     
     private static final WorkerExecutor EXECUTOR = WebClientVertxInit.get().createSharedWorkerExecutor("parser-executor", 32);
     
+    private static String FETCH_RUNTIME_JS = null;
+    
     private final CustomParserConfig config;
     private final ShareLinkInfo shareLinkInfo;
     private final ScriptEngine engine;
     private final JsHttpClient httpClient;
     private final JsLogger jsLogger;
     private final JsShareLinkInfoWrapper shareLinkInfoWrapper;
+    private final JsFetchBridge fetchBridge;
     
     public JsParserExecutor(ShareLinkInfo shareLinkInfo, CustomParserConfig config) {
         this.config = config;
         this.shareLinkInfo = shareLinkInfo;
-        this.engine = initEngine();
         
         // 检查是否有代理配置
         JsonObject proxyConfig = null;
@@ -51,6 +58,34 @@ public class JsParserExecutor implements IPanTool {
         this.httpClient = new JsHttpClient(proxyConfig);
         this.jsLogger = new JsLogger("JsParser-" + config.getType());
         this.shareLinkInfoWrapper = new JsShareLinkInfoWrapper(shareLinkInfo);
+        this.fetchBridge = new JsFetchBridge(httpClient);
+        this.engine = initEngine();
+    }
+    
+    /**
+     * 加载fetch运行时JS代码
+     * @return fetch运行时代码
+     */
+    static String loadFetchRuntime() {
+        if (FETCH_RUNTIME_JS != null) {
+            return FETCH_RUNTIME_JS;
+        }
+        
+        try (InputStream is = JsParserExecutor.class.getClassLoader().getResourceAsStream("fetch-runtime.js")) {
+            if (is == null) {
+                log.warn("未找到fetch-runtime.js文件，fetch API将不可用");
+                return "";
+            }
+            
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                FETCH_RUNTIME_JS = reader.lines().collect(Collectors.joining("\n"));
+                log.debug("Fetch运行时加载成功，大小: {} 字符", FETCH_RUNTIME_JS.length());
+                return FETCH_RUNTIME_JS;
+            }
+        } catch (Exception e) {
+            log.error("加载fetch-runtime.js失败", e);
+            return "";
+        }
     }
     
     /**
@@ -81,6 +116,7 @@ public class JsParserExecutor implements IPanTool {
             engine.put("http", httpClient);
             engine.put("logger", jsLogger);
             engine.put("shareLinkInfo", shareLinkInfoWrapper);
+            engine.put("JavaFetch", fetchBridge);
             
             // 禁用Java对象访问
             engine.eval("var Java = undefined;");
@@ -89,6 +125,13 @@ public class JsParserExecutor implements IPanTool {
             engine.eval("var javax = undefined;");
             engine.eval("var org = undefined;");
             engine.eval("var com = undefined;");
+            
+            // 加载fetch运行时（Promise和fetch API polyfill）
+            String fetchRuntime = loadFetchRuntime();
+            if (!fetchRuntime.isEmpty()) {
+                engine.eval(fetchRuntime);
+                log.debug("✅ Fetch API和Promise polyfill注入成功");
+            }
             
             log.debug("🔒 安全的JavaScript引擎初始化成功，解析器类型: {}", config.getType());
             
