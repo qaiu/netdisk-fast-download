@@ -155,12 +155,18 @@ SimplePromise.all = function(promises) {
 
 SimplePromise.race = function(promises) {
   return new SimplePromise(function(resolve, reject) {
+    if (promises.length === 0) {
+      // Per spec, Promise.race with empty array stays pending forever
+      return;
+    }
+    
     for (var i = 0; i < promises.length; i++) {
       var promise = promises[i];
       if (promise && typeof promise.then === 'function') {
         promise.then(resolve, reject);
       } else {
         resolve(promise);
+        return;
       }
     }
   });
@@ -178,7 +184,31 @@ function FetchResponse(jsHttpResponse) {
   this._jsResponse = jsHttpResponse;
   this.status = jsHttpResponse.statusCode();
   this.ok = this.status >= 200 && this.status < 300;
-  this.statusText = this.ok ? 'OK' : 'Error';
+  
+  // Map HTTP status codes to standard status text
+  var statusTexts = {
+    200: 'OK',
+    201: 'Created',
+    204: 'No Content',
+    301: 'Moved Permanently',
+    302: 'Found',
+    304: 'Not Modified',
+    400: 'Bad Request',
+    401: 'Unauthorized',
+    403: 'Forbidden',
+    404: 'Not Found',
+    405: 'Method Not Allowed',
+    408: 'Request Timeout',
+    409: 'Conflict',
+    410: 'Gone',
+    500: 'Internal Server Error',
+    501: 'Not Implemented',
+    502: 'Bad Gateway',
+    503: 'Service Unavailable',
+    504: 'Gateway Timeout'
+  };
+  
+  this.statusText = statusTexts[this.status] || (this.ok ? 'OK' : 'Error');
   this.headers = {
     get: function(name) {
       return jsHttpResponse.header(name);
