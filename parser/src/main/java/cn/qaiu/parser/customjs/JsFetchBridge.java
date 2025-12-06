@@ -82,7 +82,7 @@ public class JsFetchBridge {
                     response = httpClient.getNoRedirect(url);
                     break;
                 default:
-                    throw new IllegalArgumentException("不支持的HTTP方法: " + method);
+                    throw new IllegalArgumentException("Unsupported HTTP method: " + method);
             }
             
             log.debug("Fetch请求完成: {} {} - 状态码: {}", method, url, response.statusCode());
