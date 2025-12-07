@@ -176,7 +176,7 @@ public class PlaygroundApi {
             startIndex += SESSION_KEY.length();
             int endIndex = cookie.indexOf(";", startIndex);
             
-            if (endIndex > startIndex) {
+            if (endIndex != -1) {
                 return cookie.substring(startIndex, endIndex).trim();
             } else {
                 return cookie.substring(startIndex).trim();
