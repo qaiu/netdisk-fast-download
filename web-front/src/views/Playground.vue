@@ -531,6 +531,7 @@
 <script>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { Lock } from '@element-plus/icons-vue';
 import { useMagicKeys, useFullscreen, useEventListener } from '@vueuse/core';
 import { Splitpanes, Pane } from 'splitpanes';
 import 'splitpanes/dist/splitpanes.css';
@@ -545,7 +546,8 @@ export default {
     MonacoEditor,
     JsonViewer,
     Splitpanes,
-    Pane
+    Pane,
+    Lock
   },
   setup() {
     const editorRef = ref(null);

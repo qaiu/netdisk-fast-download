@@ -150,16 +150,41 @@ public class PlaygroundApi {
      */
     private String getClientId(HttpServerRequest request) {
         // 优先使用Cookie中的session id，否则使用IP
-        String cookie = request.getHeader("Cookie");
-        if (cookie != null && cookie.contains("playground_session=")) {
-            String sessionId = cookie.substring(cookie.indexOf("playground_session=") + 19);
-            int endIndex = sessionId.indexOf(";");
-            if (endIndex > 0) {
-                sessionId = sessionId.substring(0, endIndex);
-            }
+        String sessionId = extractSessionIdFromCookie(request);
+        if (sessionId != null) {
             return sessionId;
         }
         return getClientIp(request);
+    }
+
+    /**
+     * 从Cookie中提取session ID
+     */
+    private String extractSessionIdFromCookie(HttpServerRequest request) {
+        String cookie = request.getHeader("Cookie");
+        if (cookie == null || !cookie.contains("playground_session=")) {
+            return null;
+        }
+
+        try {
+            final String SESSION_KEY = "playground_session=";
+            int startIndex = cookie.indexOf(SESSION_KEY);
+            if (startIndex == -1) {
+                return null;
+            }
+
+            startIndex += SESSION_KEY.length();
+            int endIndex = cookie.indexOf(";", startIndex);
+            
+            if (endIndex > startIndex) {
+                return cookie.substring(startIndex, endIndex).trim();
+            } else {
+                return cookie.substring(startIndex).trim();
+            }
+        } catch (Exception e) {
+            log.warn("Failed to extract session ID from cookie", e);
+            return null;
+        }
     }
 
     /**
@@ -379,21 +404,21 @@ public class PlaygroundApi {
             // 检查访问权限
             ensurePlaygroundAccess(ctx);
 
-            try (InputStream inputStream = getClass().getClassLoader()
-                    .getResourceAsStream("custom-parsers/types.js")) {
+            InputStream inputStream = getClass().getClassLoader()
+                    .getResourceAsStream("custom-parsers/types.js");
 
             if (inputStream == null) {
                 ResponseUtil.fireJsonResultResponse(response, JsonResult.error("types.js文件不存在"));
                 return;
             }
 
-            String content = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))
-                    .lines()
-                    .collect(Collectors.joining("\n"));
+            try (inputStream) {
+                String content = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))
+                        .lines()
+                        .collect(Collectors.joining("\n"));
 
-            response.putHeader("Content-Type", "text/javascript; charset=utf-8")
-                    .end(content);
-
+                response.putHeader("Content-Type", "text/javascript; charset=utf-8")
+                        .end(content);
             }
         } catch (IllegalStateException e) {
             log.error("访问Playground失败", e);
