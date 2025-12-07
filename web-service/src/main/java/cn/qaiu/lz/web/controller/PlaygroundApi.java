@@ -311,10 +311,17 @@ public class PlaygroundApi {
     /**
      * 获取types.js文件内容
      *
+     * @param ctx 路由上下文
      * @param response HTTP响应
      */
     @RouteMapping(value = "/types.js", method = RouteMethod.GET)
-    public void getTypesJs(HttpServerResponse response) {
+    public void getTypesJs(RoutingContext ctx, HttpServerResponse response) {
+        // 权限检查
+        if (!checkAuth(ctx)) {
+            ResponseUtil.fireJsonResultResponse(response, JsonResult.error("未授权访问"));
+            return;
+        }
+        
         try (InputStream inputStream = getClass().getClassLoader()
                 .getResourceAsStream("custom-parsers/types.js")) {
 
