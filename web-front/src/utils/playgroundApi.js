@@ -141,6 +141,56 @@ export const playgroundApi = {
     } catch (error) {
       throw new Error(error.response?.data?.error || error.response?.data?.msg || error.message || '获取解析器失败');
     }
+  },
+
+  /**
+   * 保存TypeScript代码及其编译结果
+   */
+  async saveTypeScriptCode(parserId, tsCode, es5Code, compileErrors, compilerVersion, compileOptions, isValid) {
+    try {
+      const response = await axios.post('/v2/playground/typescript', {
+        parserId,
+        tsCode,
+        es5Code,
+        compileErrors,
+        compilerVersion,
+        compileOptions,
+        isValid
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.error || error.response?.data?.msg || error.message || '保存TypeScript代码失败');
+    }
+  },
+
+  /**
+   * 根据parserId获取TypeScript代码
+   */
+  async getTypeScriptCode(parserId) {
+    try {
+      const response = await axios.get(`/v2/playground/typescript/${parserId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.error || error.response?.data?.msg || error.message || '获取TypeScript代码失败');
+    }
+  },
+
+  /**
+   * 更新TypeScript代码
+   */
+  async updateTypeScriptCode(parserId, tsCode, es5Code, compileErrors, compilerVersion, compileOptions, isValid) {
+    try {
+      const response = await axios.put(`/v2/playground/typescript/${parserId}`, {
+        tsCode,
+        es5Code,
+        compileErrors,
+        compilerVersion,
+        compileOptions,
+        isValid
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.error || error.response?.data?.msg || error.message || '更新TypeScript代码失败');
+    }
   }
 };
-

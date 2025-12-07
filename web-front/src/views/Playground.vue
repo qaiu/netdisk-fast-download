@@ -5,6 +5,11 @@
         <div class="card-header">
           <div class="header-left">
             <span class="title">JS解析器演练场</span>
+            <!-- 语言选择器 -->
+            <el-radio-group v-model="codeLanguage" size="small" style="margin-left: 15px;" @change="onLanguageChange">
+              <el-radio-button :label="LANGUAGE.JAVASCRIPT">JavaScript</el-radio-button>
+              <el-radio-button :label="LANGUAGE.TYPESCRIPT">TypeScript</el-radio-button>
+            </el-radio-group>
           </div>
           <div class="header-actions">
             <!-- 主要操作 -->
@@ -479,6 +484,7 @@ import 'splitpanes/dist/splitpanes.css';
 import MonacoEditor from '@/components/MonacoEditor.vue';
 import { playgroundApi } from '@/utils/playgroundApi';
 import { configureMonacoTypes, loadTypesFromApi } from '@/utils/monacoTypes';
+import { compileToES5, isTypeScriptCode, formatCompileErrors } from '@/utils/tsCompiler';
 import JsonViewer from 'vue3-json-viewer';
 
 export default {
@@ -490,8 +496,17 @@ export default {
     Pane
   },
   setup() {
+    // 语言常量
+    const LANGUAGE = {
+      JAVASCRIPT: 'JavaScript',
+      TYPESCRIPT: 'TypeScript'
+    };
+
     const editorRef = ref(null);
     const jsCode = ref('');
+    const codeLanguage = ref(LANGUAGE.JAVASCRIPT); // 新增：代码语言选择
+    const compiledES5Code = ref(''); // 新增：编译后的ES5代码
+    const compileStatus = ref({ success: true, errors: [] }); // 新增：编译状态
     const testParams = ref({
       shareUrl: 'https://lanzoui.com/i7Aq12ab3cd',
       pwd: '',
@@ -618,6 +633,90 @@ function parseById(shareLinkInfo, http, logger) {
     return "https://example.com/download?id=" + fileId;
 }`;
 
+    // TypeScript示例代码模板
+    const exampleTypeScriptCode = `// ==UserScript==
+// @name         TypeScript示例解析器
+// @type         ts_example_parser
+// @displayName  TypeScript示例网盘
+// @description  使用TypeScript实现的示例解析器
+// @match        https?://example\.com/s/(?<KEY>\\w+)
+// @author       yourname
+// @version      1.0.0
+// ==/UserScript==
+
+/**
+ * 解析单个文件下载链接
+ * @param shareLinkInfo - 分享链接信息
+ * @param http - HTTP客户端
+ * @param logger - 日志对象
+ * @returns 下载链接
+ */
+async function parse(
+    shareLinkInfo: any,
+    http: any,
+    logger: any
+): Promise<string> {
+    const url: string = shareLinkInfo.getShareUrl();
+    logger.info(\`开始解析: \${url}\`);
+    
+    // 使用fetch API (已在后端实现polyfill)
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(\`请求失败: \${response.status}\`);
+        }
+        
+        const html: string = await response.text();
+        
+        // 这里添加你的解析逻辑
+        // 例如：使用正则表达式提取下载链接
+        const match = html.match(/download-url="([^"]+)"/);
+        if (match) {
+            return match[1];
+        }
+        
+        return "https://example.com/download/file.zip";
+    } catch (error: any) {
+        logger.error(\`解析失败: \${error.message}\`);
+        throw error;
+    }
+}
+
+/**
+ * 解析文件列表（可选）
+ */
+async function parseFileList(
+    shareLinkInfo: any,
+    http: any,
+    logger: any
+): Promise<any[]> {
+    const dirId: string = shareLinkInfo.getOtherParam("dirId") || "0";
+    logger.info(\`解析文件列表，目录ID: \${dirId}\`);
+    
+    const fileList: any[] = [];
+    
+    // 这里添加你的文件列表解析逻辑
+    
+    return fileList;
+}
+
+/**
+ * 根据文件ID获取下载链接（可选）
+ */
+async function parseById(
+    shareLinkInfo: any,
+    http: any,
+    logger: any
+): Promise<string> {
+    const paramJson = shareLinkInfo.getOtherParam("paramJson");
+    const fileId: string = paramJson.fileId;
+    logger.info(\`根据ID解析: \${fileId}\`);
+    
+    // 这里添加你的按ID解析逻辑
+    
+    return \`https://example.com/download?id=\${fileId}\`;
+}`;
+
     // 编辑器主题
     const editorTheme = computed(() => {
       return isDarkMode.value ? 'vs-dark' : 'vs';
@@ -665,7 +764,8 @@ function parseById(shareLinkInfo, http, logger) {
 
     // 加载示例代码
     const loadTemplate = () => {
-      jsCode.value = exampleCode;
+      jsCode.value = codeLanguage.value === LANGUAGE.TYPESCRIPT ? exampleTypeScriptCode : exampleCode;
+      ElMessage.success(`已加载${codeLanguage.value}示例代码`);
     };
 
     // 格式化代码
@@ -699,6 +799,62 @@ function parseById(shareLinkInfo, http, logger) {
     const clearCode = () => {
       jsCode.value = '';
       testResult.value = null;
+      compiledES5Code.value = '';
+      compileStatus.value = { success: true, errors: [] };
+    };
+
+    // 语言切换处理
+    const onLanguageChange = (newLanguage) => {
+      console.log('切换语言:', newLanguage);
+      // 保存当前语言选择
+      localStorage.setItem('playground_language', newLanguage);
+      
+      // 如果切换到TypeScript，尝试编译当前代码
+      if (newLanguage === 'TypeScript' && jsCode.value.trim()) {
+        compileTypeScriptCode();
+      }
+    };
+
+    // 编译TypeScript代码
+    const compileTypeScriptCode = () => {
+      if (!jsCode.value.trim()) {
+        compiledES5Code.value = '';
+        compileStatus.value = { success: true, errors: [] };
+        return;
+      }
+
+      try {
+        const result = compileToES5(jsCode.value);
+        compiledES5Code.value = result.code;
+        compileStatus.value = {
+          success: result.success,
+          errors: result.errors || [],
+          hasWarnings: result.hasWarnings
+        };
+
+        if (!result.success) {
+          const errorMsg = formatCompileErrors(result.errors);
+          ElMessage.error({
+            message: '编译失败，请检查代码语法\n' + errorMsg,
+            duration: 5000,
+            showClose: true
+          });
+        } else if (result.hasWarnings) {
+          ElMessage.warning({
+            message: '编译成功，但存在警告',
+            duration: 3000
+          });
+        } else {
+          ElMessage.success('编译成功');
+        }
+      } catch (error) {
+        console.error('编译错误:', error);
+        compileStatus.value = {
+          success: false,
+          errors: [{ message: error.message || '编译失败' }]
+        };
+        ElMessage.error('编译失败: ' + error.message);
+      }
     };
 
     // 执行测试
@@ -744,9 +900,67 @@ function parseById(shareLinkInfo, http, logger) {
       testResult.value = null;
       consoleLogs.value = []; // 清空控制台
 
+      // 确定要执行的代码（TypeScript需要先编译）
+      let codeToExecute = jsCode.value;
+      
+      // 优先使用显式语言选择，如果是JavaScript模式但代码是TS，给出提示
+      if (codeLanguage.value === LANGUAGE.TYPESCRIPT) {
+        // TypeScript模式：始终编译
+        try {
+          const compileResult = compileToES5(jsCode.value);
+          
+          if (!compileResult.success) {
+            testing.value = false;
+            const errorMsg = formatCompileErrors(compileResult.errors);
+            ElMessage.error({
+              message: 'TypeScript编译失败，请修复错误后再试\n' + errorMsg,
+              duration: 5000,
+              showClose: true
+            });
+            testResult.value = {
+              success: false,
+              error: 'TypeScript编译失败',
+              stackTrace: errorMsg,
+              logs: [],
+              executionTime: 0
+            };
+            return;
+          }
+          
+          // 使用编译后的ES5代码
+          codeToExecute = compileResult.code;
+          compiledES5Code.value = compileResult.code;
+          compileStatus.value = {
+            success: true,
+            errors: compileResult.errors || [],
+            hasWarnings: compileResult.hasWarnings
+          };
+          
+          if (compileResult.hasWarnings) {
+            ElMessage.warning('编译成功，但存在警告');
+          }
+        } catch (error) {
+          testing.value = false;
+          ElMessage.error('TypeScript编译失败: ' + error.message);
+          testResult.value = {
+            success: false,
+            error: 'TypeScript编译失败: ' + error.message,
+            logs: [],
+            executionTime: 0
+          };
+          return;
+        }
+      } else if (isTypeScriptCode(jsCode.value)) {
+        // JavaScript模式但检测到TypeScript语法：给出提示
+        ElMessage.warning({
+          message: '检测到TypeScript语法，建议切换到TypeScript模式',
+          duration: 3000
+        });
+      }
+
       try {
         const result = await playgroundApi.testScript(
-          jsCode.value,
+          codeToExecute,  // 使用编译后的代码或原始JS代码
           testParams.value.shareUrl,
           testParams.value.pwd,
           testParams.value.method
@@ -1196,6 +1410,12 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
         }
       }
 
+      // 加载保存的语言选择
+      const savedLanguage = localStorage.getItem('playground_language');
+      if (savedLanguage) {
+        codeLanguage.value = savedLanguage;
+      }
+
       // 监听主题变化
       if (document.documentElement) {
         const observer = new MutationObserver(() => {
@@ -1212,8 +1432,12 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
     });
 
     return {
+      LANGUAGE,
       editorRef,
       jsCode,
+      codeLanguage,
+      compiledES5Code,
+      compileStatus,
       testParams,
       testResult,
       testing,
@@ -1221,6 +1445,8 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       editorTheme,
       editorOptions,
       onCodeChange,
+      onLanguageChange,
+      compileTypeScriptCode,
       loadTemplate,
       formatCode,
       saveCode,
