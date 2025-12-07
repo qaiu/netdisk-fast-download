@@ -5,6 +5,11 @@
         <div class="card-header">
           <div class="header-left">
             <span class="title">JS解析器演练场</span>
+            <!-- 语言选择器 -->
+            <el-radio-group v-model="codeLanguage" size="small" style="margin-left: 15px;" @change="onLanguageChange">
+              <el-radio-button label="JavaScript">JavaScript</el-radio-button>
+              <el-radio-button label="TypeScript">TypeScript</el-radio-button>
+            </el-radio-group>
           </div>
           <div class="header-actions">
             <!-- 主要操作 -->
@@ -479,6 +484,7 @@ import 'splitpanes/dist/splitpanes.css';
 import MonacoEditor from '@/components/MonacoEditor.vue';
 import { playgroundApi } from '@/utils/playgroundApi';
 import { configureMonacoTypes, loadTypesFromApi } from '@/utils/monacoTypes';
+import { compileToES5, isTypeScriptCode, formatCompileErrors } from '@/utils/tsCompiler';
 import JsonViewer from 'vue3-json-viewer';
 
 export default {
@@ -492,6 +498,9 @@ export default {
   setup() {
     const editorRef = ref(null);
     const jsCode = ref('');
+    const codeLanguage = ref('JavaScript'); // 新增：代码语言选择
+    const compiledES5Code = ref(''); // 新增：编译后的ES5代码
+    const compileStatus = ref({ success: true, errors: [] }); // 新增：编译状态
     const testParams = ref({
       shareUrl: 'https://lanzoui.com/i7Aq12ab3cd',
       pwd: '',
@@ -699,6 +708,62 @@ function parseById(shareLinkInfo, http, logger) {
     const clearCode = () => {
       jsCode.value = '';
       testResult.value = null;
+      compiledES5Code.value = '';
+      compileStatus.value = { success: true, errors: [] };
+    };
+
+    // 语言切换处理
+    const onLanguageChange = (newLanguage) => {
+      console.log('切换语言:', newLanguage);
+      // 保存当前语言选择
+      localStorage.setItem('playground_language', newLanguage);
+      
+      // 如果切换到TypeScript，尝试编译当前代码
+      if (newLanguage === 'TypeScript' && jsCode.value.trim()) {
+        compileTypeScriptCode();
+      }
+    };
+
+    // 编译TypeScript代码
+    const compileTypeScriptCode = () => {
+      if (!jsCode.value.trim()) {
+        compiledES5Code.value = '';
+        compileStatus.value = { success: true, errors: [] };
+        return;
+      }
+
+      try {
+        const result = compileToES5(jsCode.value);
+        compiledES5Code.value = result.code;
+        compileStatus.value = {
+          success: result.success,
+          errors: result.errors || [],
+          hasWarnings: result.hasWarnings
+        };
+
+        if (!result.success) {
+          const errorMsg = formatCompileErrors(result.errors);
+          ElMessage.error({
+            message: '编译失败，请检查代码语法\n' + errorMsg,
+            duration: 5000,
+            showClose: true
+          });
+        } else if (result.hasWarnings) {
+          ElMessage.warning({
+            message: '编译成功，但存在警告',
+            duration: 3000
+          });
+        } else {
+          ElMessage.success('编译成功');
+        }
+      } catch (error) {
+        console.error('编译错误:', error);
+        compileStatus.value = {
+          success: false,
+          errors: [{ message: error.message || '编译失败' }]
+        };
+        ElMessage.error('编译失败: ' + error.message);
+      }
     };
 
     // 执行测试
@@ -744,9 +809,60 @@ function parseById(shareLinkInfo, http, logger) {
       testResult.value = null;
       consoleLogs.value = []; // 清空控制台
 
+      // 确定要执行的代码（TypeScript需要先编译）
+      let codeToExecute = jsCode.value;
+      
+      // 如果是TypeScript模式或代码看起来像TypeScript，先编译
+      if (codeLanguage.value === 'TypeScript' || isTypeScriptCode(jsCode.value)) {
+        try {
+          const compileResult = compileToES5(jsCode.value);
+          
+          if (!compileResult.success) {
+            testing.value = false;
+            const errorMsg = formatCompileErrors(compileResult.errors);
+            ElMessage.error({
+              message: 'TypeScript编译失败，请修复错误后再试\n' + errorMsg,
+              duration: 5000,
+              showClose: true
+            });
+            testResult.value = {
+              success: false,
+              error: 'TypeScript编译失败',
+              stackTrace: errorMsg,
+              logs: [],
+              executionTime: 0
+            };
+            return;
+          }
+          
+          // 使用编译后的ES5代码
+          codeToExecute = compileResult.code;
+          compiledES5Code.value = compileResult.code;
+          compileStatus.value = {
+            success: true,
+            errors: compileResult.errors || [],
+            hasWarnings: compileResult.hasWarnings
+          };
+          
+          if (compileResult.hasWarnings) {
+            ElMessage.warning('编译成功，但存在警告');
+          }
+        } catch (error) {
+          testing.value = false;
+          ElMessage.error('TypeScript编译失败: ' + error.message);
+          testResult.value = {
+            success: false,
+            error: 'TypeScript编译失败: ' + error.message,
+            logs: [],
+            executionTime: 0
+          };
+          return;
+        }
+      }
+
       try {
         const result = await playgroundApi.testScript(
-          jsCode.value,
+          codeToExecute,  // 使用编译后的代码或原始JS代码
           testParams.value.shareUrl,
           testParams.value.pwd,
           testParams.value.method
@@ -1196,6 +1312,12 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
         }
       }
 
+      // 加载保存的语言选择
+      const savedLanguage = localStorage.getItem('playground_language');
+      if (savedLanguage) {
+        codeLanguage.value = savedLanguage;
+      }
+
       // 监听主题变化
       if (document.documentElement) {
         const observer = new MutationObserver(() => {
@@ -1214,6 +1336,9 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
     return {
       editorRef,
       jsCode,
+      codeLanguage,
+      compiledES5Code,
+      compileStatus,
       testParams,
       testResult,
       testing,
@@ -1221,6 +1346,8 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       editorTheme,
       editorOptions,
       onCodeChange,
+      onLanguageChange,
+      compileTypeScriptCode,
       loadTemplate,
       formatCode,
       saveCode,
