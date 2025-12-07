@@ -80,7 +80,7 @@ public class PlaygroundApi {
                 .put("public", config.isPublic())
                 .put("authed", authed);
         
-        return Future.succeededFuture(JsonResult.ok(result).toJsonObject());
+        return Future.succeededFuture(JsonResult.data(result).toJsonObject());
     }
     
     /**
@@ -99,7 +99,7 @@ public class PlaygroundApi {
                 if (session != null) {
                     session.put(SESSION_AUTH_KEY, true);
                 }
-                promise.complete(JsonResult.ok("公开模式，无需密码").toJsonObject());
+                promise.complete(JsonResult.success("公开模式，无需密码").toJsonObject());
                 return promise.future();
             }
             
@@ -118,7 +118,7 @@ public class PlaygroundApi {
                 if (session != null) {
                     session.put(SESSION_AUTH_KEY, true);
                 }
-                promise.complete(JsonResult.ok("登录成功").toJsonObject());
+                promise.complete(JsonResult.success("登录成功").toJsonObject());
             } else {
                 promise.complete(JsonResult.error("密码错误").toJsonObject());
             }
