@@ -1,6 +1,7 @@
 package cn.qaiu.lz.web.controller;
 
 import cn.qaiu.entity.ShareLinkInfo;
+import cn.qaiu.lz.web.config.PlaygroundConfig;
 import cn.qaiu.lz.web.model.PlaygroundTestResp;
 import cn.qaiu.lz.web.service.DbService;
 import cn.qaiu.parser.ParserCreate;
@@ -19,6 +20,7 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.Session;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -42,7 +44,92 @@ public class PlaygroundApi {
 
     private static final int MAX_PARSER_COUNT = 100;
     private static final int MAX_CODE_LENGTH = 128 * 1024; // 128KB 代码长度限制
+    private static final String SESSION_AUTH_KEY = "playgroundAuthed";
     private final DbService dbService = AsyncServiceUtil.getAsyncServiceInstance(DbService.class);
+    
+    /**
+     * 检查Playground访问权限
+     */
+    private boolean checkAuth(RoutingContext ctx) {
+        PlaygroundConfig config = PlaygroundConfig.getInstance();
+        
+        // 如果是公开模式，直接允许访问
+        if (config.isPublic()) {
+            return true;
+        }
+        
+        // 否则检查Session中的认证状态
+        Session session = ctx.session();
+        if (session == null) {
+            return false;
+        }
+        
+        Boolean authed = session.get(SESSION_AUTH_KEY);
+        return authed != null && authed;
+    }
+    
+    /**
+     * 获取Playground状态（是否需要认证）
+     */
+    @RouteMapping(value = "/status", method = RouteMethod.GET)
+    public Future<JsonObject> getStatus(RoutingContext ctx) {
+        PlaygroundConfig config = PlaygroundConfig.getInstance();
+        boolean authed = checkAuth(ctx);
+        
+        JsonObject result = new JsonObject()
+                .put("public", config.isPublic())
+                .put("authed", authed);
+        
+        return Future.succeededFuture(JsonResult.ok(result).toJsonObject());
+    }
+    
+    /**
+     * Playground登录
+     */
+    @RouteMapping(value = "/login", method = RouteMethod.POST)
+    public Future<JsonObject> login(RoutingContext ctx) {
+        Promise<JsonObject> promise = Promise.promise();
+        
+        try {
+            PlaygroundConfig config = PlaygroundConfig.getInstance();
+            
+            // 如果是公开模式，直接成功
+            if (config.isPublic()) {
+                Session session = ctx.session();
+                if (session != null) {
+                    session.put(SESSION_AUTH_KEY, true);
+                }
+                promise.complete(JsonResult.ok("公开模式，无需密码").toJsonObject());
+                return promise.future();
+            }
+            
+            // 获取密码
+            JsonObject body = ctx.body().asJsonObject();
+            String password = body.getString("password");
+            
+            if (StringUtils.isBlank(password)) {
+                promise.complete(JsonResult.error("密码不能为空").toJsonObject());
+                return promise.future();
+            }
+            
+            // 验证密码
+            if (config.getPassword().equals(password)) {
+                Session session = ctx.session();
+                if (session != null) {
+                    session.put(SESSION_AUTH_KEY, true);
+                }
+                promise.complete(JsonResult.ok("登录成功").toJsonObject());
+            } else {
+                promise.complete(JsonResult.error("密码错误").toJsonObject());
+            }
+            
+        } catch (Exception e) {
+            log.error("登录失败", e);
+            promise.complete(JsonResult.error("登录失败: " + e.getMessage()).toJsonObject());
+        }
+        
+        return promise.future();
+    }
 
     /**
      * 测试执行JavaScript代码
@@ -52,6 +139,11 @@ public class PlaygroundApi {
      */
     @RouteMapping(value = "/test", method = RouteMethod.POST)
     public Future<JsonObject> test(RoutingContext ctx) {
+        // 权限检查
+        if (!checkAuth(ctx)) {
+            return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
+        }
+        
         Promise<JsonObject> promise = Promise.promise();
 
         try {
@@ -248,7 +340,11 @@ public class PlaygroundApi {
      * 获取解析器列表
      */
     @RouteMapping(value = "/parsers", method = RouteMethod.GET)
-    public Future<JsonObject> getParserList() {
+    public Future<JsonObject> getParserList(RoutingContext ctx) {
+        // 权限检查
+        if (!checkAuth(ctx)) {
+            return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
+        }
         return dbService.getPlaygroundParserList();
     }
 
@@ -257,6 +353,11 @@ public class PlaygroundApi {
      */
     @RouteMapping(value = "/parsers", method = RouteMethod.POST)
     public Future<JsonObject> saveParser(RoutingContext ctx) {
+        // 权限检查
+        if (!checkAuth(ctx)) {
+            return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
+        }
+        
         Promise<JsonObject> promise = Promise.promise();
 
         try {
@@ -356,6 +457,11 @@ public class PlaygroundApi {
      */
     @RouteMapping(value = "/parsers/:id", method = RouteMethod.PUT)
     public Future<JsonObject> updateParser(RoutingContext ctx, Long id) {
+        // 权限检查
+        if (!checkAuth(ctx)) {
+            return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
+        }
+        
         Promise<JsonObject> promise = Promise.promise();
 
         try {
@@ -410,7 +516,11 @@ public class PlaygroundApi {
      * 删除解析器
      */
     @RouteMapping(value = "/parsers/:id", method = RouteMethod.DELETE)
-    public Future<JsonObject> deleteParser(Long id) {
+    public Future<JsonObject> deleteParser(RoutingContext ctx, Long id) {
+        // 权限检查
+        if (!checkAuth(ctx)) {
+            return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
+        }
         return dbService.deletePlaygroundParser(id);
     }
 
@@ -418,7 +528,11 @@ public class PlaygroundApi {
      * 根据ID获取解析器
      */
     @RouteMapping(value = "/parsers/:id", method = RouteMethod.GET)
-    public Future<JsonObject> getParserById(Long id) {
+    public Future<JsonObject> getParserById(RoutingContext ctx, Long id) {
+        // 权限检查
+        if (!checkAuth(ctx)) {
+            return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
+        }
         return dbService.getPlaygroundParserById(id);
     }
 
@@ -427,6 +541,11 @@ public class PlaygroundApi {
      */
     @RouteMapping(value = "/typescript", method = RouteMethod.POST)
     public Future<JsonObject> saveTypeScriptCode(RoutingContext ctx) {
+        // 权限检查
+        if (!checkAuth(ctx)) {
+            return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
+        }
+        
         Promise<JsonObject> promise = Promise.promise();
 
         try {
@@ -489,7 +608,11 @@ public class PlaygroundApi {
      * 根据parserId获取TypeScript代码
      */
     @RouteMapping(value = "/typescript/:parserId", method = RouteMethod.GET)
-    public Future<JsonObject> getTypeScriptCode(Long parserId) {
+    public Future<JsonObject> getTypeScriptCode(RoutingContext ctx, Long parserId) {
+        // 权限检查
+        if (!checkAuth(ctx)) {
+            return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
+        }
         return dbService.getTypeScriptCodeByParserId(parserId);
     }
 
@@ -498,6 +621,11 @@ public class PlaygroundApi {
      */
     @RouteMapping(value = "/typescript/:parserId", method = RouteMethod.PUT)
     public Future<JsonObject> updateTypeScriptCode(RoutingContext ctx, Long parserId) {
+        // 权限检查
+        if (!checkAuth(ctx)) {
+            return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
+        }
+        
         Promise<JsonObject> promise = Promise.promise();
 
         try {

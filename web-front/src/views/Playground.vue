@@ -1,6 +1,58 @@
 <template>
-  <div ref="playgroundContainer" class="playground-container" :class="{ 'dark-theme': isDarkMode, 'fullscreen': isFullscreen }">
-    <el-card class="playground-card">
+  <div ref="playgroundContainer" class="playground-container" :class="{ 'dark-theme': isDarkMode, 'fullscreen': isFullscreen, 'is-mobile': isMobile }">
+    <!-- 加载动画 + 进度条 -->
+    <div v-if="loading" class="playground-loading-overlay">
+      <div class="playground-loading-card">
+        <div class="loading-icon">
+          <el-icon class="is-loading" :size="40"><Loading /></el-icon>
+        </div>
+        <div class="loading-text">正在加载编辑器和编译器...</div>
+        <div class="loading-bar">
+          <div class="loading-bar-inner" :style="{ width: loadProgress + '%' }"></div>
+        </div>
+        <div class="loading-percent">{{ loadProgress }}%</div>
+        <div class="loading-details">{{ loadingMessage }}</div>
+      </div>
+    </div>
+
+    <!-- 密码验证界面 -->
+    <div v-if="!loading && authChecking" class="playground-auth-loading">
+      <el-icon class="is-loading" :size="30"><Loading /></el-icon>
+      <span style="margin-left: 10px;">正在检查访问权限...</span>
+    </div>
+
+    <div v-if="!loading && !authChecking && !authed" class="playground-auth-overlay">
+      <div class="playground-auth-card">
+        <div class="auth-icon">
+          <el-icon :size="50"><Lock /></el-icon>
+        </div>
+        <div class="auth-title">JS解析器演练场</div>
+        <div class="auth-subtitle">请输入访问密码</div>
+        <el-input
+          v-model="inputPassword"
+          type="password"
+          placeholder="请输入访问密码"
+          size="large"
+          @keyup.enter="submitPassword"
+          class="auth-input"
+        >
+          <template #prefix>
+            <el-icon><Lock /></el-icon>
+          </template>
+        </el-input>
+        <div v-if="authError" class="auth-error">
+          <el-icon><WarningFilled /></el-icon>
+          <span>{{ authError }}</span>
+        </div>
+        <el-button type="primary" size="large" @click="submitPassword" :loading="authLoading" class="auth-button">
+          <el-icon v-if="!authLoading"><Unlock /></el-icon>
+          <span>确认登录</span>
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 原有内容 - 只在已认证时显示 -->
+    <el-card v-if="authed && !loading" class="playground-card">
       <template #header>
         <div class="card-header">
           <div class="header-left">
@@ -67,8 +119,8 @@
       <el-tabs v-model="activeTab" @tab-change="handleTabChange">
         <!-- 代码编辑标签页 -->
         <el-tab-pane label="代码编辑" name="editor">
-          <Splitpanes class="default-theme" @resized="handleResize">
-            <!-- 左侧：代码编辑区 -->
+          <Splitpanes :class="['default-theme', isMobile ? 'mobile-vertical' : '']" :horizontal="isMobile" @resized="handleResize">
+            <!-- 编辑器区域 (PC: 左侧, Mobile: 上方) -->
             <Pane :size="collapsedPanels.rightPanel ? 100 : splitSizes[0]" min-size="30" class="editor-pane">
               <div class="editor-section">
                 <MonacoEditor
@@ -82,9 +134,9 @@
               </div>
             </Pane>
 
-            <!-- 右侧：测试参数和结果 -->
+            <!-- 测试参数和结果区域 (PC: 右侧, Mobile: 下方) -->
             <Pane v-if="!collapsedPanels.rightPanel" 
-              :size="splitSizes[1]" min-size="20" class="test-pane" style="margin-left: 10px;">
+              :size="splitSizes[1]" min-size="20" class="test-pane" :style="isMobile ? 'margin-top: 10px;' : 'margin-left: 10px;'">
               <div class="test-section">
                 <!-- 优化的折叠按钮 -->
                 <el-tooltip content="折叠测试面板" placement="left">
@@ -507,6 +559,20 @@ export default {
     const codeLanguage = ref(LANGUAGE.JAVASCRIPT); // 新增：代码语言选择
     const compiledES5Code = ref(''); // 新增：编译后的ES5代码
     const compileStatus = ref({ success: true, errors: [] }); // 新增：编译状态
+    
+    // ===== 加载和认证状态 =====
+    const loading = ref(true);
+    const loadProgress = ref(0);
+    const loadingMessage = ref('初始化...');
+    const authChecking = ref(true);
+    const authed = ref(false);
+    const inputPassword = ref('');
+    const authError = ref('');
+    const authLoading = ref(false);
+    
+    // ===== 移动端检测 =====
+    const isMobile = ref(false);
+    
     const testParams = ref({
       shareUrl: 'https://lanzoui.com/i7Aq12ab3cd',
       pwd: '',
@@ -731,6 +797,136 @@ async function parseById(
       formatOnPaste: true,
       formatOnType: true,
       tabSize: 2
+    };
+    
+    // ===== 移动端检测 =====
+    const updateIsMobile = () => {
+      isMobile.value = window.innerWidth <= 768;
+    };
+    
+    // ===== 进度设置函数 =====
+    const setProgress = (progress, message = '') => {
+      if (progress > loadProgress.value) {
+        loadProgress.value = progress;
+      }
+      if (message) {
+        loadingMessage.value = message;
+      }
+    };
+    
+    // ===== 认证相关函数 =====
+    const checkAuthStatus = async () => {
+      try {
+        const res = await playgroundApi.getStatus();
+        if (res.code === 200 && res.data) {
+          authed.value = res.data.authed || res.data.public;
+          return res.data.authed || res.data.public;
+        }
+        return false;
+      } catch (error) {
+        console.error('检查认证状态失败:', error);
+        ElMessage.error('检查访问权限失败: ' + error.message);
+        return false;
+      } finally {
+        authChecking.value = false;
+      }
+    };
+    
+    const submitPassword = async () => {
+      if (!inputPassword.value.trim()) {
+        authError.value = '请输入密码';
+        return;
+      }
+      
+      authError.value = '';
+      authLoading.value = true;
+      
+      try {
+        const res = await playgroundApi.login(inputPassword.value);
+        if (res.code === 200 || res.success) {
+          authed.value = true;
+          ElMessage.success('登录成功');
+          await initPlayground();
+        } else {
+          authError.value = res.msg || res.message || '密码错误';
+        }
+      } catch (error) {
+        authError.value = error.message || '登录失败，请重试';
+      } finally {
+        authLoading.value = false;
+      }
+    };
+    
+    // ===== Playground 初始化 =====
+    const initPlayground = async () => {
+      loading.value = true;
+      loadProgress.value = 0;
+      
+      try {
+        setProgress(10, '初始化Vue组件...');
+        await nextTick();
+        
+        setProgress(20, '加载配置和本地数据...');
+        // 加载保存的代码
+        const saved = localStorage.getItem('playground_code');
+        if (saved) {
+          jsCode.value = saved;
+        } else {
+          jsCode.value = exampleCode;
+        }
+        
+        // 加载保存的语言选择
+        const savedLanguage = localStorage.getItem('playground_language');
+        if (savedLanguage) {
+          codeLanguage.value = savedLanguage;
+        }
+        
+        setProgress(40, '准备加载TypeScript编译器...');
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        setProgress(50, '初始化Monaco Editor类型定义...');
+        await initMonacoTypes();
+        
+        setProgress(80, '加载完成...');
+        
+        // 加载保存的主题
+        const savedTheme = localStorage.getItem('playground_theme');
+        if (savedTheme) {
+          currentTheme.value = savedTheme;
+          const theme = themes.find(t => t.name === savedTheme);
+          if (theme && document.documentElement && document.body) {
+            await nextTick();
+            if (theme.page === 'dark') {
+              document.documentElement.classList.add('dark');
+              document.body.classList.add('dark-theme');
+              document.body.style.backgroundColor = '#0a0a0a';
+            } else {
+              document.documentElement.classList.remove('dark');
+              document.body.classList.remove('dark-theme');
+              document.body.style.backgroundColor = '#f0f2f5';
+            }
+          }
+        }
+        
+        // 加载保存的折叠状态
+        const savedCollapsed = localStorage.getItem('playground_collapsed_panels');
+        if (savedCollapsed) {
+          try {
+            collapsedPanels.value = JSON.parse(savedCollapsed);
+          } catch (e) {
+            console.warn('加载折叠状态失败', e);
+          }
+        }
+        
+        setProgress(100, '初始化完成！');
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+      } catch (error) {
+        console.error('初始化失败:', error);
+        ElMessage.error('初始化失败: ' + error.message);
+      } finally {
+        loading.value = false;
+      }
     };
 
     // 初始化Monaco Editor类型定义
@@ -1368,53 +1564,23 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
     };
 
     onMounted(async () => {
+      // 初始化移动端检测
+      updateIsMobile();
+      window.addEventListener('resize', updateIsMobile);
+      
+      // 检查认证状态
+      const isAuthed = await checkAuthStatus();
+      
+      // 如果已认证，初始化playground
+      if (isAuthed) {
+        await initPlayground();
+      } else {
+        // 未认证，停止加载动画，显示密码输入
+        loading.value = false;
+      }
+      
       await nextTick();
       checkDarkMode();
-      await initMonacoTypes();
-      
-      // 加载保存的代码
-      const saved = localStorage.getItem('playground_code');
-      if (saved) {
-        jsCode.value = saved;
-      } else {
-        jsCode.value = exampleCode;
-      }
-      
-      // 加载保存的主题
-      await nextTick();
-      const savedTheme = localStorage.getItem('playground_theme');
-      if (savedTheme) {
-        currentTheme.value = savedTheme;
-        const theme = themes.find(t => t.name === savedTheme);
-        if (theme && document.documentElement && document.body) {
-          await nextTick();
-          if (theme.page === 'dark') {
-            document.documentElement.classList.add('dark');
-            document.body.classList.add('dark-theme');
-            document.body.style.backgroundColor = '#0a0a0a';
-          } else {
-            document.documentElement.classList.remove('dark');
-            document.body.classList.remove('dark-theme');
-            document.body.style.backgroundColor = '#f0f2f5';
-          }
-        }
-      }
-      
-      // 加载保存的折叠状态
-      const savedCollapsed = localStorage.getItem('playground_collapsed_panels');
-      if (savedCollapsed) {
-        try {
-          collapsedPanels.value = JSON.parse(savedCollapsed);
-        } catch (e) {
-          console.warn('加载折叠状态失败', e);
-        }
-      }
-
-      // 加载保存的语言选择
-      const savedLanguage = localStorage.getItem('playground_language');
-      if (savedLanguage) {
-        codeLanguage.value = savedLanguage;
-      }
 
       // 监听主题变化
       if (document.documentElement) {
@@ -1430,6 +1596,10 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       // 初始化splitpanes样式
       updateSplitpanesStyle();
     });
+    
+    onUnmounted(() => {
+      window.removeEventListener('resize', updateIsMobile);
+    });
 
     return {
       LANGUAGE,
@@ -1444,6 +1614,20 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       isDarkMode,
       editorTheme,
       editorOptions,
+      // 加载和认证
+      loading,
+      loadProgress,
+      loadingMessage,
+      authChecking,
+      authed,
+      inputPassword,
+      authError,
+      authLoading,
+      checkAuthStatus,
+      submitPassword,
+      // 移动端
+      isMobile,
+      updateIsMobile,
       onCodeChange,
       onLanguageChange,
       compileTypeScriptCode,
@@ -1550,6 +1734,154 @@ body.dark-theme .splitpanes__splitter:hover,
 </style>
 
 <style scoped>
+/* ===== 加载动画和进度条 ===== */
+.playground-loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.98);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(5px);
+}
+
+.dark-theme .playground-loading-overlay {
+  background: rgba(10, 10, 10, 0.98);
+}
+
+.playground-loading-card {
+  width: 320px;
+  padding: 30px 40px;
+  background: #fff;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.dark-theme .playground-loading-card {
+  background: #1f1f1f;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+.loading-icon {
+  margin-bottom: 20px;
+  color: var(--el-color-primary);
+}
+
+.loading-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  margin-bottom: 16px;
+}
+
+.loading-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--el-fill-color-light);
+  border-radius: 3px;
+  margin: 12px 0;
+  overflow: hidden;
+}
+
+.loading-bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+  transition: width 0.3s ease;
+  border-radius: 3px;
+}
+
+.loading-percent {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+  margin-bottom: 8px;
+}
+
+.loading-details {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  min-height: 20px;
+}
+
+/* ===== 认证界面 ===== */
+.playground-auth-loading {
+  position: fixed;
+  inset: 0;
+  background: var(--el-bg-color);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: var(--el-text-color-primary);
+}
+
+.playground-auth-overlay {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.playground-auth-card {
+  width: 400px;
+  padding: 40px;
+  background: #fff;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  border-radius: 16px;
+  text-align: center;
+}
+
+.dark-theme .playground-auth-card {
+  background: #1f1f1f;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.auth-icon {
+  margin-bottom: 24px;
+  color: var(--el-color-primary);
+}
+
+.auth-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 8px;
+}
+
+.auth-subtitle {
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 24px;
+}
+
+.auth-input {
+  margin-bottom: 16px;
+}
+
+.auth-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--el-color-danger);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.auth-button {
+  width: 100%;
+  height: 44px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
 /* ===== 容器布局 ===== */
 .playground-container {
   padding: 10px 20px;
@@ -2513,6 +2845,40 @@ html.dark .playground-container .splitpanes__splitter:hover {
 }
 
 /* ===== 响应式布局 ===== */
+/* 移动端纵向布局 */
+.playground-container.is-mobile .splitpanes.mobile-vertical {
+  flex-direction: column !important;
+}
+
+.playground-container.is-mobile .splitpanes--horizontal > .splitpanes__splitter {
+  height: 6px;
+  width: 100%;
+  cursor: row-resize;
+  margin: 5px 0;
+}
+
+.playground-container.is-mobile .editor-pane,
+.playground-container.is-mobile .test-pane {
+  width: 100% !important;
+}
+
+.playground-container.is-mobile .test-pane {
+  margin-left: 0 !important;
+  margin-top: 10px;
+}
+
+.playground-container.is-mobile .playground-loading-card {
+  width: 90%;
+  max-width: 320px;
+  padding: 24px 30px;
+}
+
+.playground-container.is-mobile .playground-auth-card {
+  width: 90%;
+  max-width: 400px;
+  padding: 30px 24px;
+}
+
 @media screen and (max-width: 1200px) {
   .splitpanes {
     min-height: 400px;
@@ -2554,6 +2920,10 @@ html.dark .playground-container .splitpanes__splitter:hover {
   .test-params-form .method-item-horizontal :deep(.el-radio-group) {
     flex-direction: column;
     gap: 8px;
+  }
+  
+  .splitpanes {
+    flex-direction: column;
   }
 }
 
