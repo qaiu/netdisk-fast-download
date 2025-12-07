@@ -1,6 +1,64 @@
 <template>
   <div ref="playgroundContainer" class="playground-container" :class="{ 'dark-theme': isDarkMode, 'fullscreen': isFullscreen }">
-    <el-card class="playground-card">
+    <!-- 加载状态 -->
+    <el-card v-if="statusLoading" class="playground-card" v-loading="true" element-loading-text="正在加载...">
+      <div style="height: 400px;"></div>
+    </el-card>
+
+    <!-- Playground未开启 -->
+    <el-card v-else-if="!enabled" class="playground-card">
+      <el-empty description="Playground未开启">
+        <template #extra>
+          <p style="color: #909399; font-size: 14px; margin-top: 10px;">
+            Playground功能目前未启用，请联系管理员在配置中开启此功能。
+          </p>
+        </template>
+      </el-empty>
+    </el-card>
+
+    <!-- 需要密码但未认证 -->
+    <el-card v-else-if="needPassword && !authed" class="playground-card">
+      <div class="password-container">
+        <h2>🔒 Playground访问认证</h2>
+        <p style="color: #909399; margin: 20px 0;">
+          此Playground需要密码访问，请输入密码后继续使用。
+        </p>
+        <el-form @submit.prevent="submitPassword" style="max-width: 400px; margin: 0 auto;">
+          <el-form-item>
+            <el-input
+              v-model="password"
+              type="password"
+              placeholder="请输入访问密码"
+              size="large"
+              show-password
+              clearable
+              @keyup.enter="submitPassword"
+            >
+              <template #prefix>
+                <el-icon><Lock /></el-icon>
+              </template>
+            </el-input>
+          </el-form-item>
+          <el-form-item v-if="authError" style="margin-bottom: 10px;">
+            <el-alert type="error" :title="authError" :closable="false" />
+          </el-form-item>
+          <el-form-item>
+            <el-button
+              type="primary"
+              size="large"
+              style="width: 100%;"
+              :loading="authenticating"
+              @click="submitPassword"
+            >
+              {{ authenticating ? '验证中...' : '验证并进入' }}
+            </el-button>
+          </el-form-item>
+        </el-form>
+      </div>
+    </el-card>
+
+    <!-- 已启用且已认证（或公开模式） -->
+    <el-card v-else class="playground-card">
       <template #header>
         <div class="card-header">
           <div class="header-left">
@@ -505,6 +563,15 @@ export default {
     const loadingList = ref(false);
     const publishDialogVisible = ref(false);
     const publishing = ref(false);
+    
+    // Playground状态相关
+    const statusLoading = ref(true);
+    const enabled = ref(false);
+    const needPassword = ref(false);
+    const authed = ref(false);
+    const password = ref('');
+    const authError = ref('');
+    const authenticating = ref(false);
     const publishForm = ref({
       jsCode: ''
     });
@@ -653,6 +720,63 @@ function parseById(shareLinkInfo, http, logger) {
         }
       } catch (error) {
         console.error('初始化Monaco类型定义失败:', error);
+      }
+    };
+
+    // 获取Playground状态
+    const fetchStatus = async () => {
+      try {
+        const result = await playgroundApi.getStatus();
+        enabled.value = result.enabled;
+        needPassword.value = result.needPassword;
+        authed.value = result.authed;
+      } catch (error) {
+        console.error('获取Playground状态失败:', error);
+        ElMessage.error('获取Playground状态失败: ' + error.message);
+        // 默认为未启用
+        enabled.value = false;
+      }
+    };
+
+    // 提交密码
+    const submitPassword = async () => {
+      if (!password.value) {
+        authError.value = '请输入密码';
+        return;
+      }
+      
+      authError.value = '';
+      authenticating.value = true;
+      
+      try {
+        const result = await playgroundApi.login(password.value);
+        if (result.success || result.code === 200) {
+          authed.value = true;
+          ElMessage.success('认证成功');
+          // 初始化Playground
+          await nextTick();
+          await initPlayground();
+        } else {
+          authError.value = result.msg || '密码错误';
+        }
+      } catch (error) {
+        console.error('Playground登录失败:', error);
+        authError.value = error.message || '登录失败';
+      } finally {
+        authenticating.value = false;
+      }
+    };
+
+    // 初始化Playground（加载编辑器等）
+    const initPlayground = async () => {
+      await initMonacoTypes();
+      
+      // 加载保存的代码
+      const saved = localStorage.getItem('playground_code');
+      if (saved) {
+        jsCode.value = saved;
+      } else {
+        jsCode.value = exampleCode;
       }
     };
 
@@ -1156,14 +1280,19 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
     onMounted(async () => {
       await nextTick();
       checkDarkMode();
-      await initMonacoTypes();
       
-      // 加载保存的代码
-      const saved = localStorage.getItem('playground_code');
-      if (saved) {
-        jsCode.value = saved;
-      } else {
-        jsCode.value = exampleCode;
+      // 首先获取Playground状态
+      await fetchStatus();
+      statusLoading.value = false;
+      
+      // 如果未启用，直接返回
+      if (!enabled.value) {
+        return;
+      }
+      
+      // 如果不需要密码或已认证，初始化Playground
+      if (!needPassword.value || authed.value) {
+        await initPlayground();
       }
       
       // 加载保存的主题
@@ -1244,6 +1373,17 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       helpCollapseActive,
       consoleLogs,
       clearConsoleLogs,
+      // Playground状态相关
+      statusLoading,
+      enabled,
+      needPassword,
+      authed,
+      password,
+      authError,
+      authenticating,
+      fetchStatus,
+      submitPassword,
+      initPlayground,
       // 新增功能
       collapsedPanels,
       togglePanel,
@@ -1266,6 +1406,27 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
 </script>
 
 <style>
+/* Password container styles */
+.password-container {
+  text-align: center;
+  padding: 60px 20px;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-container h2 {
+  font-size: 28px;
+  margin-bottom: 10px;
+  color: var(--el-text-color-primary);
+}
+
+.dark-theme .password-container {
+  color: rgba(255, 255, 255, 0.85);
+}
+
 /* API示例对话框样式 */
 .api-example-dialog {
   width: 80%;

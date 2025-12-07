@@ -102,3 +102,11 @@ auths:
   ye:
     username:
     password:
+
+# Playground演练场配置
+playground:
+  # 是否启用Playground，默认关闭
+  enabled: false
+  # 访问密码，可选。仅在enabled=true时生效
+  # 为空时表示公开访问，不需要密码
+  password: ""

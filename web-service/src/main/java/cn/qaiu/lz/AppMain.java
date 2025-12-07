@@ -3,6 +3,7 @@ package cn.qaiu.lz;
 import cn.qaiu.WebClientVertxInit;
 import cn.qaiu.db.pool.JDBCPoolInit;
 import cn.qaiu.lz.common.cache.CacheConfigLoader;
+import cn.qaiu.lz.common.config.PlaygroundConfig;
 import cn.qaiu.lz.common.interceptorImpl.RateLimiter;
 import cn.qaiu.vx.core.Deploy;
 import cn.qaiu.vx.core.util.ConfigConstant;
@@ -87,6 +88,11 @@ public class AppMain {
         if (jsonObject.containsKey(ConfigConstant.AUTHS)) {
             JsonObject auths = jsonObject.getJsonObject(ConfigConstant.AUTHS);
             localMap.put(ConfigConstant.AUTHS, auths);
+        }
+
+        // Playground配置
+        if (jsonObject.containsKey("playground")) {
+            PlaygroundConfig.init(jsonObject.getJsonObject("playground"));
         }
     }
 }

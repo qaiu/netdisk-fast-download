@@ -1,6 +1,7 @@
 package cn.qaiu.lz.web.controller;
 
 import cn.qaiu.entity.ShareLinkInfo;
+import cn.qaiu.lz.common.config.PlaygroundConfig;
 import cn.qaiu.lz.web.model.PlaygroundTestResp;
 import cn.qaiu.lz.web.service.DbService;
 import cn.qaiu.parser.ParserCreate;
@@ -13,6 +14,7 @@ import cn.qaiu.vx.core.enums.RouteMethod;
 import cn.qaiu.vx.core.model.JsonResult;
 import cn.qaiu.vx.core.util.AsyncServiceUtil;
 import cn.qaiu.vx.core.util.ResponseUtil;
+import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServerRequest;
@@ -42,7 +44,153 @@ public class PlaygroundApi {
 
     private static final int MAX_PARSER_COUNT = 100;
     private static final int MAX_CODE_LENGTH = 128 * 1024; // 128KB 代码长度限制
+    private static final String AUTH_SESSION_KEY = "playground_authed_";
     private final DbService dbService = AsyncServiceUtil.getAsyncServiceInstance(DbService.class);
+
+    /**
+     * 获取Playground状态
+     *
+     * @param ctx 路由上下文
+     * @return 状态信息
+     */
+    @RouteMapping(value = "/status", method = RouteMethod.GET)
+    public Future<JsonObject> getStatus(RoutingContext ctx) {
+        Promise<JsonObject> promise = Promise.promise();
+
+        try {
+            boolean enabled = PlaygroundConfig.isEnabled();
+            boolean needPassword = enabled && PlaygroundConfig.hasPassword();
+            boolean authed = false;
+
+            if (enabled) {
+                if (!needPassword) {
+                    // 公开模式，无需认证
+                    authed = true;
+                } else {
+                    // 检查是否已认证
+                    String clientId = getClientId(ctx.request());
+                    authed = isAuthenticated(clientId);
+                }
+            }
+
+            JsonObject result = new JsonObject()
+                    .put("enabled", enabled)
+                    .put("needPassword", needPassword)
+                    .put("authed", authed);
+
+            promise.complete(JsonResult.data(result).toJsonObject());
+        } catch (Exception e) {
+            log.error("获取Playground状态失败", e);
+            promise.complete(JsonResult.error("获取状态失败: " + e.getMessage()).toJsonObject());
+        }
+
+        return promise.future();
+    }
+
+    /**
+     * Playground登录
+     *
+     * @param ctx 路由上下文
+     * @return 登录结果
+     */
+    @RouteMapping(value = "/login", method = RouteMethod.POST)
+    public Future<JsonObject> login(RoutingContext ctx) {
+        Promise<JsonObject> promise = Promise.promise();
+
+        try {
+            if (!PlaygroundConfig.isEnabled()) {
+                promise.complete(JsonResult.error("Playground未开启").toJsonObject());
+                return promise.future();
+            }
+
+            if (!PlaygroundConfig.hasPassword()) {
+                // 无密码模式，直接标记为已认证
+                String clientId = getClientId(ctx.request());
+                setAuthenticated(clientId, true);
+                promise.complete(JsonResult.success("登录成功").toJsonObject());
+                return promise.future();
+            }
+
+            JsonObject body = ctx.body().asJsonObject();
+            String password = body.getString("password");
+
+            if (StringUtils.equals(password, PlaygroundConfig.getPassword())) {
+                String clientId = getClientId(ctx.request());
+                setAuthenticated(clientId, true);
+                promise.complete(JsonResult.success("登录成功").toJsonObject());
+            } else {
+                promise.complete(JsonResult.error("密码错误").toJsonObject());
+            }
+        } catch (Exception e) {
+            log.error("Playground登录失败", e);
+            promise.complete(JsonResult.error("登录失败: " + e.getMessage()).toJsonObject());
+        }
+
+        return promise.future();
+    }
+
+    /**
+     * 检查Playground是否启用和已认证
+     */
+    private void ensurePlaygroundAccess(RoutingContext ctx) {
+        if (!PlaygroundConfig.isEnabled()) {
+            throw new IllegalStateException("Playground未开启");
+        }
+
+        if (PlaygroundConfig.hasPassword()) {
+            String clientId = getClientId(ctx.request());
+            if (!isAuthenticated(clientId)) {
+                throw new IllegalStateException("未授权访问Playground");
+            }
+        }
+    }
+
+    /**
+     * 获取客户端唯一标识
+     */
+    private String getClientId(HttpServerRequest request) {
+        // 优先使用Cookie中的session id，否则使用IP
+        String cookie = request.getHeader("Cookie");
+        if (cookie != null && cookie.contains("playground_session=")) {
+            String sessionId = cookie.substring(cookie.indexOf("playground_session=") + 19);
+            int endIndex = sessionId.indexOf(";");
+            if (endIndex > 0) {
+                sessionId = sessionId.substring(0, endIndex);
+            }
+            return sessionId;
+        }
+        return getClientIp(request);
+    }
+
+    /**
+     * 检查是否已认证
+     */
+    private boolean isAuthenticated(String clientId) {
+        try {
+            Boolean authed = (Boolean) VertxHolder.getVertxInstance()
+                    .sharedData()
+                    .getLocalMap("playground_auth")
+                    .get(AUTH_SESSION_KEY + clientId);
+            return authed != null && authed;
+        } catch (Exception e) {
+            log.error("检查认证状态失败", e);
+            return false;
+        }
+    }
+
+    /**
+     * 设置认证状态
+     */
+    private void setAuthenticated(String clientId, boolean authed) {
+        try {
+            VertxHolder.getVertxInstance()
+                    .sharedData()
+                    .getLocalMap("playground_auth")
+                    .put(AUTH_SESSION_KEY + clientId, authed);
+        } catch (Exception e) {
+            log.error("设置认证状态失败", e);
+        }
+    }
 
     /**
      * 测试执行JavaScript代码
@@ -55,6 +203,9 @@ public class PlaygroundApi {
         Promise<JsonObject> promise = Promise.promise();
 
         try {
+            // 检查访问权限
+            ensurePlaygroundAccess(ctx);
+
             JsonObject body = ctx.body().asJsonObject();
             String jsCode = body.getString("jsCode");
             String shareUrl = body.getString("shareUrl");
@@ -220,11 +371,16 @@ public class PlaygroundApi {
      * 获取types.js文件内容
      *
      * @param response HTTP响应
+     * @param ctx 路由上下文
      */
     @RouteMapping(value = "/types.js", method = RouteMethod.GET)
-    public void getTypesJs(HttpServerResponse response) {
-        try (InputStream inputStream = getClass().getClassLoader()
-                .getResourceAsStream("custom-parsers/types.js")) {
+    public void getTypesJs(HttpServerResponse response, RoutingContext ctx) {
+        try {
+            // 检查访问权限
+            ensurePlaygroundAccess(ctx);
+
+            try (InputStream inputStream = getClass().getClassLoader()
+                    .getResourceAsStream("custom-parsers/types.js")) {
 
             if (inputStream == null) {
                 ResponseUtil.fireJsonResultResponse(response, JsonResult.error("types.js文件不存在"));
@@ -238,6 +394,10 @@ public class PlaygroundApi {
             response.putHeader("Content-Type", "text/javascript; charset=utf-8")
                     .end(content);
 
+            }
+        } catch (IllegalStateException e) {
+            log.error("访问Playground失败", e);
+            ResponseUtil.fireJsonResultResponse(response, JsonResult.error(e.getMessage()));
         } catch (Exception e) {
             log.error("读取types.js失败", e);
             ResponseUtil.fireJsonResultResponse(response, JsonResult.error("读取types.js失败: " + e.getMessage()));
@@ -248,8 +408,15 @@ public class PlaygroundApi {
      * 获取解析器列表
      */
     @RouteMapping(value = "/parsers", method = RouteMethod.GET)
-    public Future<JsonObject> getParserList() {
-        return dbService.getPlaygroundParserList();
+    public Future<JsonObject> getParserList(RoutingContext ctx) {
+        try {
+            // 检查访问权限
+            ensurePlaygroundAccess(ctx);
+            return dbService.getPlaygroundParserList();
+        } catch (Exception e) {
+            log.error("获取解析器列表失败", e);
+            return Future.succeededFuture(JsonResult.error(e.getMessage()).toJsonObject());
+        }
     }
 
     /**
@@ -260,6 +427,9 @@ public class PlaygroundApi {
         Promise<JsonObject> promise = Promise.promise();
 
         try {
+            // 检查访问权限
+            ensurePlaygroundAccess(ctx);
+
             JsonObject body = ctx.body().asJsonObject();
             String jsCode = body.getString("jsCode");
 
@@ -359,6 +529,9 @@ public class PlaygroundApi {
         Promise<JsonObject> promise = Promise.promise();
 
         try {
+            // 检查访问权限
+            ensurePlaygroundAccess(ctx);
+
             JsonObject body = ctx.body().asJsonObject();
             String jsCode = body.getString("jsCode");
 
@@ -410,16 +583,30 @@ public class PlaygroundApi {
      * 删除解析器
      */
     @RouteMapping(value = "/parsers/:id", method = RouteMethod.DELETE)
-    public Future<JsonObject> deleteParser(Long id) {
-        return dbService.deletePlaygroundParser(id);
+    public Future<JsonObject> deleteParser(RoutingContext ctx, Long id) {
+        try {
+            // 检查访问权限
+            ensurePlaygroundAccess(ctx);
+            return dbService.deletePlaygroundParser(id);
+        } catch (Exception e) {
+            log.error("删除解析器失败", e);
+            return Future.succeededFuture(JsonResult.error(e.getMessage()).toJsonObject());
+        }
     }
 
     /**
      * 根据ID获取解析器
      */
     @RouteMapping(value = "/parsers/:id", method = RouteMethod.GET)
-    public Future<JsonObject> getParserById(Long id) {
-        return dbService.getPlaygroundParserById(id);
+    public Future<JsonObject> getParserById(RoutingContext ctx, Long id) {
+        try {
+            // 检查访问权限
+            ensurePlaygroundAccess(ctx);
+            return dbService.getPlaygroundParserById(id);
+        } catch (Exception e) {
+            log.error("获取解析器失败", e);
+            return Future.succeededFuture(JsonResult.error(e.getMessage()).toJsonObject());
+        }
     }
 
     /**
