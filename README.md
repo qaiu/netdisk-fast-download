@@ -40,6 +40,8 @@ https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.
 
 **JavaScript解析器文档：** [JavaScript解析器开发指南](parser/doc/JAVASCRIPT_PARSER_GUIDE.md) | [自定义解析器扩展指南](parser/doc/CUSTOM_PARSER_GUIDE.md) | [快速开始](parser/doc/CUSTOM_PARSER_QUICKSTART.md)
 
+**Playground访问控制：** [配置指南](web-service/doc/PLAYGROUND_ACCESS_CONTROL.md) - 了解如何配置演练场的访问权限
+
 ## 预览地址  
 [预览地址1](https://lz.qaiu.top)  
 [预览地址2](https://lzzz.qaiu.top)  
