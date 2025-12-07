@@ -19,7 +19,7 @@ export function compileToES5(sourceCode, fileName = 'script.ts') {
       module: ts.ModuleKind.None,            // 不使用模块系统
       lib: ['lib.es5.d.ts', 'lib.dom.d.ts'], // 包含ES5和DOM类型定义
       removeComments: false,                  // 保留注释
-      noEmitOnError: false,                   // 即使有错误也生成代码
+      noEmitOnError: true,                    // 有错误时不生成代码
       noImplicitAny: false,                   // 允许隐式any类型
       strictNullChecks: false,                // 不进行严格的null检查
       suppressImplicitAnyIndexErrors: true,   // 抑制隐式any索引错误
