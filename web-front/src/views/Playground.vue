@@ -7,8 +7,8 @@
             <span class="title">JS解析器演练场</span>
             <!-- 语言选择器 -->
             <el-radio-group v-model="codeLanguage" size="small" style="margin-left: 15px;" @change="onLanguageChange">
-              <el-radio-button label="JavaScript">JavaScript</el-radio-button>
-              <el-radio-button label="TypeScript">TypeScript</el-radio-button>
+              <el-radio-button :label="LANGUAGE.JAVASCRIPT">JavaScript</el-radio-button>
+              <el-radio-button :label="LANGUAGE.TYPESCRIPT">TypeScript</el-radio-button>
             </el-radio-group>
           </div>
           <div class="header-actions">
@@ -496,9 +496,15 @@ export default {
     Pane
   },
   setup() {
+    // 语言常量
+    const LANGUAGE = {
+      JAVASCRIPT: 'JavaScript',
+      TYPESCRIPT: 'TypeScript'
+    };
+
     const editorRef = ref(null);
     const jsCode = ref('');
-    const codeLanguage = ref('JavaScript'); // 新增：代码语言选择
+    const codeLanguage = ref(LANGUAGE.JAVASCRIPT); // 新增：代码语言选择
     const compiledES5Code = ref(''); // 新增：编译后的ES5代码
     const compileStatus = ref({ success: true, errors: [] }); // 新增：编译状态
     const testParams = ref({
@@ -758,7 +764,7 @@ async function parseById(
 
     // 加载示例代码
     const loadTemplate = () => {
-      jsCode.value = codeLanguage.value === 'TypeScript' ? exampleTypeScriptCode : exampleCode;
+      jsCode.value = codeLanguage.value === LANGUAGE.TYPESCRIPT ? exampleTypeScriptCode : exampleCode;
       ElMessage.success(`已加载${codeLanguage.value}示例代码`);
     };
 
@@ -897,8 +903,9 @@ async function parseById(
       // 确定要执行的代码（TypeScript需要先编译）
       let codeToExecute = jsCode.value;
       
-      // 如果是TypeScript模式或代码看起来像TypeScript，先编译
-      if (codeLanguage.value === 'TypeScript' || isTypeScriptCode(jsCode.value)) {
+      // 优先使用显式语言选择，如果是JavaScript模式但代码是TS，给出提示
+      if (codeLanguage.value === LANGUAGE.TYPESCRIPT) {
+        // TypeScript模式：始终编译
         try {
           const compileResult = compileToES5(jsCode.value);
           
@@ -943,6 +950,12 @@ async function parseById(
           };
           return;
         }
+      } else if (isTypeScriptCode(jsCode.value)) {
+        // JavaScript模式但检测到TypeScript语法：给出提示
+        ElMessage.warning({
+          message: '检测到TypeScript语法，建议切换到TypeScript模式',
+          duration: 3000
+        });
       }
 
       try {
@@ -1419,6 +1432,7 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
     });
 
     return {
+      LANGUAGE,
       editorRef,
       jsCode,
       codeLanguage,
