@@ -21,7 +21,7 @@
       <span style="margin-left: 10px;">正在检查访问权限...</span>
     </div>
 
-    <div v-if="!loading && !authChecking && !authed" class="playground-auth-overlay">
+    <div v-if="shouldShowAuthUI" class="playground-auth-overlay">
       <div class="playground-auth-card">
         <div class="auth-icon">
           <el-icon :size="50"><Lock /></el-icon>
@@ -786,6 +786,11 @@ async function parseById(
     // 编辑器主题
     const editorTheme = computed(() => {
       return isDarkMode.value ? 'vs-dark' : 'vs';
+    });
+    
+    // 计算属性：是否需要显示密码输入界面
+    const shouldShowAuthUI = computed(() => {
+      return !loading.value && !authChecking.value && !authed.value;
     });
 
     // 编辑器配置
@@ -1613,6 +1618,7 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       testing,
       isDarkMode,
       editorTheme,
+      shouldShowAuthUI,
       editorOptions,
       // 加载和认证
       loading,
