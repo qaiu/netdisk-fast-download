@@ -423,6 +423,132 @@ public class PlaygroundApi {
     }
 
     /**
+     * 保存TypeScript代码及其编译结果
+     */
+    @RouteMapping(value = "/typescript", method = RouteMethod.POST)
+    public Future<JsonObject> saveTypeScriptCode(RoutingContext ctx) {
+        Promise<JsonObject> promise = Promise.promise();
+
+        try {
+            JsonObject body = ctx.body().asJsonObject();
+            Long parserId = body.getLong("parserId");
+            String tsCode = body.getString("tsCode");
+            String es5Code = body.getString("es5Code");
+            String compileErrors = body.getString("compileErrors");
+            String compilerVersion = body.getString("compilerVersion");
+            String compileOptions = body.getString("compileOptions");
+            Boolean isValid = body.getBoolean("isValid", true);
+
+            if (parserId == null) {
+                promise.complete(JsonResult.error("解析器ID不能为空").toJsonObject());
+                return promise.future();
+            }
+
+            if (StringUtils.isBlank(tsCode)) {
+                promise.complete(JsonResult.error("TypeScript代码不能为空").toJsonObject());
+                return promise.future();
+            }
+
+            if (StringUtils.isBlank(es5Code)) {
+                promise.complete(JsonResult.error("编译后的ES5代码不能为空").toJsonObject());
+                return promise.future();
+            }
+
+            // 代码长度验证
+            if (tsCode.length() > MAX_CODE_LENGTH || es5Code.length() > MAX_CODE_LENGTH) {
+                promise.complete(JsonResult.error("代码长度超过限制（最大128KB）").toJsonObject());
+                return promise.future();
+            }
+
+            JsonObject tsCodeInfo = new JsonObject();
+            tsCodeInfo.put("parserId", parserId);
+            tsCodeInfo.put("tsCode", tsCode);
+            tsCodeInfo.put("es5Code", es5Code);
+            tsCodeInfo.put("compileErrors", compileErrors);
+            tsCodeInfo.put("compilerVersion", compilerVersion);
+            tsCodeInfo.put("compileOptions", compileOptions);
+            tsCodeInfo.put("isValid", isValid);
+            tsCodeInfo.put("ip", getClientIp(ctx.request()));
+
+            dbService.saveTypeScriptCode(tsCodeInfo).onSuccess(result -> {
+                promise.complete(result);
+            }).onFailure(e -> {
+                log.error("保存TypeScript代码失败", e);
+                promise.complete(JsonResult.error("保存失败: " + e.getMessage()).toJsonObject());
+            });
+
+        } catch (Exception e) {
+            log.error("解析请求参数失败", e);
+            promise.complete(JsonResult.error("解析请求参数失败: " + e.getMessage()).toJsonObject());
+        }
+
+        return promise.future();
+    }
+
+    /**
+     * 根据parserId获取TypeScript代码
+     */
+    @RouteMapping(value = "/typescript/:parserId", method = RouteMethod.GET)
+    public Future<JsonObject> getTypeScriptCode(Long parserId) {
+        return dbService.getTypeScriptCodeByParserId(parserId);
+    }
+
+    /**
+     * 更新TypeScript代码
+     */
+    @RouteMapping(value = "/typescript/:parserId", method = RouteMethod.PUT)
+    public Future<JsonObject> updateTypeScriptCode(RoutingContext ctx, Long parserId) {
+        Promise<JsonObject> promise = Promise.promise();
+
+        try {
+            JsonObject body = ctx.body().asJsonObject();
+            String tsCode = body.getString("tsCode");
+            String es5Code = body.getString("es5Code");
+            String compileErrors = body.getString("compileErrors");
+            String compilerVersion = body.getString("compilerVersion");
+            String compileOptions = body.getString("compileOptions");
+            Boolean isValid = body.getBoolean("isValid", true);
+
+            if (StringUtils.isBlank(tsCode)) {
+                promise.complete(JsonResult.error("TypeScript代码不能为空").toJsonObject());
+                return promise.future();
+            }
+
+            if (StringUtils.isBlank(es5Code)) {
+                promise.complete(JsonResult.error("编译后的ES5代码不能为空").toJsonObject());
+                return promise.future();
+            }
+
+            // 代码长度验证
+            if (tsCode.length() > MAX_CODE_LENGTH || es5Code.length() > MAX_CODE_LENGTH) {
+                promise.complete(JsonResult.error("代码长度超过限制（最大128KB）").toJsonObject());
+                return promise.future();
+            }
+
+            JsonObject tsCodeInfo = new JsonObject();
+            tsCodeInfo.put("tsCode", tsCode);
+            tsCodeInfo.put("es5Code", es5Code);
+            tsCodeInfo.put("compileErrors", compileErrors);
+            tsCodeInfo.put("compilerVersion", compilerVersion);
+            tsCodeInfo.put("compileOptions", compileOptions);
+            tsCodeInfo.put("isValid", isValid);
+
+            dbService.updateTypeScriptCode(parserId, tsCodeInfo).onSuccess(result -> {
+                promise.complete(result);
+            }).onFailure(e -> {
+                log.error("更新TypeScript代码失败", e);
+                promise.complete(JsonResult.error("更新失败: " + e.getMessage()).toJsonObject());
+            });
+
+        } catch (Exception e) {
+            log.error("解析请求参数失败", e);
+            promise.complete(JsonResult.error("解析请求参数失败: " + e.getMessage()).toJsonObject());
+        }
+
+        return promise.future();
+    }
+
+    /**
      * 获取客户端IP
      */
     private String getClientIp(HttpServerRequest request) {
