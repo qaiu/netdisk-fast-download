@@ -4,6 +4,7 @@ import cn.qaiu.WebClientVertxInit;
 import cn.qaiu.db.pool.JDBCPoolInit;
 import cn.qaiu.lz.common.cache.CacheConfigLoader;
 import cn.qaiu.lz.common.interceptorImpl.RateLimiter;
+import cn.qaiu.lz.web.config.PlaygroundConfig;
 import cn.qaiu.vx.core.Deploy;
 import cn.qaiu.vx.core.util.ConfigConstant;
 import cn.qaiu.vx.core.util.VertxHolder;
@@ -88,5 +89,8 @@ public class AppMain {
             JsonObject auths = jsonObject.getJsonObject(ConfigConstant.AUTHS);
             localMap.put(ConfigConstant.AUTHS, auths);
         }
+        
+        // 演练场配置
+        PlaygroundConfig.loadFromJson(jsonObject);
     }
 }
