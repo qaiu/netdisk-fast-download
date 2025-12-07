@@ -627,6 +627,90 @@ function parseById(shareLinkInfo, http, logger) {
     return "https://example.com/download?id=" + fileId;
 }`;
 
+    // TypeScript示例代码模板
+    const exampleTypeScriptCode = `// ==UserScript==
+// @name         TypeScript示例解析器
+// @type         ts_example_parser
+// @displayName  TypeScript示例网盘
+// @description  使用TypeScript实现的示例解析器
+// @match        https?://example\.com/s/(?<KEY>\\w+)
+// @author       yourname
+// @version      1.0.0
+// ==/UserScript==
+
+/**
+ * 解析单个文件下载链接
+ * @param shareLinkInfo - 分享链接信息
+ * @param http - HTTP客户端
+ * @param logger - 日志对象
+ * @returns 下载链接
+ */
+async function parse(
+    shareLinkInfo: any,
+    http: any,
+    logger: any
+): Promise<string> {
+    const url: string = shareLinkInfo.getShareUrl();
+    logger.info(\`开始解析: \${url}\`);
+    
+    // 使用fetch API (已在后端实现polyfill)
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(\`请求失败: \${response.status}\`);
+        }
+        
+        const html: string = await response.text();
+        
+        // 这里添加你的解析逻辑
+        // 例如：使用正则表达式提取下载链接
+        const match = html.match(/download-url="([^"]+)"/);
+        if (match) {
+            return match[1];
+        }
+        
+        return "https://example.com/download/file.zip";
+    } catch (error: any) {
+        logger.error(\`解析失败: \${error.message}\`);
+        throw error;
+    }
+}
+
+/**
+ * 解析文件列表（可选）
+ */
+async function parseFileList(
+    shareLinkInfo: any,
+    http: any,
+    logger: any
+): Promise<any[]> {
+    const dirId: string = shareLinkInfo.getOtherParam("dirId") || "0";
+    logger.info(\`解析文件列表，目录ID: \${dirId}\`);
+    
+    const fileList: any[] = [];
+    
+    // 这里添加你的文件列表解析逻辑
+    
+    return fileList;
+}
+
+/**
+ * 根据文件ID获取下载链接（可选）
+ */
+async function parseById(
+    shareLinkInfo: any,
+    http: any,
+    logger: any
+): Promise<string> {
+    const paramJson = shareLinkInfo.getOtherParam("paramJson");
+    const fileId: string = paramJson.fileId;
+    logger.info(\`根据ID解析: \${fileId}\`);
+    
+    // 这里添加你的按ID解析逻辑
+    
+    return \`https://example.com/download?id=\${fileId}\`;
+}`;
+
     // 编辑器主题
     const editorTheme = computed(() => {
       return isDarkMode.value ? 'vs-dark' : 'vs';
@@ -674,7 +758,8 @@ function parseById(shareLinkInfo, http, logger) {
 
     // 加载示例代码
     const loadTemplate = () => {
-      jsCode.value = exampleCode;
+      jsCode.value = codeLanguage.value === 'TypeScript' ? exampleTypeScriptCode : exampleCode;
+      ElMessage.success(`已加载${codeLanguage.value}示例代码`);
     };
 
     // 格式化代码
