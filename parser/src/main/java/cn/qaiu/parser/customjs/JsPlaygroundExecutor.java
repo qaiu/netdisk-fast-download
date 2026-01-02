@@ -36,6 +36,14 @@ public class JsPlaygroundExecutor {
         return thread;
     });
     
+    // 超时调度线程池，用于处理超时中断
+    private static final ScheduledExecutorService TIMEOUT_SCHEDULER = Executors.newScheduledThreadPool(2, r -> {
+        Thread thread = new Thread(r);
+        thread.setName("playground-timeout-scheduler-" + System.currentTimeMillis());
+        thread.setDaemon(true);
+        return thread;
+    });
+    
     private final ShareLinkInfo shareLinkInfo;
     private final String jsCode;
     private final ScriptEngine engine;
@@ -161,23 +169,34 @@ public class JsPlaygroundExecutor {
             }
         }, INDEPENDENT_EXECUTOR);
         
-        // 添加超时处理
-        executionFuture.orTimeout(EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .whenComplete((result, error) -> {
-                if (error != null) {
-                    if (error instanceof TimeoutException) {
-                        String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），可能存在无限循环";
-                        playgroundLogger.errorJava(timeoutMsg);
-                        log.error(timeoutMsg);
-                        promise.fail(new RuntimeException(timeoutMsg));
-                    } else {
-                        Throwable cause = error.getCause();
-                        promise.fail(cause != null ? cause : error);
-                    }
+        // 创建超时任务，强制取消执行
+        ScheduledFuture<?> timeoutTask = TIMEOUT_SCHEDULER.schedule(() -> {
+            if (!executionFuture.isDone()) {
+                executionFuture.cancel(true);  // 强制中断执行线程
+                playgroundLogger.errorJava("执行超时，已强制中断");
+                log.warn("JavaScript执行超时，已强制取消");
+            }
+        }, EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        
+        // 处理执行结果
+        executionFuture.whenComplete((result, error) -> {
+            // 取消超时任务
+            timeoutTask.cancel(false);
+            
+            if (error != null) {
+                if (error instanceof CancellationException) {
+                    String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已强制中断";
+                    playgroundLogger.errorJava(timeoutMsg);
+                    log.error(timeoutMsg);
+                    promise.fail(new RuntimeException(timeoutMsg));
                 } else {
-                    promise.complete(result);
+                    Throwable cause = error.getCause();
+                    promise.fail(cause != null ? cause : error);
                 }
-            });
+            } else {
+                promise.complete(result);
+            }
+        });
         
         return promise.future();
     }
@@ -225,23 +244,34 @@ public class JsPlaygroundExecutor {
             }
         }, INDEPENDENT_EXECUTOR);
         
-        // 添加超时处理
-        executionFuture.orTimeout(EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .whenComplete((result, error) -> {
-                if (error != null) {
-                    if (error instanceof TimeoutException) {
-                        String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），可能存在无限循环";
-                        playgroundLogger.errorJava(timeoutMsg);
-                        log.error(timeoutMsg);
-                        promise.fail(new RuntimeException(timeoutMsg));
-                    } else {
-                        Throwable cause = error.getCause();
-                        promise.fail(cause != null ? cause : error);
-                    }
+        // 创建超时任务，强制取消执行
+        ScheduledFuture<?> timeoutTask = TIMEOUT_SCHEDULER.schedule(() -> {
+            if (!executionFuture.isDone()) {
+                executionFuture.cancel(true);  // 强制中断执行线程
+                playgroundLogger.errorJava("执行超时，已强制中断");
+                log.warn("JavaScript执行超时，已强制取消");
+            }
+        }, EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        
+        // 处理执行结果
+        executionFuture.whenComplete((result, error) -> {
+            // 取消超时任务
+            timeoutTask.cancel(false);
+            
+            if (error != null) {
+                if (error instanceof CancellationException) {
+                    String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已强制中断";
+                    playgroundLogger.errorJava(timeoutMsg);
+                    log.error(timeoutMsg);
+                    promise.fail(new RuntimeException(timeoutMsg));
                 } else {
-                    promise.complete(result);
+                    Throwable cause = error.getCause();
+                    promise.fail(cause != null ? cause : error);
                 }
-            });
+            } else {
+                promise.complete(result);
+            }
+        });
         
         return promise.future();
     }
@@ -288,23 +318,34 @@ public class JsPlaygroundExecutor {
             }
         }, INDEPENDENT_EXECUTOR);
         
-        // 添加超时处理
-        executionFuture.orTimeout(EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .whenComplete((result, error) -> {
-                if (error != null) {
-                    if (error instanceof TimeoutException) {
-                        String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），可能存在无限循环";
-                        playgroundLogger.errorJava(timeoutMsg);
-                        log.error(timeoutMsg);
-                        promise.fail(new RuntimeException(timeoutMsg));
-                    } else {
-                        Throwable cause = error.getCause();
-                        promise.fail(cause != null ? cause : error);
-                    }
+        // 创建超时任务，强制取消执行
+        ScheduledFuture<?> timeoutTask = TIMEOUT_SCHEDULER.schedule(() -> {
+            if (!executionFuture.isDone()) {
+                executionFuture.cancel(true);  // 强制中断执行线程
+                playgroundLogger.errorJava("执行超时，已强制中断");
+                log.warn("JavaScript执行超时，已强制取消");
+            }
+        }, EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        
+        // 处理执行结果
+        executionFuture.whenComplete((result, error) -> {
+            // 取消超时任务
+            timeoutTask.cancel(false);
+            
+            if (error != null) {
+                if (error instanceof CancellationException) {
+                    String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已强制中断";
+                    playgroundLogger.errorJava(timeoutMsg);
+                    log.error(timeoutMsg);
+                    promise.fail(new RuntimeException(timeoutMsg));
                 } else {
-                    promise.complete(result);
+                    Throwable cause = error.getCause();
+                    promise.fail(cause != null ? cause : error);
                 }
-            });
+            } else {
+                promise.complete(result);
+            }
+        });
         
         return promise.future();
     }
