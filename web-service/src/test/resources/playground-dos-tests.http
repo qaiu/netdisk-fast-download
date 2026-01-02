@@ -1,0 +1,91 @@
+### 安全漏洞修复测试 - DoS攻击防护
+###
+### 测试目标：
+### 1. 验证代码长度限制（128KB）
+### 2. 验证JavaScript执行超时（30秒）
+###
+
+### 测试1: 正常代码执行（应该成功）
+POST http://127.0.0.1:6400/v2/playground/test
+Content-Type: application/json
+
+{
+  "jsCode": "// ==UserScript==\n// @name 正常测试\n// @type normal_test\n// @displayName 正常\n// @match https://example\\.com/(?<KEY>\\w+)\n// @author test\n// @version 1.0.0\n// ==/UserScript==\n\nfunction parse(shareLinkInfo, http, logger) {\n    logger.info('正常执行');\n    return 'https://example.com/download/file.zip';\n}",
+  "shareUrl": "https://example.com/test123",
+  "pwd": "",
+  "method": "parse"
+}
+
+###
+
+### 测试2: 代码长度超过限制（应该失败并提示）
+### 这个测试会创建一个超过128KB的代码
+POST http://127.0.0.1:6400/v2/playground/test
+Content-Type: application/json
+
+{
+  "jsCode": "// ==UserScript==\n// @name 长度测试\n// @type length_test\n// @displayName 长度\n// @match https://example\\.com/(?<KEY>\\w+)\n// @author test\n// @version 1.0.0\n// ==/UserScript==\n\nfunction parse(shareLinkInfo, http, logger) {\n    var data = 'x'.repeat(150000);\n    return data;\n}",
+  "shareUrl": "https://example.com/test123",
+  "pwd": "",
+  "method": "parse"
+}
+
+###
+
+### 测试3: 无限循环（应该在30秒后超时）
+POST http://127.0.0.1:6400/v2/playground/test
+Content-Type: application/json
+
+{
+  "jsCode": "// ==UserScript==\n// @name 无限循环测试\n// @type infinite_loop_test\n// @displayName 无限循环\n// @match https://example\\.com/(?<KEY>\\w+)\n// @author test\n// @version 1.0.0\n// ==/UserScript==\n\nfunction parse(shareLinkInfo, http, logger) {\n    logger.info('开始无限循环...');\n    while(true) {\n        var x = 1 + 1;\n    }\n    return 'never reached';\n}",
+  "shareUrl": "https://example.com/test123",
+  "pwd": "",
+  "method": "parse"
+}
+
+###
+
+### 测试4: 大数组内存炸弹（应该在30秒后超时或内存限制）
+POST http://127.0.0.1:6400/v2/playground/test
+Content-Type: application/json
+
+{
+  "jsCode": "// ==UserScript==\n// @name 内存炸弹测试\n// @type memory_bomb_test\n// @displayName 内存炸弹\n// @match https://example\\.com/(?<KEY>\\w+)\n// @author test\n// @version 1.0.0\n// ==/UserScript==\n\nfunction parse(shareLinkInfo, http, logger) {\n    logger.info('创建大数组...');\n    var arr = [];\n    for(var i = 0; i < 10000000; i++) {\n        arr.push('x'.repeat(1000));\n    }\n    logger.info('数组创建完成');\n    return 'DONE';\n}",
+  "shareUrl": "https://example.com/test123",
+  "pwd": "",
+  "method": "parse"
+}
+
+###
+
+### 测试5: 递归调用栈溢出
+POST http://127.0.0.1:6400/v2/playground/test
+Content-Type: application/json
+
+{
+  "jsCode": "// ==UserScript==\n// @name 栈溢出测试\n// @type stack_overflow_test\n// @displayName 栈溢出\n// @match https://example\\.com/(?<KEY>\\w+)\n// @author test\n// @version 1.0.0\n// ==/UserScript==\n\nfunction boom() {\n    return boom();\n}\n\nfunction parse(shareLinkInfo, http, logger) {\n    logger.info('开始递归炸弹...');\n    boom();\n    return 'never reached';\n}",
+  "shareUrl": "https://example.com/test123",
+  "pwd": "",
+  "method": "parse"
+}
+
+###
+
+### 测试6: 保存解析器 - 验证代码长度限制
+POST http://127.0.0.1:6400/v2/playground/parsers
+Content-Type: application/json
+
+{
+  "jsCode": "// ==UserScript==\n// @name 正常解析器\n// @type normal_parser\n// @displayName 正常解析器\n// @match https://example\\.com/(?<KEY>\\w+)\n// @author test\n// @version 1.0.0\n// ==/UserScript==\n\nfunction parse(shareLinkInfo, http, logger) {\n    return 'https://example.com/download/file.zip';\n}\n\nfunction parseFileList(shareLinkInfo, http, logger) {\n    return [];\n}\n\nfunction parseById(shareLinkInfo, http, logger) {\n    return 'https://example.com/download/file.zip';\n}"
+}
+
+###
+
+### 测试结果期望：
+### 1. 测试1 - 应该成功返回结果
+### 2. 测试2 - 应该返回错误："代码长度超过限制"
+### 3. 测试3 - 应该在30秒后返回超时错误："JavaScript执行超时"
+### 4. 测试4 - 应该在30秒后返回超时错误或内存错误
+### 5. 测试5 - 应该返回堆栈溢出错误
+### 6. 测试6 - 应该成功保存（如果代码不超过128KB）
+
