@@ -50,19 +50,4 @@ public interface DbService extends BaseAsyncService {
      */
     Future<JsonObject> getPlaygroundParserById(Long id);
 
-    /**
-     * 保存TypeScript代码及其编译结果
-     */
-    Future<JsonObject> saveTypeScriptCode(JsonObject tsCodeInfo);
-
-    /**
-     * 根据parserId获取TypeScript代码
-     */
-    Future<JsonObject> getTypeScriptCodeByParserId(Long parserId);
-
-    /**
-     * 更新TypeScript代码
-     */
-    Future<JsonObject> updateTypeScriptCode(Long parserId, JsonObject tsCodeInfo);
-
 }
