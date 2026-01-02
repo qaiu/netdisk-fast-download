@@ -1,9 +1,12 @@
 package cn.qaiu.lz.web.controller;
 
 import cn.qaiu.entity.ShareLinkInfo;
+import cn.qaiu.lz.web.config.PlaygroundConfig;
 import cn.qaiu.lz.web.model.PlaygroundTestResp;
 import cn.qaiu.lz.web.service.DbService;
 import cn.qaiu.parser.ParserCreate;
+import cn.qaiu.parser.custom.CustomParserConfig;
+import cn.qaiu.parser.custom.CustomParserRegistry;
 import cn.qaiu.parser.customjs.JsPlaygroundExecutor;
 import cn.qaiu.parser.customjs.JsPlaygroundLogger;
 import cn.qaiu.parser.customjs.JsScriptMetadataParser;
@@ -19,6 +22,7 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.Session;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -28,6 +32,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -42,7 +48,92 @@ public class PlaygroundApi {
 
     private static final int MAX_PARSER_COUNT = 100;
     private static final int MAX_CODE_LENGTH = 128 * 1024; // 128KB 代码长度限制
+    private static final String SESSION_AUTH_KEY = "playgroundAuthed";
     private final DbService dbService = AsyncServiceUtil.getAsyncServiceInstance(DbService.class);
+    
+    /**
+     * 检查Playground访问权限
+     */
+    private boolean checkAuth(RoutingContext ctx) {
+        PlaygroundConfig config = PlaygroundConfig.getInstance();
+        
+        // 如果是公开模式，直接允许访问
+        if (config.isPublic()) {
+            return true;
+        }
+        
+        // 否则检查Session中的认证状态
+        Session session = ctx.session();
+        if (session == null) {
+            return false;
+        }
+        
+        Boolean authed = session.get(SESSION_AUTH_KEY);
+        return authed != null && authed;
+    }
+    
+    /**
+     * 获取Playground状态（是否需要认证）
+     */
+    @RouteMapping(value = "/status", method = RouteMethod.GET)
+    public Future<JsonObject> getStatus(RoutingContext ctx) {
+        PlaygroundConfig config = PlaygroundConfig.getInstance();
+        boolean authed = checkAuth(ctx);
+        
+        JsonObject result = new JsonObject()
+                .put("public", config.isPublic())
+                .put("authed", authed);
+        
+        return Future.succeededFuture(JsonResult.data(result).toJsonObject());
+    }
+    
+    /**
+     * Playground登录
+     */
+    @RouteMapping(value = "/login", method = RouteMethod.POST)
+    public Future<JsonObject> login(RoutingContext ctx) {
+        Promise<JsonObject> promise = Promise.promise();
+        
+        try {
+            PlaygroundConfig config = PlaygroundConfig.getInstance();
+            
+            // 如果是公开模式，直接成功
+            if (config.isPublic()) {
+                Session session = ctx.session();
+                if (session != null) {
+                    session.put(SESSION_AUTH_KEY, true);
+                }
+                promise.complete(JsonResult.success("公开模式，无需密码").toJsonObject());
+                return promise.future();
+            }
+            
+            // 获取密码
+            JsonObject body = ctx.body().asJsonObject();
+            String password = body.getString("password");
+            
+            if (StringUtils.isBlank(password)) {
+                promise.complete(JsonResult.error("密码不能为空").toJsonObject());
+                return promise.future();
+            }
+            
+            // 验证密码
+            if (config.getPassword().equals(password)) {
+                Session session = ctx.session();
+                if (session != null) {
+                    session.put(SESSION_AUTH_KEY, true);
+                }
+                promise.complete(JsonResult.success("登录成功").toJsonObject());
+            } else {
+                promise.complete(JsonResult.error("密码错误").toJsonObject());
+            }
+            
+        } catch (Exception e) {
+            log.error("登录失败", e);
+            promise.complete(JsonResult.error("登录失败: " + e.getMessage()).toJsonObject());
+        }
+        
+        return promise.future();
+    }
 
     /**
      * 测试执行JavaScript代码
@@ -52,6 +143,11 @@ public class PlaygroundApi {
      */
     @RouteMapping(value = "/test", method = RouteMethod.POST)
     public Future<JsonObject> test(RoutingContext ctx) {
+        // 权限检查
+        if (!checkAuth(ctx)) {
+            return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
+        }
+        
         Promise<JsonObject> promise = Promise.promise();
 
         try {
@@ -86,6 +182,32 @@ public class PlaygroundApi {
                         .build()));
                 return promise.future();
             }
+            
+            // ===== 新增：验证URL匹配 =====
+            try {
+                var config = JsScriptMetadataParser.parseScript(jsCode);
+                Pattern matchPattern = config.getMatchPattern();
+                
+                if (matchPattern != null) {
+                    Matcher matcher = matchPattern.matcher(shareUrl);
+                    if (!matcher.matches()) {
+                        promise.complete(JsonObject.mapFrom(PlaygroundTestResp.builder()
+                                .success(false)
+                                .error("分享链接与脚本的@match规则不匹配\n" +
+                                       "规则: " + matchPattern.pattern() + "\n" +
+                                       "链接: " + shareUrl)
+                                .build()));
+                        return promise.future();
+                    }
+                }
+            } catch (IllegalArgumentException e) {
+                promise.complete(JsonObject.mapFrom(PlaygroundTestResp.builder()
+                        .success(false)
+                        .error("解析脚本元数据失败: " + e.getMessage())
+                        .build()));
+                return promise.future();
+            }
+            // ===== 验证结束 =====
 
             // 验证方法类型
             if (!"parse".equals(method) && !"parseFileList".equals(method) && !"parseById".equals(method)) {
@@ -219,10 +341,17 @@ public class PlaygroundApi {
     /**
      * 获取types.js文件内容
      *
+     * @param ctx 路由上下文
      * @param response HTTP响应
      */
     @RouteMapping(value = "/types.js", method = RouteMethod.GET)
-    public void getTypesJs(HttpServerResponse response) {
+    public void getTypesJs(RoutingContext ctx, HttpServerResponse response) {
+        // 权限检查
+        if (!checkAuth(ctx)) {
+            ResponseUtil.fireJsonResultResponse(response, JsonResult.error("未授权访问"));
+            return;
+        }
+        
         try (InputStream inputStream = getClass().getClassLoader()
                 .getResourceAsStream("custom-parsers/types.js")) {
 
@@ -248,7 +377,11 @@ public class PlaygroundApi {
      * 获取解析器列表
      */
     @RouteMapping(value = "/parsers", method = RouteMethod.GET)
-    public Future<JsonObject> getParserList() {
+    public Future<JsonObject> getParserList(RoutingContext ctx) {
+        // 权限检查
+        if (!checkAuth(ctx)) {
+            return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
+        }
         return dbService.getPlaygroundParserList();
     }
 
@@ -257,6 +390,11 @@ public class PlaygroundApi {
      */
     @RouteMapping(value = "/parsers", method = RouteMethod.POST)
     public Future<JsonObject> saveParser(RoutingContext ctx) {
+        // 权限检查
+        if (!checkAuth(ctx)) {
+            return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
+        }
+        
         Promise<JsonObject> promise = Promise.promise();
 
         try {
@@ -325,7 +463,18 @@ public class PlaygroundApi {
                         parser.put("enabled", true);
 
                         dbService.savePlaygroundParser(parser).onSuccess(result -> {
-                            promise.complete(result);
+                            // 保存成功后，立即注册到解析器系统
+                            try {
+                                CustomParserRegistry.register(config);
+                                log.info("已注册演练场解析器: {} ({})", displayName, type);
+                                promise.complete(JsonResult.success("保存并注册成功").toJsonObject());
+                            } catch (Exception e) {
+                                log.error("注册解析器失败", e);
+                                // 虽然注册失败，但保存成功了，返回警告
+                                promise.complete(JsonResult.success(
+                                    "保存成功，但注册失败（重启服务后会自动加载）: " + e.getMessage()
+                                ).toJsonObject());
+                            }
                         }).onFailure(e -> {
                             log.error("保存解析器失败", e);
                             promise.complete(JsonResult.error("保存失败: " + e.getMessage()).toJsonObject());
@@ -356,6 +505,11 @@ public class PlaygroundApi {
      */
     @RouteMapping(value = "/parsers/:id", method = RouteMethod.PUT)
     public Future<JsonObject> updateParser(RoutingContext ctx, Long id) {
+        // 权限检查
+        if (!checkAuth(ctx)) {
+            return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
+        }
+        
         Promise<JsonObject> promise = Promise.promise();
 
         try {
@@ -370,12 +524,14 @@ public class PlaygroundApi {
             // 解析元数据
             try {
                 var config = JsScriptMetadataParser.parseScript(jsCode);
+                String type = config.getType();
                 String displayName = config.getDisplayName();
                 String name = config.getMetadata().get("name");
                 String description = config.getMetadata().get("description");
                 String author = config.getMetadata().get("author");
                 String version = config.getMetadata().get("version");
                 String matchPattern = config.getMatchPattern() != null ? config.getMatchPattern().pattern() : null;
+                boolean enabled = body.getBoolean("enabled", true);
 
                 JsonObject parser = new JsonObject();
                 parser.put("name", name);
@@ -385,10 +541,29 @@ public class PlaygroundApi {
                 parser.put("version", version);
                 parser.put("matchPattern", matchPattern);
                 parser.put("jsCode", jsCode);
-                parser.put("enabled", body.getBoolean("enabled", true));
+                parser.put("enabled", enabled);
 
                 dbService.updatePlaygroundParser(id, parser).onSuccess(result -> {
-                    promise.complete(result);
+                    // 更新成功后，重新注册解析器
+                    try {
+                        if (enabled) {
+                            // 先注销旧的（如果存在）
+                            CustomParserRegistry.unregister(type);
+                            // 重新注册新的
+                            CustomParserRegistry.register(config);
+                            log.info("已重新注册演练场解析器: {} ({})", displayName, type);
+                        } else {
+                            // 禁用时注销
+                            CustomParserRegistry.unregister(type);
+                            log.info("已注销演练场解析器: {}", type);
+                        }
+                        promise.complete(JsonResult.success("更新并重新注册成功").toJsonObject());
+                    } catch (Exception e) {
+                        log.error("重新注册解析器失败", e);
+                        promise.complete(JsonResult.success(
+                            "更新成功，但注册失败（重启服务后会自动加载）: " + e.getMessage()
+                        ).toJsonObject());
+                    }
                 }).onFailure(e -> {
                     log.error("更新解析器失败", e);
                     promise.complete(JsonResult.error("更新失败: " + e.getMessage()).toJsonObject());
@@ -410,16 +585,195 @@ public class PlaygroundApi {
      * 删除解析器
      */
     @RouteMapping(value = "/parsers/:id", method = RouteMethod.DELETE)
-    public Future<JsonObject> deleteParser(Long id) {
-        return dbService.deletePlaygroundParser(id);
+    public Future<JsonObject> deleteParser(RoutingContext ctx, Long id) {
+        // 权限检查
+        if (!checkAuth(ctx)) {
+            return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
+        }
+        
+        Promise<JsonObject> promise = Promise.promise();
+        
+        // 先获取解析器信息，用于注销
+        dbService.getPlaygroundParserById(id).onSuccess(getResult -> {
+            if (getResult.getBoolean("success", false)) {
+                JsonObject parser = getResult.getJsonObject("data");
+                String type = parser.getString("type");
+                
+                // 删除数据库记录
+                dbService.deletePlaygroundParser(id).onSuccess(deleteResult -> {
+                    // 从注册表中注销
+                    try {
+                        CustomParserRegistry.unregister(type);
+                        log.info("已注销演练场解析器: {}", type);
+                    } catch (Exception e) {
+                        log.warn("注销解析器失败（可能未注册）: {}", type, e);
+                    }
+                    promise.complete(deleteResult);
+                }).onFailure(e -> {
+                    log.error("删除解析器失败", e);
+                    promise.complete(JsonResult.error("删除失败: " + e.getMessage()).toJsonObject());
+                });
+            } else {
+                promise.complete(getResult);
+            }
+        }).onFailure(e -> {
+            log.error("获取解析器信息失败", e);
+            promise.complete(JsonResult.error("获取解析器信息失败: " + e.getMessage()).toJsonObject());
+        });
+        
+        return promise.future();
     }
 
     /**
      * 根据ID获取解析器
      */
     @RouteMapping(value = "/parsers/:id", method = RouteMethod.GET)
-    public Future<JsonObject> getParserById(Long id) {
+    public Future<JsonObject> getParserById(RoutingContext ctx, Long id) {
+        // 权限检查
+        if (!checkAuth(ctx)) {
+            return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
+        }
         return dbService.getPlaygroundParserById(id);
+    }
+
+    /**
+     * 保存TypeScript代码及其编译结果
+     */
+    @RouteMapping(value = "/typescript", method = RouteMethod.POST)
+    public Future<JsonObject> saveTypeScriptCode(RoutingContext ctx) {
+        // 权限检查
+        if (!checkAuth(ctx)) {
+            return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
+        }
+        
+        Promise<JsonObject> promise = Promise.promise();
+
+        try {
+            JsonObject body = ctx.body().asJsonObject();
+            Long parserId = body.getLong("parserId");
+            String tsCode = body.getString("tsCode");
+            String es5Code = body.getString("es5Code");
+            String compileErrors = body.getString("compileErrors");
+            String compilerVersion = body.getString("compilerVersion");
+            String compileOptions = body.getString("compileOptions");
+            Boolean isValid = body.getBoolean("isValid", true);
+
+            if (parserId == null) {
+                promise.complete(JsonResult.error("解析器ID不能为空").toJsonObject());
+                return promise.future();
+            }
+
+            if (StringUtils.isBlank(tsCode)) {
+                promise.complete(JsonResult.error("TypeScript代码不能为空").toJsonObject());
+                return promise.future();
+            }
+
+            if (StringUtils.isBlank(es5Code)) {
+                promise.complete(JsonResult.error("编译后的ES5代码不能为空").toJsonObject());
+                return promise.future();
+            }
+
+            // 代码长度验证
+            if (tsCode.length() > MAX_CODE_LENGTH || es5Code.length() > MAX_CODE_LENGTH) {
+                promise.complete(JsonResult.error("代码长度超过限制（最大128KB）").toJsonObject());
+                return promise.future();
+            }
+
+            JsonObject tsCodeInfo = new JsonObject();
+            tsCodeInfo.put("parserId", parserId);
+            tsCodeInfo.put("tsCode", tsCode);
+            tsCodeInfo.put("es5Code", es5Code);
+            tsCodeInfo.put("compileErrors", compileErrors);
+            tsCodeInfo.put("compilerVersion", compilerVersion);
+            tsCodeInfo.put("compileOptions", compileOptions);
+            tsCodeInfo.put("isValid", isValid);
+            tsCodeInfo.put("ip", getClientIp(ctx.request()));
+
+            dbService.saveTypeScriptCode(tsCodeInfo).onSuccess(result -> {
+                promise.complete(result);
+            }).onFailure(e -> {
+                log.error("保存TypeScript代码失败", e);
+                promise.complete(JsonResult.error("保存失败: " + e.getMessage()).toJsonObject());
+            });
+
+        } catch (Exception e) {
+            log.error("解析请求参数失败", e);
+            promise.complete(JsonResult.error("解析请求参数失败: " + e.getMessage()).toJsonObject());
+        }
+
+        return promise.future();
+    }
+
+    /**
+     * 根据parserId获取TypeScript代码
+     */
+    @RouteMapping(value = "/typescript/:parserId", method = RouteMethod.GET)
+    public Future<JsonObject> getTypeScriptCode(RoutingContext ctx, Long parserId) {
+        // 权限检查
+        if (!checkAuth(ctx)) {
+            return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
+        }
+        return dbService.getTypeScriptCodeByParserId(parserId);
+    }
+
+    /**
+     * 更新TypeScript代码
+     */
+    @RouteMapping(value = "/typescript/:parserId", method = RouteMethod.PUT)
+    public Future<JsonObject> updateTypeScriptCode(RoutingContext ctx, Long parserId) {
+        // 权限检查
+        if (!checkAuth(ctx)) {
+            return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
+        }
+        
+        Promise<JsonObject> promise = Promise.promise();
+
+        try {
+            JsonObject body = ctx.body().asJsonObject();
+            String tsCode = body.getString("tsCode");
+            String es5Code = body.getString("es5Code");
+            String compileErrors = body.getString("compileErrors");
+            String compilerVersion = body.getString("compilerVersion");
+            String compileOptions = body.getString("compileOptions");
+            Boolean isValid = body.getBoolean("isValid", true);
+
+            if (StringUtils.isBlank(tsCode)) {
+                promise.complete(JsonResult.error("TypeScript代码不能为空").toJsonObject());
+                return promise.future();
+            }
+
+            if (StringUtils.isBlank(es5Code)) {
+                promise.complete(JsonResult.error("编译后的ES5代码不能为空").toJsonObject());
+                return promise.future();
+            }
+
+            // 代码长度验证
+            if (tsCode.length() > MAX_CODE_LENGTH || es5Code.length() > MAX_CODE_LENGTH) {
+                promise.complete(JsonResult.error("代码长度超过限制（最大128KB）").toJsonObject());
+                return promise.future();
+            }
+
+            JsonObject tsCodeInfo = new JsonObject();
+            tsCodeInfo.put("tsCode", tsCode);
+            tsCodeInfo.put("es5Code", es5Code);
+            tsCodeInfo.put("compileErrors", compileErrors);
+            tsCodeInfo.put("compilerVersion", compilerVersion);
+            tsCodeInfo.put("compileOptions", compileOptions);
+            tsCodeInfo.put("isValid", isValid);
+
+            dbService.updateTypeScriptCode(parserId, tsCodeInfo).onSuccess(result -> {
+                promise.complete(result);
+            }).onFailure(e -> {
+                log.error("更新TypeScript代码失败", e);
+                promise.complete(JsonResult.error("更新失败: " + e.getMessage()).toJsonObject());
+            });
+
+        } catch (Exception e) {
+            log.error("解析请求参数失败", e);
+            promise.complete(JsonResult.error("解析请求参数失败: " + e.getMessage()).toJsonObject());
+        }
+
+        return promise.future();
     }
 
     /**

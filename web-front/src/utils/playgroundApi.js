@@ -5,6 +5,33 @@ import axios from 'axios';
  */
 export const playgroundApi = {
   /**
+   * 获取Playground状态（是否需要认证）
+   * @returns {Promise} 状态信息
+   */
+  async getStatus() {
+    try {
+      const response = await axios.get('/v2/playground/status');
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.error || error.message || '获取状态失败');
+    }
+  },
+
+  /**
+   * Playground登录
+   * @param {string} password - 访问密码
+   * @returns {Promise} 登录结果
+   */
+  async login(password) {
+    try {
+      const response = await axios.post('/v2/playground/login', { password });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.error || error.message || '登录失败');
+    }
+  },
+
+  /**
    * 测试执行JavaScript代码
    * @param {string} jsCode - JavaScript代码
    * @param {string} shareUrl - 分享链接
@@ -141,6 +168,6 @@ export const playgroundApi = {
     } catch (error) {
       throw new Error(error.response?.data?.error || error.response?.data?.msg || error.message || '获取解析器失败');
     }
-  }
-};
+  },
 
+};
