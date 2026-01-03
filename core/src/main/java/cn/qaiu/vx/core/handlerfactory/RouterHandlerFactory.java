@@ -23,6 +23,8 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.*;
 import io.vertx.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.ext.web.handler.sockjs.SockJSHandlerOptions;
+import io.vertx.ext.web.sstore.LocalSessionStore;
+import io.vertx.ext.web.sstore.SessionStore;
 import javassist.CtClass;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -97,6 +99,16 @@ public class RouterHandlerFactory implements BaseHttpApi {
 
         // 配置文件上传路径
         mainRouter.route().handler(BodyHandler.create().setUploadsDirectory("uploads"));
+
+        // 配置Session管理 - 用于演练场登录状态持久化
+        // 30天过期时间（毫秒）
+        SessionStore sessionStore = LocalSessionStore.create(VertxHolder.getVertxInstance());
+        SessionHandler sessionHandler = SessionHandler.create(sessionStore)
+                .setSessionTimeout(30L * 24 * 60 * 60 * 1000) // 30天
+                .setSessionCookieName("SESSIONID") // Cookie名称
+                .setCookieHttpOnlyFlag(true) // 防止XSS攻击
+                .setCookieSecureFlag(false); // 非HTTPS环境设置为false
+        mainRouter.route().handler(sessionHandler);
 
         // 拦截器
         Set<Handler<RoutingContext>> interceptorSet = getInterceptorSet();

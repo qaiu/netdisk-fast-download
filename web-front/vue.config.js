@@ -43,7 +43,7 @@ module.exports = {
         '@': resolve('src')
       }
     },
-    // Monaco Editor配置
+    // Monaco Editor配置 - 使用国内CDN
     module: {
       rules: [
         {

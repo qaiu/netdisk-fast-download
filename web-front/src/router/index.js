@@ -10,7 +10,13 @@ const routes = [
   { path: '/showFile', component: ShowFile },
   { path: '/showList', component: ShowList },
   { path: '/clientLinks', component: ClientLinks },
-  { path: '/playground', component: Playground }
+  { path: '/playground', component: Playground },
+  // 404页面 - 必须放在最后
+  { 
+    path: '/:pathMatch(.*)*', 
+    name: 'NotFound',
+    component: () => import('@/views/NotFound.vue')
+  }
 ]
 
 const router = createRouter({

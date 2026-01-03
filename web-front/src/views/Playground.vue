@@ -21,12 +21,26 @@
       <span style="margin-left: 10px;">正在检查访问权限...</span>
     </div>
 
+    <!-- 演练场禁用提示 -->
+    <div v-if="!loading && !authChecking && !playgroundEnabled" class="playground-auth-overlay">
+      <div class="playground-auth-card">
+        <div class="auth-icon" style="color: #f56c6c;">
+          <el-icon :size="50"><WarningFilled /></el-icon>
+        </div>
+        <div class="auth-title">演练场功能已禁用</div>
+        <div class="auth-subtitle">请联系管理员启用演练场功能</div>
+        <el-button type="primary" size="large" @click="goHome" class="auth-button">
+          <span>返回首页</span>
+        </el-button>
+      </div>
+    </div>
+
     <div v-if="shouldShowAuthUI" class="playground-auth-overlay">
       <div class="playground-auth-card">
         <div class="auth-icon">
           <el-icon :size="50"><Lock /></el-icon>
         </div>
-        <div class="auth-title">JS解析器演练场</div>
+        <div class="auth-title">脚本解析器演练场</div>
         <div class="auth-subtitle">请输入访问密码</div>
         <el-input
           v-model="inputPassword"
@@ -56,7 +70,7 @@
       <template #header>
         <div class="card-header">
           <div class="header-left">
-            <span class="title">JS解析器演练场</span>
+            <span class="title">脚本解析器演练场</span>
             <!-- 语言显示（仅支持JavaScript） -->
             <span style="margin-left: 15px; color: var(--el-text-color-secondary); font-size: 12px;">
               JavaScript (ES5)
@@ -118,8 +132,133 @@
       <el-tabs v-model="activeTab" @tab-change="handleTabChange">
         <!-- 代码编辑标签页 -->
         <el-tab-pane label="代码编辑" name="editor">
-          <Splitpanes :class="['default-theme', isMobile ? 'mobile-vertical' : '']" :horizontal="isMobile" @resized="handleResize">
-            <!-- 编辑器区域 (PC: 左侧, Mobile: 上方) -->
+          <!-- 移动端：不使用 splitpanes，内容自然向下流动 -->
+          <div v-if="isMobile" class="mobile-layout">
+            <!-- 编辑器区域 -->
+            <div class="editor-section">
+              <MonacoEditor
+                ref="editorRef"
+                v-model="jsCode"
+                :theme="editorTheme"
+                :height="'400px'"
+                :options="editorOptions"
+                @change="onCodeChange"
+              />
+            </div>
+            
+            <!-- 测试参数和结果区域 -->
+            <div v-if="!collapsedPanels.rightPanel" class="test-section mobile-test-section">
+              <!-- 测试参数 -->
+              <el-card class="test-params-card collapsible-card" shadow="never" style="margin-top: 12px">
+                <template #header>
+                  <div class="card-header-with-collapse">
+                    <span>测试参数</span>
+                    <el-button 
+                      text 
+                      size="small" 
+                      :icon="collapsedPanels.testParams ? 'ArrowDown' : 'ArrowUp'"
+                      @click="togglePanel('testParams')"
+                    />
+                  </div>
+                </template>
+                <transition name="collapse">
+                  <div v-show="!collapsedPanels.testParams">
+                    <el-form :model="testParams" label-width="0px" size="small" class="test-params-form">
+                      <el-form-item label="" class="share-url-item">
+                        <el-input
+                          v-model="testParams.shareUrl"
+                          placeholder="请输入分享链接"
+                          clearable
+                        />
+                      </el-form-item>
+                      <el-form-item label="" class="password-item">
+                        <el-input
+                          v-model="testParams.pwd"
+                          placeholder="密码（可选）"
+                          clearable
+                        />
+                      </el-form-item>
+                      <el-form-item label="" class="method-item-horizontal">
+                        <el-radio-group v-model="testParams.method" size="small">
+                          <el-radio label="parse">parse</el-radio>
+                          <el-radio label="parseFileList">parseFileList</el-radio>
+                        </el-radio-group>
+                      </el-form-item>
+                      <el-form-item class="button-item">
+                        <el-button
+                          type="primary"
+                          :loading="testing"
+                          @click="executeTest"
+                          style="width: 100%"
+                        >
+                          执行测试
+                        </el-button>
+                      </el-form-item>
+                    </el-form>
+                  </div>
+                </transition>
+              </el-card>
+
+              <!-- 执行结果 -->
+              <el-card class="result-card collapsible-card" shadow="never" style="margin-top: 10px">
+                <template #header>
+                  <div class="card-header-with-collapse">
+                    <span>执行结果</span>
+                    <el-button 
+                      text 
+                      size="small" 
+                      :icon="collapsedPanels.testResult ? 'ArrowDown' : 'ArrowUp'"
+                      @click="togglePanel('testResult')"
+                    />
+                  </div>
+                </template>
+                <transition name="collapse">
+                  <div v-show="!collapsedPanels.testResult">
+                    <div v-if="testResult" class="result-content">
+                      <el-alert
+                        :type="testResult.success ? 'success' : 'error'"
+                        :title="testResult.success ? '执行成功' : '执行失败'"
+                        :closable="false"
+                        style="margin-bottom: 10px"
+                      />
+                      
+                      <div v-if="testResult.success" class="result-section">
+                        <div class="section-title">结果数据：</div>
+                        <div v-if="testResult.result" class="result-debug-box">
+                          <strong>结果内容：</strong>{{ testResult.result }}
+                        </div>
+                        <JsonViewer :value="testResult.result" :expand-depth="3" />
+                      </div>
+
+                      <div v-if="testResult.error" class="result-section">
+                        <div class="section-title">错误信息：</div>
+                        <el-alert type="error" :title="testResult.error" :closable="false" />
+                        <div v-if="testResult.stackTrace" class="stack-trace">
+                          <el-collapse>
+                            <el-collapse-item title="查看堆栈信息" name="stack">
+                              <pre>{{ testResult.stackTrace }}</pre>
+                            </el-collapse-item>
+                          </el-collapse>
+                        </div>
+                      </div>
+
+                      <div v-if="testResult.executionTime" class="result-section">
+                        <div class="section-title">执行时间：</div>
+                        <div>{{ testResult.executionTime }}ms</div>
+                      </div>
+                    </div>
+                    <div v-else class="empty-result">
+                      <el-empty description="暂无执行结果" :image-size="80" />
+                    </div>
+                  </div>
+                </transition>
+              </el-card>
+            </div>
+          </div>
+
+          <!-- 桌面端：使用 splitpanes -->
+          <Splitpanes v-else class="default-theme" @resized="handleResize">
+            <!-- 编辑器区域 (左侧) -->
             <Pane :size="collapsedPanels.rightPanel ? 100 : splitSizes[0]" min-size="30" class="editor-pane">
               <div class="editor-section">
                 <MonacoEditor
@@ -133,9 +272,9 @@
               </div>
             </Pane>
 
-            <!-- 测试参数和结果区域 (PC: 右侧, Mobile: 下方) -->
+            <!-- 测试参数和结果区域 (右侧) -->
             <Pane v-if="!collapsedPanels.rightPanel" 
-              :size="splitSizes[1]" min-size="20" class="test-pane" :style="isMobile ? 'margin-top: 10px;' : 'margin-left: 10px;'">
+              :size="splitSizes[1]" min-size="20" class="test-pane" style="margin-left: 10px;">
               <div class="test-section">
                 <!-- 优化的折叠按钮 -->
                 <el-tooltip content="折叠测试面板" placement="left">
@@ -331,7 +470,7 @@
             <transition name="collapse">
               <div v-show="!collapsedPanels.help">
               <div class="help-content">
-                <h3>什么是JS解析器演练场？</h3>
+                <h3>什么是脚本解析器演练场？</h3>
                 <p>演练场允许您快速编写、测试和发布JavaScript解析脚本，无需重启服务器即可调试和验证解析逻辑。</p>
                 
                 <h3>快速开始</h3>
@@ -459,7 +598,7 @@
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="200" fixed="right">
+              <el-table-column label="操作" width="120" fixed="right">
                 <template #default="scope">
                   <el-button size="small" @click="loadParserToEditor(scope.row)">编辑</el-button>
                   <el-button size="small" type="danger" @click="deleteParser(scope.row.id)">删除</el-button>
@@ -472,26 +611,33 @@
     </el-card>
 
     <!-- 发布对话框 -->
-    <!-- 发布对话框 -->
-    <el-dialog v-model="publishDialogVisible" title="发布解析器" width="600px">
-      <el-form :model="publishForm" label-width="100px">
+    <el-dialog 
+      v-model="publishDialogVisible" 
+      title="发布解析器" 
+      :width="isMobile ? '90%' : '600px'"
+      :close-on-click-modal="false"
+      class="publish-dialog"
+    >
+      <el-form :model="publishForm" :label-width="isMobile ? '80px' : '100px'">
         <el-form-item label="脚本代码">
           <el-input
             v-model="publishForm.jsCode"
             type="textarea"
-            :rows="10"
+            :rows="isMobile ? 8 : 10"
             readonly
+            class="publish-code-textarea"
           />
         </el-form-item>
         <el-alert
           type="warning"
           :closable="false"
           style="margin-bottom: 20px"
+          class="publish-alert"
         >
           <template #title>
-            <div>
-              <p>发布前请确保：</p>
-              <ul>
+            <div class="publish-checklist">
+              <p style="margin-bottom: 8px; font-weight: 500;">发布前请确保：</p>
+              <ul style="margin: 0; padding-left: 20px;">
                 <li>脚本已通过测试</li>
                 <li>元数据信息完整（@name, @type, @displayName, @match）</li>
                 <li>类型标识（@type）唯一，不与现有解析器冲突</li>
@@ -502,25 +648,32 @@
         </el-alert>
       </el-form>
       <template #footer>
-        <el-button @click="publishDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="publishing" @click="confirmPublish">确认发布</el-button>
+        <div class="dialog-footer-mobile">
+          <el-button @click="publishDialogVisible = false" :size="isMobile ? 'default' : 'default'">取消</el-button>
+          <el-button type="primary" :loading="publishing" @click="confirmPublish" :size="isMobile ? 'default' : 'default'">确认发布</el-button>
+        </div>
       </template>
     </el-dialog>
     
     <!-- 快捷键帮助对话框 -->
-    <el-dialog v-model="shortcutsDialogVisible" title="⌨️ 快捷键" width="500px">
-      <el-table :data="shortcutsData" style="width: 100%" :show-header="false">
-        <el-table-column prop="name" label="功能" width="200" />
+    <el-dialog 
+      v-model="shortcutsDialogVisible" 
+      title="⌨️ 快捷键" 
+      :width="isMobile ? '90%' : '500px'"
+      class="shortcuts-dialog"
+    >
+      <el-table :data="shortcutsData" style="width: 100%" :show-header="false" class="shortcuts-table">
+        <el-table-column prop="name" label="功能" :width="isMobile ? 120 : 200" />
         <el-table-column prop="keys" label="快捷键">
           <template #default="{ row }">
-            <el-tag v-for="key in row.keys" :key="key" size="small" style="margin-right: 5px;">
+            <el-tag v-for="key in row.keys" :key="key" size="small" style="margin-right: 5px; margin-bottom: 4px;">
               {{ key }}
             </el-tag>
           </template>
         </el-table-column>
       </el-table>
       <template #footer>
-        <el-button type="primary" @click="shortcutsDialogVisible = false">知道了</el-button>
+        <el-button type="primary" @click="shortcutsDialogVisible = false" :size="isMobile ? 'default' : 'default'">知道了</el-button>
       </template>
     </el-dialog>
   </div>
@@ -530,6 +683,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useMagicKeys, useFullscreen, useEventListener } from '@vueuse/core';
+import { useRouter } from 'vue-router';
 import { Splitpanes, Pane } from 'splitpanes';
 import 'splitpanes/dist/splitpanes.css';
 import MonacoEditor from '@/components/MonacoEditor.vue';
@@ -546,6 +700,8 @@ export default {
     Pane
   },
   setup() {
+    const router = useRouter();
+    
     // 语言常量
     const LANGUAGE = {
       JAVASCRIPT: 'JavaScript'
@@ -563,12 +719,13 @@ export default {
     const inputPassword = ref('');
     const authError = ref('');
     const authLoading = ref(false);
+    const playgroundEnabled = ref(true); // 演练场是否启用
     
     // ===== 移动端检测 =====
     const isMobile = ref(false);
     
     const testParams = ref({
-      shareUrl: 'https://lanzoui.com/i7Aq12ab3cd',
+      shareUrl: 'https://example.com/s/abc',
       pwd: '',
       method: 'parse'
     });
@@ -631,7 +788,7 @@ export default {
 // @type         example_parser
 // @displayName  示例网盘
 // @description  使用JavaScript实现的示例解析器
-// @match        https?://example\.com/s/(?<KEY>\w+)
+// @match        https?://example\.com/s/(?<KEY>\\w+)
 // @author       yourname
 // @version      1.0.0
 // ==/UserScript==
@@ -647,7 +804,7 @@ function parse(shareLinkInfo, http, logger) {
     var url = shareLinkInfo.getShareUrl();
     logger.info("开始解析: " + url);
     
-    var response = http.get(url);
+    var response = http.get('https://example.com');
     if (!response.isSuccess()) {
         throw new Error("请求失败: " + response.statusCode());
     }
@@ -700,7 +857,7 @@ function parseById(shareLinkInfo, http, logger) {
     
     // 计算属性：是否需要显示密码输入界面
     const shouldShowAuthUI = computed(() => {
-      return !loading.value && !authChecking.value && !authed.value;
+      return !loading.value && !authChecking.value && !authed.value && playgroundEnabled.value;
     });
 
     // 编辑器配置
@@ -716,7 +873,14 @@ function parseById(shareLinkInfo, http, logger) {
     
     // ===== 移动端检测 =====
     const updateIsMobile = () => {
+      const wasMobile = isMobile.value;
       isMobile.value = window.innerWidth <= 768;
+      // 如果是移动端，调整分栏大小，让测试面板有更多空间
+      if (isMobile.value && !wasMobile) {
+        splitSizes.value = [50, 50]; // 移动端：编辑器50%，测试面板50%
+      } else if (!isMobile.value && wasMobile) {
+        splitSizes.value = [70, 30]; // 桌面端：编辑器70%，测试面板30%
+      }
     };
     
     // ===== 进度设置函数 =====
@@ -734,17 +898,57 @@ function parseById(shareLinkInfo, http, logger) {
       try {
         const res = await playgroundApi.getStatus();
         if (res.code === 200 && res.data) {
-          authed.value = res.data.authed || res.data.public;
-          return res.data.authed || res.data.public;
+          // 检查是否启用
+          playgroundEnabled.value = res.data.enabled === true;
+          
+          if (!playgroundEnabled.value) {
+            authChecking.value = false;
+            return false;
+          }
+          
+          // 先检查localStorage中是否有保存的登录信息
+          const savedAuth = localStorage.getItem('playground_authed');
+          const authTime = localStorage.getItem('playground_auth_time');
+          
+          // 如果30天内登录过，直接认为已认证（实际认证状态由后端session决定）
+          if (savedAuth === 'true' && authTime) {
+            const daysSinceAuth = (Date.now() - parseInt(authTime)) / (1000 * 60 * 60 * 24);
+            if (daysSinceAuth < 30) {
+              // 先设置为已认证，然后验证后端session
+              authed.value = true;
+            }
+          }
+          
+          const isAuthed = res.data.authed || res.data.public;
+          authed.value = isAuthed;
+          
+          // 如果后端session已失效，清除localStorage
+          if (!isAuthed && savedAuth === 'true') {
+            localStorage.removeItem('playground_authed');
+            localStorage.removeItem('playground_auth_time');
+          }
+          
+          return isAuthed;
         }
+        playgroundEnabled.value = false;
         return false;
       } catch (error) {
         console.error('检查认证状态失败:', error);
-        ElMessage.error('检查访问权限失败: ' + error.message);
+        // 如果错误信息包含"已禁用"，则设置启用状态为false
+        if (error.message && error.message.includes('已禁用')) {
+          playgroundEnabled.value = false;
+        } else {
+          ElMessage.error('检查访问权限失败: ' + error.message);
+        }
         return false;
       } finally {
         authChecking.value = false;
       }
+    };
+    
+    // 返回首页
+    const goHome = () => {
+      router.push('/');
     };
     
     const submitPassword = async () => {
@@ -760,6 +964,9 @@ function parseById(shareLinkInfo, http, logger) {
         const res = await playgroundApi.login(inputPassword.value);
         if (res.code === 200 || res.success) {
           authed.value = true;
+          // 保存登录信息到localStorage，避免每次都需要登录
+          localStorage.setItem('playground_authed', 'true');
+          localStorage.setItem('playground_auth_time', Date.now().toString());
           ElMessage.success('登录成功');
           await initPlayground();
         } else {
@@ -787,7 +994,11 @@ function parseById(shareLinkInfo, http, logger) {
         if (saved) {
           jsCode.value = saved;
         } else {
+          // 默认加载示例代码和示例参数
           jsCode.value = exampleCode;
+          testParams.value.shareUrl = 'https://example.com/s/abc';
+          testParams.value.pwd = '';
+          testParams.value.method = 'parse';
         }
         
         setProgress(50, '初始化Monaco Editor类型定义...');
@@ -800,16 +1011,20 @@ function parseById(shareLinkInfo, http, logger) {
         if (savedTheme) {
           currentTheme.value = savedTheme;
           const theme = themes.find(t => t.name === savedTheme);
-          if (theme && document.documentElement && document.body) {
+          if (theme) {
             await nextTick();
-            if (theme.page === 'dark') {
-              document.documentElement.classList.add('dark');
-              document.body.classList.add('dark-theme');
-              document.body.style.backgroundColor = '#0a0a0a';
-            } else {
-              document.documentElement.classList.remove('dark');
-              document.body.classList.remove('dark-theme');
-              document.body.style.backgroundColor = '#f0f2f5';
+            const html = document.documentElement;
+            const body = document.body;
+            if (html && body && html.classList && body.classList) {
+              if (theme.page === 'dark') {
+                html.classList.add('dark');
+                body.classList.add('dark-theme');
+                body.style.backgroundColor = '#0a0a0a';
+              } else {
+                html.classList.remove('dark');
+                body.classList.remove('dark-theme');
+                body.style.backgroundColor = '#f0f2f5';
+              }
             }
           }
         }
@@ -847,6 +1062,13 @@ function parseById(shareLinkInfo, http, logger) {
           return;
         }
         
+        // 配置Monaco Editor使用国内CDN (npmmirror)
+        loader.config({
+          paths: {
+            vs: 'https://registry.npmmirror.com/monaco-editor/0.55.1/files/min/vs'
+          }
+        });
+        
         const monaco = await loader.init();
         if (monaco) {
           await configureMonacoTypes(monaco);
@@ -867,6 +1089,13 @@ function parseById(shareLinkInfo, http, logger) {
     // 加载示例代码
     const loadTemplate = () => {
       jsCode.value = exampleCode;
+      // 重置测试参数为示例链接
+      testParams.value.shareUrl = 'https://example.com/s/abc';
+      testParams.value.pwd = '';
+      testParams.value.method = 'parse';
+      // 清空测试结果
+      testResult.value = null;
+      consoleLogs.value = [];
       ElMessage.success('已加载JavaScript示例代码');
     };
 
@@ -1183,7 +1412,7 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
         const html = document.documentElement;
         const body = document.body;
         
-        if (html && body) {
+        if (html && body && html.classList && body.classList) {
           if (theme.page === 'dark') {
             html.classList.add('dark');
             body.classList.add('dark-theme');
@@ -1328,8 +1557,13 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
     const checkDarkMode = () => {
       try {
         const html = document.documentElement;
-        if (html) {
-          isDarkMode.value = html.classList?.contains('dark') || 
+        const body = document.body;
+        if (!html || !body) {
+          return; // DOM未准备好，直接返回
+        }
+        
+        if (html.classList) {
+          isDarkMode.value = html.classList.contains('dark') || 
                             html.getAttribute('data-theme') === 'dark';
           // 强制更新splitpanes分隔线样式
           updateSplitpanesStyle();
@@ -1342,19 +1576,31 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
     // 强制更新splitpanes分隔线样式
     const updateSplitpanesStyle = () => {
       setTimeout(() => {
-        const splitters = document.querySelectorAll('.splitpanes__splitter');
-        const isDark = document.documentElement?.classList?.contains('dark') || 
-                      document.body?.classList?.contains('dark-theme');
-        
-        splitters.forEach(splitter => {
-          if (isDark) {
-            splitter.style.setProperty('background-color', 'rgba(255, 255, 255, 0.08)', 'important');
-            splitter.style.setProperty('background', 'rgba(255, 255, 255, 0.08)', 'important');
-          } else {
-            splitter.style.removeProperty('background-color');
-            splitter.style.removeProperty('background');
+        try {
+          const html = document.documentElement;
+          const body = document.body;
+          if (!html || !body) {
+            return; // DOM未准备好，直接返回
           }
-        });
+          
+          const splitters = document.querySelectorAll('.splitpanes__splitter');
+          const isDark = html.classList?.contains('dark') || 
+                        body.classList?.contains('dark-theme');
+          
+          splitters.forEach(splitter => {
+            if (splitter) {
+              if (isDark) {
+                splitter.style.setProperty('background-color', 'rgba(255, 255, 255, 0.08)', 'important');
+                splitter.style.setProperty('background', 'rgba(255, 255, 255, 0.08)', 'important');
+              } else {
+                splitter.style.removeProperty('background-color');
+                splitter.style.removeProperty('background');
+              }
+            }
+          });
+        } catch (error) {
+          console.warn('更新splitpanes样式失败:', error);
+        }
       }, 100);
     };
 
@@ -1378,14 +1624,19 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       checkDarkMode();
 
       // 监听主题变化
-      if (document.documentElement) {
-        const observer = new MutationObserver(() => {
-          checkDarkMode();
-        });
-        observer.observe(document.documentElement, {
-          attributes: true,
-          attributeFilter: ['class', 'data-theme']
-        });
+      const html = document.documentElement;
+      if (html && html.classList) {
+        try {
+          const observer = new MutationObserver(() => {
+            checkDarkMode();
+          });
+          observer.observe(html, {
+            attributes: true,
+            attributeFilter: ['class', 'data-theme']
+          });
+        } catch (error) {
+          console.warn('创建主题监听器失败:', error);
+        }
       }
       
       // 初始化splitpanes样式
@@ -1416,8 +1667,10 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       inputPassword,
       authError,
       authLoading,
+      playgroundEnabled,
       checkAuthStatus,
       submitPassword,
+      goHome,
       // 移动端
       isMobile,
       updateIsMobile,
@@ -2441,7 +2694,6 @@ html.dark .playground-container .splitpanes__splitter:hover {
   background-color: #fafafa;
   font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
   font-size: 13px;
-  min-height: 250px;
   transition: all 0.3s ease;
 }
 
@@ -2636,26 +2888,28 @@ html.dark .playground-container .splitpanes__splitter:hover {
 }
 
 /* ===== 响应式布局 ===== */
-/* 移动端纵向布局 */
-.playground-container.is-mobile .splitpanes.mobile-vertical {
-  flex-direction: column !important;
-}
-
-.playground-container.is-mobile .splitpanes--horizontal > .splitpanes__splitter {
-  height: 6px;
+/* 移动端布局：内容自然向下流动 */
+.mobile-layout {
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  cursor: row-resize;
-  margin: 5px 0;
 }
 
-.playground-container.is-mobile .editor-pane,
-.playground-container.is-mobile .test-pane {
-  width: 100% !important;
+.mobile-layout .editor-section {
+  width: 100%;
+  margin-bottom: 12px;
 }
 
-.playground-container.is-mobile .test-pane {
-  margin-left: 0 !important;
-  margin-top: 10px;
+.mobile-test-section {
+  width: 100%;
+  height: auto !important;
+  overflow-y: visible !important;
+  padding: 0;
+}
+
+.mobile-test-section .test-params-card,
+.mobile-test-section .result-card {
+  margin-bottom: 12px;
 }
 
 .playground-container.is-mobile .playground-loading-card {
@@ -2680,7 +2934,11 @@ html.dark .playground-container .splitpanes__splitter:hover {
   }
   
   .console-container {
-    max-height: 200px;
+    max-height: 250px;
+  }
+  
+  .empty-console {
+    padding: 20px 0;
   }
 }
 
@@ -2695,13 +2953,24 @@ html.dark .playground-container .splitpanes__splitter:hover {
     gap: 10px;
   }
   
+  .console-container {
+    max-height: 300px;
+    padding: 8px;
+  }
+  
+  .empty-console {
+    padding: 12px 0;
+    font-size: 13px;
+  }
+  
+  .console-entry {
+    font-size: 12px;
+    padding: 6px 0;
+  }
+  
   .header-actions {
     width: 100%;
     justify-content: flex-start;
-  }
-  
-  .test-section {
-    margin-top: 20px;
   }
   
   .panel-expand-btn {
@@ -2713,8 +2982,69 @@ html.dark .playground-container .splitpanes__splitter:hover {
     gap: 8px;
   }
   
-  .splitpanes {
+  /* 移动端结果区域自适应高度 */
+  .result-content {
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+  
+  /* 移动端测试区域不使用固定高度 */
+  .test-section {
+    height: auto !important;
+    overflow-y: visible !important;
+  }
+  
+  /* 移动端对话框样式 */
+  .publish-dialog :deep(.el-dialog) {
+    margin: 5vh auto !important;
+    max-height: 90vh;
+    display: flex;
     flex-direction: column;
+  }
+  
+  .publish-dialog :deep(.el-dialog__body) {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+  }
+  
+  .publish-code-textarea :deep(.el-textarea__inner) {
+    font-size: 12px;
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  }
+  
+  .publish-checklist {
+    font-size: 13px;
+  }
+  
+  .publish-checklist ul {
+    line-height: 1.8;
+  }
+  
+  .publish-checklist li {
+    margin-bottom: 4px;
+  }
+  
+  .dialog-footer-mobile {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  
+  .shortcuts-dialog :deep(.el-dialog) {
+    margin: 5vh auto !important;
+    max-height: 90vh;
+  }
+  
+  .shortcuts-dialog :deep(.el-dialog__body) {
+    padding: 15px;
+    max-height: calc(90vh - 120px);
+    overflow-y: auto;
+  }
+  
+  .shortcuts-table :deep(.el-table__body) {
+    font-size: 13px;
   }
 }
 

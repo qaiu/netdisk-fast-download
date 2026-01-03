@@ -94,6 +94,14 @@ export default {
           return;
         }
 
+        // 配置Monaco Editor使用国内CDN (npmmirror)
+        // npmmirror的路径格式: https://registry.npmmirror.com/包名/版本号/files/文件路径
+        loader.config({
+          paths: {
+            vs: 'https://registry.npmmirror.com/monaco-editor/0.55.1/files/min/vs'
+          }
+        });
+        
         // 初始化Monaco Editor
         monaco = await loader.init();
         

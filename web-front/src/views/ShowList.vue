@@ -61,12 +61,16 @@ export default {
       }
     },
     toggleTheme(isDark) {
-      if (isDark) {
-        document.body.classList.add('dark-theme')
-        document.documentElement.classList.add('dark-theme')
-      } else {
-        document.body.classList.remove('dark-theme')
-        document.documentElement.classList.remove('dark-theme')
+      const html = document.documentElement;
+      const body = document.body;
+      if (html && body && html.classList && body.classList) {
+        if (isDark) {
+          body.classList.add('dark-theme')
+          html.classList.add('dark-theme')
+        } else {
+          body.classList.remove('dark-theme')
+          html.classList.remove('dark-theme')
+        }
       }
     }
   },

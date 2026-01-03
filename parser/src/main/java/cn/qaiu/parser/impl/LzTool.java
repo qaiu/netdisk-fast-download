@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
  */
 public class LzTool extends PanBase {
 
-    public static final String SHARE_URL_PREFIX = "https://wwww.lanzoum.com";
+    public static final String SHARE_URL_PREFIX = "https://wwwwp.lanzoup.com";
     MultiMap headers0 = HeaderUtils.parseHeaders("""
         Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
         Accept-Encoding: gzip, deflate

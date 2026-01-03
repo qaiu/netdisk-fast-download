@@ -51,9 +51,22 @@ public class PlaygroundApi {
     private final DbService dbService = AsyncServiceUtil.getAsyncServiceInstance(DbService.class);
     
     /**
+     * 检查Playground是否启用
+     */
+    private boolean checkEnabled() {
+        PlaygroundConfig config = PlaygroundConfig.getInstance();
+        return config.isEnabled();
+    }
+    
+    /**
      * 检查Playground访问权限
      */
     private boolean checkAuth(RoutingContext ctx) {
+        // 首先检查是否启用
+        if (!checkEnabled()) {
+            return false;
+        }
+        
         PlaygroundConfig config = PlaygroundConfig.getInstance();
         
         // 如果是公开模式，直接允许访问
@@ -77,9 +90,11 @@ public class PlaygroundApi {
     @RouteMapping(value = "/status", method = RouteMethod.GET)
     public Future<JsonObject> getStatus(RoutingContext ctx) {
         PlaygroundConfig config = PlaygroundConfig.getInstance();
-        boolean authed = checkAuth(ctx);
+        boolean enabled = config.isEnabled();
+        boolean authed = enabled && checkAuth(ctx);
         
         JsonObject result = new JsonObject()
+                .put("enabled", enabled)
                 .put("public", config.isPublic())
                 .put("authed", authed);
         
@@ -91,6 +106,11 @@ public class PlaygroundApi {
      */
     @RouteMapping(value = "/login", method = RouteMethod.POST)
     public Future<JsonObject> login(RoutingContext ctx) {
+        // 检查是否启用
+        if (!checkEnabled()) {
+            return Future.succeededFuture(JsonResult.error("演练场功能已禁用").toJsonObject());
+        }
+        
         Promise<JsonObject> promise = Promise.promise();
         
         try {
@@ -142,6 +162,11 @@ public class PlaygroundApi {
      */
     @RouteMapping(value = "/test", method = RouteMethod.POST)
     public Future<JsonObject> test(RoutingContext ctx) {
+        // 检查是否启用
+        if (!checkEnabled()) {
+            return Future.succeededFuture(JsonResult.error("演练场功能已禁用").toJsonObject());
+        }
+        
         // 权限检查
         if (!checkAuth(ctx)) {
             return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
@@ -345,6 +370,12 @@ public class PlaygroundApi {
      */
     @RouteMapping(value = "/types.js", method = RouteMethod.GET)
     public void getTypesJs(RoutingContext ctx, HttpServerResponse response) {
+        // 检查是否启用
+        if (!checkEnabled()) {
+            ResponseUtil.fireJsonResultResponse(response, JsonResult.error("演练场功能已禁用"));
+            return;
+        }
+        
         // 权限检查
         if (!checkAuth(ctx)) {
             ResponseUtil.fireJsonResultResponse(response, JsonResult.error("未授权访问"));
@@ -377,6 +408,11 @@ public class PlaygroundApi {
      */
     @RouteMapping(value = "/parsers", method = RouteMethod.GET)
     public Future<JsonObject> getParserList(RoutingContext ctx) {
+        // 检查是否启用
+        if (!checkEnabled()) {
+            return Future.succeededFuture(JsonResult.error("演练场功能已禁用").toJsonObject());
+        }
+        
         // 权限检查
         if (!checkAuth(ctx)) {
             return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
@@ -389,6 +425,11 @@ public class PlaygroundApi {
      */
     @RouteMapping(value = "/parsers", method = RouteMethod.POST)
     public Future<JsonObject> saveParser(RoutingContext ctx) {
+        // 检查是否启用
+        if (!checkEnabled()) {
+            return Future.succeededFuture(JsonResult.error("演练场功能已禁用").toJsonObject());
+        }
+        
         // 权限检查
         if (!checkAuth(ctx)) {
             return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
@@ -504,6 +545,11 @@ public class PlaygroundApi {
      */
     @RouteMapping(value = "/parsers/:id", method = RouteMethod.PUT)
     public Future<JsonObject> updateParser(RoutingContext ctx, Long id) {
+        // 检查是否启用
+        if (!checkEnabled()) {
+            return Future.succeededFuture(JsonResult.error("演练场功能已禁用").toJsonObject());
+        }
+        
         // 权限检查
         if (!checkAuth(ctx)) {
             return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
@@ -585,6 +631,11 @@ public class PlaygroundApi {
      */
     @RouteMapping(value = "/parsers/:id", method = RouteMethod.DELETE)
     public Future<JsonObject> deleteParser(RoutingContext ctx, Long id) {
+        // 检查是否启用
+        if (!checkEnabled()) {
+            return Future.succeededFuture(JsonResult.error("演练场功能已禁用").toJsonObject());
+        }
+        
         // 权限检查
         if (!checkAuth(ctx)) {
             return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
@@ -628,6 +679,11 @@ public class PlaygroundApi {
      */
     @RouteMapping(value = "/parsers/:id", method = RouteMethod.GET)
     public Future<JsonObject> getParserById(RoutingContext ctx, Long id) {
+        // 检查是否启用
+        if (!checkEnabled()) {
+            return Future.succeededFuture(JsonResult.error("演练场功能已禁用").toJsonObject());
+        }
+        
         // 权限检查
         if (!checkAuth(ctx)) {
             return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
