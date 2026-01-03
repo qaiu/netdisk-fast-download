@@ -9,8 +9,8 @@
         content="Netdisk fast download,网盘直链解析工具">
   <meta name="description"
         content="Netdisk fast download 网盘直链解析工具">
-  <!-- Font Awesome 图标库 -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Font Awesome 图标库 - 使用国内CDN -->
+  <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
       .page-loading-wrap {
           padding: 120px;
@@ -154,11 +154,26 @@
       }
   </style>
     <script>
-        const saved = localStorage.getItem('isDarkMode') === 'true'
-        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-        if (saved || (!saved && systemDark)) {
-            document.body.classList.add('dark-theme')
-        }
+        // 等待DOM加载完成后再操作
+        (function() {
+            function applyDarkTheme() {
+                const body = document.body;
+                if (body && body.classList) {
+                    // 只在用户明确选择暗色模式时才应用，不自动检测系统偏好
+                    if (localStorage.getItem('isDarkMode') === 'true') {
+                        body.classList.add('dark-theme')
+                    }
+                }
+            }
+            
+            // 如果DOM已加载，立即执行
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', applyDarkTheme);
+            } else {
+                // DOM已加载，立即执行
+                applyDarkTheme();
+            }
+        })();
     </script>
 </head>
 <body>

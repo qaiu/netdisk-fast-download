@@ -4,7 +4,7 @@ server-name: Vert.x-proxy-server(v4.1.2)
 proxy:
   - listen: 6401
     # 404的路径
-    page404: webroot/err/404.html
+    page404: webroot/nfd-front/index.html
     static:
       path: /
       add-headers:

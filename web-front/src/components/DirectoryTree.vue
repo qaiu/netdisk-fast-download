@@ -388,8 +388,14 @@ export default {
       return date.toLocaleString('zh-CN')
     },
     checkTheme() {
-      this.isDarkTheme = document.body.classList.contains('dark-theme') || 
-                         document.documentElement.classList.contains('dark-theme')
+      const html = document.documentElement;
+      const body = document.body;
+      if (html && body && html.classList && body.classList) {
+        this.isDarkTheme = body.classList.contains('dark-theme') || 
+                           html.classList.contains('dark-theme')
+      } else {
+        this.isDarkTheme = false;
+      }
     },
     renderContent(h, { node, data, store }) {
       const isFolder = data.fileType === 'folder'

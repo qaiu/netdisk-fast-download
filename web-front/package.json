@@ -16,7 +16,7 @@
     "clipboard": "^2.0.11",
     "core-js": "^3.8.3",
     "element-plus": "2.11.3",
-    "monaco-editor": "^0.45.0",
+    "monaco-editor": "^0.55.1",
     "qrcode": "^1.5.4",
     "splitpanes": "^4.0.4",
     "vue": "^3.5.12",

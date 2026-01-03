@@ -43,12 +43,16 @@ watch(darkMode, (newValue) => {
   emit('theme-change', newValue)
   
   // 应用主题到body
-  if (newValue) {
-    document.body.classList.add('dark-theme')
-    document.documentElement.classList.add('dark-theme')
-  } else {
-    document.body.classList.remove('dark-theme')
-    document.documentElement.classList.remove('dark-theme')
+  const html = document.documentElement;
+  const body = document.body;
+  if (html && body && html.classList && body.classList) {
+    if (newValue) {
+      body.classList.add('dark-theme')
+      html.classList.add('dark-theme')
+    } else {
+      body.classList.remove('dark-theme')
+      html.classList.remove('dark-theme')
+    }
   }
 })
 
@@ -57,9 +61,11 @@ onMounted(() => {
   emit('theme-change', darkMode.value)
   
   // 应用初始主题
-  if (darkMode.value) {
-    document.body.classList.add('dark-theme')
-    document.documentElement.classList.add('dark-theme')
+  const html = document.documentElement;
+  const body = document.body;
+  if (html && body && html.classList && body.classList && darkMode.value) {
+    body.classList.add('dark-theme')
+    html.classList.add('dark-theme')
   }
 })
 </script>

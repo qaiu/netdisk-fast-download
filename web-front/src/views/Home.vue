@@ -218,7 +218,7 @@
     <!-- 版本号显示 -->
     <div class="version-info">
       <span class="version-text">内部版本: {{ buildVersion }}</span>
-<!--      <el-link :href="'/playground'" class="playground-link">JS演练场</el-link>-->
+      <el-link v-if="playgroundEnabled" :href="'/playground'" class="playground-link">脚本演练场</el-link>
     </div>
     
     <!-- 文件解析结果区下方加分享按钮 -->
@@ -248,6 +248,7 @@ import DirectoryTree from '@/components/DirectoryTree'
 import parserUrl from '../parserUrl1'
 import fileTypeUtils from '@/utils/fileTypeUtils'
 import { ElMessage } from 'element-plus'
+import { playgroundApi } from '@/utils/playgroundApi'
 
 export const previewBaseUrl = 'https://nfd-parser.github.io/nfd-preview/preview.html?src=';
 
@@ -297,7 +298,10 @@ export default {
       errorButtonVisible: false,
       
       // 版本信息
-      buildVersion: ''
+      buildVersion: '',
+      
+      // 演练场启用状态
+      playgroundEnabled: false
     }
   },
   methods: {
@@ -316,7 +320,9 @@ export default {
     // 主题切换
     handleThemeChange(isDark) {
       this.isDarkMode = isDark
-      document.body.classList.toggle('dark-theme', isDark)
+      if (document.body && document.body.classList) {
+        document.body.classList.toggle('dark-theme', isDark)
+      }
       window.localStorage.setItem('isDarkMode', isDark)
 
     },
@@ -552,6 +558,19 @@ export default {
       }
     },
 
+    // 检查演练场是否启用
+    async checkPlaygroundEnabled() {
+      try {
+        const result = await playgroundApi.getStatus()
+        if (result && result.data) {
+          this.playgroundEnabled = result.data.enabled === true
+        }
+      } catch (error) {
+        console.error('检查演练场状态失败:', error)
+        this.playgroundEnabled = false
+      }
+    },
+
     // 新增切换目录树展示模式方法
     setDirectoryViewMode(mode) {
       this.directoryViewMode = mode
@@ -655,6 +674,9 @@ export default {
 
     // 获取版本号
     this.getBuildVersion()
+
+    // 检查演练场是否启用
+    this.checkPlaygroundEnabled()
 
     // 自动读取剪切板
     if (this.autoReadClipboard) {

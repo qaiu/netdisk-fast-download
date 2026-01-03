@@ -1,5 +1,10 @@
 import axios from 'axios';
 
+// 创建axios实例，配置携带cookie
+const axiosInstance = axios.create({
+  withCredentials: true  // 重要：允许跨域请求携带cookie
+});
+
 /**
  * 演练场API服务
  */
@@ -10,7 +15,7 @@ export const playgroundApi = {
    */
   async getStatus() {
     try {
-      const response = await axios.get('/v2/playground/status');
+      const response = await axiosInstance.get('/v2/playground/status');
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.error || error.message || '获取状态失败');
@@ -24,7 +29,7 @@ export const playgroundApi = {
    */
   async login(password) {
     try {
-      const response = await axios.post('/v2/playground/login', { password });
+      const response = await axiosInstance.post('/v2/playground/login', { password });
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.error || error.message || '登录失败');
@@ -41,7 +46,7 @@ export const playgroundApi = {
    */
   async testScript(jsCode, shareUrl, pwd = '', method = 'parse') {
     try {
-      const response = await axios.post('/v2/playground/test', {
+      const response = await axiosInstance.post('/v2/playground/test', {
         jsCode,
         shareUrl,
         pwd,
@@ -69,7 +74,7 @@ export const playgroundApi = {
    */
   async getTypesJs() {
     try {
-      const response = await axios.get('/v2/playground/types.js', {
+      const response = await axiosInstance.get('/v2/playground/types.js', {
         responseType: 'text'
       });
       return response.data;
@@ -83,7 +88,7 @@ export const playgroundApi = {
    */
   async getParserList() {
     try {
-      const response = await axios.get('/v2/playground/parsers');
+      const response = await axiosInstance.get('/v2/playground/parsers');
       // 框架会自动包装成JsonResult，需要从data字段获取
       if (response.data && response.data.data) {
         return {
@@ -104,7 +109,7 @@ export const playgroundApi = {
    */
   async saveParser(jsCode) {
     try {
-      const response = await axios.post('/v2/playground/parsers', { jsCode });
+      const response = await axiosInstance.post('/v2/playground/parsers', { jsCode });
       // 框架会自动包装成JsonResult
       if (response.data && response.data.data) {
         return {
@@ -130,7 +135,7 @@ export const playgroundApi = {
    */
   async updateParser(id, jsCode, enabled = true) {
     try {
-      const response = await axios.put(`/v2/playground/parsers/${id}`, { jsCode, enabled });
+      const response = await axiosInstance.put(`/v2/playground/parsers/${id}`, { jsCode, enabled });
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.error || error.message || '更新解析器失败');
@@ -142,7 +147,7 @@ export const playgroundApi = {
    */
   async deleteParser(id) {
     try {
-      const response = await axios.delete(`/v2/playground/parsers/${id}`);
+      const response = await axiosInstance.delete(`/v2/playground/parsers/${id}`);
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.error || error.message || '删除解析器失败');
@@ -154,7 +159,7 @@ export const playgroundApi = {
    */
   async getParserById(id) {
     try {
-      const response = await axios.get(`/v2/playground/parsers/${id}`);
+      const response = await axiosInstance.get(`/v2/playground/parsers/${id}`);
       // 框架会自动包装成JsonResult
       if (response.data && response.data.data) {
         return {

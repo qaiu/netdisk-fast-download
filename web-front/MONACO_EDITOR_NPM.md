@@ -4,7 +4,7 @@
 
 ### 1. NPM包安装
 已在 `package.json` 中安装：
-- `monaco-editor`: ^0.45.0 - Monaco Editor核心包
+- `monaco-editor`: ^0.55.1 - Monaco Editor核心包
 - `@monaco-editor/loader`: ^1.4.0 - Monaco Editor加载器
 - `monaco-editor-webpack-plugin`: ^7.1.1 - Webpack打包插件（devDependencies）
 
@@ -161,6 +161,8 @@ Monaco Editor 打包后会增加构建产物大小（约2-3MB），但这是正�
 **配置状态**: ✅ 已完成  
 **验证状态**: ⚠️ 待测试  
 **建议**: 运行 `npm run build` 并检查构建产物
+
+
 
 
 
