@@ -128,7 +128,9 @@ public class ReverseProxyVerticle extends AbstractVerticle {
     }
 
     private HttpServer getHttpsServer(JsonObject proxyConf) {
-        HttpServerOptions httpServerOptions = new HttpServerOptions();
+        HttpServerOptions httpServerOptions = new HttpServerOptions()
+        .setCompressionSupported(true);
+
         if (proxyConf.containsKey("ssl")) {
             JsonObject sslConfig = proxyConf.getJsonObject("ssl");
 
@@ -182,6 +184,7 @@ public class ReverseProxyVerticle extends AbstractVerticle {
         } else {
             staticHandler = StaticHandler.create();
         }
+        
         if (staticConf.containsKey("directory-listing")) {
             staticHandler.setDirectoryListing(staticConf.getBoolean("directory-listing"));
         } else if (staticConf.containsKey("index")) {
