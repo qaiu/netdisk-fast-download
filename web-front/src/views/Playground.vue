@@ -1062,12 +1062,18 @@ function parseById(shareLinkInfo, http, logger) {
           return;
         }
         
-        // 配置Monaco Editor使用国内CDN (npmmirror)
-        loader.config({
-          paths: {
-            vs: 'https://registry.npmmirror.com/monaco-editor/0.55.1/files/min/vs'
-          }
-        });
+        // 配置Monaco Editor使用本地打包的文件，而不是CDN
+        if (loader.config) {
+          const vsPath = process.env.NODE_ENV === 'production' 
+            ? './js/vs'  // 生产环境使用相对路径
+            : '/js/vs';  // 开发环境使用绝对路径
+          
+          loader.config({ 
+            paths: { 
+              vs: vsPath
+            }
+          });
+        }
         
         const monaco = await loader.init();
         if (monaco) {
