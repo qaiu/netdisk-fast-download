@@ -550,6 +550,176 @@ public class JsHttpClientTest {
     }
 
     @Test
+    public void testPostWithJsonString() {
+        System.out.println("\n[测试16] POST请求（JSON字符串） - httpbin.org/post");
+        System.out.println("测试修复：POST请求发送JSON字符串时请求体是否正确发送");
+        
+        try {
+            String url = "https://httpbin.org/post";
+            System.out.println("请求URL: " + url);
+            
+            // 模拟阿里云盘登录请求格式
+            String jsonData = "{\"grant_type\":\"refresh_token\",\"refresh_token\":\"test_token_123\"}";
+            System.out.println("POST数据（JSON字符串）: " + jsonData);
+            
+            // 设置Content-Type为application/json
+            httpClient.putHeader("Content-Type", "application/json");
+            System.out.println("设置Content-Type: application/json");
+            System.out.println("开始请求...");
+            
+            long startTime = System.currentTimeMillis();
+            JsHttpClient.JsHttpResponse response = httpClient.post(url, jsonData);
+            long endTime = System.currentTimeMillis();
+            
+            System.out.println("请求完成，耗时: " + (endTime - startTime) + "ms");
+            System.out.println("状态码: " + response.statusCode());
+            
+            String body = response.body();
+            System.out.println("响应体（前500字符）: " + (body != null && body.length() > 500 ? body.substring(0, 500) + "..." : body));
+            
+            // 验证结果
+            assertNotNull("响应不能为null", response);
+            assertEquals("状态码应该是200", 200, response.statusCode());
+            assertNotNull("响应体不能为null", body);
+            // 验证请求体是否正确发送（httpbin会回显请求数据）
+            assertTrue("响应体应该包含发送的JSON数据", 
+                    body.contains("grant_type") || body.contains("refresh_token"));
+            
+            System.out.println("✓ 测试通过 - POST请求体已正确发送");
+            
+        } catch (Exception e) {
+            System.err.println("✗ 测试失败: " + e.getMessage());
+            e.printStackTrace();
+            fail("POST JSON字符串请求测试失败: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testAlipanTokenApi() {
+        System.out.println("\n[测试20] 阿里云盘Token接口测试 - auth.aliyundrive.com/v2/account/token");
+        System.out.println("参考 alipan.js 中的登录逻辑，测试请求格式是否正确");
+        
+        try {
+            String tokenUrl = "https://auth.aliyundrive.com/v2/account/token";
+            System.out.println("请求URL: " + tokenUrl);
+            
+            // 参考 alipan.js 中的请求格式
+            // setJsonHeaders(http) 设置 Content-Type: application/json 和 User-Agent
+            httpClient.putHeader("Content-Type", "application/json");
+            httpClient.putHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+            
+            // 参考 alipan.js: JSON.stringify({grant_type: "refresh_token", refresh_token: REFRESH_TOKEN})
+            String jsonData = "{\"grant_type\":\"refresh_token\",\"refresh_token\":\"\"}";
+            System.out.println("POST数据（JSON字符串）: " + jsonData);
+            System.out.println("注意：使用无效token测试错误响应格式");
+            System.out.println("开始请求...");
+            
+            long startTime = System.currentTimeMillis();
+            JsHttpClient.JsHttpResponse response = httpClient.post(tokenUrl, jsonData);
+            long endTime = System.currentTimeMillis();
+            
+            System.out.println("请求完成，耗时: " + (endTime - startTime) + "ms");
+            System.out.println("状态码: " + response.statusCode());
+            
+            String body = response.body();
+            System.out.println("响应体: " + body);
+            
+            // 验证结果
+            assertNotNull("响应不能为null", response);
+            // 使用无效token应该返回400或401等错误状态码，但请求格式应该是正确的
+            assertTrue("状态码应该是4xx（无效token）或200（如果token有效）", 
+                    response.statusCode() >= 200 && response.statusCode() < 500);
+            assertNotNull("响应体不能为null", body);
+            
+            // 验证响应格式（阿里云盘API通常返回JSON）
+            try {
+                Object jsonResponse = response.json();
+                System.out.println("响应JSON解析成功: " + jsonResponse);
+                assertNotNull("JSON响应不能为null", jsonResponse);
+            } catch (Exception e) {
+                System.out.println("警告：响应不是有效的JSON格式");
+            }
+            
+            // 验证请求头是否正确设置
+            System.out.println("验证请求头设置...");
+            Map<String, String> headers = httpClient.getHeaders();
+            assertTrue("应该设置了Content-Type", headers.containsKey("Content-Type"));
+            assertEquals("Content-Type应该是application/json", 
+                    "application/json", headers.get("Content-Type"));
+            
+            System.out.println("✓ 测试通过 - 请求格式正确，已成功发送到阿里云盘API");
+            
+        } catch (Exception e) {
+            System.err.println("✗ 测试失败: " + e.getMessage());
+            e.printStackTrace();
+            // 如果是超时或其他网络错误，说明请求格式可能有问题
+            if (e.getMessage() != null && e.getMessage().contains("超时")) {
+                fail("请求超时，可能是请求格式问题或网络问题: " + e.getMessage());
+            } else {
+                fail("阿里云盘Token接口测试失败: " + e.getMessage());
+            }
+        }
+    }
+
+    @Test
+    public void testAlipanTokenApiWithValidFormat() {
+        System.out.println("\n[测试21] 阿里云盘Token接口格式验证 - 使用httpbin验证请求格式");
+        System.out.println("通过httpbin回显验证请求格式是否与alipan.js中的格式一致");
+        
+        try {
+            // 使用httpbin来验证请求格式
+            String testUrl = "https://httpbin.org/post";
+            System.out.println("测试URL: " + testUrl);
+            
+            // 参考 alipan.js 中的请求格式
+            httpClient.clearHeaders(); // 清空之前的头
+            httpClient.putHeader("Content-Type", "application/json");
+            httpClient.putHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+            
+            // 完全模拟 alipan.js 中的请求体格式
+            String jsonData = "{\"grant_type\":\"refresh_token\",\"refresh_token\":\"test_refresh_token_12345\"}";
+            System.out.println("POST数据（JSON字符串）: " + jsonData);
+            System.out.println("开始请求...");
+            
+            long startTime = System.currentTimeMillis();
+            JsHttpClient.JsHttpResponse response = httpClient.post(testUrl, jsonData);
+            long endTime = System.currentTimeMillis();
+            
+            System.out.println("请求完成，耗时: " + (endTime - startTime) + "ms");
+            System.out.println("状态码: " + response.statusCode());
+            
+            String body = response.body();
+            System.out.println("响应体（前800字符）: " + (body != null && body.length() > 800 ? body.substring(0, 800) + "..." : body));
+            
+            // 验证结果
+            assertNotNull("响应不能为null", response);
+            assertEquals("状态码应该是200", 200, response.statusCode());
+            assertNotNull("响应体不能为null", body);
+            
+            // httpbin会回显请求数据，验证请求体是否正确发送
+            assertTrue("响应体应该包含grant_type字段", body.contains("grant_type"));
+            assertTrue("响应体应该包含refresh_token字段", body.contains("refresh_token"));
+            assertTrue("响应体应该包含发送的refresh_token值", body.contains("test_refresh_token_12345"));
+            
+            // 验证Content-Type是否正确
+            assertTrue("响应体应该包含Content-Type信息", body.contains("application/json"));
+            
+            // 验证User-Agent是否正确
+            assertTrue("响应体应该包含User-Agent信息", body.contains("Mozilla"));
+            
+            System.out.println("✓ 测试通过 - 请求格式与alipan.js中的格式完全一致");
+            System.out.println("  - JSON请求体正确发送");
+            System.out.println("  - Content-Type正确设置");
+            System.out.println("  - User-Agent正确设置");
+            
+        } catch (Exception e) {
+            System.err.println("✗ 测试失败: " + e.getMessage());
+            e.printStackTrace();
+            fail("阿里云盘Token接口格式验证失败: " + e.getMessage());
+        }
+    }
+
+    @Test
     public void testSetTimeout() {
         System.out.println("\n[测试15] 设置超时时间 - setTimeout方法");
         

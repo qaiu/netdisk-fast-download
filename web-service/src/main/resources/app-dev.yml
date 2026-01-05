@@ -16,9 +16,9 @@ proxyConf: server-proxy
 # JS演练场配置
 playground:
   # 是否启用演练场，默认false不启用
-  enabled: false
+  enabled: true
   # 公开模式，默认false需要密码访问，设为true则无需密码
-  public: false
+  public: true
   # 访问密码，建议修改默认密码！
   password: 'nfd_playground_2024'
 

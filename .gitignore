@@ -29,6 +29,8 @@ target/
 /src/logs/
 *.zip
 sdkTest.log
+app.yml
+app-local.yml
 
 
 #some local files
