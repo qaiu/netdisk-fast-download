@@ -111,7 +111,7 @@ public class JsPlaygroundExecutor {
                 playgroundLogger.infoJava("✅ Fetch API和Promise polyfill注入成功");
             }
             
-            playgroundLogger.infoJava("🔒 安全的JavaScript引擎初始化成功（演练场）");
+            playgroundLogger.infoJava("初始化成功");
             
             // 执行JavaScript代码
             engine.eval(jsCode);

@@ -244,19 +244,17 @@ public class JsHttpClient {
             
             if (data != null) {
                 if (data instanceof String) {
-                    request.sendBuffer(Buffer.buffer((String) data));
+                    return request.sendBuffer(Buffer.buffer((String) data));
                 } else if (data instanceof Map) {
                     @SuppressWarnings("unchecked")
                     Map<String, String> mapData = (Map<String, String>) data;
-                    request.sendForm(MultiMap.caseInsensitiveMultiMap().addAll(mapData));
+                    return request.sendForm(MultiMap.caseInsensitiveMultiMap().addAll(mapData));
                 } else {
-                    request.sendJson(data);
+                    return request.sendJson(data);
                 }
             } else {
-                request.send();
+                return request.send();
             }
-            
-            return request.send();
         });
     }
     
@@ -276,19 +274,17 @@ public class JsHttpClient {
             
             if (data != null) {
                 if (data instanceof String) {
-                    request.sendBuffer(Buffer.buffer((String) data));
+                    return request.sendBuffer(Buffer.buffer((String) data));
                 } else if (data instanceof Map) {
                     @SuppressWarnings("unchecked")
                     Map<String, String> mapData = (Map<String, String>) data;
-                    request.sendForm(MultiMap.caseInsensitiveMultiMap().addAll(mapData));
+                    return request.sendForm(MultiMap.caseInsensitiveMultiMap().addAll(mapData));
                 } else {
-                    request.sendJson(data);
+                    return request.sendJson(data);
                 }
             } else {
-                request.send();
+                return request.send();
             }
-            
-            return request.send();
         });
     }
     
@@ -322,19 +318,17 @@ public class JsHttpClient {
             
             if (data != null) {
                 if (data instanceof String) {
-                    request.sendBuffer(Buffer.buffer((String) data));
+                    return request.sendBuffer(Buffer.buffer((String) data));
                 } else if (data instanceof Map) {
                     @SuppressWarnings("unchecked")
                     Map<String, String> mapData = (Map<String, String>) data;
-                    request.sendForm(MultiMap.caseInsensitiveMultiMap().addAll(mapData));
+                    return request.sendForm(MultiMap.caseInsensitiveMultiMap().addAll(mapData));
                 } else {
-                    request.sendJson(data);
+                    return request.sendJson(data);
                 }
             } else {
-                request.send();
+                return request.send();
             }
-            
-            return request.send();
         });
     }
     

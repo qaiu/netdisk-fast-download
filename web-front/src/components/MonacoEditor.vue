@@ -34,6 +34,7 @@ export default {
     const editorContainer = ref(null);
     let editor = null;
     let monaco = null;
+    let touchHandlers = { start: null, move: null };
 
     const defaultOptions = {
       value: props.modelValue,
@@ -136,6 +137,46 @@ export default {
         if (editorContainer.value) {
           editorContainer.value.style.height = props.height;
         }
+        
+        // 移动端：添加触摸缩放来调整字体大小
+        if (window.innerWidth <= 768 && editorContainer.value) {
+          let initialDistance = 0;
+          let initialFontSize = defaultOptions.fontSize || 14;
+          const minFontSize = 8;
+          const maxFontSize = 24;
+          
+          const getTouchDistance = (touch1, touch2) => {
+            const dx = touch1.clientX - touch2.clientX;
+            const dy = touch1.clientY - touch2.clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+          };
+          
+          touchHandlers.start = (e) => {
+            if (e.touches.length === 2 && editor) {
+              initialDistance = getTouchDistance(e.touches[0], e.touches[1]);
+              initialFontSize = editor.getOption(monaco.editor.EditorOption.fontSize);
+            }
+          };
+          
+          touchHandlers.move = (e) => {
+            if (e.touches.length === 2 && editor) {
+              e.preventDefault(); // 防止页面缩放
+              const currentDistance = getTouchDistance(e.touches[0], e.touches[1]);
+              const scale = currentDistance / initialDistance;
+              const newFontSize = Math.round(initialFontSize * scale);
+              
+              // 限制字体大小范围
+              const clampedFontSize = Math.max(minFontSize, Math.min(maxFontSize, newFontSize));
+              
+              if (clampedFontSize !== editor.getOption(monaco.editor.EditorOption.fontSize)) {
+                editor.updateOptions({ fontSize: clampedFontSize });
+              }
+            }
+          };
+          
+          editorContainer.value.addEventListener('touchstart', touchHandlers.start, { passive: false });
+          editorContainer.value.addEventListener('touchmove', touchHandlers.move, { passive: false });
+        }
       } catch (error) {
         console.error('Monaco Editor初始化失败:', error);
         console.error('错误详情:', error.stack);
@@ -179,6 +220,11 @@ export default {
     });
 
     onBeforeUnmount(() => {
+      // 清理触摸事件监听器
+      if (editorContainer.value && touchHandlers.start && touchHandlers.move) {
+        editorContainer.value.removeEventListener('touchstart', touchHandlers.start);
+        editorContainer.value.removeEventListener('touchmove', touchHandlers.move);
+      }
       if (editor) {
         editor.dispose();
       }
@@ -200,10 +246,26 @@ export default {
   border: 1px solid #dcdfe6;
   border-radius: 4px;
   overflow: hidden;
+  /* 允许用户选择文本 */
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .monaco-editor-container :deep(.monaco-editor) {
   border-radius: 4px;
+}
+
+/* 移动端：禁用页面缩放，只允许编辑器字体缩放 */
+@media (max-width: 768px) {
+  .monaco-editor-container {
+    /* 禁用页面级别的缩放，只允许编辑器内部字体缩放 */
+    touch-action: pan-x pan-y;
+  }
+  
+  .monaco-editor-container :deep(.monaco-editor) {
+    /* 禁用页面级别的缩放 */
+    touch-action: pan-x pan-y;
+  }
 }
 </style>
 

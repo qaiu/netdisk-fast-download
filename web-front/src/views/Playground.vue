@@ -65,20 +65,30 @@
       </div>
     </div>
 
+    <div class="header-left">
+            <div class="header-left-top">
+              <!-- 面包屑导航 -->
+              <el-breadcrumb separator="/" class="breadcrumb-nav">
+                <el-breadcrumb-item>
+                  <el-link :underline="false" @click="goHomeInNewWindow" class="breadcrumb-link">
+                    <el-icon><HomeFilled /></el-icon>
+                    <span style="margin-left: 4px;">首页</span>
+                  </el-link>
+                </el-breadcrumb-item>
+                <el-breadcrumb-item>脚本解析器演练场 <span style="color: var(--el-text-color-secondary); font-size: 12px;">
+                JavaScript (ES5)
+              </span></el-breadcrumb-item>
+              </el-breadcrumb>
+            </div>
+          </div>
+          
     <!-- 原有内容 - 只在已认证时显示 -->
     <el-card v-if="authed && !loading" class="playground-card">
       <template #header>
         <div class="card-header">
-          <div class="header-left">
-            <span class="title">脚本解析器演练场</span>
-            <!-- 语言显示（仅支持JavaScript） -->
-            <span style="margin-left: 15px; color: var(--el-text-color-secondary); font-size: 12px;">
-              JavaScript (ES5)
-            </span>
-          </div>
           <div class="header-actions">
             <!-- 主要操作 -->
-            <el-button-group size="small">
+            <el-button-group size="small" style="margin-left: 10px;">
               <el-tooltip content="运行测试 (Ctrl+Enter)" placement="bottom">
                 <el-button :icon="testing ? 'Loading' : 'CaretRight'" @click="executeTest" :loading="testing">
                   运行
@@ -89,6 +99,24 @@
               </el-tooltip>
               <el-tooltip content="格式化代码 (Shift+Alt+F)" placement="bottom">
                 <el-button icon="MagicStick" @click="formatCode">格式化</el-button>
+              </el-tooltip>
+            </el-button-group>
+            
+            <!-- IDE功能按钮 -->
+            <el-button-group size="small" style="margin-left: 10px;">
+              <el-tooltip content="新建文件 (Ctrl+N)" placement="bottom">
+                <el-button icon="DocumentAdd" @click="showNewFileDialog">新建</el-button>
+              </el-tooltip>
+              <el-tooltip content="复制全部 (Ctrl+A, Ctrl+C)" placement="bottom">
+                <el-button icon="CopyDocument" @click="copyAll">复制全部</el-button>
+              </el-tooltip>
+              <el-tooltip content="全选 (Ctrl+A)" placement="bottom">
+                <el-button icon="Select" @click="selectAll">全选</el-button>
+              </el-tooltip>
+              <el-tooltip :content="editorOptions.wordWrap === 'on' ? '关闭自动换行' : '开启自动换行'" placement="bottom">
+                <el-button :icon="editorOptions.wordWrap === 'on' ? 'Operation' : 'Sort'" @click="toggleWordWrap">
+                  {{ editorOptions.wordWrap === 'on' ? '换行' : '不换行' }}
+                </el-button>
               </el-tooltip>
             </el-button-group>
             
@@ -120,6 +148,7 @@
                 <el-dropdown-menu>
                   <el-dropdown-item icon="DocumentAdd" @click="loadTemplate">加载示例 (Ctrl+R)</el-dropdown-item>
                   <el-dropdown-item icon="Delete" @click="clearCode">清空代码</el-dropdown-item>
+                  <el-dropdown-item icon="Download" @click="exportCurrentFile">导出当前JS</el-dropdown-item>
                   <el-dropdown-item icon="Promotion" @click="publishParser">发布脚本</el-dropdown-item>
                   <el-dropdown-item icon="QuestionFilled" @click="showShortcutsHelp">快捷键 (Ctrl+/)</el-dropdown-item>
                 </el-dropdown-menu>
@@ -132,18 +161,91 @@
       <el-tabs v-model="activeTab" @tab-change="handleTabChange">
         <!-- 代码编辑标签页 -->
         <el-tab-pane label="代码编辑" name="editor">
+          <!-- 文件标签页 -->
+          <div class="file-tabs-container">
+            <div class="file-tabs-wrapper">
+              <el-tabs 
+                v-model="activeFileId" 
+                type="card" 
+                closable 
+                @tab-remove="removeFile"
+                @tab-change="handleFileChange"
+                class="file-tabs"
+              >
+                <el-tab-pane
+                  v-for="file in files"
+                  :key="file.id"
+                  :label="file.name + (file.modified ? ' *' : '')"
+                  :name="file.id"
+                >
+                </el-tab-pane>
+              </el-tabs>
+              <el-tooltip content="新建文件" placement="bottom">
+                <el-button 
+                  icon="Plus" 
+                  size="small" 
+                  circle
+                  @click="showNewFileDialog"
+                  class="new-file-tab-btn"
+                />
+              </el-tooltip>
+            </div>
+          </div>
+          
           <!-- 移动端：不使用 splitpanes，内容自然向下流动 -->
           <div v-if="isMobile" class="mobile-layout">
             <!-- 编辑器区域 -->
             <div class="editor-section">
               <MonacoEditor
                 ref="editorRef"
-                v-model="jsCode"
+                v-model="currentCode"
                 :theme="editorTheme"
                 :height="'400px'"
                 :options="editorOptions"
                 @change="onCodeChange"
               />
+              
+              <!-- 移动端悬浮操作按钮 -->
+              <div class="mobile-editor-actions">
+                <el-button-group>
+                  <el-tooltip content="撤销 (Ctrl+Z)" placement="top">
+                    <el-button 
+                      size="small" 
+                      icon="RefreshLeft" 
+                      circle
+                      @click="undo"
+                      class="editor-action-btn"
+                    />
+                  </el-tooltip>
+                  <el-tooltip content="重做 (Ctrl+Y)" placement="top">
+                    <el-button 
+                      size="small" 
+                      icon="RefreshRight" 
+                      circle
+                      @click="redo"
+                      class="editor-action-btn"
+                    />
+                  </el-tooltip>
+                  <el-tooltip content="格式化 (Shift+Alt+F)" placement="top">
+                    <el-button 
+                      size="small" 
+                      icon="MagicStick" 
+                      circle
+                      @click="formatCode"
+                      class="editor-action-btn"
+                    />
+                  </el-tooltip>
+                  <el-tooltip content="全选 (Ctrl+A)" placement="top">
+                    <el-button 
+                      size="small" 
+                      icon="Select" 
+                      circle
+                      @click="selectAll"
+                      class="editor-action-btn"
+                    />
+                  </el-tooltip>
+                </el-button-group>
+              </div>
             </div>
             
             <!-- 测试参数和结果区域 -->
@@ -263,9 +365,9 @@
               <div class="editor-section">
                 <MonacoEditor
                   ref="editorRef"
-                  v-model="jsCode"
+                  v-model="currentCode"
                   :theme="editorTheme"
-                  :height="'calc(100vh - 330px)'"
+                  :height="'100%'"
                   :options="editorOptions"
                   @change="onCodeChange"
                 />
@@ -655,6 +757,61 @@
       </template>
     </el-dialog>
     
+    <!-- 新建文件对话框 -->
+    <el-dialog 
+      v-model="newFileDialogVisible" 
+      title="新建解析器文件" 
+      :width="isMobile ? '90%' : '600px'"
+      :close-on-click-modal="false"
+      class="new-file-dialog"
+    >
+      <el-form 
+        ref="newFileFormRef"
+        :model="newFileForm" 
+        :rules="newFileFormRules"
+        :label-width="isMobile ? '80px' : '100px'"
+      >
+        <el-form-item label="解析器名" prop="name">
+          <el-input
+            v-model="newFileForm.name"
+            placeholder="例如: 示例解析器"
+            clearable
+          />
+          <div class="form-tip">必填, 将作为文件名和@name</div>
+        </el-form-item>
+        <el-form-item label="标识" prop="identifier">
+          <el-input
+            v-model="newFileForm.identifier"
+            placeholder="例如: example_parser"
+            clearable
+          />
+          <div class="form-tip">必填, 将作为@type类型标识</div>
+        </el-form-item>
+        <el-form-item label="作者">
+          <el-input
+            v-model="newFileForm.author"
+            placeholder="例如: yourname"
+            clearable
+          />
+          <div class="form-tip">可选, 默认为 yourname</div>
+        </el-form-item>
+        <el-form-item label="域名匹配">
+          <el-input
+            v-model="newFileForm.match"
+            placeholder="例如: https?://example.com/s/(?&lt;KEY&gt;\w+)"
+            clearable
+          />
+          <div class="form-tip">可选, 正则表达式, 用于匹配分享链接URL</div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer-mobile">
+          <el-button @click="newFileDialogVisible = false" :size="isMobile ? 'default' : 'default'">取消</el-button>
+          <el-button type="primary" @click="createNewFile" :size="isMobile ? 'default' : 'default'">创建</el-button>
+        </div>
+      </template>
+    </el-dialog>
+    
     <!-- 快捷键帮助对话框 -->
     <el-dialog 
       v-model="shortcutsDialogVisible" 
@@ -709,6 +866,53 @@ export default {
 
     const editorRef = ref(null);
     const jsCode = ref('');
+    
+    // ===== 多文件管理 =====
+    const files = ref([
+      { id: 'file1', name: '文件1.js', content: '', modified: false }
+    ]);
+    const activeFileId = ref('file1');
+    const fileIdCounter = ref(1);
+    
+    // 获取当前活动文件
+    const activeFile = computed(() => {
+      return files.value.find(f => f.id === activeFileId.value) || files.value[0];
+    });
+    
+    // 当前编辑的代码（绑定到活动文件）
+    const isFileChanging = ref(false); // 标记是否正在切换文件
+    const currentCode = computed({
+      get: () => activeFile.value?.content || '',
+      set: (value) => {
+        if (activeFile.value && !isFileChanging.value) {
+          // 只有在不是切换文件时才标记为已修改
+          const oldContent = activeFile.value.content;
+          activeFile.value.content = value;
+          // 只有当内容真正改变时才标记为已修改
+          if (oldContent !== value) {
+            activeFile.value.modified = true;
+          }
+        }
+      }
+    });
+    
+    // ===== 新建文件对话框 =====
+    const newFileDialogVisible = ref(false);
+    const newFileForm = ref({
+      name: '',
+      identifier: '',
+      author: '',
+      match: ''
+    });
+    const newFileFormRules = {
+      name: [
+        { required: true, message: '请输入解析器名称', trigger: 'blur' }
+      ],
+      identifier: [
+        { required: true, message: '请输入标识', trigger: 'blur' }
+      ]
+    };
+    const newFileFormRef = ref(null);
     
     // ===== 加载和认证状态 =====
     const loading = ref(true);
@@ -776,6 +980,7 @@ export default {
       { name: '全屏模式', keys: ['F11'] },
       { name: '清空控制台', keys: ['Ctrl+L', 'Cmd+L'] },
       { name: '重置代码', keys: ['Ctrl+R', 'Cmd+R'] },
+      { name: '编辑器缩放', keys: ['Ctrl+滚轮', 'Cmd+滚轮', 'Ctrl+Plus/Minus', 'Cmd+Plus/Minus'] },
       { name: '快捷键帮助', keys: ['Ctrl+/', 'Cmd+/'] }
     ];
     
@@ -852,6 +1057,12 @@ function parseById(shareLinkInfo, http, logger) {
 
     // 编辑器主题
     const editorTheme = computed(() => {
+      // 根据当前主题名称直接判断，而不是依赖 isDarkMode
+      const theme = themes.find(t => t.name === currentTheme.value);
+      if (theme) {
+        return theme.editor;
+      }
+      // 如果没有找到主题，回退到基于 isDarkMode 的判断
       return isDarkMode.value ? 'vs-dark' : 'vs';
     });
     
@@ -861,15 +1072,28 @@ function parseById(shareLinkInfo, http, logger) {
     });
 
     // 编辑器配置
-    const editorOptions = {
-      minimap: { enabled: true },
-      scrollBeyondLastLine: false,
-      wordWrap: 'on',
-      lineNumbers: 'on',
-      formatOnPaste: true,
-      formatOnType: true,
-      tabSize: 2
-    };
+    const wordWrapEnabled = ref(true);
+    const editorOptions = computed(() => {
+      const baseOptions = {
+        minimap: { enabled: !isMobile.value }, // 移动端禁用 minimap
+        scrollBeyondLastLine: false,
+        wordWrap: wordWrapEnabled.value ? 'on' : 'off',
+        lineNumbers: 'on',
+        lineNumbersMinChars: isMobile.value ? 3 : 5, // 移动端行号最多显示3位
+        formatOnPaste: true,
+        formatOnType: true,
+        tabSize: 2,
+        // 启用缩放功能
+        mouseWheelZoom: true, // PC端：Ctrl/Cmd + 鼠标滚轮缩放
+        fontSize: 14, // 默认字体大小
+        quickSuggestions: true,
+        // 移动端支持触摸缩放
+        ...(isMobile.value ? {
+          // 移动端特殊配置
+        } : {})
+      };
+      return baseOptions;
+    });
     
     // ===== 移动端检测 =====
     const updateIsMobile = () => {
@@ -951,6 +1175,25 @@ function parseById(shareLinkInfo, http, logger) {
       router.push('/');
     };
     
+    // 新窗口打开首页
+    const goHomeInNewWindow = () => {
+      window.open('/', '_blank');
+    };
+    
+    // 检查是否有未保存的文件
+    const hasUnsavedFiles = computed(() => {
+      return files.value.some(f => f.modified);
+    });
+    
+    // 页面关闭/刷新前的提示
+    const handleBeforeUnload = (e) => {
+      if (hasUnsavedFiles.value) {
+        e.preventDefault();
+        e.returnValue = '您有未保存的文件，确定要离开吗？';
+        return e.returnValue;
+      }
+    };
+    
     const submitPassword = async () => {
       if (!inputPassword.value.trim()) {
         authError.value = '请输入密码';
@@ -989,29 +1232,45 @@ function parseById(shareLinkInfo, http, logger) {
         await nextTick();
         
         setProgress(20, '加载配置和本地数据...');
-        // 加载保存的代码
-        const saved = localStorage.getItem('playground_code');
-        if (saved) {
-          jsCode.value = saved;
-        } else {
-          // 默认加载示例代码和示例参数
-          jsCode.value = exampleCode;
-          testParams.value.shareUrl = 'https://example.com/s/abc';
-          testParams.value.pwd = '';
-          testParams.value.method = 'parse';
+        
+        // 加载保存的文件列表
+        loadAllFilesFromStorage();
+        
+        // 如果没有文件，加载默认代码
+        if (files.value.length === 0 || !files.value[0].content) {
+          const saved = localStorage.getItem('playground_code');
+          if (saved) {
+            if (files.value.length === 0) {
+              files.value.push({ id: 'file1', name: '文件1.js', content: saved, modified: false });
+            } else {
+              files.value[0].content = saved;
+            }
+          } else {
+            if (files.value.length === 0) {
+              files.value.push({ id: 'file1', name: '文件1.js', content: exampleCode, modified: false });
+            } else {
+              files.value[0].content = exampleCode;
+            }
+            testParams.value.shareUrl = 'https://example.com/s/abc';
+            testParams.value.pwd = '';
+            testParams.value.method = 'parse';
+          }
         }
         
-        setProgress(50, '初始化Monaco Editor类型定义...');
-        await initMonacoTypes();
+        // 更新第一个文件的名称（从代码中提取）
+        if (files.value.length > 0 && files.value[0].id === 'file1') {
+          updateFileNameFromCode(files.value[0]);
+        }
         
-        setProgress(80, '加载完成...');
-        
-        // 加载保存的主题
+        // 先加载保存的主题（在编辑器初始化之前）
         const savedTheme = localStorage.getItem('playground_theme');
         if (savedTheme) {
           currentTheme.value = savedTheme;
           const theme = themes.find(t => t.name === savedTheme);
           if (theme) {
+            // 同步更新 isDarkMode
+            isDarkMode.value = theme.page === 'dark';
+            
             await nextTick();
             const html = document.documentElement;
             const body = document.body;
@@ -1028,6 +1287,12 @@ function parseById(shareLinkInfo, http, logger) {
             }
           }
         }
+        
+        
+        setProgress(50, '初始化Monaco Editor类型定义...');
+        await initMonacoTypes();
+        
+        setProgress(80, '加载完成...');
         
         // 加载保存的折叠状态
         const savedCollapsed = localStorage.getItem('playground_collapsed_panels');
@@ -1087,14 +1352,314 @@ function parseById(shareLinkInfo, http, logger) {
 
     // 代码变化处理
     const onCodeChange = (value) => {
-      jsCode.value = value;
-      // 保存到localStorage
-      localStorage.setItem('playground_code', value);
+      currentCode.value = value;
+      // 更新第一个文件的名称（如果代码中包含@name）
+      if (activeFile.value && activeFile.value.id === 'file1') {
+        updateFileNameFromCode(activeFile.value);
+      }
+      // 保存到localStorage（保存所有文件）
+      saveAllFilesToStorage();
+    };
+    
+    // 保存所有文件到localStorage
+    const saveAllFilesToStorage = () => {
+      const filesData = files.value.map(f => ({
+        id: f.id,
+        name: f.name,
+        content: f.content
+      }));
+      localStorage.setItem('playground_files', JSON.stringify(filesData));
+      localStorage.setItem('playground_active_file', activeFileId.value);
+    };
+    
+    // 从localStorage加载所有文件
+    const loadAllFilesFromStorage = () => {
+      const savedFiles = localStorage.getItem('playground_files');
+      if (savedFiles) {
+        try {
+          const filesData = JSON.parse(savedFiles);
+          files.value = filesData.map(f => ({
+            ...f,
+            modified: false
+          }));
+          const savedActiveFile = localStorage.getItem('playground_active_file');
+          if (savedActiveFile && files.value.find(f => f.id === savedActiveFile)) {
+            activeFileId.value = savedActiveFile;
+          }
+        } catch (e) {
+          console.warn('加载文件列表失败', e);
+        }
+      }
+    };
+    
+    // 文件切换处理
+    const handleFileChange = (fileId) => {
+      // 标记正在切换文件，防止触发修改标记
+      isFileChanging.value = true;
+      activeFileId.value = fileId;
+      saveAllFilesToStorage();
+      // 等待编辑器更新
+      nextTick(() => {
+        if (editorRef.value && editorRef.value.getEditor) {
+          const editor = editorRef.value.getEditor();
+          if (editor) {
+            editor.focus();
+          }
+        }
+        // 切换完成后，取消标记
+        setTimeout(() => {
+          isFileChanging.value = false;
+        }, 100);
+      });
+    };
+    
+    // 删除文件
+    const removeFile = (fileId) => {
+      if (files.value.length <= 1) {
+        ElMessage.warning('至少需要保留一个文件');
+        return;
+      }
+      const index = files.value.findIndex(f => f.id === fileId);
+      if (index !== -1) {
+        files.value.splice(index, 1);
+        // 如果删除的是当前活动文件，切换到第一个文件
+        if (activeFileId.value === fileId) {
+          activeFileId.value = files.value[0].id;
+        }
+        saveAllFilesToStorage();
+      }
+    };
+    
+    // 显示新建文件对话框
+    const showNewFileDialog = () => {
+      newFileForm.value = {
+        name: '',
+        identifier: '',
+        author: '',
+        match: ''
+      };
+      newFileDialogVisible.value = true;
+    };
+    
+    // 生成模板代码
+    const generateTemplate = (name, identifier, author, match) => {
+      const type = identifier.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const displayName = name;
+      const description = `使用JavaScript实现的${name}解析器`;
+      
+      return `// ==UserScript==
+// @name         ${name}
+// @type         ${type}
+// @displayName  ${displayName}
+// @description  ${description}
+// @match        ${match || 'https?://example.com/s/(?<KEY>\\w+)'}
+// @author       ${author || 'yourname'}
+// @version      1.0.0
+// ==/UserScript==
+
+/**
+ * 解析单个文件下载链接
+ * @param {ShareLinkInfo} shareLinkInfo - 分享链接信息
+ * @param {JsHttpClient} http - HTTP客户端
+ * @param {JsLogger} logger - 日志对象
+ * @returns {string} 下载链接
+ */
+function parse(shareLinkInfo, http, logger) {
+    var url = shareLinkInfo.getShareUrl();
+    logger.info("开始解析: " + url);
+    
+    var response = http.get(url);
+    if (!response.isSuccess()) {
+        throw new Error("请求失败: " + response.statusCode());
+    }
+    
+    var html = response.body();
+    // 这里添加你的解析逻辑
+    // 例如：使用正则表达式提取下载链接
+    
+    return "https://example.com/download/file.zip";
+}
+
+/**
+ * 解析文件列表（可选）
+ * @param {ShareLinkInfo} shareLinkInfo - 分享链接信息
+ * @param {JsHttpClient} http - HTTP客户端
+ * @param {JsLogger} logger - 日志对象
+ * @returns {Array} 文件信息数组
+ */
+function parseFileList(shareLinkInfo, http, logger) {
+    var dirId = shareLinkInfo.getOtherParam("dirId") || "0";
+    logger.info("解析文件列表，目录ID: " + dirId);
+    
+    // 这里添加你的文件列表解析逻辑
+    var fileList = [];
+    
+    return fileList;
+}`;
+    };
+    
+    // 创建新文件
+    const createNewFile = async () => {
+      if (!newFileFormRef.value) return;
+      
+      await newFileFormRef.value.validate((valid) => {
+        if (!valid) return;
+        
+        // 使用解析器名称作为文件名
+        const fileName = newFileForm.value.name.endsWith('.js') 
+          ? newFileForm.value.name 
+          : newFileForm.value.name + '.js';
+        
+        // 检查文件名是否已存在
+        if (files.value.some(f => f.name === fileName)) {
+          ElMessage.warning('文件名已存在，请使用其他名称');
+          return;
+        }
+        
+        // 生成模板代码
+        const template = generateTemplate(
+          newFileForm.value.name,
+          newFileForm.value.identifier,
+          newFileForm.value.author,
+          newFileForm.value.match
+        );
+        
+        // 创建新文件
+        fileIdCounter.value++;
+        const newFile = {
+          id: 'file' + fileIdCounter.value,
+          name: fileName,
+          content: template,
+          modified: false
+        };
+        
+        files.value.push(newFile);
+        activeFileId.value = newFile.id;
+        newFileDialogVisible.value = false;
+        saveAllFilesToStorage();
+        
+        ElMessage.success('文件创建成功');
+        
+        // 等待编辑器更新后聚焦
+        nextTick(() => {
+          if (editorRef.value && editorRef.value.getEditor) {
+            const editor = editorRef.value.getEditor();
+            if (editor) {
+              editor.focus();
+            }
+          }
+        });
+      });
+    };
+    
+    // IDE功能：复制全部
+    const copyAll = async () => {
+      try {
+        await navigator.clipboard.writeText(currentCode.value);
+        ElMessage.success('已复制全部内容到剪贴板');
+      } catch (error) {
+        ElMessage.error('复制失败: ' + error.message);
+      }
+    };
+    
+    // IDE功能：全选
+    const selectAll = () => {
+      if (editorRef.value && editorRef.value.getEditor) {
+        const editor = editorRef.value.getEditor();
+        if (editor) {
+          editor.setSelection(editor.getModel().getFullModelRange());
+          editor.focus();
+        }
+      }
+    };
+    
+    // IDE功能：切换自动换行
+    const toggleWordWrap = () => {
+      wordWrapEnabled.value = !wordWrapEnabled.value;
+      // 更新编辑器选项
+      if (editorRef.value && editorRef.value.getEditor) {
+        const editor = editorRef.value.getEditor();
+        if (editor) {
+          editor.updateOptions({ wordWrap: wordWrapEnabled.value ? 'on' : 'off' });
+        }
+      }
+      ElMessage.success(wordWrapEnabled.value ? '已开启自动换行' : '已关闭自动换行');
+    };
+    
+    // IDE功能：导出当前文件
+    const exportCurrentFile = () => {
+      if (!activeFile.value || !activeFile.value.content) {
+        ElMessage.warning('当前文件为空，无法导出');
+        return;
+      }
+      
+      try {
+        const blob = new Blob([activeFile.value.content], { type: 'text/javascript;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = activeFile.value.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        ElMessage.success('文件导出成功');
+      } catch (error) {
+        ElMessage.error('导出失败: ' + error.message);
+      }
+    };
+    
+    // IDE功能：撤销
+    const undo = () => {
+      if (editorRef.value && editorRef.value.getEditor) {
+        const editor = editorRef.value.getEditor();
+        if (editor) {
+          editor.trigger('keyboard', 'undo', null);
+          editor.focus();
+        }
+      }
+    };
+    
+    // IDE功能：重做
+    const redo = () => {
+      if (editorRef.value && editorRef.value.getEditor) {
+        const editor = editorRef.value.getEditor();
+        if (editor) {
+          editor.trigger('keyboard', 'redo', null);
+          editor.focus();
+        }
+      }
+    };
+    
+    // 从代码中提取解析器名称
+    const extractParserName = (code) => {
+      if (!code) return null;
+      const match = code.match(/@name\s+([^\r\n]+)/);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+      return null;
+    };
+    
+    // 更新文件名称（从代码中提取）
+    const updateFileNameFromCode = (file) => {
+      if (!file || file.id !== 'file1') return; // 只更新第一个文件
+      const parserName = extractParserName(file.content);
+      if (parserName) {
+        const newName = parserName.endsWith('.js') ? parserName : parserName + '.js';
+        if (file.name !== newName) {
+          file.name = newName;
+          saveAllFilesToStorage();
+        }
+      }
     };
 
     // 加载示例代码
     const loadTemplate = () => {
-      jsCode.value = exampleCode;
+      if (activeFile.value) {
+        activeFile.value.content = exampleCode;
+        activeFile.value.modified = true;
+      }
       // 重置测试参数为示例链接
       testParams.value.shareUrl = 'https://example.com/s/abc';
       testParams.value.pwd = '';
@@ -1117,33 +1682,33 @@ function parseById(shareLinkInfo, http, logger) {
 
     // 保存代码
     const saveCode = () => {
-      localStorage.setItem('playground_code', jsCode.value);
-      ElMessage.success('代码已保存');
+      if (activeFile.value) {
+        activeFile.value.modified = false;
+        saveAllFilesToStorage();
+        ElMessage.success('代码已保存');
+      }
     };
 
-    // 加载代码
+    // 加载代码（已废弃，使用多文件管理）
     const loadCode = () => {
-      const saved = localStorage.getItem('playground_code');
-      if (saved) {
-        jsCode.value = saved;
-        ElMessage.success('代码已加载');
-      } else {
-        ElMessage.warning('没有保存的代码');
-      }
+      loadAllFilesFromStorage();
+      ElMessage.success('代码已加载');
     };
 
     // 清空代码
     const clearCode = () => {
-      jsCode.value = '';
+      if (activeFile.value) {
+        activeFile.value.content = '';
+        activeFile.value.modified = true;
+      }
       testResult.value = null;
-      compiledES5Code.value = '';
-      compileStatus.value = { success: true, errors: [] };
     };
 
     // 语言切换处理
     // 执行测试
     const executeTest = async () => {
-      if (!jsCode.value.trim()) {
+      const codeToTest = currentCode.value;
+      if (!codeToTest.trim()) {
         ElMessage.warning('请先输入JavaScript代码');
         return;
       }
@@ -1161,7 +1726,7 @@ function parseById(shareLinkInfo, http, logger) {
       ];
       
       for (const { pattern, message } of dangerousPatterns) {
-        if (pattern.test(jsCode.value)) {
+        if (pattern.test(codeToTest)) {
           const confirmed = await ElMessageBox.confirm(
             `⚠️ ${message}\n\n这可能导致脚本无法停止并占用服务器资源。\n\n建议修改代码，添加合理的循环退出条件。\n\n确定要继续执行吗？`,
             '危险代码警告',
@@ -1186,7 +1751,7 @@ function parseById(shareLinkInfo, http, logger) {
 
       try {
         const result = await playgroundApi.testScript(
-          jsCode.value,  // 直接使用JavaScript代码
+          codeToTest,  // 使用当前活动文件的代码
           testParams.value.shareUrl,
           testParams.value.pwd,
           testParams.value.method
@@ -1276,11 +1841,12 @@ function parseById(shareLinkInfo, http, logger) {
 
     // 发布解析器
     const publishParser = () => {
-      if (!jsCode.value.trim()) {
+      const codeToPublish = currentCode.value;
+      if (!codeToPublish.trim()) {
         ElMessage.warning('请先编写JavaScript代码');
         return;
       }
-      publishForm.value.jsCode = jsCode.value;
+      publishForm.value.jsCode = codeToPublish;
       publishDialogVisible.value = true;
     };
 
@@ -1288,14 +1854,15 @@ function parseById(shareLinkInfo, http, logger) {
     const confirmPublish = async () => {
       publishing.value = true;
       try {
-        const result = await playgroundApi.saveParser(jsCode.value);
+        const codeToPublish = currentCode.value;
+        const result = await playgroundApi.saveParser(codeToPublish);
         console.log('保存解析器响应:', result);
         // 检查响应格式
         if (result.code === 200 || result.success) {
           // 从响应或代码中提取type信息
           let parserType = '';
           try {
-            const typeMatch = jsCode.value.match(/@type\s+(\w+)/);
+            const typeMatch = codeToPublish.match(/@type\s+(\w+)/);
             parserType = typeMatch ? typeMatch[1] : '';
           } catch (e) {
             console.warn('无法提取type', e);
@@ -1363,14 +1930,56 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       }
     };
 
-    // 加载解析器到编辑器
+    // 加载解析器到编辑器（添加到新的文件tab标签）
     const loadParserToEditor = async (parser) => {
       try {
         const result = await playgroundApi.getParserById(parser.id);
         if (result.code === 200 && result.data) {
-          jsCode.value = result.data.jsCode;
+          // 从代码中提取文件名
+          const code = result.data.jsCode;
+          let fileName = parser.name || '解析器.js';
+          
+          // 尝试从@name提取文件名
+          const nameMatch = code.match(/@name\s+([^\r\n]+)/);
+          if (nameMatch && nameMatch[1]) {
+            const parserName = nameMatch[1].trim();
+            fileName = parserName.endsWith('.js') ? parserName : parserName + '.js';
+          }
+          
+          // 检查文件名是否已存在，如果存在则添加序号
+          let finalFileName = fileName;
+          let counter = 1;
+          while (files.value.some(f => f.name === finalFileName)) {
+            const nameWithoutExt = fileName.replace(/\.js$/, '');
+            finalFileName = `${nameWithoutExt}_${counter}.js`;
+            counter++;
+          }
+          
+          // 创建新文件
+          fileIdCounter.value++;
+          const newFile = {
+            id: 'file' + fileIdCounter.value,
+            name: finalFileName,
+            content: code,
+            modified: false
+          };
+          
+          files.value.push(newFile);
+          activeFileId.value = newFile.id;
           activeTab.value = 'editor';
-          ElMessage.success('已加载到编辑器');
+          saveAllFilesToStorage();
+          
+          ElMessage.success('已添加到新文件标签');
+          
+          // 等待编辑器更新后聚焦
+          nextTick(() => {
+            if (editorRef.value && editorRef.value.getEditor) {
+              const editor = editorRef.value.getEditor();
+              if (editor) {
+                editor.focus();
+              }
+            }
+          });
         } else {
           ElMessage.error('加载失败');
         }
@@ -1414,6 +2023,9 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       currentTheme.value = themeName;
       const theme = themes.find(t => t.name === themeName);
       if (theme) {
+        // 同步更新 isDarkMode
+        isDarkMode.value = theme.page === 'dark';
+        
         // 切换页面主题
         const html = document.documentElement;
         const body = document.body;
@@ -1615,6 +2227,9 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       updateIsMobile();
       window.addEventListener('resize', updateIsMobile);
       
+      // 添加页面关闭/刷新前的提示
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      
       // 检查认证状态
       const isAuthed = await checkAuthStatus();
       
@@ -1651,12 +2266,15 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
     
     onUnmounted(() => {
       window.removeEventListener('resize', updateIsMobile);
+      // 移除页面关闭/刷新前的提示
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     });
 
     return {
       LANGUAGE,
       editorRef,
       jsCode,
+      currentCode,
       testParams,
       testResult,
       testing,
@@ -1664,6 +2282,27 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       editorTheme,
       shouldShowAuthUI,
       editorOptions,
+      // 多文件管理
+      files,
+      activeFileId,
+      activeFile,
+      handleFileChange,
+      removeFile,
+      // 新建文件
+      newFileDialogVisible,
+      newFileForm,
+      newFileFormRef,
+      newFileFormRules,
+      showNewFileDialog,
+      createNewFile,
+      // IDE功能
+      copyAll,
+      selectAll,
+      toggleWordWrap,
+      wordWrapEnabled,
+      exportCurrentFile,
+      undo,
+      redo,
       // 加载和认证
       loading,
       loadProgress,
@@ -1677,6 +2316,7 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       checkAuthStatus,
       submitPassword,
       goHome,
+      goHomeInNewWindow,
       // 移动端
       isMobile,
       updateIsMobile,
@@ -1939,6 +2579,12 @@ body.dark-theme .splitpanes__splitter:hover,
   transition: all 0.3s ease;
 }
 
+/* 移动端：去掉边距，占满宽度 */
+.playground-container.is-mobile {
+  padding: 0;
+  min-height: 100vh;
+}
+
 .playground-container.dark-theme {
   background-color: #0a0a0a;
 }
@@ -1964,6 +2610,18 @@ body.dark-theme .splitpanes__splitter:hover,
   transition: all 0.3s ease;
 }
 
+/* 移动端：卡片占满宽度，去掉边距 */
+.playground-container.is-mobile .playground-card {
+  margin: 0;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+}
+
+.playground-container.is-mobile .playground-card :deep(.el-card__body) {
+  padding: 12px;
+}
+
 .dark-theme .playground-card {
   background: #1a1a1a;
   border-color: rgba(255, 255, 255, 0.1);
@@ -1986,7 +2644,23 @@ body.dark-theme .splitpanes__splitter:hover,
 
 .header-left {
   display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+  gap: 4px;
+}
+
+.header-left-top {
+  display: flex;
   align-items: center;
+  width: 100%;
+}
+
+.header-left-bottom {
+  display: flex;
+  align-items: center;
+  width: 100%;
 }
 
 .title {
@@ -1995,11 +2669,73 @@ body.dark-theme .splitpanes__splitter:hover,
   color: var(--el-text-color-primary);
 }
 
+/* 面包屑导航样式 */
+.breadcrumb-nav {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.breadcrumb-nav :deep(.el-breadcrumb) {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.breadcrumb-nav :deep(.el-breadcrumb__inner) {
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.breadcrumb-nav :deep(.el-breadcrumb__inner.is-link) {
+  color: var(--el-text-color-primary);
+  font-weight: 500;
+}
+
+.breadcrumb-nav :deep(.el-breadcrumb__separator) {
+  margin: 0 8px;
+  white-space: nowrap;
+}
+
+.breadcrumb-link {
+  display: inline-flex;
+  align-items: center;
+  color: var(--el-text-color-primary);
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.breadcrumb-link:hover {
+  color: var(--el-color-primary);
+}
+
+.dark-theme .breadcrumb-link {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.dark-theme .breadcrumb-link:hover {
+  color: var(--el-color-primary);
+}
+
 .header-actions {
   display: flex;
   gap: 8px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+/* 移动端：按钮左对齐 */
+.playground-container.is-mobile .header-actions {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.playground-container.is-mobile .header-actions .el-button-group {
+  margin-right: 0;
 }
 
 /* ===== Splitpanes样式 ===== */
@@ -2217,6 +2953,15 @@ html.dark .default-theme.splitpanes {
   background: transparent !important;
 }
 
+/* 确保编辑器面板和测试面板高度一致 */
+.editor-pane,
+.test-pane {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 /* 暗色模式下确保所有分隔线都是深色 - 终极覆盖 */
 .dark-theme .splitpanes__splitter,
 .dark-theme .splitpanes.default-theme > .splitpanes__splitter,
@@ -2383,12 +3128,55 @@ html.dark .playground-container .splitpanes__splitter:hover {
   transform: translateY(-20px);
 }
 
+/* ===== 文件标签页 ===== */
+.file-tabs-container {
+  margin-bottom: 12px;
+}
+
+.file-tabs-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-tabs {
+  flex: 1;
+}
+
+.file-tabs :deep(.el-tabs__header) {
+  margin: 0;
+}
+
+.file-tabs :deep(.el-tabs__item) {
+  padding: 0 15px;
+  height: 32px;
+  line-height: 32px;
+  font-size: 13px;
+}
+
+.file-tabs :deep(.el-tabs__item.is-active) {
+  background-color: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+
+.dark-theme .file-tabs :deep(.el-tabs__item.is-active) {
+  background-color: rgba(64, 158, 255, 0.2);
+  color: var(--el-color-primary);
+}
+
+.new-file-tab-btn {
+  flex-shrink: 0;
+}
+
 /* ===== 编辑器区域 ===== */
 .editor-section {
   border-radius: 4px;
   overflow: hidden;
   border: 1px solid var(--el-border-color);
   background: var(--el-bg-color);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ===== 测试区域 ===== */
@@ -2661,6 +3449,14 @@ html.dark .playground-container .splitpanes__splitter:hover {
   color: rgba(255, 255, 255, 0.85);
 }
 
+/* ===== 新建文件对话框样式 ===== */
+.new-file-dialog .form-tip {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
 .empty-result {
   text-align: center;
   padding: 40px 0;
@@ -2903,7 +3699,55 @@ html.dark .playground-container .splitpanes__splitter:hover {
 
 .mobile-layout .editor-section {
   width: 100%;
+  margin: 0;
   margin-bottom: 12px;
+  padding: 0;
+}
+
+/* 移动端编辑器容器：去掉所有边距 */
+.playground-container.is-mobile .mobile-layout .editor-section {
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.playground-container.is-mobile .mobile-layout .editor-section :deep(.monaco-editor-container) {
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+}
+
+/* 移动端编辑器悬浮操作按钮 */
+.mobile-editor-actions {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+}
+
+.mobile-editor-actions .editor-action-btn {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+}
+
+.mobile-editor-actions .editor-action-btn:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
+  transition: all 0.2s ease;
+}
+
+.dark-theme .mobile-editor-actions .editor-action-btn {
+  background: rgba(30, 30, 30, 0.95);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.dark-theme .mobile-editor-actions .editor-action-btn:hover {
+  background: rgba(40, 40, 40, 0.95);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .mobile-test-section {
