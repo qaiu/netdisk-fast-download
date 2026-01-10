@@ -4,6 +4,7 @@ import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.custom.CustomParserConfig;
 import cn.qaiu.parser.custom.CustomParserRegistry;
 import cn.qaiu.parser.customjs.JsParserExecutor;
+import cn.qaiu.parser.custompy.PyParserExecutor;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -155,6 +156,9 @@ public class ParserCreate {
             // 检查是否为JavaScript解析器
             if (customParserConfig.isJsParser()) {
                 return new JsParserExecutor(shareLinkInfo, customParserConfig);
+            } else if (customParserConfig.isPyParser()) {
+                // Python解析器
+                return new PyParserExecutor(shareLinkInfo, customParserConfig);
             } else {
                 // Java实现的解析器
                 try {

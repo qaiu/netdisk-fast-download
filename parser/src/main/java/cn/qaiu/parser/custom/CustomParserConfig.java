@@ -54,9 +54,24 @@ public class CustomParserConfig {
     private final String jsCode;
 
     /**
+     * Python代码（用于Python解析器）
+     */
+    private final String pyCode;
+
+    /**
      * 是否为JavaScript解析器
      */
     private final boolean isJsParser;
+
+    /**
+     * 是否为Python解析器
+     */
+    private final boolean isPyParser;
+
+    /**
+     * 脚本语言类型：javascript, python
+     */
+    private final String language;
 
     /**
      * 元数据信息（从脚本注释中解析）
@@ -71,7 +86,10 @@ public class CustomParserConfig {
         this.panDomain = builder.panDomain;
         this.matchPattern = builder.matchPattern;
         this.jsCode = builder.jsCode;
+        this.pyCode = builder.pyCode;
         this.isJsParser = builder.isJsParser;
+        this.isPyParser = builder.isPyParser;
+        this.language = builder.language;
         this.metadata = builder.metadata;
     }
 
@@ -103,8 +121,20 @@ public class CustomParserConfig {
         return jsCode;
     }
 
+    public String getPyCode() {
+        return pyCode;
+    }
+
     public boolean isJsParser() {
         return isJsParser;
+    }
+
+    public boolean isPyParser() {
+        return isPyParser;
+    }
+
+    public String getLanguage() {
+        return language;
     }
 
     public Map<String, String> getMetadata() {
@@ -134,7 +164,10 @@ public class CustomParserConfig {
         private String panDomain;
         private Pattern matchPattern;
         private String jsCode;
+        private String pyCode;
         private boolean isJsParser;
+        private boolean isPyParser;
+        private String language;
         private Map<String, String> metadata;
 
         /**
@@ -212,11 +245,44 @@ public class CustomParserConfig {
         }
 
         /**
+         * 设置Python代码（用于Python解析器）
+         * @param pyCode Python代码
+         */
+        public Builder pyCode(String pyCode) {
+            this.pyCode = pyCode;
+            return this;
+        }
+
+        /**
          * 设置是否为JavaScript解析器
          * @param isJsParser 是否为JavaScript解析器
          */
         public Builder isJsParser(boolean isJsParser) {
             this.isJsParser = isJsParser;
+            if (isJsParser) {
+                this.language = "javascript";
+            }
+            return this;
+        }
+
+        /**
+         * 设置是否为Python解析器
+         * @param isPyParser 是否为Python解析器
+         */
+        public Builder isPyParser(boolean isPyParser) {
+            this.isPyParser = isPyParser;
+            if (isPyParser) {
+                this.language = "python";
+            }
+            return this;
+        }
+
+        /**
+         * 设置脚本语言类型
+         * @param language 语言类型：javascript, python
+         */
+        public Builder language(String language) {
+            this.language = language;
             return this;
         }
 
@@ -245,6 +311,11 @@ public class CustomParserConfig {
             if (isJsParser) {
                 if (jsCode == null || jsCode.trim().isEmpty()) {
                     throw new IllegalArgumentException("JavaScript解析器的jsCode不能为空");
+                }
+            } else if (isPyParser) {
+                // 如果是Python解析器，验证pyCode
+                if (pyCode == null || pyCode.trim().isEmpty()) {
+                    throw new IllegalArgumentException("Python解析器的pyCode不能为空");
                 }
             } else {
                 // 如果是Java解析器，验证toolClass
@@ -288,7 +359,10 @@ public class CustomParserConfig {
                 ", panDomain='" + panDomain + '\'' +
                 ", matchPattern=" + (matchPattern != null ? matchPattern.pattern() : "null") +
                 ", jsCode=" + (jsCode != null ? "[JavaScript代码]" : "null") +
+                ", pyCode=" + (pyCode != null ? "[Python代码]" : "null") +
                 ", isJsParser=" + isJsParser +
+                ", isPyParser=" + isPyParser +
+                ", language='" + language + '\'' +
                 ", metadata=" + metadata +
                 '}';
     }

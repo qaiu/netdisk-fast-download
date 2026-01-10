@@ -37,20 +37,23 @@ export const playgroundApi = {
   },
 
   /**
-   * 测试执行JavaScript代码
-   * @param {string} jsCode - JavaScript代码
+   * 测试执行JavaScript/Python代码
+   * @param {string} code - 代码
    * @param {string} shareUrl - 分享链接
    * @param {string} pwd - 密码（可选）
    * @param {string} method - 测试方法：parse/parseFileList/parseById
+   * @param {string} language - 语言类型：javascript/python
    * @returns {Promise} 测试结果
    */
-  async testScript(jsCode, shareUrl, pwd = '', method = 'parse') {
+  async testScript(code, shareUrl, pwd = '', method = 'parse', language = 'javascript') {
     try {
       const response = await axiosInstance.post('/v2/playground/test', {
-        jsCode,
+        jsCode: code, // 兼容后端旧字段名
+        code,
         shareUrl,
         pwd,
-        method
+        method,
+        language
       });
       // 框架会自动包装成JsonResult，需要从data字段获取
       if (response.data && response.data.data) {
@@ -84,6 +87,21 @@ export const playgroundApi = {
   },
 
   /**
+   * 获取types.pyi文件内容（Python类型提示）
+   * @returns {Promise<string>} types.pyi内容
+   */
+  async getTypesPyi() {
+    try {
+      const response = await axiosInstance.get('/v2/playground/types.pyi', {
+        responseType: 'text'
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.error || error.message || '获取types.pyi失败');
+    }
+  },
+
+  /**
    * 获取解析器列表
    */
   async getParserList() {
@@ -106,10 +124,16 @@ export const playgroundApi = {
 
   /**
    * 保存解析器
+   * @param {string} code - 代码
+   * @param {string} language - 语言类型：javascript/python
    */
-  async saveParser(jsCode) {
+  async saveParser(code, language = 'javascript') {
     try {
-      const response = await axiosInstance.post('/v2/playground/parsers', { jsCode });
+      const response = await axiosInstance.post('/v2/playground/parsers', { 
+        jsCode: code, // 兼容后端旧字段名
+        code,
+        language 
+      });
       // 框架会自动包装成JsonResult
       if (response.data && response.data.data) {
         return {
@@ -132,10 +156,19 @@ export const playgroundApi = {
 
   /**
    * 更新解析器
+   * @param {number} id - 解析器ID
+   * @param {string} code - 代码
+   * @param {boolean} enabled - 是否启用
+   * @param {string} language - 语言类型：javascript/python
    */
-  async updateParser(id, jsCode, enabled = true) {
+  async updateParser(id, code, enabled = true, language = 'javascript') {
     try {
-      const response = await axiosInstance.put(`/v2/playground/parsers/${id}`, { jsCode, enabled });
+      const response = await axiosInstance.put(`/v2/playground/parsers/${id}`, { 
+        jsCode: code, // 兼容后端旧字段名
+        code,
+        enabled,
+        language
+      });
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.error || error.message || '更新解析器失败');

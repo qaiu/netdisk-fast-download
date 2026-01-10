@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory;
 import cn.qaiu.parser.PanDomainTemplate;
 import cn.qaiu.parser.customjs.JsScriptLoader;
 import cn.qaiu.parser.customjs.JsScriptMetadataParser;
+import cn.qaiu.parser.custompy.PyScriptLoader;
+import cn.qaiu.parser.custompy.PyScriptMetadataParser;
 
 import java.util.List;
 import java.util.Map;
@@ -83,6 +85,24 @@ public class CustomParserRegistry {
     }
 
     /**
+     * 注册Python解析器
+     *
+     * @param config Python解析器配置
+     * @throws IllegalArgumentException 如果type已存在或与内置解析器冲突
+     */
+    public static void registerPy(CustomParserConfig config) {
+        if (config == null) {
+            throw new IllegalArgumentException("config不能为空");
+        }
+        
+        if (!config.isPyParser()) {
+            throw new IllegalArgumentException("config必须是Python解析器配置");
+        }
+        
+        register(config);
+    }
+
+    /**
      * 从JavaScript代码字符串注册解析器
      *
      * @param jsCode JavaScript代码
@@ -140,6 +160,63 @@ public class CustomParserRegistry {
     }
 
     /**
+     * 从Python代码字符串注册解析器
+     *
+     * @param pyCode Python代码
+     * @throws IllegalArgumentException 如果解析失败
+     */
+    public static void registerPyFromCode(String pyCode) {
+        if (pyCode == null || pyCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Python代码不能为空");
+        }
+        
+        try {
+            CustomParserConfig config = PyScriptMetadataParser.parseScript(pyCode);
+            registerPy(config);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("解析Python代码失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 从文件注册Python解析器
+     *
+     * @param filePath 文件路径
+     * @throws IllegalArgumentException 如果文件不存在或解析失败
+     */
+    public static void registerPyFromFile(String filePath) {
+        if (filePath == null || filePath.trim().isEmpty()) {
+            throw new IllegalArgumentException("文件路径不能为空");
+        }
+        
+        try {
+            CustomParserConfig config = PyScriptLoader.loadFromFile(filePath);
+            registerPy(config);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("从文件加载Python解析器失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 从资源文件注册Python解析器
+     *
+     * @param resourcePath 资源路径
+     * @throws IllegalArgumentException 如果资源不存在或解析失败
+     */
+    public static void registerPyFromResource(String resourcePath) {
+        if (resourcePath == null || resourcePath.trim().isEmpty()) {
+            throw new IllegalArgumentException("资源路径不能为空");
+        }
+        
+        try {
+            CustomParserConfig config = PyScriptLoader.loadFromResource(resourcePath);
+            registerPy(config);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("从资源加载Python解析器失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * 自动加载所有JavaScript脚本
      */
     public static void autoLoadJsScripts() {
@@ -163,6 +240,40 @@ public class CustomParserRegistry {
         } catch (Exception e) {
             log.error("自动加载JavaScript脚本时发生异常", e);
         }
+    }
+
+    /**
+     * 自动加载所有Python脚本
+     */
+    public static void autoLoadPyScripts() {
+        try {
+            List<CustomParserConfig> configs = PyScriptLoader.loadAllScripts();
+            int successCount = 0;
+            int failCount = 0;
+            
+            for (CustomParserConfig config : configs) {
+                try {
+                    registerPy(config);
+                    successCount++;
+                } catch (Exception e) {
+                    log.error("加载Python脚本失败: {}", config.getType(), e);
+                    failCount++;
+                }
+            }
+            
+            log.info("自动加载Python脚本完成: 成功 {} 个，失败 {} 个", successCount, failCount);
+            
+        } catch (Exception e) {
+            log.error("自动加载Python脚本时发生异常", e);
+        }
+    }
+
+    /**
+     * 自动加载所有脚本（JavaScript和Python）
+     */
+    public static void autoLoadAllScripts() {
+        autoLoadJsScripts();
+        autoLoadPyScripts();
     }
 
     /**
