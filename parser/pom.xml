@@ -114,10 +114,10 @@
             <version>${graalpy.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.graalvm.python</groupId>
+            <groupId>org.graalvm.polyglot</groupId>
             <artifactId>python</artifactId>
             <version>${graalpy.version}</version>
-            <scope>runtime</scope>
+            <type>pom</type>
         </dependency>
         <dependency>
             <groupId>org.graalvm.python</groupId>
