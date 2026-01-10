@@ -96,6 +96,7 @@ String url = tool.parseSync();
 ## 文档
 - parser/doc/README.md：解析约定、示例、IDEA `.http` 调试
 - **parser/doc/JAVASCRIPT_PARSER_GUIDE.md：JavaScript解析器开发完整指南** - 使用JavaScript编写自定义解析器
+- **parser/doc/PYTHON_PARSER_GUIDE.md：Python解析器开发完整指南** - 使用Python(GraalPy)编写自定义解析器
 - **parser/doc/CUSTOM_PARSER_GUIDE.md：自定义解析器扩展完整指南** - Java自定义解析器扩展
 - **parser/doc/CUSTOM_PARSER_QUICKSTART.md：自定义解析器快速开始** - 快速上手指南
 
