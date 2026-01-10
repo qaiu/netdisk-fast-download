@@ -114,10 +114,15 @@
             <version>${graalpy.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.graalvm.polyglot</groupId>
+            <groupId>org.graalvm.python</groupId>
             <artifactId>python</artifactId>
             <version>${graalpy.version}</version>
-            <type>pom</type>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.python</groupId>
+            <artifactId>python-embedding</artifactId>
+            <version>${graalpy.version}</version>
         </dependency>
 
         <!-- Compression (Brotli) -->

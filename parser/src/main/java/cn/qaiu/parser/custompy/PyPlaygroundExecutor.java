@@ -6,10 +6,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Engine;
-import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.Value;
-import org.graalvm.polyglot.io.IOAccess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,6 +18,7 @@ import java.util.concurrent.*;
  * Python演练场执行器
  * 用于临时执行Python代码，不注册到解析器注册表
  * 使用独立线程池避免Vert.x BlockedThreadChecker警告
+ * 使用 PyContextPool 进行 Engine 和 Context 池化管理
  *
  * @author QAIU
  */
@@ -31,26 +29,8 @@ public class PyPlaygroundExecutor {
     // Python执行超时时间（秒）
     private static final long EXECUTION_TIMEOUT_SECONDS = 30;
     
-    // 共享的GraalPy引擎
-    private static final Engine SHARED_ENGINE = Engine.newBuilder()
-            .option("engine.WarnInterpreterOnly", "false")
-            .build();
-    
-    // 使用独立的线程池
-    private static final ExecutorService INDEPENDENT_EXECUTOR = Executors.newCachedThreadPool(r -> {
-        Thread thread = new Thread(r);
-        thread.setName("py-playground-independent-" + System.currentTimeMillis());
-        thread.setDaemon(true);
-        return thread;
-    });
-    
-    // 超时调度线程池
-    private static final ScheduledExecutorService TIMEOUT_SCHEDULER = Executors.newScheduledThreadPool(2, r -> {
-        Thread thread = new Thread(r);
-        thread.setName("py-playground-timeout-scheduler-" + System.currentTimeMillis());
-        thread.setDaemon(true);
-        return thread;
-    });
+    // Context池实例
+    private static final PyContextPool CONTEXT_POOL = PyContextPool.getInstance();
     
     private final ShareLinkInfo shareLinkInfo;
     private final String pyCode;
@@ -82,33 +62,6 @@ public class PyPlaygroundExecutor {
     }
     
     /**
-     * 创建安全的GraalPy Context
-     */
-    private Context createContext() {
-        return Context.newBuilder("python")
-                .engine(SHARED_ENGINE)
-                .allowHostAccess(HostAccess.newBuilder(HostAccess.EXPLICIT)
-                        .allowArrayAccess(true)
-                        .allowListAccess(true)
-                        .allowMapAccess(true)
-                        .allowIterableAccess(true)
-                        .allowIteratorAccess(true)
-                        .build())
-                .allowHostClassLookup(className -> false)
-                .allowExperimentalOptions(true)
-                .allowCreateThread(true)
-                .allowNativeAccess(false)
-                .allowCreateProcess(false)
-                .allowIO(IOAccess.newBuilder()
-                        .allowHostFileAccess(false)
-                        .allowHostSocketAccess(false)
-                        .build())
-                .option("python.PythonHome", "")
-                .option("python.ForceImportSite", "false")
-                .build();
-    }
-    
-    /**
      * 执行parse方法（异步，带超时控制）
      */
     public Future<String> executeParseAsync() {
@@ -117,7 +70,8 @@ public class PyPlaygroundExecutor {
         CompletableFuture<String> executionFuture = CompletableFuture.supplyAsync(() -> {
             playgroundLogger.infoJava("开始执行parse方法");
             
-            try (Context context = createContext()) {
+            // 使用池化的Context（每次执行创建新的Context以保证状态隔离）
+            try (Context context = CONTEXT_POOL.createFreshContext()) {
                 // 注入Java对象到Python环境
                 Value bindings = context.getBindings("python");
                 bindings.putMember("http", httpClient);
@@ -153,10 +107,10 @@ public class PyPlaygroundExecutor {
                 playgroundLogger.errorJava("执行parse方法失败: " + e.getMessage(), e);
                 throw new RuntimeException(e);
             }
-        }, INDEPENDENT_EXECUTOR);
+        }, CONTEXT_POOL.getPythonExecutor());
         
         // 创建超时任务
-        ScheduledFuture<?> timeoutTask = TIMEOUT_SCHEDULER.schedule(() -> {
+        ScheduledFuture<?> timeoutTask = CONTEXT_POOL.getTimeoutScheduler().schedule(() -> {
             if (!executionFuture.isDone()) {
                 executionFuture.cancel(true);
                 playgroundLogger.errorJava("执行超时，已强制中断");
@@ -195,7 +149,7 @@ public class PyPlaygroundExecutor {
         CompletableFuture<List<FileInfo>> executionFuture = CompletableFuture.supplyAsync(() -> {
             playgroundLogger.infoJava("开始执行parse_file_list方法");
             
-            try (Context context = createContext()) {
+            try (Context context = CONTEXT_POOL.createFreshContext()) {
                 Value bindings = context.getBindings("python");
                 bindings.putMember("http", httpClient);
                 bindings.putMember("logger", playgroundLogger);
@@ -220,9 +174,9 @@ public class PyPlaygroundExecutor {
                 playgroundLogger.errorJava("执行parse_file_list方法失败: " + e.getMessage(), e);
                 throw new RuntimeException(e);
             }
-        }, INDEPENDENT_EXECUTOR);
+        }, CONTEXT_POOL.getPythonExecutor());
         
-        ScheduledFuture<?> timeoutTask = TIMEOUT_SCHEDULER.schedule(() -> {
+        ScheduledFuture<?> timeoutTask = CONTEXT_POOL.getTimeoutScheduler().schedule(() -> {
             if (!executionFuture.isDone()) {
                 executionFuture.cancel(true);
                 playgroundLogger.errorJava("执行超时，已强制中断");
@@ -257,7 +211,7 @@ public class PyPlaygroundExecutor {
         CompletableFuture<String> executionFuture = CompletableFuture.supplyAsync(() -> {
             playgroundLogger.infoJava("开始执行parse_by_id方法");
             
-            try (Context context = createContext()) {
+            try (Context context = CONTEXT_POOL.createFreshContext()) {
                 Value bindings = context.getBindings("python");
                 bindings.putMember("http", httpClient);
                 bindings.putMember("logger", playgroundLogger);
@@ -288,9 +242,9 @@ public class PyPlaygroundExecutor {
                 playgroundLogger.errorJava("执行parse_by_id方法失败: " + e.getMessage(), e);
                 throw new RuntimeException(e);
             }
-        }, INDEPENDENT_EXECUTOR);
+        }, CONTEXT_POOL.getPythonExecutor());
         
-        ScheduledFuture<?> timeoutTask = TIMEOUT_SCHEDULER.schedule(() -> {
+        ScheduledFuture<?> timeoutTask = CONTEXT_POOL.getTimeoutScheduler().schedule(() -> {
             if (!executionFuture.isDone()) {
                 executionFuture.cancel(true);
                 playgroundLogger.errorJava("执行超时，已强制中断");

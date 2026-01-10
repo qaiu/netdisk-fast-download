@@ -1625,66 +1625,77 @@ def parse_file_list(share_link_info, http, logger):
     const createNewFile = async () => {
       if (!newFileFormRef.value) return;
       
-      await newFileFormRef.value.validate((valid) => {
+      try {
+        // 使用 Promise 模式进行表单验证
+        const valid = await newFileFormRef.value.validate();
         if (!valid) return;
-        
-        const language = newFileForm.value.language || 'javascript';
-        const isPython = language === 'python';
-        const fileExt = isPython ? '.py' : '.js';
-        
-        // 使用解析器名称作为文件名
-        let fileName = newFileForm.value.name;
-        if (!fileName.endsWith(fileExt)) {
-          // 移除可能的错误扩展名
-          fileName = fileName.replace(/\.(js|py)$/i, '');
-          fileName = fileName + fileExt;
+      } catch (e) {
+        // 验证失败
+        return;
+      }
+      
+      const language = newFileForm.value.language || 'javascript';
+      const isPython = language === 'python';
+      const fileExt = isPython ? '.py' : '.js';
+      
+      // 使用解析器名称作为文件名
+      let fileName = newFileForm.value.name;
+      if (!fileName.endsWith(fileExt)) {
+        // 移除可能的错误扩展名
+        fileName = fileName.replace(/\.(js|py)$/i, '');
+        fileName = fileName + fileExt;
+      }
+      
+      // 检查文件名是否已存在
+      if (files.value.some(f => f.name === fileName)) {
+        ElMessage.warning('文件名已存在，请使用其他名称');
+        return;
+      }
+      
+      // 生成模板代码
+      const template = generateTemplate(
+        newFileForm.value.name.replace(/\.(js|py)$/i, ''),
+        newFileForm.value.identifier,
+        newFileForm.value.author,
+        newFileForm.value.match,
+        language
+      );
+      
+      // 创建新文件
+      fileIdCounter.value++;
+      const newFile = {
+        id: 'file' + fileIdCounter.value,
+        name: fileName,
+        content: template,
+        language: language,
+        modified: false
+      };
+      
+      files.value.push(newFile);
+      
+      // 关闭对话框并保存
+      newFileDialogVisible.value = false;
+      saveAllFilesToStorage();
+      
+      // 使用 nextTick 确保 DOM 更新后再切换选项卡
+      await nextTick();
+      
+      // 设置活动文件 ID（此时 DOM 已更新，tab 已存在）
+      activeFileId.value = newFile.id;
+      
+      // 更新编辑器语言模式
+      updateEditorLanguage(language);
+      
+      ElMessage.success(`${isPython ? 'Python' : 'JavaScript'}文件创建成功`);
+      
+      // 等待编辑器更新后聚焦
+      await nextTick();
+      if (editorRef.value && editorRef.value.getEditor) {
+        const editor = editorRef.value.getEditor();
+        if (editor) {
+          editor.focus();
         }
-        
-        // 检查文件名是否已存在
-        if (files.value.some(f => f.name === fileName)) {
-          ElMessage.warning('文件名已存在，请使用其他名称');
-          return;
-        }
-        
-        // 生成模板代码
-        const template = generateTemplate(
-          newFileForm.value.name.replace(/\.(js|py)$/i, ''),
-          newFileForm.value.identifier,
-          newFileForm.value.author,
-          newFileForm.value.match,
-          language
-        );
-        
-        // 创建新文件
-        fileIdCounter.value++;
-        const newFile = {
-          id: 'file' + fileIdCounter.value,
-          name: fileName,
-          content: template,
-          language: language,
-          modified: false
-        };
-        
-        files.value.push(newFile);
-        activeFileId.value = newFile.id;
-        newFileDialogVisible.value = false;
-        saveAllFilesToStorage();
-        
-        // 更新编辑器语言模式
-        updateEditorLanguage(language);
-        
-        ElMessage.success(`${isPython ? 'Python' : 'JavaScript'}文件创建成功`);
-        
-        // 等待编辑器更新后聚焦
-        nextTick(() => {
-          if (editorRef.value && editorRef.value.getEditor) {
-            const editor = editorRef.value.getEditor();
-            if (editor) {
-              editor.focus();
-            }
-          }
-        });
-      });
+      }
     };
     
     // IDE功能：复制全部

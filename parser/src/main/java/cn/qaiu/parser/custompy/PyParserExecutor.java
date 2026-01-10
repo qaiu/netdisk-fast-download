@@ -9,21 +9,18 @@ import io.vertx.core.Future;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Engine;
-import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.Value;
-import org.graalvm.polyglot.io.IOAccess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Python解析器执行器
  * 使用GraalPy执行Python解析器脚本
  * 实现IPanTool接口，执行Python解析器逻辑
+ * 使用 PyContextPool 进行 Engine 池化管理
  *
  * @author QAIU
  */
@@ -34,10 +31,8 @@ public class PyParserExecutor implements IPanTool {
     private static final WorkerExecutor EXECUTOR = WebClientVertxInit.get()
             .createSharedWorkerExecutor("py-parser-executor", 32);
     
-    // 共享的GraalPy引擎，提高性能
-    private static final Engine SHARED_ENGINE = Engine.newBuilder()
-            .option("engine.WarnInterpreterOnly", "false")
-            .build();
+    // Context池实例
+    private static final PyContextPool CONTEXT_POOL = PyContextPool.getInstance();
     
     private final CustomParserConfig config;
     private final ShareLinkInfo shareLinkInfo;
@@ -71,48 +66,12 @@ public class PyParserExecutor implements IPanTool {
         return shareLinkInfo;
     }
     
-    /**
-     * 创建安全的GraalPy Context
-     * 配置沙箱选项，禁用危险功能
-     */
-    private Context createContext() {
-        return Context.newBuilder("python")
-                .engine(SHARED_ENGINE)
-                // 允许访问带有@HostAccess.Export注解的Java方法
-                .allowHostAccess(HostAccess.newBuilder(HostAccess.EXPLICIT)
-                        .allowArrayAccess(true)
-                        .allowListAccess(true)
-                        .allowMapAccess(true)
-                        .allowIterableAccess(true)
-                        .allowIteratorAccess(true)
-                        .build())
-                // 禁止访问任意Java类
-                .allowHostClassLookup(className -> false)
-                // 允许实验性选项
-                .allowExperimentalOptions(true)
-                // 允许创建线程（某些Python库需要）
-                .allowCreateThread(true)
-                // 禁用原生访问
-                .allowNativeAccess(false)
-                // 禁止创建子进程
-                .allowCreateProcess(false)
-                // 允许虚拟文件系统访问（用于import等）
-                .allowIO(IOAccess.newBuilder()
-                        .allowHostFileAccess(false)
-                        .allowHostSocketAccess(false)
-                        .build())
-                // GraalPy特定选项
-                .option("python.PythonHome", "")
-                .option("python.ForceImportSite", "false")
-                .build();
-    }
-    
     @Override
     public Future<String> parse() {
         pyLogger.info("开始执行Python解析器: {}", config.getType());
         
         return EXECUTOR.executeBlocking(() -> {
-            try (Context context = createContext()) {
+            try (Context context = CONTEXT_POOL.createFreshContext()) {
                 // 注入Java对象到Python环境
                 Value bindings = context.getBindings("python");
                 bindings.putMember("http", httpClient);
@@ -152,7 +111,7 @@ public class PyParserExecutor implements IPanTool {
         pyLogger.info("开始执行Python文件列表解析: {}", config.getType());
         
         return EXECUTOR.executeBlocking(() -> {
-            try (Context context = createContext()) {
+            try (Context context = CONTEXT_POOL.createFreshContext()) {
                 // 注入Java对象到Python环境
                 Value bindings = context.getBindings("python");
                 bindings.putMember("http", httpClient);
@@ -186,7 +145,7 @@ public class PyParserExecutor implements IPanTool {
         pyLogger.info("开始执行Python按ID解析: {}", config.getType());
         
         return EXECUTOR.executeBlocking(() -> {
-            try (Context context = createContext()) {
+            try (Context context = CONTEXT_POOL.createFreshContext()) {
                 // 注入Java对象到Python环境
                 Value bindings = context.getBindings("python");
                 bindings.putMember("http", httpClient);
