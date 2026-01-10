@@ -1,5 +1,6 @@
 package cn.qaiu.parser.custompy;
 
+import org.graalvm.polyglot.HostAccess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,54 +24,63 @@ public class PyPlaygroundLogger extends PyLogger {
     }
     
     @Override
+    @HostAccess.Export
     public void debug(String message) {
         super.debug(message);
         addLog("DEBUG", message);
     }
     
     @Override
+    @HostAccess.Export
     public void debug(String message, Object... args) {
         super.debug(message, args);
         addLog("DEBUG", formatMessage(message, args));
     }
     
     @Override
+    @HostAccess.Export
     public void info(String message) {
         super.info(message);
         addLog("INFO", message);
     }
     
     @Override
+    @HostAccess.Export
     public void info(String message, Object... args) {
         super.info(message, args);
         addLog("INFO", formatMessage(message, args));
     }
     
     @Override
+    @HostAccess.Export
     public void warn(String message) {
         super.warn(message);
         addLog("WARN", message);
     }
     
     @Override
+    @HostAccess.Export
     public void warn(String message, Object... args) {
         super.warn(message, args);
         addLog("WARN", formatMessage(message, args));
     }
     
     @Override
+    @HostAccess.Export
     public void error(String message) {
         super.error(message);
         addLog("ERROR", message);
     }
     
     @Override
+    @HostAccess.Export
     public void error(String message, Object... args) {
         super.error(message, args);
         addLog("ERROR", formatMessage(message, args));
     }
     
     @Override
+    @HostAccess.Export
     public void error(String message, Throwable throwable) {
         super.error(message, throwable);
         addLog("ERROR", message + " - " + throwable.getMessage());
