@@ -119,11 +119,6 @@
             <version>${graalpy.version}</version>
             <type>pom</type>
         </dependency>
-        <dependency>
-            <groupId>org.graalvm.python</groupId>
-            <artifactId>python-embedding</artifactId>
-            <version>${graalpy.version}</version>
-        </dependency>
 
         <!-- Compression (Brotli) -->
         <dependency>

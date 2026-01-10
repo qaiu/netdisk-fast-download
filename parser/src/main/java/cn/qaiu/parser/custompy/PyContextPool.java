@@ -134,28 +134,22 @@ public class PyContextPool {
     private PyContextPool() {
         log.info("初始化GraalPy Context池...");
         
-        // 创建共享Engine - 优先使用 GraalPyResources
+        // 创建共享Engine - 使用标准Polyglot API
         Engine engine = null;
         try {
-            // 使用 GraalPyResources 创建，这是推荐的方式
-            var tempContext = org.graalvm.python.embedding.GraalPyResources.contextBuilder()
+            engine = Engine.newBuilder()
                     .option("engine.WarnInterpreterOnly", "false")
                     .build();
-            engine = tempContext.getEngine();
-            tempContext.close();
-            log.info("Engine创建成功（GraalPyResources模式）");
-        } catch (Exception e) {
-            log.warn("GraalPyResources模式创建Engine失败，尝试标准方式: {}", e.getMessage());
-            try {
-                engine = Engine.newBuilder()
-                        .option("engine.WarnInterpreterOnly", "false")
-                        .build();
-                log.info("Engine创建成功（标准模式）");
-            } catch (Exception e2) {
-                log.error("标准模式创建Engine也失败: {}", e2.getMessage());
-                checkGraalPyAvailability();
-                throw new RuntimeException("无法初始化GraalPy Engine，请确保GraalPy依赖正确配置", e2);
+            
+            // 验证Python语言是否可用
+            if (!engine.getLanguages().containsKey("python")) {
+                throw new IllegalStateException("Python语言不可用，请检查GraalPy依赖配置");
             }
+            log.info("Engine创建成功，可用语言: {}", engine.getLanguages().keySet());
+        } catch (Exception e) {
+            log.error("创建Engine失败: {}", e.getMessage());
+            checkGraalPyAvailability();
+            throw new RuntimeException("无法初始化GraalPy Engine，请确保GraalPy依赖正确配置", e);
         }
         this.sharedEngine = engine;
         
@@ -279,9 +273,9 @@ public class PyContextPool {
                     .option("python.ForceImportSite", "false")
                     .build();
         } catch (Exception e) {
-            log.warn("使用共享Engine创建Context失败，尝试使用GraalPyResources: {}", e.getMessage());
-            // 使用 GraalPyResources 作为备选
-            context = org.graalvm.python.embedding.GraalPyResources.contextBuilder()
+            log.warn("使用共享Engine创建Context失败，尝试不使用共享Engine: {}", e.getMessage());
+            // 不使用共享Engine作为备选
+            context = Context.newBuilder("python")
                     .allowHostAccess(HostAccess.newBuilder(HostAccess.EXPLICIT)
                             .allowArrayAccess(true)
                             .allowListAccess(true)
@@ -298,6 +292,9 @@ public class PyContextPool {
                             .allowHostFileAccess(false)
                             .allowHostSocketAccess(false)
                             .build())
+                    .option("engine.WarnInterpreterOnly", "false")
+                    .option("python.PythonHome", "")
+                    .option("python.ForceImportSite", "false")
                     .build();
         }
         
@@ -484,24 +481,28 @@ public class PyContextPool {
             Class.forName("org.graalvm.python.embedding.GraalPyResources");
             log.info("✓ org.graalvm.python.embedding.GraalPyResources 类存在");
         } catch (ClassNotFoundException e) {
-            log.error("✗ org.graalvm.python.embedding.GraalPyResources 类不存在 - 缺少 python-embedding 依赖");
+            log.warn("  python-embedding 类不存在（可选依赖）");
         }
         
         // 尝试列出可用语言
         try {
-            log.info("尝试使用 GraalPyResources 创建 Context...");
-            var context = org.graalvm.python.embedding.GraalPyResources.createContext();
-            log.info("✓ GraalPyResources 创建 Context 成功");
-            context.close();
+            log.info("尝试使用标准 Polyglot API 创建 Context...");
+            try (Engine engine = Engine.create()) {
+                log.info("  可用语言: {}", engine.getLanguages().keySet());
+                if (engine.getLanguages().containsKey("python")) {
+                    log.info("✓ Python 语言可用");
+                } else {
+                    log.error("✗ Python 语言不可用");
+                }
+            }
         } catch (Exception e) {
-            log.error("✗ GraalPyResources 创建 Context 失败: {}", e.getMessage());
+            log.error("✗ 创建 Engine 失败: {}", e.getMessage());
         }
         
         log.error("================================");
         log.error("请检查以下依赖是否正确配置:");
         log.error("  1. org.graalvm.polyglot:polyglot");
         log.error("  2. org.graalvm.polyglot:python (type=pom)");
-        log.error("  3. org.graalvm.python:python-embedding");
         log.error("================================");
     }
     
