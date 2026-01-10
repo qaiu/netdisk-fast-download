@@ -1,13 +1,14 @@
 # 自定义解析器扩展指南
 
-> 最后更新：2025-10-17
+> 最后更新：2026-01-11
 
 ## 概述
 
 本模块支持用户自定义解析器扩展。用户在依赖本项目的 Maven 坐标后，可以实现自己的网盘解析器并注册到系统中使用。
 
-> **提示**：除了Java自定义解析器，本项目还支持使用JavaScript编写解析器，无需编译即可使用。  
-> 查看 [JavaScript解析器开发指南](JAVASCRIPT_PARSER_GUIDE.md) 了解更多。
+> **提示**：除了Java自定义解析器，本项目还支持使用脚本语言编写解析器，无需编译即可使用：
+> - [JavaScript解析器开发指南](JAVASCRIPT_PARSER_GUIDE.md) - 使用JavaScript编写解析器
+> - [Python解析器开发指南](PYTHON_PARSER_GUIDE.md) - 使用Python编写解析器（基于GraalPy）
 
 ## 核心组件
 
