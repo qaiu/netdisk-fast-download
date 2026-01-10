@@ -59,7 +59,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- Versions -->
-        <vertx.version>4.5.22</vertx.version>
+        <vertx.version>4.5.23</vertx.version>
         <org.reflections.version>0.10.2</org.reflections.version>
         <lombok.version>1.18.38</lombok.version>
         <slf4j.version>2.0.5</slf4j.version>
@@ -67,6 +67,8 @@
         <jackson.version>2.14.2</jackson.version>
         <logback.version>1.5.19</logback.version>
         <junit.version>4.13.2</junit.version>
+        <!-- GraalPy -->
+        <graalpy.version>24.1.1</graalpy.version>
     </properties>
 
     <dependencies>
@@ -103,6 +105,19 @@
             <artifactId>nashorn-core</artifactId>
             <version>15.4</version>
             <scope>compile</scope>
+        </dependency>
+
+        <!-- GraalPy Python Runtime -->
+        <dependency>
+            <groupId>org.graalvm.polyglot</groupId>
+            <artifactId>polyglot</artifactId>
+            <version>${graalpy.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.polyglot</groupId>
+            <artifactId>python</artifactId>
+            <version>${graalpy.version}</version>
+            <type>pom</type>
         </dependency>
 
         <!-- Compression (Brotli) -->

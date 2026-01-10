@@ -9,6 +9,9 @@ import cn.qaiu.parser.custom.CustomParserRegistry;
 import cn.qaiu.parser.customjs.JsPlaygroundExecutor;
 import cn.qaiu.parser.customjs.JsPlaygroundLogger;
 import cn.qaiu.parser.customjs.JsScriptMetadataParser;
+import cn.qaiu.parser.custompy.PyPlaygroundExecutor;
+import cn.qaiu.parser.custompy.PyPlaygroundLogger;
+import cn.qaiu.parser.custompy.PyScriptMetadataParser;
 import cn.qaiu.vx.core.annotaions.RouteHandler;
 import cn.qaiu.vx.core.annotaions.RouteMapping;
 import cn.qaiu.vx.core.enums.RouteMethod;
@@ -155,7 +158,7 @@ public class PlaygroundApi {
     }
 
     /**
-     * 测试执行JavaScript代码
+     * 测试执行JavaScript/Python代码
      *
      * @param ctx 路由上下文
      * @return 测试结果
@@ -176,25 +179,38 @@ public class PlaygroundApi {
 
         try {
             JsonObject body = ctx.body().asJsonObject();
-            String jsCode = body.getString("jsCode");
+            String code = body.getString("jsCode"); // 兼容旧字段名
+            if (StringUtils.isBlank(code)) {
+                code = body.getString("code"); // 也支持新字段名
+            }
             String shareUrl = body.getString("shareUrl");
             String pwd = body.getString("pwd");
             String method = body.getString("method", "parse");
+            String language = body.getString("language", "javascript").toLowerCase();
 
             // 参数验证
-            if (StringUtils.isBlank(jsCode)) {
+            if (StringUtils.isBlank(code)) {
                 promise.complete(JsonObject.mapFrom(PlaygroundTestResp.builder()
                         .success(false)
-                        .error("JavaScript代码不能为空")
+                        .error("代码不能为空")
+                        .build()));
+                return promise.future();
+            }
+            
+            // 验证语言类型
+            if (!"javascript".equals(language) && !"python".equals(language)) {
+                promise.complete(JsonObject.mapFrom(PlaygroundTestResp.builder()
+                        .success(false)
+                        .error("不支持的语言类型: " + language + "，仅支持 javascript 或 python")
                         .build()));
                 return promise.future();
             }
             
             // 代码长度验证
-            if (jsCode.length() > MAX_CODE_LENGTH) {
+            if (code.length() > MAX_CODE_LENGTH) {
                 promise.complete(JsonObject.mapFrom(PlaygroundTestResp.builder()
                         .success(false)
-                        .error("代码长度超过限制（最大128KB），当前长度: " + jsCode.length() + " 字节")
+                        .error("代码长度超过限制（最大128KB），当前长度: " + code.length() + " 字节")
                         .build()));
                 return promise.future();
             }
@@ -207,10 +223,16 @@ public class PlaygroundApi {
                 return promise.future();
             }
             
-            // ===== 新增：验证URL匹配 =====
+            // ===== 验证URL匹配（根据语言类型选择解析器） =====
             try {
-                var config = JsScriptMetadataParser.parseScript(jsCode);
-                Pattern matchPattern = config.getMatchPattern();
+                Pattern matchPattern;
+                if ("python".equals(language)) {
+                    var config = PyScriptMetadataParser.parseScript(code);
+                    matchPattern = config.getMatchPattern();
+                } else {
+                    var config = JsScriptMetadataParser.parseScript(code);
+                    matchPattern = config.getMatchPattern();
+                }
                 
                 if (matchPattern != null) {
                     Matcher matcher = matchPattern.matcher(shareUrl);
@@ -241,115 +263,15 @@ public class PlaygroundApi {
                         .build()));
                 return promise.future();
             }
-
-            long startTime = System.currentTimeMillis();
-
-            try {
-                // 创建ShareLinkInfo
-                ParserCreate parserCreate = ParserCreate.fromShareUrl(shareUrl);
-                if (StringUtils.isNotBlank(pwd)) {
-                    parserCreate.setShareLinkInfoPwd(pwd);
-                }
-                ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();
-
-                // 创建演练场执行器
-                JsPlaygroundExecutor executor = new JsPlaygroundExecutor(shareLinkInfo, jsCode);
-
-                // 根据方法类型选择执行，并异步处理结果
-                Future<Object> executionFuture;
-                switch (method) {
-                    case "parse":
-                        executionFuture = executor.executeParseAsync().map(r -> (Object) r);
-                        break;
-                    case "parseFileList":
-                        executionFuture = executor.executeParseFileListAsync().map(r -> (Object) r);
-                        break;
-                    case "parseById":
-                        executionFuture = executor.executeParseByIdAsync().map(r -> (Object) r);
-                        break;
-                    default:
-                        promise.fail(new IllegalArgumentException("未知的方法类型: " + method));
-                        return promise.future();
-                }
-
-                // 异步处理执行结果
-                executionFuture.onSuccess(result -> {
-                    log.debug("执行成功，结果类型: {}, 结果值: {}", 
-                            result != null ? result.getClass().getSimpleName() : "null", 
-                            result);
-                    
-                    // 获取日志
-                    List<JsPlaygroundLogger.LogEntry> logEntries = executor.getLogs();
-                    log.debug("获取到 {} 条日志记录", logEntries.size());
-                    
-                    List<PlaygroundTestResp.LogEntry> respLogs = logEntries.stream()
-                            .map(entry -> PlaygroundTestResp.LogEntry.builder()
-                                    .level(entry.getLevel())
-                                    .message(entry.getMessage())
-                                    .timestamp(entry.getTimestamp())
-                                    .source(entry.getSource())  // 使用日志条目的来源标识
-                                    .build())
-                            .collect(Collectors.toList());
-
-                    long executionTime = System.currentTimeMillis() - startTime;
-
-                    // 构建响应
-                    PlaygroundTestResp response = PlaygroundTestResp.builder()
-                            .success(true)
-                            .result(result)
-                            .logs(respLogs)
-                            .executionTime(executionTime)
-                            .build();
-
-                    JsonObject jsonResponse = JsonObject.mapFrom(response);
-                    log.debug("测试成功响应: {}", jsonResponse.encodePrettily());
-                    promise.complete(jsonResponse);
-                }).onFailure(e -> {
-                    long executionTime = System.currentTimeMillis() - startTime;
-                    String errorMessage = e.getMessage();
-                    String stackTrace = getStackTrace(e);
-
-                    log.error("演练场执行失败", e);
-
-                    // 尝试获取已有的日志
-                    List<JsPlaygroundLogger.LogEntry> logEntries = executor.getLogs();
-                    List<PlaygroundTestResp.LogEntry> respLogs = logEntries.stream()
-                            .map(entry -> PlaygroundTestResp.LogEntry.builder()
-                                    .level(entry.getLevel())
-                                    .message(entry.getMessage())
-                                    .timestamp(entry.getTimestamp())
-                                    .source(entry.getSource())  // 使用日志条目的来源标识
-                                    .build())
-                            .collect(Collectors.toList());
-
-                    PlaygroundTestResp response = PlaygroundTestResp.builder()
-                            .success(false)
-                            .error(errorMessage)
-                            .stackTrace(stackTrace)
-                            .executionTime(executionTime)
-                            .logs(respLogs)
-                            .build();
-
-                    promise.complete(JsonObject.mapFrom(response));
-                });
-
-            } catch (Exception e) {
-                long executionTime = System.currentTimeMillis() - startTime;
-                String errorMessage = e.getMessage();
-                String stackTrace = getStackTrace(e);
-
-                log.error("演练场初始化失败", e);
-
-                PlaygroundTestResp response = PlaygroundTestResp.builder()
-                        .success(false)
-                        .error(errorMessage)
-                        .stackTrace(stackTrace)
-                        .executionTime(executionTime)
-                        .logs(new ArrayList<>())
-                        .build();
-
-                promise.complete(JsonObject.mapFrom(response));
+            
+            // 根据语言类型执行代码
+            final String finalCode = code;
+            if ("python".equals(language)) {
+                executePythonTest(promise, finalCode, shareUrl, pwd, method);
+            } else {
+                executeJavaScriptTest(promise, finalCode, shareUrl, pwd, method);
             }
+
         } catch (Exception e) {
             log.error("解析请求参数失败", e);
             promise.complete(JsonObject.mapFrom(PlaygroundTestResp.builder()
@@ -360,6 +282,230 @@ public class PlaygroundApi {
         }
 
         return promise.future();
+    }
+    
+    /**
+     * 执行JavaScript测试
+     */
+    private void executeJavaScriptTest(Promise<JsonObject> promise, String jsCode, String shareUrl, String pwd, String method) {
+        long startTime = System.currentTimeMillis();
+
+        try {
+            // 创建ShareLinkInfo
+            ParserCreate parserCreate = ParserCreate.fromShareUrl(shareUrl);
+            if (StringUtils.isNotBlank(pwd)) {
+                parserCreate.setShareLinkInfoPwd(pwd);
+            }
+            ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();
+
+            // 创建演练场执行器
+            JsPlaygroundExecutor executor = new JsPlaygroundExecutor(shareLinkInfo, jsCode);
+
+            // 根据方法类型选择执行，并异步处理结果
+            Future<Object> executionFuture;
+            switch (method) {
+                case "parse":
+                    executionFuture = executor.executeParseAsync().map(r -> (Object) r);
+                    break;
+                case "parseFileList":
+                    executionFuture = executor.executeParseFileListAsync().map(r -> (Object) r);
+                    break;
+                case "parseById":
+                    executionFuture = executor.executeParseByIdAsync().map(r -> (Object) r);
+                    break;
+                default:
+                    promise.fail(new IllegalArgumentException("未知的方法类型: " + method));
+                    return;
+            }
+
+            // 异步处理执行结果
+            executionFuture.onSuccess(result -> {
+                log.debug("JavaScript执行成功，结果类型: {}, 结果值: {}", 
+                        result != null ? result.getClass().getSimpleName() : "null", 
+                        result);
+                
+                // 获取日志
+                List<JsPlaygroundLogger.LogEntry> logEntries = executor.getLogs();
+                log.debug("获取到 {} 条日志记录", logEntries.size());
+                
+                List<PlaygroundTestResp.LogEntry> respLogs = logEntries.stream()
+                        .map(entry -> PlaygroundTestResp.LogEntry.builder()
+                                .level(entry.getLevel())
+                                .message(entry.getMessage())
+                                .timestamp(entry.getTimestamp())
+                                .source(entry.getSource())
+                                .build())
+                        .collect(Collectors.toList());
+
+                long executionTime = System.currentTimeMillis() - startTime;
+
+                PlaygroundTestResp response = PlaygroundTestResp.builder()
+                        .success(true)
+                        .result(result)
+                        .logs(respLogs)
+                        .executionTime(executionTime)
+                        .build();
+
+                JsonObject jsonResponse = JsonObject.mapFrom(response);
+                log.debug("JavaScript测试成功响应: {}", jsonResponse.encodePrettily());
+                promise.complete(jsonResponse);
+            }).onFailure(e -> {
+                long executionTime = System.currentTimeMillis() - startTime;
+                String errorMessage = e.getMessage();
+                String stackTrace = getStackTrace(e);
+
+                log.error("JavaScript演练场执行失败", e);
+
+                List<JsPlaygroundLogger.LogEntry> logEntries = executor.getLogs();
+                List<PlaygroundTestResp.LogEntry> respLogs = logEntries.stream()
+                        .map(entry -> PlaygroundTestResp.LogEntry.builder()
+                                .level(entry.getLevel())
+                                .message(entry.getMessage())
+                                .timestamp(entry.getTimestamp())
+                                .source(entry.getSource())
+                                .build())
+                        .collect(Collectors.toList());
+
+                PlaygroundTestResp response = PlaygroundTestResp.builder()
+                        .success(false)
+                        .error(errorMessage)
+                        .stackTrace(stackTrace)
+                        .executionTime(executionTime)
+                        .logs(respLogs)
+                        .build();
+
+                promise.complete(JsonObject.mapFrom(response));
+            });
+
+        } catch (Exception e) {
+            long executionTime = System.currentTimeMillis() - startTime;
+            String errorMessage = e.getMessage();
+            String stackTrace = getStackTrace(e);
+
+            log.error("JavaScript演练场初始化失败", e);
+
+            PlaygroundTestResp response = PlaygroundTestResp.builder()
+                    .success(false)
+                    .error(errorMessage)
+                    .stackTrace(stackTrace)
+                    .executionTime(executionTime)
+                    .logs(new ArrayList<>())
+                    .build();
+
+            promise.complete(JsonObject.mapFrom(response));
+        }
+    }
+    
+    /**
+     * 执行Python测试
+     */
+    private void executePythonTest(Promise<JsonObject> promise, String pyCode, String shareUrl, String pwd, String method) {
+        long startTime = System.currentTimeMillis();
+
+        try {
+            // 创建ShareLinkInfo
+            ParserCreate parserCreate = ParserCreate.fromShareUrl(shareUrl);
+            if (StringUtils.isNotBlank(pwd)) {
+                parserCreate.setShareLinkInfoPwd(pwd);
+            }
+            ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();
+
+            // 创建Python演练场执行器
+            PyPlaygroundExecutor executor = new PyPlaygroundExecutor(shareLinkInfo, pyCode);
+
+            // 根据方法类型选择执行，并异步处理结果
+            Future<Object> executionFuture;
+            switch (method) {
+                case "parse":
+                    executionFuture = executor.executeParseAsync().map(r -> (Object) r);
+                    break;
+                case "parseFileList":
+                    executionFuture = executor.executeParseFileListAsync().map(r -> (Object) r);
+                    break;
+                case "parseById":
+                    executionFuture = executor.executeParseByIdAsync().map(r -> (Object) r);
+                    break;
+                default:
+                    promise.fail(new IllegalArgumentException("未知的方法类型: " + method));
+                    return;
+            }
+
+            // 异步处理执行结果
+            executionFuture.onSuccess(result -> {
+                log.debug("Python执行成功，结果类型: {}, 结果值: {}", 
+                        result != null ? result.getClass().getSimpleName() : "null", 
+                        result);
+                
+                // 获取日志
+                List<PyPlaygroundLogger.LogEntry> logEntries = executor.getLogs();
+                log.debug("获取到 {} 条日志记录", logEntries.size());
+                
+                List<PlaygroundTestResp.LogEntry> respLogs = logEntries.stream()
+                        .map(entry -> PlaygroundTestResp.LogEntry.builder()
+                                .level(entry.getLevel())
+                                .message(entry.getMessage())
+                                .timestamp(entry.getTimestamp())
+                                .source(entry.getSource())
+                                .build())
+                        .collect(Collectors.toList());
+
+                long executionTime = System.currentTimeMillis() - startTime;
+
+                PlaygroundTestResp response = PlaygroundTestResp.builder()
+                        .success(true)
+                        .result(result)
+                        .logs(respLogs)
+                        .executionTime(executionTime)
+                        .build();
+
+                JsonObject jsonResponse = JsonObject.mapFrom(response);
+                log.debug("Python测试成功响应: {}", jsonResponse.encodePrettily());
+                promise.complete(jsonResponse);
+            }).onFailure(e -> {
+                long executionTime = System.currentTimeMillis() - startTime;
+                String errorMessage = e.getMessage();
+                String stackTrace = getStackTrace(e);
+
+                log.error("Python演练场执行失败", e);
+
+                List<PyPlaygroundLogger.LogEntry> logEntries = executor.getLogs();
+                List<PlaygroundTestResp.LogEntry> respLogs = logEntries.stream()
+                        .map(entry -> PlaygroundTestResp.LogEntry.builder()
+                                .level(entry.getLevel())
+                                .message(entry.getMessage())
+                                .timestamp(entry.getTimestamp())
+                                .source(entry.getSource())
+                                .build())
+                        .collect(Collectors.toList());
+
+                PlaygroundTestResp response = PlaygroundTestResp.builder()
+                        .success(false)
+                        .error(errorMessage)
+                        .stackTrace(stackTrace)
+                        .executionTime(executionTime)
+                        .logs(respLogs)
+                        .build();
+
+                promise.complete(JsonObject.mapFrom(response));
+            });
+
+        } catch (Exception e) {
+            long executionTime = System.currentTimeMillis() - startTime;
+            String errorMessage = e.getMessage();
+            String stackTrace = getStackTrace(e);
+
+            log.error("Python演练场初始化失败", e);
+
+            PlaygroundTestResp response = PlaygroundTestResp.builder()
+                    .success(false)
+                    .error(errorMessage)
+                    .stackTrace(stackTrace)
+                    .executionTime(executionTime)
+                    .logs(new ArrayList<>())
+                    .build();
+
+            promise.complete(JsonObject.mapFrom(response));
+        }
     }
 
     /**
@@ -402,6 +548,47 @@ public class PlaygroundApi {
             ResponseUtil.fireJsonResultResponse(response, JsonResult.error("读取types.js失败: " + e.getMessage()));
         }
     }
+    
+    /**
+     * 获取types.pyi文件内容（Python类型提示）
+     *
+     * @param ctx 路由上下文
+     * @param response HTTP响应
+     */
+    @RouteMapping(value = "/types.pyi", method = RouteMethod.GET)
+    public void getTypesPyi(RoutingContext ctx, HttpServerResponse response) {
+        // 检查是否启用
+        if (!checkEnabled()) {
+            ResponseUtil.fireJsonResultResponse(response, JsonResult.error("演练场功能已禁用"));
+            return;
+        }
+        
+        // 权限检查
+        if (!checkAuth(ctx)) {
+            ResponseUtil.fireJsonResultResponse(response, JsonResult.error("未授权访问"));
+            return;
+        }
+        
+        try (InputStream inputStream = getClass().getClassLoader()
+                .getResourceAsStream("py/types.pyi")) {
+
+            if (inputStream == null) {
+                ResponseUtil.fireJsonResultResponse(response, JsonResult.error("types.pyi文件不存在"));
+                return;
+            }
+
+            String content = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))
+                    .lines()
+                    .collect(Collectors.joining("\n"));
+
+            response.putHeader("Content-Type", "text/x-python; charset=utf-8")
+                    .end(content);
+
+        } catch (Exception e) {
+            log.error("读取types.pyi失败", e);
+            ResponseUtil.fireJsonResultResponse(response, JsonResult.error("读取types.pyi失败: " + e.getMessage()));
+        }
+    }
 
     /**
      * 获取解析器列表
@@ -439,22 +626,39 @@ public class PlaygroundApi {
 
         try {
             JsonObject body = ctx.body().asJsonObject();
-            String jsCode = body.getString("jsCode");
+            String code = body.getString("jsCode"); // 兼容旧字段名
+            if (StringUtils.isBlank(code)) {
+                code = body.getString("code"); // 也支持新字段名
+            }
+            String language = body.getString("language", "javascript").toLowerCase();
 
-            if (StringUtils.isBlank(jsCode)) {
-                promise.complete(JsonResult.error("JavaScript代码不能为空").toJsonObject());
+            if (StringUtils.isBlank(code)) {
+                promise.complete(JsonResult.error("代码不能为空").toJsonObject());
+                return promise.future();
+            }
+            
+            // 验证语言类型
+            if (!"javascript".equals(language) && !"python".equals(language)) {
+                promise.complete(JsonResult.error("不支持的语言类型: " + language + "，仅支持 javascript 或 python").toJsonObject());
                 return promise.future();
             }
             
             // 代码长度验证
-            if (jsCode.length() > MAX_CODE_LENGTH) {
-                promise.complete(JsonResult.error("代码长度超过限制（最大128KB），当前长度: " + jsCode.length() + " 字节").toJsonObject());
+            if (code.length() > MAX_CODE_LENGTH) {
+                promise.complete(JsonResult.error("代码长度超过限制（最大128KB），当前长度: " + code.length() + " 字节").toJsonObject());
                 return promise.future();
             }
 
-            // 解析元数据
+            // 根据语言类型解析元数据
+            final String finalCode = code;
             try {
-                var config = JsScriptMetadataParser.parseScript(jsCode);
+                cn.qaiu.parser.custom.CustomParserConfig config;
+                if ("python".equals(language)) {
+                    config = PyScriptMetadataParser.parseScript(finalCode);
+                } else {
+                    config = JsScriptMetadataParser.parseScript(finalCode);
+                }
+                
                 String type = config.getType();
                 String displayName = config.getDisplayName();
                 String name = config.getMetadata().get("name");
@@ -462,6 +666,7 @@ public class PlaygroundApi {
                 String author = config.getMetadata().get("author");
                 String version = config.getMetadata().get("version");
                 String matchPattern = config.getMatchPattern() != null ? config.getMatchPattern().pattern() : null;
+                final boolean isPython = "python".equals(language);
 
                 // 检查数量限制
                 dbService.getPlaygroundParserCount().onSuccess(count -> {
@@ -498,15 +703,20 @@ public class PlaygroundApi {
                         parser.put("author", author);
                         parser.put("version", version);
                         parser.put("matchPattern", matchPattern);
-                        parser.put("jsCode", jsCode);
+                        parser.put("jsCode", finalCode); // 兼容旧字段名存储
+                        parser.put("language", isPython ? "python" : "javascript");
                         parser.put("ip", getClientIp(ctx.request()));
                         parser.put("enabled", true);
 
                         dbService.savePlaygroundParser(parser).onSuccess(result -> {
                             // 保存成功后，立即注册到解析器系统
                             try {
-                                CustomParserRegistry.register(config);
-                                log.info("已注册演练场解析器: {} ({})", displayName, type);
+                                if (isPython) {
+                                    CustomParserRegistry.registerPy(config);
+                                } else {
+                                    CustomParserRegistry.register(config);
+                                }
+                                log.info("已注册演练场{}解析器: {} ({})", isPython ? "Python" : "JavaScript", displayName, type);
                                 promise.complete(JsonResult.success("保存并注册成功").toJsonObject());
                             } catch (Exception e) {
                                 log.error("注册解析器失败", e);
@@ -559,16 +769,33 @@ public class PlaygroundApi {
 
         try {
             JsonObject body = ctx.body().asJsonObject();
-            String jsCode = body.getString("jsCode");
+            String code = body.getString("jsCode"); // 兼容旧字段名
+            if (StringUtils.isBlank(code)) {
+                code = body.getString("code"); // 也支持新字段名
+            }
+            String language = body.getString("language", "javascript").toLowerCase();
 
-            if (StringUtils.isBlank(jsCode)) {
-                promise.complete(JsonResult.error("JavaScript代码不能为空").toJsonObject());
+            if (StringUtils.isBlank(code)) {
+                promise.complete(JsonResult.error("代码不能为空").toJsonObject());
+                return promise.future();
+            }
+            
+            // 验证语言类型
+            if (!"javascript".equals(language) && !"python".equals(language)) {
+                promise.complete(JsonResult.error("不支持的语言类型: " + language + "，仅支持 javascript 或 python").toJsonObject());
                 return promise.future();
             }
 
-            // 解析元数据
+            // 根据语言类型解析元数据
+            final String finalCode = code;
             try {
-                var config = JsScriptMetadataParser.parseScript(jsCode);
+                cn.qaiu.parser.custom.CustomParserConfig config;
+                if ("python".equals(language)) {
+                    config = PyScriptMetadataParser.parseScript(finalCode);
+                } else {
+                    config = JsScriptMetadataParser.parseScript(finalCode);
+                }
+                
                 String type = config.getType();
                 String displayName = config.getDisplayName();
                 String name = config.getMetadata().get("name");
@@ -577,6 +804,7 @@ public class PlaygroundApi {
                 String version = config.getMetadata().get("version");
                 String matchPattern = config.getMatchPattern() != null ? config.getMatchPattern().pattern() : null;
                 boolean enabled = body.getBoolean("enabled", true);
+                final boolean isPython = "python".equals(language);
 
                 JsonObject parser = new JsonObject();
                 parser.put("name", name);
@@ -585,7 +813,8 @@ public class PlaygroundApi {
                 parser.put("author", author);
                 parser.put("version", version);
                 parser.put("matchPattern", matchPattern);
-                parser.put("jsCode", jsCode);
+                parser.put("jsCode", finalCode); // 兼容旧字段名存储
+                parser.put("language", isPython ? "python" : "javascript");
                 parser.put("enabled", enabled);
 
                 dbService.updatePlaygroundParser(id, parser).onSuccess(result -> {
@@ -595,8 +824,12 @@ public class PlaygroundApi {
                             // 先注销旧的（如果存在）
                             CustomParserRegistry.unregister(type);
                             // 重新注册新的
-                            CustomParserRegistry.register(config);
-                            log.info("已重新注册演练场解析器: {} ({})", displayName, type);
+                            if (isPython) {
+                                CustomParserRegistry.registerPy(config);
+                            } else {
+                                CustomParserRegistry.register(config);
+                            }
+                            log.info("已重新注册演练场{}解析器: {} ({})", isPython ? "Python" : "JavaScript", displayName, type);
                         } else {
                             // 禁用时注销
                             CustomParserRegistry.unregister(type);

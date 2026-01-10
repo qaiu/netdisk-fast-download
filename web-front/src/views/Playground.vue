@@ -76,7 +76,7 @@
                   </el-link>
                 </el-breadcrumb-item>
                 <el-breadcrumb-item>脚本解析器演练场 <span style="color: var(--el-text-color-secondary); font-size: 12px;">
-                JavaScript (ES5)
+                {{ currentFileLanguageDisplay }}
               </span></el-breadcrumb-item>
               </el-breadcrumb>
             </div>
@@ -771,6 +771,19 @@
         :rules="newFileFormRules"
         :label-width="isMobile ? '80px' : '100px'"
       >
+        <el-form-item label="开发语言" prop="language">
+          <el-radio-group v-model="newFileForm.language">
+            <el-radio label="javascript">
+              <el-icon style="margin-right: 4px;"><Document /></el-icon>
+              JavaScript (ES5)
+            </el-radio>
+            <el-radio label="python">
+              <el-icon style="margin-right: 4px;"><Grape /></el-icon>
+              Python (GraalPy)
+            </el-radio>
+          </el-radio-group>
+          <div class="form-tip">选择解析器开发语言</div>
+        </el-form-item>
         <el-form-item label="解析器名" prop="name">
           <el-input
             v-model="newFileForm.name"
@@ -879,6 +892,24 @@ export default {
       return files.value.find(f => f.id === activeFileId.value) || files.value[0];
     });
     
+    // 当前文件语言类型（用于显示）
+    const currentFileLanguageDisplay = computed(() => {
+      const file = activeFile.value;
+      if (!file) return 'JavaScript (ES5)';
+      
+      // 优先使用文件的language属性
+      if (file.language === 'python') {
+        return 'Python (GraalPy)';
+      }
+      
+      // 根据文件扩展名判断
+      if (file.name && file.name.endsWith('.py')) {
+        return 'Python (GraalPy)';
+      }
+      
+      return 'JavaScript (ES5)';
+    });
+    
     // 当前编辑的代码（绑定到活动文件）
     const isFileChanging = ref(false); // 标记是否正在切换文件
     const currentCode = computed({
@@ -902,7 +933,8 @@ export default {
       name: '',
       identifier: '',
       author: '',
-      match: ''
+      match: '',
+      language: 'javascript'
     });
     const newFileFormRules = {
       name: [
@@ -910,6 +942,9 @@ export default {
       ],
       identifier: [
         { required: true, message: '请输入标识', trigger: 'blur' }
+      ],
+      language: [
+        { required: true, message: '请选择开发语言', trigger: 'change' }
       ]
     };
     const newFileFormRef = ref(null);
@@ -1398,12 +1433,22 @@ function parseById(shareLinkInfo, http, logger) {
       isFileChanging.value = true;
       activeFileId.value = fileId;
       saveAllFilesToStorage();
+      
+      // 获取切换后的文件
+      const newFile = files.value.find(f => f.id === fileId);
+      
       // 等待编辑器更新
       nextTick(() => {
         if (editorRef.value && editorRef.value.getEditor) {
           const editor = editorRef.value.getEditor();
           if (editor) {
             editor.focus();
+            
+            // 更新编辑器语言模式
+            if (newFile) {
+              const language = newFile.language || getLanguageFromFile(newFile.name);
+              updateEditorLanguage(language);
+            }
           }
         }
         // 切换完成后，取消标记
@@ -1436,13 +1481,14 @@ function parseById(shareLinkInfo, http, logger) {
         name: '',
         identifier: '',
         author: '',
-        match: ''
+        match: '',
+        language: 'javascript'
       };
       newFileDialogVisible.value = true;
     };
     
-    // 生成模板代码
-    const generateTemplate = (name, identifier, author, match) => {
+    // 生成JavaScript模板代码
+    const generateJsTemplate = (name, identifier, author, match) => {
       const type = identifier.toLowerCase().replace(/[^a-z0-9]/g, '_');
       const displayName = name;
       const description = `使用JavaScript实现的${name}解析器`;
@@ -1498,6 +1544,83 @@ function parseFileList(shareLinkInfo, http, logger) {
 }`;
     };
     
+    // 生成Python模板代码
+    const generatePyTemplate = (name, identifier, author, match) => {
+      const type = identifier.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const displayName = name;
+      const description = `使用Python实现的${name}解析器`;
+      
+      return `# ==UserScript==
+# @name         ${name}
+# @type         ${type}
+# @displayName  ${displayName}
+# @description  ${description}
+# @match        ${match || 'https?://example.com/s/(?<KEY>\\w+)'}
+# @author       ${author || 'yourname'}
+# @version      1.0.0
+# ==/UserScript==
+
+"""
+${name}解析器 - Python实现
+使用GraalPy运行，提供与JavaScript解析器相同的功能
+"""
+
+def parse(share_link_info, http, logger):
+    """
+    解析单个文件下载链接
+    
+    Args:
+        share_link_info: 分享链接信息对象
+        http: HTTP客户端
+        logger: 日志记录器
+    
+    Returns:
+        str: 直链下载地址
+    """
+    url = share_link_info.get_share_url()
+    logger.info(f"开始解析: {url}")
+    
+    response = http.get(url)
+    if not response.ok():
+        raise Exception(f"请求失败: {response.status_code()}")
+    
+    html = response.text()
+    # 这里添加你的解析逻辑
+    # 例如：使用正则表达式提取下载链接
+    
+    return "https://example.com/download/file.zip"
+
+
+def parse_file_list(share_link_info, http, logger):
+    """
+    解析文件列表（可选）
+    
+    Args:
+        share_link_info: 分享链接信息对象
+        http: HTTP客户端
+        logger: 日志记录器
+    
+    Returns:
+        list: 文件信息列表
+    """
+    dir_id = share_link_info.get_other_param("dirId") or "0"
+    logger.info(f"解析文件列表，目录ID: {dir_id}")
+    
+    # 这里添加你的文件列表解析逻辑
+    file_list = []
+    
+    return file_list
+`;
+    };
+    
+    // 生成模板代码（根据语言选择）
+    const generateTemplate = (name, identifier, author, match, language = 'javascript') => {
+      if (language === 'python') {
+        return generatePyTemplate(name, identifier, author, match);
+      }
+      return generateJsTemplate(name, identifier, author, match);
+    };
+    
     // 创建新文件
     const createNewFile = async () => {
       if (!newFileFormRef.value) return;
@@ -1505,10 +1628,17 @@ function parseFileList(shareLinkInfo, http, logger) {
       await newFileFormRef.value.validate((valid) => {
         if (!valid) return;
         
+        const language = newFileForm.value.language || 'javascript';
+        const isPython = language === 'python';
+        const fileExt = isPython ? '.py' : '.js';
+        
         // 使用解析器名称作为文件名
-        const fileName = newFileForm.value.name.endsWith('.js') 
-          ? newFileForm.value.name 
-          : newFileForm.value.name + '.js';
+        let fileName = newFileForm.value.name;
+        if (!fileName.endsWith(fileExt)) {
+          // 移除可能的错误扩展名
+          fileName = fileName.replace(/\.(js|py)$/i, '');
+          fileName = fileName + fileExt;
+        }
         
         // 检查文件名是否已存在
         if (files.value.some(f => f.name === fileName)) {
@@ -1518,10 +1648,11 @@ function parseFileList(shareLinkInfo, http, logger) {
         
         // 生成模板代码
         const template = generateTemplate(
-          newFileForm.value.name,
+          newFileForm.value.name.replace(/\.(js|py)$/i, ''),
           newFileForm.value.identifier,
           newFileForm.value.author,
-          newFileForm.value.match
+          newFileForm.value.match,
+          language
         );
         
         // 创建新文件
@@ -1530,6 +1661,7 @@ function parseFileList(shareLinkInfo, http, logger) {
           id: 'file' + fileIdCounter.value,
           name: fileName,
           content: template,
+          language: language,
           modified: false
         };
         
@@ -1538,7 +1670,10 @@ function parseFileList(shareLinkInfo, http, logger) {
         newFileDialogVisible.value = false;
         saveAllFilesToStorage();
         
-        ElMessage.success('文件创建成功');
+        // 更新编辑器语言模式
+        updateEditorLanguage(language);
+        
+        ElMessage.success(`${isPython ? 'Python' : 'JavaScript'}文件创建成功`);
         
         // 等待编辑器更新后聚焦
         nextTick(() => {
@@ -1571,6 +1706,31 @@ function parseFileList(shareLinkInfo, http, logger) {
           editor.focus();
         }
       }
+    };
+    
+    // 更新编辑器语言模式
+    const updateEditorLanguage = (language) => {
+      if (editorRef.value && editorRef.value.getEditor) {
+        const editor = editorRef.value.getEditor();
+        if (editor) {
+          const model = editor.getModel();
+          if (model) {
+            const monaco = window.monaco || editorRef.value.monaco;
+            if (monaco) {
+              const langId = language === 'python' ? 'python' : 'javascript';
+              monaco.editor.setModelLanguage(model, langId);
+            }
+          }
+        }
+      }
+    };
+    
+    // 根据文件扩展名获取语言类型
+    const getLanguageFromFile = (fileName) => {
+      if (fileName && fileName.endsWith('.py')) {
+        return 'python';
+      }
+      return 'javascript';
     };
     
     // IDE功能：切换自动换行
@@ -1708,8 +1868,13 @@ function parseFileList(shareLinkInfo, http, logger) {
     // 执行测试
     const executeTest = async () => {
       const codeToTest = currentCode.value;
+      
+      // 获取当前文件的语言类型
+      const currentLanguage = activeFile.value?.language || getLanguageFromFile(activeFile.value?.name) || 'javascript';
+      const isPython = currentLanguage === 'python';
+      
       if (!codeToTest.trim()) {
-        ElMessage.warning('请先输入JavaScript代码');
+        ElMessage.warning(`请先输入${isPython ? 'Python' : 'JavaScript'}代码`);
         return;
       }
 
@@ -1718,30 +1883,59 @@ function parseFileList(shareLinkInfo, http, logger) {
         return;
       }
       
-      // 检查代码中是否包含潜在的危险模式
-      const dangerousPatterns = [
-        { pattern: /while\s*\(\s*true\s*\)/gi, message: '检测到 while(true) 无限循环' },
-        { pattern: /for\s*\(\s*;\s*;\s*\)/gi, message: '检测到 for(;;) 无限循环' },
-        { pattern: /for\s*\(\s*var\s+\w+\s*=\s*\d+\s*;\s*true\s*;/gi, message: '检测到可能的无限循环' }
-      ];
-      
-      for (const { pattern, message } of dangerousPatterns) {
-        if (pattern.test(codeToTest)) {
-          const confirmed = await ElMessageBox.confirm(
-            `⚠️ ${message}\n\n这可能导致脚本无法停止并占用服务器资源。\n\n建议修改代码，添加合理的循环退出条件。\n\n确定要继续执行吗？`,
-            '危险代码警告',
-            {
-              confirmButtonText: '我知道风险，继续执行',
-              cancelButtonText: '取消',
-              type: 'warning',
-              dangerouslyUseHTMLString: true
+      // 检查代码中是否包含潜在的危险模式（仅针对JavaScript）
+      if (!isPython) {
+        const dangerousPatterns = [
+          { pattern: /while\s*\(\s*true\s*\)/gi, message: '检测到 while(true) 无限循环' },
+          { pattern: /for\s*\(\s*;\s*;\s*\)/gi, message: '检测到 for(;;) 无限循环' },
+          { pattern: /for\s*\(\s*var\s+\w+\s*=\s*\d+\s*;\s*true\s*;/gi, message: '检测到可能的无限循环' }
+        ];
+        
+        for (const { pattern, message } of dangerousPatterns) {
+          if (pattern.test(codeToTest)) {
+            const confirmed = await ElMessageBox.confirm(
+              `⚠️ ${message}\n\n这可能导致脚本无法停止并占用服务器资源。\n\n建议修改代码，添加合理的循环退出条件。\n\n确定要继续执行吗？`,
+              '危险代码警告',
+              {
+                confirmButtonText: '我知道风险，继续执行',
+                cancelButtonText: '取消',
+                type: 'warning',
+                dangerouslyUseHTMLString: true
+              }
+            ).catch(() => false);
+            
+            if (!confirmed) {
+              return;
             }
-          ).catch(() => false);
-          
-          if (!confirmed) {
-            return;
+            break;
           }
-          break;
+        }
+      }
+      
+      // Python 无限循环检查
+      if (isPython) {
+        const pythonDangerousPatterns = [
+          { pattern: /while\s+True\s*:/gi, message: '检测到 while True: 无限循环' }
+        ];
+        
+        for (const { pattern, message } of pythonDangerousPatterns) {
+          if (pattern.test(codeToTest)) {
+            const confirmed = await ElMessageBox.confirm(
+              `⚠️ ${message}\n\n这可能导致脚本无法停止并占用服务器资源。\n\n建议修改代码，添加合理的循环退出条件。\n\n确定要继续执行吗？`,
+              '危险代码警告',
+              {
+                confirmButtonText: '我知道风险，继续执行',
+                cancelButtonText: '取消',
+                type: 'warning',
+                dangerouslyUseHTMLString: true
+              }
+            ).catch(() => false);
+            
+            if (!confirmed) {
+              return;
+            }
+            break;
+          }
         }
       }
 
@@ -1754,7 +1948,8 @@ function parseFileList(shareLinkInfo, http, logger) {
           codeToTest,  // 使用当前活动文件的代码
           testParams.value.shareUrl,
           testParams.value.pwd,
-          testParams.value.method
+          testParams.value.method,
+          currentLanguage  // 传递语言类型
         );
         
         console.log('测试结果:', result);
@@ -2286,6 +2481,7 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       files,
       activeFileId,
       activeFile,
+      currentFileLanguageDisplay,
       handleFileChange,
       removeFile,
       // 新建文件
@@ -2303,6 +2499,8 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       exportCurrentFile,
       undo,
       redo,
+      updateEditorLanguage,
+      getLanguageFromFile,
       // 加载和认证
       loading,
       loadProgress,
