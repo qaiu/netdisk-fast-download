@@ -40,7 +40,29 @@ https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.
 
 **JavaScript解析器文档：** [JavaScript解析器开发指南](parser/doc/JAVASCRIPT_PARSER_GUIDE.md) | [自定义解析器扩展指南](parser/doc/CUSTOM_PARSER_GUIDE.md) | [快速开始](parser/doc/CUSTOM_PARSER_QUICKSTART.md)
 
-**Playground功能：** [JS解析器演练场密码保护说明](PLAYGROUND_PASSWORD_PROTECTION.md)
+**Python解析器文档：** [Python解析器开发指南](parser/doc/PYTHON_PARSER_GUIDE.md) | [Playground测试报告](parser/doc/PYTHON_PLAYGROUND_TEST_REPORT.md) | [pylsp WebSocket集成](parser/doc/PYLSP_WEBSOCKET_GUIDE.md)
+
+## 演练场（Playground）
+
+在线编写、测试和发布解析器脚本，支持 JavaScript 和 Python 两种语言。
+
+### 快速开始
+- **[演练场使用指南](web-service/doc/PLAYGROUND_GUIDE.md)** - 完整的使用教程和最佳实践
+- **[5分钟快速上手](parser/doc/CUSTOM_PARSER_QUICKSTART.md)** - 快速集成指南
+
+### 开发文档
+- **JavaScript解析器**: [开发指南](parser/doc/JAVASCRIPT_PARSER_GUIDE.md) | [自定义扩展](parser/doc/CUSTOM_PARSER_GUIDE.md)
+- **Python解析器**: [开发指南](parser/doc/PYTHON_PARSER_GUIDE.md) | [Python LSP连接](parser/doc/PYLSP_WEBSOCKET_GUIDE.md)
+
+### 配置和安全
+- **[密码保护配置](web-service/doc/PLAYGROUND_PASSWORD_PROTECTION.md)** - 访问控制和安全设置
+- **[界面功能说明](web-front/doc/PLAYGROUND_UI_UPGRADE.md)** - IDE功能和快捷键
+
+### 测试报告
+- **[Python演练场测试报告](parser/doc/PYTHON_PLAYGROUND_TEST_REPORT.md)** - 功能验证和测试覆盖
+
+### 在线体验
+访问演练场页面：`http://your_host/playground`（需要密码或配置公开访问）
 
 ## 预览地址  
 [预览地址1](https://lz.qaiu.top)  

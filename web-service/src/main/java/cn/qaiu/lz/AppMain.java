@@ -63,6 +63,9 @@ public class AppMain {
                             System.out.println(DateFormatUtils.format(new Date(), "yyyy-MM-dd HH:mm:ss.SSS"));
                             System.out.println("数据库连接成功");
                             
+                            // 初始化示例解析器
+                            initExampleParsers();
+                            
                             // 加载演练场解析器
                             loadPlaygroundParsers();
                             
@@ -103,6 +106,17 @@ public class AppMain {
         
         // 演练场配置
         PlaygroundConfig.loadFromJson(jsonObject);
+    }
+    
+    /**
+     * 初始化示例解析器（JS和Python）
+     */
+    private static void initExampleParsers() {
+        DbService dbService = AsyncServiceUtil.getAsyncServiceInstance(DbService.class);
+        
+        dbService.initExampleParsers()
+            .onSuccess(v -> log.info("示例解析器初始化检查完成"))
+            .onFailure(e -> log.error("示例解析器初始化失败", e));
     }
     
     /**

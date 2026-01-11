@@ -70,13 +70,111 @@ public class RouterHandlerFactory implements BaseHttpApi {
     }
 
     /**
+     * 在主路由上直接注册 WebSocket 路由
+     * 必须使用 order(-1000) 确保在所有拦截器之前执行
+     */
+    private void registerWebSocketRoutes(Router mainRouter) {
+        try {
+            Set<Class<?>> handlers = reflections.getTypesAnnotatedWith(RouteHandler.class);
+            for (Class<?> handler : handlers) {
+                String root = getRootPath(handler);
+                Method[] methods = handler.getMethods();
+                
+                for (Method method : methods) {
+                    if (method.isAnnotationPresent(SockRouteMapper.class)) {
+                        SockRouteMapper mapping = method.getAnnotation(SockRouteMapper.class);
+                        String routeUrl = getRouteUrl(mapping.value());
+                        String url = root.concat(routeUrl);
+                        
+                        // 在这里创建实例，确保每个 handler 使用同一个实例
+                        final Object instance = ReflectionUtil.newWithNoParam(handler);
+                        final Method finalMethod = method;
+                        
+                        LOGGER.info("========================================");
+                        LOGGER.info("注册 WebSocket Handler (主路由，优先级最高):");
+                        LOGGER.info("  类: {}", handler.getName());
+                        LOGGER.info("  方法: {}", method.getName());
+                        LOGGER.info("  实例: {}", instance.getClass().getName());
+                        LOGGER.info("  完整路径: {}/*", url);
+                        LOGGER.info("========================================");
+                        
+                        SockJSHandlerOptions options = new SockJSHandlerOptions()
+                                .setHeartbeatInterval(2000)
+                                .setRegisterWriteHandler(true);
+
+                        SockJSHandler sockJSHandler = SockJSHandler.create(VertxHolder.getVertxInstance(), options);
+                        
+                        // SockJS 路径处理
+                        String sockJsPath = url;
+                        while (sockJsPath.endsWith("/") || sockJsPath.endsWith("*")) {
+                            sockJsPath = sockJsPath.substring(0, sockJsPath.length() - 1);
+                        }
+                        final String finalSockJsPath = sockJsPath;
+                        
+                        // ✅ socketHandler() 返回 Router，用于挂载
+                        // 使用 final 变量确保闭包中引用正确
+                        Router sockJsRouter = sockJSHandler.socketHandler(sock -> {
+                            LOGGER.info("[WS] ==========================================");
+                            LOGGER.info("[WS] SockJS socketHandler 回调被调用!");
+                            LOGGER.info("[WS] Socket ID: {}", sock.writeHandlerID());
+                            LOGGER.info("[WS] Remote Address: {}", sock.remoteAddress());
+                            LOGGER.info("[WS] Local Address: {}", sock.localAddress());
+                            LOGGER.info("[WS] 即将调用 method: {}.{}", instance.getClass().getSimpleName(), finalMethod.getName());
+                            LOGGER.info("[WS] ==========================================");
+                            try {
+                                finalMethod.invoke(instance, sock);
+                                LOGGER.info("[WS] Handler 调用成功");
+                            } catch (Throwable e) {
+                                LOGGER.error("[WS] WebSocket handler 调用失败", e);
+                                if (e.getCause() != null) {
+                                    LOGGER.error("[WS] 原始异常", e.getCause());
+                                }
+                            }
+                        });
+                        
+                        // 添加调试 handler 来检查请求是否到达 SockJS 路径
+                        // 注意：使用 "path*" 格式与 SockJS subRouter 保持一致
+                        mainRouter.route(finalSockJsPath + "*").order(-1001).handler(ctx -> {
+                            LOGGER.info("[WS-DEBUG] 请求到达 SockJS 路径: {}", ctx.request().path());
+                            LOGGER.info("[WS-DEBUG] Method: {}, Upgrade: {}, Connection: {}", 
+                                ctx.request().method(), 
+                                ctx.request().headers().get("Upgrade"),
+                                ctx.request().headers().get("Connection"));
+                            ctx.next();
+                        });
+                        
+                        // 为 SockJS xhr/xhr_send 路径添加 BodyHandler
+                        // 必须在 SockJS 路由之前，但 WebSocket 升级请求不需要
+                        mainRouter.route(finalSockJsPath + "*").order(-1000).handler(BodyHandler.create());
+                        
+                        // ✅ 挂载 SockJS 路由 - 注意：subRouter 需要使用 "path*" 格式而不是 "path/*"
+                        mainRouter.route(finalSockJsPath + "*").order(-999).subRouter(sockJsRouter);
+                        
+                        LOGGER.info("✅ WebSocket 路由注册完成: {} (order=-1000)", finalSockJsPath);
+                        LOGGER.info("   SockJS 端点: {}/info, {}/websocket, {}/xhr", finalSockJsPath, finalSockJsPath, finalSockJsPath);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.error("注册 WebSocket 路由失败", e);
+        }
+    }
+
+    /**
      * 开始扫描并注册handler
      */
     public Router createRouter() {
         // 主路由
         Router mainRouter = Router.router(VertxHolder.getVertxInstance());
+        
+        // ⚠️ 重要：先注册 WebSocket 路由，必须在所有 handler 之前
+        // SockJSHandler 不能在 subRouter 中，必须直接挂载到主路由
+        // 注意：WebSocket 路由必须在 BodyHandler 之前注册，否则会干扰 WebSocket 升级
+        registerWebSocketRoutes(mainRouter);
+        
         mainRouter.route().handler(ctx -> {
-            String realPath = ctx.request().uri();;
+            String realPath = ctx.request().uri();
+            
             if (realPath.startsWith(REROUTE_PATH_PREFIX)) {
                 // vertx web proxy暂不支持rewrite, 所以这里进行手动替换, 请求地址中的请求path前缀替换为originPath
                 String rePath = realPath.substring(REROUTE_PATH_PREFIX.length());
@@ -98,21 +196,24 @@ public class RouterHandlerFactory implements BaseHttpApi {
         mainRouter.route().handler(CorsHandler.create().addRelativeOrigin(".*").allowCredentials(true).allowedMethods(httpMethods));
 
         // 配置文件上传路径
+        // BodyHandler 用于处理 POST 请求体
+        // SockJS 的 xhr/xhr_send 端点需要 BodyHandler，但 WebSocket 升级请求不需要
+        // 因此为 SockJS 路径单独配置 BodyHandler（排除 websocket 子路径）
         mainRouter.route().handler(BodyHandler.create().setUploadsDirectory("uploads"));
 
         // 配置Session管理 - 用于演练场登录状态持久化
-        // 30天过期时间（毫秒）
+        // 30天过期时间（毫秒）- 排除 WebSocket 路径
         SessionStore sessionStore = LocalSessionStore.create(VertxHolder.getVertxInstance());
         SessionHandler sessionHandler = SessionHandler.create(sessionStore)
                 .setSessionTimeout(30L * 24 * 60 * 60 * 1000) // 30天
                 .setSessionCookieName("SESSIONID") // Cookie名称
                 .setCookieHttpOnlyFlag(true) // 防止XSS攻击
                 .setCookieSecureFlag(false); // 非HTTPS环境设置为false
-        mainRouter.route().handler(sessionHandler);
+        mainRouter.routeWithRegex("^(?!/v2/ws/).*").handler(sessionHandler);
 
-        // 拦截器
+        // 拦截器 - 排除 WebSocket 路径
         Set<Handler<RoutingContext>> interceptorSet = getInterceptorSet();
-        Route route0 = mainRouter.route("/*");
+        Route route0 = mainRouter.routeWithRegex("^(?!/v2/ws/).*");
         interceptorSet.forEach(route0::handler);
 
         try {
@@ -196,27 +297,9 @@ public class RouterHandlerFactory implements BaseHttpApi {
                     }
                 });
             } else if (method.isAnnotationPresent(SockRouteMapper.class)) {
-                // websocket 基于sockJs
-                SockRouteMapper mapping = method.getAnnotation(SockRouteMapper.class);
-                String routeUrl = getRouteUrl(mapping.value());
-                String url = root.concat(routeUrl);
-                LOGGER.info("Register New Websocket Handler -> {}", url);
-                SockJSHandlerOptions options = new SockJSHandlerOptions()
-                        .setHeartbeatInterval(2000)
-                        .setRegisterWriteHandler(true);
-
-                SockJSHandler sockJSHandler = SockJSHandler.create(VertxHolder.getVertxInstance(), options);
-                Router route = sockJSHandler.socketHandler(sock -> {
-                    try {
-                        ReflectionUtil.invokeWithArguments(method, instance, sock);
-                    } catch (Throwable e) {
-                        e.printStackTrace();
-                    }
-                });
-                if (url.endsWith("*")) {
-                    throw new IllegalArgumentException("Don't include * when mounting a sub router");
-                }
-                router.route(url + "*").subRouter(route);
+                // WebSocket 路由已在 registerWebSocketRoutes() 中提前注册
+                // 跳过此处，避免重复注册
+                continue;
             }
         }
     }

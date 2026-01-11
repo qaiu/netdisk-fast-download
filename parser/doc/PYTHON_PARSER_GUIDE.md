@@ -4,6 +4,21 @@
 
 本指南介绍如何使用Python编写自定义网盘解析器。Python解析器基于GraalPy运行，提供与JavaScript解析器相同的功能，但使用Python语法。
 
+### 技术规格
+
+- **Python 运行时**: GraalPy (GraalVM Python)
+- **Python 版本**: Python 3.10+ 兼容
+- **标准库支持**: 支持大部分 Python 标准库
+- **第三方库支持**: 内置 requests 库（需在顶层导入）
+- **运行模式**: 同步执行，所有操作都是阻塞式的
+
+### 参考文档
+
+- **Python 官方文档**: https://docs.python.org/zh-cn/3/
+- **Python 标准库**: https://docs.python.org/zh-cn/3/library/
+- **GraalPy 文档**: https://www.graalvm.org/python/
+- **Requests 库文档**: https://requests.readthedocs.io/
+
 ## 目录
 
 - [快速开始](#快速开始)
@@ -13,6 +28,11 @@
   - [PyHttpResponse对象](#pyhttpresponse对象)
   - [PyLogger对象](#pylogger对象)
   - [PyCryptoUtils对象](#pycryptoutils对象)
+- [使用 requests 库](#使用-requests-库)
+  - [基本使用](#基本使用)
+  - [Session 会话](#session-会话)
+  - [高级功能](#高级功能)
+  - [注意事项](#注意事项)
 - [实现方法](#实现方法)
   - [parse方法（必填）](#parse方法必填)
   - [parse_file_list方法（可选）](#parse_file_list方法可选)
@@ -277,6 +297,505 @@ decrypted = crypto.aes_decrypt_cbc(encrypted, "1234567890123456", "1234567890123
 # 字节转十六进制
 hex_str = crypto.bytes_to_hex(byte_array)
 ```
+
+## 使用 requests 库
+
+GraalPy 环境支持使用流行的 Python requests 库来处理 HTTP 请求。requests 提供了更加 Pythonic 的 API，适合熟悉 Python 生态的开发者。
+
+> **官方文档**: [Requests: HTTP for Humans™](https://requests.readthedocs.io/)
+
+### 重要提示
+
+**requests 必须在脚本顶层导入，不能在函数内部导入：**
+
+```python
+# ✅ 正确：在顶层导入
+import requests
+
+def parse(share_link_info, http, logger):
+    response = requests.get(url)
+    # ...
+
+# ❌ 错误：在函数内导入
+def parse(share_link_info, http, logger):
+    import requests  # 这会失败！
+```
+
+### 基本使用
+
+#### GET 请求
+
+```python
+import requests
+
+def parse(share_link_info, http, logger):
+    url = share_link_info.get_share_url()
+    
+    # 基本 GET 请求
+    response = requests.get(url)
+    
+    # 检查状态码
+    if response.status_code == 200:
+        html = response.text
+        logger.info(f"页面长度: {len(html)}")
+    
+    # 带参数的 GET 请求
+    response = requests.get('https://api.example.com/search', params={
+        'key': share_link_info.get_share_key(),
+        'format': 'json'
+    })
+    
+    # 自动解析 JSON
+    data = response.json()
+    return data['download_url']
+```
+
+#### POST 请求
+
+```python
+import requests
+
+def parse(share_link_info, http, logger):
+    # POST 表单数据
+    response = requests.post('https://api.example.com/login', data={
+        'username': 'user',
+        'password': 'pass'
+    })
+    
+    # POST JSON 数据
+    response = requests.post('https://api.example.com/api', json={
+        'action': 'get_download',
+        'file_id': '12345'
+    })
+    
+    # 自定义请求头
+    response = requests.post(
+        'https://api.example.com/upload',
+        json={'file': 'data'},
+        headers={
+            'Authorization': 'Bearer token123',
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 ...'
+        }
+    )
+    
+    return response.json()['url']
+```
+
+#### 设置请求头
+
+```python
+import requests
+
+def parse(share_link_info, http, logger):
+    url = share_link_info.get_share_url()
+    
+    # 自定义请求头
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Referer': url,
+        'Accept': 'application/json',
+        'Accept-Language': 'zh-CN,zh;q=0.9',
+        'X-Requested-With': 'XMLHttpRequest'
+    }
+    
+    response = requests.get(url, headers=headers)
+    return response.text
+```
+
+#### 处理 Cookie
+
+```python
+import requests
+
+def parse(share_link_info, http, logger):
+    url = share_link_info.get_share_url()
+    
+    # 方法1：使用 cookies 参数
+    cookies = {
+        'session_id': 'abc123',
+        'user_token': 'xyz789'
+    }
+    response = requests.get(url, cookies=cookies)
+    
+    # 方法2：从响应中获取 Cookie
+    response = requests.get(url)
+    logger.info(f"返回的 Cookies: {response.cookies}")
+    
+    # 在后续请求中使用
+    next_response = requests.get('https://api.example.com/data', 
+                                  cookies=response.cookies)
+    
+    return next_response.json()['download_url']
+```
+
+### Session 会话
+
+使用 Session 可以自动管理 Cookie，适合需要多次请求的场景：
+
+```python
+import requests
+
+def parse(share_link_info, http, logger):
+    url = share_link_info.get_share_url()
+    key = share_link_info.get_share_key()
+    
+    # 创建 Session
+    session = requests.Session()
+    
+    # 设置全局请求头
+    session.headers.update({
+        'User-Agent': 'Mozilla/5.0 ...',
+        'Referer': url
+    })
+    
+    # 步骤1：访问页面，获取 Cookie
+    logger.info("步骤1: 访问页面")
+    response1 = session.get(url)
+    
+    # 步骤2：提交验证
+    logger.info("步骤2: 验证密码")
+    password = share_link_info.get_share_password()
+    response2 = session.post('https://api.example.com/verify', data={
+        'key': key,
+        'pwd': password
+    })
+    
+    # 步骤3：获取下载链接（Session 自动携带 Cookie）
+    logger.info("步骤3: 获取下载链接")
+    response3 = session.get(f'https://api.example.com/download?key={key}')
+    
+    data = response3.json()
+    return data['url']
+```
+
+### 高级功能
+
+#### 超时设置
+
+```python
+import requests
+
+def parse(share_link_info, http, logger):
+    try:
+        # 设置 5 秒超时
+        response = requests.get(url, timeout=5)
+        
+        # 分别设置连接超时和读取超时
+        response = requests.get(url, timeout=(3, 10))  # 连接3秒，读取10秒
+        
+        return response.text
+    except requests.Timeout:
+        logger.error("请求超时")
+        raise Exception("请求超时")
+```
+
+#### 重定向控制
+
+```python
+import requests
+
+def parse(share_link_info, http, logger):
+    url = share_link_info.get_share_url()
+    
+    # 不跟随重定向
+    response = requests.get(url, allow_redirects=False)
+    
+    if response.status_code in [301, 302, 303, 307, 308]:
+        download_url = response.headers['Location']
+        logger.info(f"重定向到: {download_url}")
+        return download_url
+    
+    # 限制重定向次数
+    response = requests.get(url, allow_redirects=True, max_redirects=5)
+    return response.text
+```
+
+#### 代理设置
+
+```python
+import requests
+
+def parse(share_link_info, http, logger):
+    # 使用代理
+    proxies = {
+        'http': 'http://proxy.example.com:8080',
+        'https': 'https://proxy.example.com:8080'
+    }
+    
+    response = requests.get(url, proxies=proxies)
+    return response.text
+```
+
+#### 文件上传
+
+```python
+import requests
+
+def parse(share_link_info, http, logger):
+    # 上传文件
+    files = {
+        'file': ('filename.txt', 'file content', 'text/plain')
+    }
+    
+    response = requests.post('https://api.example.com/upload', files=files)
+    return response.json()['file_url']
+```
+
+#### 异常处理
+
+```python
+import requests
+from requests.exceptions import RequestException, HTTPError, Timeout, ConnectionError
+
+def parse(share_link_info, http, logger):
+    try:
+        response = requests.get(url, timeout=10)
+        
+        # 检查 HTTP 错误（4xx, 5xx）
+        response.raise_for_status()
+        
+        return response.json()['download_url']
+        
+    except HTTPError as e:
+        logger.error(f"HTTP 错误: {e.response.status_code}")
+        raise
+    except Timeout:
+        logger.error("请求超时")
+        raise
+    except ConnectionError:
+        logger.error("连接失败")
+        raise
+    except RequestException as e:
+        logger.error(f"请求异常: {str(e)}")
+        raise
+```
+
+### 注意事项
+
+#### 1. 顶层导入限制
+
+**requests 必须在脚本最顶部导入，不能在函数内部导入：**
+
+```python
+# ✅ 正确示例
+import requests
+import json
+import re
+
+def parse(share_link_info, http, logger):
+    response = requests.get(url)
+    # ...
+
+# ❌ 错误示例
+def parse(share_link_info, http, logger):
+    import requests  # 运行时会报错！
+    response = requests.get(url)
+```
+
+#### 2. 与内置 http 对象的选择
+
+- **使用 requests**：适合熟悉 Python 生态、需要复杂功能（Session、高级参数）
+- **使用内置 http**：更轻量、性能更好、适合简单场景
+
+```python
+import requests
+
+def parse(share_link_info, http, logger):
+    # 方式1：使用 requests（更 Pythonic）
+    response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
+    data = response.json()
+    
+    # 方式2：使用内置 http（更轻量）
+    http.put_header('User-Agent', 'Mozilla/5.0')
+    response = http.get(url)
+    data = response.json()
+    
+    # 两种方式可以混用
+    return data['url']
+```
+
+#### 3. 编码处理
+
+```python
+import requests
+
+def parse(share_link_info, http, logger):
+    response = requests.get(url)
+    
+    # requests 自动检测编码
+    text = response.text
+    logger.info(f"检测到编码: {response.encoding}")
+    
+    # 手动设置编码
+    response.encoding = 'utf-8'
+    text = response.text
+    
+    # 获取原始字节
+    raw_bytes = response.content
+    
+    return text
+```
+
+#### 4. 性能考虑
+
+```python
+import requests
+
+def parse(share_link_info, http, logger):
+    # 使用 Session 复用连接（提升性能）
+    session = requests.Session()
+    
+    # 多次请求时，Session 会复用 TCP 连接
+    response1 = session.get('https://api.example.com/step1')
+    response2 = session.get('https://api.example.com/step2')
+    response3 = session.get('https://api.example.com/step3')
+    
+    return response3.json()['url']
+```
+
+### 完整示例：使用 requests
+
+```python
+# ==UserScript==
+# @name         示例-使用requests
+# @type         example_requests
+# @displayName  requests示例
+# @match        https?://pan\.example\.com/s/(?P<KEY>\w+)
+# @version      1.0.0
+# ==/UserScript==
+
+import requests
+import json
+
+def parse(share_link_info, http, logger):
+    """
+    使用 requests 库的完整示例
+    """
+    url = share_link_info.get_share_url()
+    key = share_link_info.get_share_key()
+    password = share_link_info.get_share_password()
+    
+    logger.info(f"开始解析: {url}")
+    
+    # 创建 Session
+    session = requests.Session()
+    session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Referer': url,
+        'Accept': 'application/json'
+    })
+    
+    try:
+        # 步骤1：获取分享信息
+        logger.info("获取分享信息")
+        response = session.get(
+            f'https://api.example.com/share/info',
+            params={'key': key},
+            timeout=10
+        )
+        response.raise_for_status()
+        
+        info = response.json()
+        if info['code'] != 0:
+            raise Exception(f"分享不存在: {info['message']}")
+        
+        # 步骤2：验证密码
+        if info.get('need_password') and password:
+            logger.info("验证密码")
+            verify_response = session.post(
+                'https://api.example.com/share/verify',
+                json={
+                    'key': key,
+                    'password': password
+                },
+                timeout=10
+            )
+            verify_response.raise_for_status()
+            
+            if not verify_response.json().get('success'):
+                raise Exception("密码错误")
+        
+        # 步骤3：获取下载链接
+        logger.info("获取下载链接")
+        download_response = session.get(
+            f'https://api.example.com/share/download',
+            params={'key': key},
+            allow_redirects=False,
+            timeout=10
+        )
+        
+        # 处理重定向
+        if download_response.status_code in [301, 302]:
+            download_url = download_response.headers['Location']
+            logger.info(f"获取到下载链接: {download_url}")
+            return download_url
+        
+        # 或从 JSON 中提取
+        download_response.raise_for_status()
+        data = download_response.json()
+        return data['url']
+        
+    except requests.Timeout:
+        logger.error("请求超时")
+        raise Exception("请求超时，请稍后重试")
+    except requests.HTTPError as e:
+        logger.error(f"HTTP 错误: {e.response.status_code}")
+        raise Exception(f"HTTP 错误: {e.response.status_code}")
+    except requests.RequestException as e:
+        logger.error(f"请求失败: {str(e)}")
+        raise Exception(f"请求失败: {str(e)}")
+    except Exception as e:
+        logger.error(f"解析失败: {str(e)}")
+        raise
+
+
+def parse_file_list(share_link_info, http, logger):
+    """
+    使用 requests 解析文件列表
+    """
+    key = share_link_info.get_share_key()
+    dir_id = share_link_info.get_other_param("dirId") or "0"
+    
+    logger.info(f"获取文件列表: {dir_id}")
+    
+    try:
+        response = requests.get(
+            'https://api.example.com/share/list',
+            params={'key': key, 'dir': dir_id},
+            headers={'User-Agent': 'Mozilla/5.0 ...'},
+            timeout=10
+        )
+        response.raise_for_status()
+        
+        data = response.json()
+        files = data.get('files', [])
+        
+        result = []
+        for file in files:
+            result.append({
+                'file_name': file['name'],
+                'file_id': str(file['id']),
+                'file_type': 'dir' if file.get('is_dir') else 'file',
+                'size': file.get('size', 0),
+                'pan_type': share_link_info.get_type(),
+                'parser_url': f'https://pan.example.com/s/{key}?fid={file["id"]}'
+            })
+        
+        logger.info(f"找到 {len(result)} 个文件")
+        return result
+        
+    except requests.RequestException as e:
+        logger.error(f"获取文件列表失败: {str(e)}")
+        raise
+```
+
+### requests 官方资源
+
+- **官方文档**: https://requests.readthedocs.io/
+- **快速入门**: https://requests.readthedocs.io/en/latest/user/quickstart/
+- **高级用法**: https://requests.readthedocs.io/en/latest/user/advanced/
+- **API 参考**: https://requests.readthedocs.io/en/latest/api/
 
 ## 实现方法
 
@@ -718,6 +1237,15 @@ def parse_by_id(share_link_info, http, logger):
 
 ## 相关文档
 
+### 项目文档
 - [JavaScript解析器开发指南](JAVASCRIPT_PARSER_GUIDE.md)
 - [自定义解析器扩展指南](CUSTOM_PARSER_GUIDE.md)
 - [API使用文档](API_USAGE.md)
+- [Python LSP WebSocket集成指南](PYLSP_WEBSOCKET_GUIDE.md)
+- [Python演练场测试报告](PYTHON_PLAYGROUND_TEST_REPORT.md)
+
+### 外部资源
+- [Requests 官方文档](https://requests.readthedocs.io/) - HTTP for Humans™
+- [Requests 快速入门](https://requests.readthedocs.io/en/latest/user/quickstart/)
+- [Requests 高级用法](https://requests.readthedocs.io/en/latest/user/advanced/)
+- [GraalPy 官方文档](https://www.graalvm.org/python/)

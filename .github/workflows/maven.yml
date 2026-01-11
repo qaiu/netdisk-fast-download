@@ -53,6 +53,13 @@ jobs:
     - name: Build Frontend
       run: cd web-front && yarn install && yarn run build
 
+    - name: Install GraalPy pip packages (for Python tags)
+      if: contains(github.ref, 'py')
+      run: |
+        cd parser
+        chmod +x setup-graalpy-packages.sh
+        ./setup-graalpy-packages.sh
+
     - name: Build with Maven
       run: mvn -B package -DskipTests --file pom.xml
 
@@ -88,9 +95,15 @@ jobs:
       run: |
         GIT_TAG=$(git tag --points-at HEAD | head -n 1)
         echo "tag=$GIT_TAG" >> $GITHUB_OUTPUT
+        # 检查是否为 Python 版本标签（以 py 结尾）
+        if [[ "$GIT_TAG" == *py ]]; then
+          echo "is_python=true" >> $GITHUB_OUTPUT
+        else
+          echo "is_python=false" >> $GITHUB_OUTPUT
+        fi
 
-    - name: Build and push Docker image
-      if: github.event_name != 'pull_request'
+    - name: Build and push Docker image (Standard)
+      if: github.event_name != 'pull_request' && steps.tag.outputs.is_python == 'false'
       uses: docker/build-push-action@v5
       with:
         context: .
@@ -99,3 +112,13 @@ jobs:
         tags: |
           ghcr.io/qaiu/netdisk-fast-download:${{ steps.tag.outputs.tag }}
           ghcr.io/qaiu/netdisk-fast-download:latest
+
+    - name: Build and push Docker image (Python)
+      if: github.event_name != 'pull_request' && steps.tag.outputs.is_python == 'true'
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        platforms: linux/amd64,linux/arm64,linux/arm/v7
+        tags: |
+          ghcr.io/qaiu/netdisk-fast-download:${{ steps.tag.outputs.tag }}

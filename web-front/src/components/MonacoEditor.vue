@@ -206,6 +206,17 @@ export default {
       updateTheme(newTheme);
     });
 
+    // 监听语言变化
+    watch(() => props.language, (newLanguage) => {
+      if (editor && monaco) {
+        const model = editor.getModel();
+        if (model) {
+          monaco.editor.setModelLanguage(model, newLanguage);
+          console.log('[MonacoEditor] 语言已切换为:', newLanguage);
+        }
+      }
+    });
+
     watch(() => props.height, (newHeight) => {
       if (editorContainer.value) {
         editorContainer.value.style.height = newHeight;

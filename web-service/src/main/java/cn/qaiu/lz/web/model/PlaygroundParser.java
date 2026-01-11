@@ -2,6 +2,7 @@ package cn.qaiu.lz.web.model;
 
 import cn.qaiu.db.ddl.Constraint;
 import cn.qaiu.db.ddl.Length;
+import cn.qaiu.db.ddl.NewField;
 import cn.qaiu.db.ddl.Table;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
@@ -46,7 +47,12 @@ public class PlaygroundParser {
 
     @Length(varcharSize = 65535)
     @Constraint(notNull = true)
-    private String jsCode; // JavaScript代码
+    private String jsCode; // JavaScript/Python代码
+
+    @NewField("脚本语言类型")
+    @Length(varcharSize = 32)
+    @Constraint(defaultValue = "javascript")
+    private String language; // 脚本语言: javascript 或 python
 
     @Length(varcharSize = 64)
     private String ip; // 创建者IP
