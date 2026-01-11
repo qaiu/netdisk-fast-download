@@ -160,6 +160,22 @@
                             <outputDirectory>${packageDirectory}/resources</outputDirectory>
                         </configuration>
                     </execution>
+                    <!-- 复制 graalpy-packages 到 resources 目录 (从 parser 模块) -->
+                    <execution>
+                        <id>copy-graalpy-packages</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <resources>
+                                <resource>
+                                    <directory>${project.parent.basedir}/parser/src/main/resources/graalpy-packages</directory>
+                                </resource>
+                            </resources>
+                            <outputDirectory>${packageDirectory}/resources/graalpy-packages</outputDirectory>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>

@@ -35,11 +35,11 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
         
-    - name: 编译项目
-      run: ./mvnw clean compile
-      
-#    - name: 运行测试
-#      run: ./mvnw test
-      
-    - name: 打包项目
-      run: ./mvnw package -DskipTests
+    - name: 安装 GraalPy pip 包
+      run: |
+        cd parser
+        chmod +x setup-graalpy-packages.sh
+        ./setup-graalpy-packages.sh
+        
+    - name: 编译并打包项目
+      run: ./mvnw clean package -DskipTests

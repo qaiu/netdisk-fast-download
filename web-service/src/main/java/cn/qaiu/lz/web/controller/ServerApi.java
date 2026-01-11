@@ -48,7 +48,7 @@ public class ServerApi {
         return cacheService.getCachedByShareUrlAndPwd(url, pwd, JsonObject.of("UA",request.headers().get("user-agent")));
     }
 
-    @RouteMapping(value = "/json/:type/:key", method = RouteMethod.GET)
+    @RouteMapping(value = "/json/:type/:key", method = RouteMethod.GET, order = 1000)
     public Future<CacheLinkInfo> parseKeyJson(HttpServerRequest request, String type, String key) {
         String pwd = "";
         if (key.contains("@")) {
@@ -59,7 +59,7 @@ public class ServerApi {
         return cacheService.getCachedByShareKeyAndPwd(type, key, pwd, JsonObject.of("UA",request.headers().get("user-agent")));
     }
 
-    @RouteMapping(value = "/:type/:key", method = RouteMethod.GET)
+    @RouteMapping(value = "/:type/:key", method = RouteMethod.GET, order = 1000)
     public Future<Void> parseKey(HttpServerResponse response, HttpServerRequest request, String type, String key) {
         Promise<Void> promise = Promise.promise();
         String pwd = "";

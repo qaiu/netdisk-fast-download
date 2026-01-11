@@ -71,7 +71,9 @@ public class PyParserExecutor implements IPanTool {
         pyLogger.info("开始执行Python解析器: {}", config.getType());
         
         return EXECUTOR.executeBlocking(() -> {
-            try (Context context = CONTEXT_POOL.createFreshContext()) {
+            // 使用池化的 Context，自动归还
+            try (PyContextPool.PooledContext pc = CONTEXT_POOL.acquire()) {
+                Context context = pc.getContext();
                 // 注入Java对象到Python环境
                 Value bindings = context.getBindings("python");
                 bindings.putMember("http", httpClient);
@@ -79,7 +81,7 @@ public class PyParserExecutor implements IPanTool {
                 bindings.putMember("share_link_info", shareLinkInfoWrapper);
                 bindings.putMember("crypto", cryptoUtils);
                 
-                // 执行Python代码
+                // 执行Python代码（已支持真正的 pip 包如 requests, zlib 等）
                 context.eval("python", config.getPyCode());
                 
                 // 调用parse函数
@@ -111,7 +113,9 @@ public class PyParserExecutor implements IPanTool {
         pyLogger.info("开始执行Python文件列表解析: {}", config.getType());
         
         return EXECUTOR.executeBlocking(() -> {
-            try (Context context = CONTEXT_POOL.createFreshContext()) {
+            // 使用池化的 Context，自动归还
+            try (PyContextPool.PooledContext pc = CONTEXT_POOL.acquire()) {
+                Context context = pc.getContext();
                 // 注入Java对象到Python环境
                 Value bindings = context.getBindings("python");
                 bindings.putMember("http", httpClient);
@@ -119,7 +123,7 @@ public class PyParserExecutor implements IPanTool {
                 bindings.putMember("share_link_info", shareLinkInfoWrapper);
                 bindings.putMember("crypto", cryptoUtils);
                 
-                // 执行Python代码
+                // 执行Python代码（已支持真正的 pip 包）
                 context.eval("python", config.getPyCode());
                 
                 // 调用parseFileList函数
@@ -145,7 +149,9 @@ public class PyParserExecutor implements IPanTool {
         pyLogger.info("开始执行Python按ID解析: {}", config.getType());
         
         return EXECUTOR.executeBlocking(() -> {
-            try (Context context = CONTEXT_POOL.createFreshContext()) {
+            // 使用池化的 Context，自动归还
+            try (PyContextPool.PooledContext pc = CONTEXT_POOL.acquire()) {
+                Context context = pc.getContext();
                 // 注入Java对象到Python环境
                 Value bindings = context.getBindings("python");
                 bindings.putMember("http", httpClient);
@@ -153,7 +159,7 @@ public class PyParserExecutor implements IPanTool {
                 bindings.putMember("share_link_info", shareLinkInfoWrapper);
                 bindings.putMember("crypto", cryptoUtils);
                 
-                // 执行Python代码
+                // 执行Python代码（已支持真正的 pip 包）
                 context.eval("python", config.getPyCode());
                 
                 // 调用parseById函数

@@ -67,11 +67,21 @@ public class PyPlaygroundExecutor {
     public Future<String> executeParseAsync() {
         Promise<String> promise = Promise.promise();
         
+        // 在执行前进行安全检查
+        PyCodeSecurityChecker.SecurityCheckResult securityResult = PyCodeSecurityChecker.check(pyCode);
+        if (!securityResult.isPassed()) {
+            playgroundLogger.errorJava("安全检查失败: " + securityResult.getMessage());
+            promise.fail(new SecurityException("代码安全检查失败: " + securityResult.getMessage()));
+            return promise.future();
+        }
+        playgroundLogger.debugJava("安全检查通过");
+        
         CompletableFuture<String> executionFuture = CompletableFuture.supplyAsync(() -> {
             playgroundLogger.infoJava("开始执行parse方法");
             
-            // 使用池化的Context（每次执行创建新的Context以保证状态隔离）
-            try (Context context = CONTEXT_POOL.createFreshContext()) {
+            // 使用池化的 Context，自动归还
+            try (PyContextPool.PooledContext pc = CONTEXT_POOL.acquire()) {
+                Context context = pc.getContext();
                 // 注入Java对象到Python环境
                 Value bindings = context.getBindings("python");
                 bindings.putMember("http", httpClient);
@@ -79,7 +89,7 @@ public class PyPlaygroundExecutor {
                 bindings.putMember("share_link_info", shareLinkInfoWrapper);
                 bindings.putMember("crypto", cryptoUtils);
                 
-                // 执行Python代码
+                // 执行Python代码（已支持真正的 pip 包如 requests, zlib 等）
                 playgroundLogger.debugJava("执行Python代码");
                 context.eval("python", pyCode);
                 
@@ -104,8 +114,16 @@ public class PyPlaygroundExecutor {
                     throw new RuntimeException(errorMsg);
                 }
             } catch (Exception e) {
-                playgroundLogger.errorJava("执行parse方法失败: " + e.getMessage(), e);
-                throw new RuntimeException(e);
+                String errorMsg = e.getMessage();
+                if (errorMsg == null || errorMsg.isEmpty()) {
+                    errorMsg = e.getClass().getName();
+                    if (e.getCause() != null) {
+                        errorMsg += ": " + (e.getCause().getMessage() != null ? 
+                                e.getCause().getMessage() : e.getCause().getClass().getName());
+                    }
+                }
+                playgroundLogger.errorJava("执行parse方法失败: " + errorMsg, e);
+                throw new RuntimeException(errorMsg, e);
             }
         }, CONTEXT_POOL.getPythonExecutor());
         
@@ -149,13 +167,16 @@ public class PyPlaygroundExecutor {
         CompletableFuture<List<FileInfo>> executionFuture = CompletableFuture.supplyAsync(() -> {
             playgroundLogger.infoJava("开始执行parse_file_list方法");
             
-            try (Context context = CONTEXT_POOL.createFreshContext()) {
+            // 使用池化的 Context，自动归还
+            try (PyContextPool.PooledContext pc = CONTEXT_POOL.acquire()) {
+                Context context = pc.getContext();
                 Value bindings = context.getBindings("python");
                 bindings.putMember("http", httpClient);
                 bindings.putMember("logger", playgroundLogger);
                 bindings.putMember("share_link_info", shareLinkInfoWrapper);
                 bindings.putMember("crypto", cryptoUtils);
                 
+                // 执行Python代码（已支持真正的 pip 包）
                 context.eval("python", pyCode);
                 
                 Value parseFileListFunc = bindings.getMember("parse_file_list");
@@ -211,13 +232,16 @@ public class PyPlaygroundExecutor {
         CompletableFuture<String> executionFuture = CompletableFuture.supplyAsync(() -> {
             playgroundLogger.infoJava("开始执行parse_by_id方法");
             
-            try (Context context = CONTEXT_POOL.createFreshContext()) {
+            // 使用池化的 Context，自动归还
+            try (PyContextPool.PooledContext pc = CONTEXT_POOL.acquire()) {
+                Context context = pc.getContext();
                 Value bindings = context.getBindings("python");
                 bindings.putMember("http", httpClient);
                 bindings.putMember("logger", playgroundLogger);
                 bindings.putMember("share_link_info", shareLinkInfoWrapper);
                 bindings.putMember("crypto", cryptoUtils);
                 
+                // 执行Python代码（已支持真正的 pip 包）
                 context.eval("python", pyCode);
                 
                 Value parseByIdFunc = bindings.getMember("parse_by_id");

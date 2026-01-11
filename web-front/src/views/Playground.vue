@@ -75,9 +75,24 @@
                     <span style="margin-left: 4px;">首页</span>
                   </el-link>
                 </el-breadcrumb-item>
-                <el-breadcrumb-item>脚本解析器演练场 <span style="color: var(--el-text-color-secondary); font-size: 12px;">
-                {{ currentFileLanguageDisplay }}
-              </span></el-breadcrumb-item>
+                <el-breadcrumb-item>
+                  脚本解析器演练场 
+                  <span style="color: var(--el-text-color-secondary); font-size: 12px; margin-left: 8px;">
+                    {{ currentFileLanguageDisplay }}
+                  </span>
+                  <!-- Python LSP 状态指示器 -->
+                  <el-tag 
+                    v-if="currentFileLanguageDisplay.includes('Python')"
+                    :type="pylspConnected ? 'success' : 'info'" 
+                    size="small" 
+                    style="margin-left: 8px;"
+                  >
+                    <el-icon style="margin-right: 3px;">
+                      <component :is="pylspConnected ? 'CircleCheck' : 'CircleClose'" />
+                    </el-icon>
+                    LSP {{ pylspConnected ? '已连接' : '未连接' }}
+                  </el-tag>
+                </el-breadcrumb-item>
               </el-breadcrumb>
             </div>
           </div>
@@ -175,9 +190,20 @@
                 <el-tab-pane
                   v-for="file in files"
                   :key="file.id"
-                  :label="file.name + (file.modified ? ' *' : '')"
+                  :label="getFileTabLabel(file)"
                   :name="file.id"
+                  :closable="!file.pinned"
                 >
+                  <template #label>
+                    <span 
+                      @contextmenu.prevent="showTabContextMenu($event, file)"
+                      class="tab-label"
+                      :class="{ 'tab-pinned': file.pinned }"
+                    >
+                      <el-icon v-if="file.pinned" class="pin-icon"><Star /></el-icon>
+                      {{ file.name }}{{ file.modified ? ' *' : '' }}
+                    </span>
+                  </template>
                 </el-tab-pane>
               </el-tabs>
               <el-tooltip content="新建文件" placement="bottom">
@@ -192,6 +218,41 @@
             </div>
           </div>
           
+          <!-- 标签页右键菜单 -->
+          <div 
+            v-if="tabContextMenu.visible" 
+            class="tab-context-menu"
+            :style="{ left: tabContextMenu.x + 'px', top: tabContextMenu.y + 'px' }"
+            @click.stop
+          >
+            <div class="context-menu-item" @click="contextMenuAction('pin')">
+              <el-icon><component :is="tabContextMenu.file?.pinned ? 'StarFilled' : 'Star'" /></el-icon>
+              <span>{{ tabContextMenu.file?.pinned ? '取消固定' : '固定' }}</span>
+            </div>
+            <div class="context-menu-divider"></div>
+            <div class="context-menu-item" @click="contextMenuAction('duplicate')">
+              <el-icon><CopyDocument /></el-icon>
+              <span>复制为新脚本</span>
+            </div>
+            <div class="context-menu-item" @click="contextMenuAction('export')">
+              <el-icon><Download /></el-icon>
+              <span>导出文件</span>
+            </div>
+            <div class="context-menu-divider"></div>
+            <div class="context-menu-item" @click="contextMenuAction('closeOthers')" :class="{ disabled: files.length <= 1 }">
+              <el-icon><Close /></el-icon>
+              <span>关闭其他</span>
+            </div>
+            <div class="context-menu-item" @click="contextMenuAction('closeRight')" :class="{ disabled: isLastFile(tabContextMenu.file) }">
+              <el-icon><Right /></el-icon>
+              <span>关闭右侧</span>
+            </div>
+            <div class="context-menu-item" @click="contextMenuAction('closeAll')" :class="{ disabled: files.length <= 1 }">
+              <el-icon><CircleClose /></el-icon>
+              <span>关闭全部</span>
+            </div>
+          </div>
+          
           <!-- 移动端：不使用 splitpanes，内容自然向下流动 -->
           <div v-if="isMobile" class="mobile-layout">
             <!-- 编辑器区域 -->
@@ -199,6 +260,7 @@
               <MonacoEditor
                 ref="editorRef"
                 v-model="currentCode"
+                :language="currentEditorLanguage"
                 :theme="editorTheme"
                 :height="'400px'"
                 :options="editorOptions"
@@ -366,6 +428,7 @@
                 <MonacoEditor
                   ref="editorRef"
                   v-model="currentCode"
+                  :language="currentEditorLanguage"
                   :theme="editorTheme"
                   :height="'100%'"
                   :options="editorOptions"
@@ -585,7 +648,12 @@
 
                 <h3>脚本格式要求</h3>
                 <ul>
-                  <li>必须包含元数据注释块（<code>// ==UserScript== ... // ==/UserScript==</code>）</li>
+                  <li>必须包含元数据注释块：
+                    <ul style="margin-top: 5px;">
+                      <li>JavaScript: <code>// ==UserScript== ... // ==/UserScript==</code></li>
+                      <li>Python: <code># ==UserScript== ... # ==/UserScript==</code></li>
+                    </ul>
+                  </li>
                   <li>必填元数据：<code>@name</code>、<code>@type</code>、<code>@displayName</code>、<code>@match</code></li>
                   <li><code>@type</code> 必须唯一，不能与现有解析器冲突</li>
                   <li><code>@match</code> 必须包含命名捕获组 <code>(?&lt;KEY&gt;...)</code></li>
@@ -685,6 +753,13 @@
             <el-table :data="parserList" v-loading="loadingList" style="width: 100%">
               <el-table-column prop="name" label="名称" width="150" />
               <el-table-column prop="type" label="类型标识" width="120" />
+              <el-table-column label="语言" width="80">
+                <template #default="scope">
+                  <el-tag :type="scope.row.language === 'python' ? 'warning' : 'primary'" size="small">
+                    {{ scope.row.language === 'python' ? 'PY' : 'JS' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
               <el-table-column prop="displayName" label="显示名称" width="150" />
               <el-table-column prop="author" label="作者" width="100" />
               <el-table-column prop="version" label="版本" width="80" />
@@ -772,14 +847,14 @@
         :label-width="isMobile ? '80px' : '100px'"
       >
         <el-form-item label="开发语言" prop="language">
-          <el-radio-group v-model="newFileForm.language">
-            <el-radio label="javascript">
-              <el-icon style="margin-right: 4px;"><Document /></el-icon>
-              JavaScript (ES5)
+          <el-radio-group v-model="newFileForm.language" class="language-radio-group">
+            <el-radio label="javascript" class="language-radio">
+              <span class="language-icon js-icon">JS</span>
+              <span class="language-name">JavaScript (ES5)</span>
             </el-radio>
-            <el-radio label="python">
-              <el-icon style="margin-right: 4px;"><Grape /></el-icon>
-              Python (GraalPy)
+            <el-radio label="python" class="language-radio">
+              <span class="language-icon py-icon">🐍</span>
+              <span class="language-name">Python (GraalPy)</span>
             </el-radio>
           </el-radio-group>
           <div class="form-tip">选择解析器开发语言</div>
@@ -859,7 +934,14 @@ import 'splitpanes/dist/splitpanes.css';
 import MonacoEditor from '@/components/MonacoEditor.vue';
 import { playgroundApi } from '@/utils/playgroundApi';
 import { configureMonacoTypes, loadTypesFromApi } from '@/utils/monacoTypes';
+import PylspClient from '@/utils/pylspClient';
 import JsonViewer from 'vue3-json-viewer';
+// 导入模板文件
+import {
+  generateTemplate,
+  getEmptyTemplate,
+  JS_EMPTY_TEMPLATE
+} from '@/templates';
 
 export default {
   name: 'Playground',
@@ -882,10 +964,182 @@ export default {
     
     // ===== 多文件管理 =====
     const files = ref([
-      { id: 'file1', name: '文件1.js', content: '', modified: false }
+      { id: 'file1', name: '示例解析器.js', content: '', modified: false, pinned: false, dbId: null }
     ]);
     const activeFileId = ref('file1');
     const fileIdCounter = ref(1);
+    
+    // ===== 标签页右键菜单 =====
+    const tabContextMenu = ref({
+      visible: false,
+      x: 0,
+      y: 0,
+      file: null
+    });
+    
+    // 显示右键菜单
+    const showTabContextMenu = (event, file) => {
+      tabContextMenu.value = {
+        visible: true,
+        x: event.clientX,
+        y: event.clientY,
+        file: file
+      };
+    };
+    
+    // 隐藏右键菜单
+    const hideTabContextMenu = () => {
+      tabContextMenu.value.visible = false;
+    };
+    
+    // 判断是否是最后一个文件（用于禁用"关闭右侧"）
+    const isLastFile = (file) => {
+      if (!file) return true;
+      const index = files.value.findIndex(f => f.id === file.id);
+      return index === files.value.length - 1;
+    };
+    
+    // 获取文件标签显示文本
+    const getFileTabLabel = (file) => {
+      return file.name + (file.modified ? ' *' : '');
+    };
+    
+    // 右键菜单操作
+    const contextMenuAction = (action) => {
+      const file = tabContextMenu.value.file;
+      if (!file) return;
+      
+      switch (action) {
+        case 'pin':
+          file.pinned = !file.pinned;
+          // 固定的文件移到最前面
+          if (file.pinned) {
+            const index = files.value.findIndex(f => f.id === file.id);
+            if (index > 0) {
+              files.value.splice(index, 1);
+              // 找到第一个非固定文件的位置
+              const firstUnpinnedIndex = files.value.findIndex(f => !f.pinned);
+              if (firstUnpinnedIndex === -1) {
+                files.value.push(file);
+              } else {
+                files.value.splice(firstUnpinnedIndex, 0, file);
+              }
+            }
+          }
+          saveAllFilesToStorage();
+          break;
+          
+        case 'duplicate':
+          duplicateFile(file);
+          break;
+          
+        case 'export':
+          exportFile(file);
+          break;
+          
+        case 'closeOthers':
+          closeOtherFiles(file);
+          break;
+          
+        case 'closeRight':
+          closeRightFiles(file);
+          break;
+          
+        case 'closeAll':
+          closeAllFiles(file);
+          break;
+      }
+      
+      hideTabContextMenu();
+    };
+    
+    // 复制为新脚本
+    const duplicateFile = (file) => {
+      fileIdCounter.value++;
+      const ext = file.name.match(/\.(js|py)$/)?.[0] || '.js';
+      const baseName = file.name.replace(/\.(js|py)$/, '');
+      let newName = `${baseName}_副本${ext}`;
+      let counter = 1;
+      while (files.value.some(f => f.name === newName)) {
+        newName = `${baseName}_副本${counter}${ext}`;
+        counter++;
+      }
+      
+      const newFile = {
+        id: 'file' + fileIdCounter.value,
+        name: newName,
+        content: file.content,
+        language: file.language,
+        modified: true,
+        pinned: false,
+        dbId: null
+      };
+      
+      files.value.push(newFile);
+      activeFileId.value = newFile.id;
+      saveAllFilesToStorage();
+      ElMessage.success('已复制为新脚本');
+    };
+    
+    // 导出文件
+    const exportFile = (file) => {
+      const blob = new Blob([file.content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      ElMessage.success('文件已导出');
+    };
+    
+    // 关闭其他文件
+    const closeOtherFiles = (keepFile) => {
+      // 保留固定的文件和当前文件
+      files.value = files.value.filter(f => f.id === keepFile.id || f.pinned);
+      if (!files.value.find(f => f.id === activeFileId.value)) {
+        activeFileId.value = keepFile.id;
+      }
+      saveAllFilesToStorage();
+    };
+    
+    // 关闭右侧文件
+    const closeRightFiles = (file) => {
+      const index = files.value.findIndex(f => f.id === file.id);
+      // 保留固定的文件
+      files.value = files.value.filter((f, i) => i <= index || f.pinned);
+      if (!files.value.find(f => f.id === activeFileId.value)) {
+        activeFileId.value = file.id;
+      }
+      saveAllFilesToStorage();
+    };
+    
+    // 关闭全部文件（保留一个默认文件）
+    const closeAllFiles = (exceptFile) => {
+      // 保留固定的文件
+      const pinnedFiles = files.value.filter(f => f.pinned);
+      if (pinnedFiles.length > 0) {
+        files.value = pinnedFiles;
+        activeFileId.value = pinnedFiles[0].id;
+      } else {
+        // 创建一个新的默认文件
+        fileIdCounter.value++;
+        const newFile = {
+          id: 'file' + fileIdCounter.value,
+          name: '示例解析器.js',
+          content: exampleCode,
+          language: 'javascript',
+          modified: false,
+          pinned: false,
+          dbId: null
+        };
+        files.value = [newFile];
+        activeFileId.value = newFile.id;
+      }
+      saveAllFilesToStorage();
+    };
     
     // 获取当前活动文件
     const activeFile = computed(() => {
@@ -908,6 +1162,24 @@ export default {
       }
       
       return 'JavaScript (ES5)';
+    });
+    
+    // 当前文件的编辑器语言（传递给 MonacoEditor）
+    const currentEditorLanguage = computed(() => {
+      const file = activeFile.value;
+      if (!file) return 'javascript';
+      
+      // 优先使用文件的language属性
+      if (file.language === 'python') {
+        return 'python';
+      }
+      
+      // 根据文件扩展名判断
+      if (file.name && file.name.endsWith('.py')) {
+        return 'python';
+      }
+      
+      return 'javascript';
     });
     
     // 当前编辑的代码（绑定到活动文件）
@@ -977,10 +1249,15 @@ export default {
     const publishDialogVisible = ref(false);
     const publishing = ref(false);
     const publishForm = ref({
-      jsCode: ''
+      jsCode: '',
+      language: 'javascript'
     });
     const helpCollapseActive = ref([]); // 默认折叠
     const consoleLogs = ref([]); // 控制台日志
+    
+    // ===== Python LSP 客户端 =====
+    let pylspClient = null;
+    const pylspConnected = ref(false);
     
     // ===== 新增状态管理 =====
     // 折叠状态
@@ -1022,73 +1299,8 @@ export default {
     // 分栏大小
     const splitSizes = ref([70, 30]);
 
-    // 示例代码模板
-    const exampleCode = `// ==UserScript==
-// @name         示例解析器
-// @type         example_parser
-// @displayName  示例网盘
-// @description  使用JavaScript实现的示例解析器
-// @match        https?://example\.com/s/(?<KEY>\\w+)
-// @author       yourname
-// @version      1.0.0
-// ==/UserScript==
-
-/**
- * 解析单个文件下载链接
- * @param {ShareLinkInfo} shareLinkInfo - 分享链接信息
- * @param {JsHttpClient} http - HTTP客户端
- * @param {JsLogger} logger - 日志对象
- * @returns {string} 下载链接
- */
-function parse(shareLinkInfo, http, logger) {
-    var url = shareLinkInfo.getShareUrl();
-    logger.info("开始解析: " + url);
-    
-    var response = http.get('https://example.com');
-    if (!response.isSuccess()) {
-        throw new Error("请求失败: " + response.statusCode());
-    }
-    
-    var html = response.body();
-    // 这里添加你的解析逻辑
-    // 例如：使用正则表达式提取下载链接
-    
-    return "https://example.com/download/file.zip";
-}
-
-/**
- * 解析文件列表（可选）
- * @param {ShareLinkInfo} shareLinkInfo - 分享链接信息
- * @param {JsHttpClient} http - HTTP客户端
- * @param {JsLogger} logger - 日志对象
- * @returns {Array} 文件信息数组
- */
-function parseFileList(shareLinkInfo, http, logger) {
-    var dirId = shareLinkInfo.getOtherParam("dirId") || "0";
-    logger.info("解析文件列表，目录ID: " + dirId);
-    
-    // 这里添加你的文件列表解析逻辑
-    var fileList = [];
-    
-    return fileList;
-}
-
-/**
- * 根据文件ID获取下载链接（可选）
- * @param {ShareLinkInfo} shareLinkInfo - 分享链接信息
- * @param {JsHttpClient} http - HTTP客户端
- * @param {JsLogger} logger - 日志对象
- * @returns {string} 下载链接
- */
-function parseById(shareLinkInfo, http, logger) {
-    var paramJson = shareLinkInfo.getOtherParam("paramJson");
-    var fileId = paramJson.fileId;
-    logger.info("根据ID解析: " + fileId);
-    
-    // 这里添加你的按ID解析逻辑
-    
-    return "https://example.com/download?id=" + fileId;
-}`;
+    // 示例代码模板 - 使用导入的模板
+    const exampleCode = JS_EMPTY_TEMPLATE;
 
     // 编辑器主题
     const editorTheme = computed(() => {
@@ -1342,6 +1554,18 @@ function parseById(shareLinkInfo, http, logger) {
         setProgress(100, '初始化完成！');
         await new Promise(resolve => setTimeout(resolve, 300));
         
+        // 初始化编辑器后，设置当前文件的语言模式
+        await nextTick();
+        if (activeFile.value) {
+          const language = activeFile.value.language || getLanguageFromFile(activeFile.value.name);
+          updateEditorLanguage(language);
+        }
+        
+        // 初始化 Python LSP 客户端（异步，不阻塞主流程）
+        initPylspClient().catch(err => {
+          console.warn('[Playground] pylsp 初始化失败:', err);
+        });
+        
       } catch (error) {
         console.error('初始化失败:', error);
         ElMessage.error('初始化失败: ' + error.message);
@@ -1401,7 +1625,10 @@ function parseById(shareLinkInfo, http, logger) {
       const filesData = files.value.map(f => ({
         id: f.id,
         name: f.name,
-        content: f.content
+        content: f.content,
+        language: f.language || getLanguageFromFile(f.name),
+        pinned: f.pinned || false,
+        dbId: f.dbId || null
       }));
       localStorage.setItem('playground_files', JSON.stringify(filesData));
       localStorage.setItem('playground_active_file', activeFileId.value);
@@ -1415,6 +1642,9 @@ function parseById(shareLinkInfo, http, logger) {
           const filesData = JSON.parse(savedFiles);
           files.value = filesData.map(f => ({
             ...f,
+            language: f.language || getLanguageFromFile(f.name),
+            pinned: f.pinned || false,
+            dbId: f.dbId || null,
             modified: false
           }));
           const savedActiveFile = localStorage.getItem('playground_active_file');
@@ -1487,139 +1717,8 @@ function parseById(shareLinkInfo, http, logger) {
       newFileDialogVisible.value = true;
     };
     
-    // 生成JavaScript模板代码
-    const generateJsTemplate = (name, identifier, author, match) => {
-      const type = identifier.toLowerCase().replace(/[^a-z0-9]/g, '_');
-      const displayName = name;
-      const description = `使用JavaScript实现的${name}解析器`;
-      
-      return `// ==UserScript==
-// @name         ${name}
-// @type         ${type}
-// @displayName  ${displayName}
-// @description  ${description}
-// @match        ${match || 'https?://example.com/s/(?<KEY>\\w+)'}
-// @author       ${author || 'yourname'}
-// @version      1.0.0
-// ==/UserScript==
-
-/**
- * 解析单个文件下载链接
- * @param {ShareLinkInfo} shareLinkInfo - 分享链接信息
- * @param {JsHttpClient} http - HTTP客户端
- * @param {JsLogger} logger - 日志对象
- * @returns {string} 下载链接
- */
-function parse(shareLinkInfo, http, logger) {
-    var url = shareLinkInfo.getShareUrl();
-    logger.info("开始解析: " + url);
-    
-    var response = http.get(url);
-    if (!response.isSuccess()) {
-        throw new Error("请求失败: " + response.statusCode());
-    }
-    
-    var html = response.body();
-    // 这里添加你的解析逻辑
-    // 例如：使用正则表达式提取下载链接
-    
-    return "https://example.com/download/file.zip";
-}
-
-/**
- * 解析文件列表（可选）
- * @param {ShareLinkInfo} shareLinkInfo - 分享链接信息
- * @param {JsHttpClient} http - HTTP客户端
- * @param {JsLogger} logger - 日志对象
- * @returns {Array} 文件信息数组
- */
-function parseFileList(shareLinkInfo, http, logger) {
-    var dirId = shareLinkInfo.getOtherParam("dirId") || "0";
-    logger.info("解析文件列表，目录ID: " + dirId);
-    
-    // 这里添加你的文件列表解析逻辑
-    var fileList = [];
-    
-    return fileList;
-}`;
-    };
-    
-    // 生成Python模板代码
-    const generatePyTemplate = (name, identifier, author, match) => {
-      const type = identifier.toLowerCase().replace(/[^a-z0-9]/g, '_');
-      const displayName = name;
-      const description = `使用Python实现的${name}解析器`;
-      
-      return `# ==UserScript==
-# @name         ${name}
-# @type         ${type}
-# @displayName  ${displayName}
-# @description  ${description}
-# @match        ${match || 'https?://example.com/s/(?<KEY>\\w+)'}
-# @author       ${author || 'yourname'}
-# @version      1.0.0
-# ==/UserScript==
-
-"""
-${name}解析器 - Python实现
-使用GraalPy运行，提供与JavaScript解析器相同的功能
-"""
-
-def parse(share_link_info, http, logger):
-    """
-    解析单个文件下载链接
-    
-    Args:
-        share_link_info: 分享链接信息对象
-        http: HTTP客户端
-        logger: 日志记录器
-    
-    Returns:
-        str: 直链下载地址
-    """
-    url = share_link_info.get_share_url()
-    logger.info(f"开始解析: {url}")
-    
-    response = http.get(url)
-    if not response.ok():
-        raise Exception(f"请求失败: {response.status_code()}")
-    
-    html = response.text()
-    # 这里添加你的解析逻辑
-    # 例如：使用正则表达式提取下载链接
-    
-    return "https://example.com/download/file.zip"
-
-
-def parse_file_list(share_link_info, http, logger):
-    """
-    解析文件列表（可选）
-    
-    Args:
-        share_link_info: 分享链接信息对象
-        http: HTTP客户端
-        logger: 日志记录器
-    
-    Returns:
-        list: 文件信息列表
-    """
-    dir_id = share_link_info.get_other_param("dirId") or "0"
-    logger.info(f"解析文件列表，目录ID: {dir_id}")
-    
-    # 这里添加你的文件列表解析逻辑
-    file_list = []
-    
-    return file_list
-`;
-    };
-    
-    // 生成模板代码（根据语言选择）
-    const generateTemplate = (name, identifier, author, match, language = 'javascript') => {
-      if (language === 'python') {
-        return generatePyTemplate(name, identifier, author, match);
-      }
-      return generateJsTemplate(name, identifier, author, match);
-    };
+    // 模板生成函数已从 @/templates 模块导入
+    // generateTemplate(name, identifier, author, match, language)
     
     // 创建新文件
     const createNewFile = async () => {
@@ -1726,10 +1825,18 @@ def parse_file_list(share_link_info, http, logger):
         if (editor) {
           const model = editor.getModel();
           if (model) {
-            const monaco = window.monaco || editorRef.value.monaco;
-            if (monaco) {
-              const langId = language === 'python' ? 'python' : 'javascript';
-              monaco.editor.setModelLanguage(model, langId);
+            try {
+              // 尝试从编辑器实例获取 monaco
+              const monaco = editorRef.value.getMonaco && editorRef.value.getMonaco() || window.monaco;
+              if (monaco && monaco.editor && monaco.editor.setModelLanguage) {
+                const langId = language === 'python' ? 'python' : 'javascript';
+                monaco.editor.setModelLanguage(model, langId);
+                console.log(`[Playground] 已切换编辑器语言为: ${langId}`);
+              } else {
+                console.warn('[Playground] Monaco 实例不可用，无法切换语言');
+              }
+            } catch (error) {
+              console.error('[Playground] 切换编辑器语言失败:', error);
             }
           }
         }
@@ -1744,6 +1851,103 @@ def parse_file_list(share_link_info, http, logger):
       return 'javascript';
     };
     
+    // ===== Python LSP 功能 =====
+    // 初始化 pylsp 客户端
+    const initPylspClient = async () => {
+      try {
+        console.log('[Playground] 初始化 Python LSP 客户端...');
+        
+        pylspClient = new PylspClient({
+          onDiagnostics: (uri, markers) => {
+            // 更新编辑器诊断信息
+            if (editorRef.value && editorRef.value.getEditor) {
+              const editor = editorRef.value.getEditor();
+              const monaco = editorRef.value.getMonaco && editorRef.value.getMonaco() || window.monaco;
+              if (editor && monaco) {
+                const model = editor.getModel();
+                if (model) {
+                  monaco.editor.setModelMarkers(model, 'pylsp', markers);
+                  console.log(`[Playground] 已更新 ${markers.length} 个诊断标记`);
+                }
+              }
+            }
+          },
+          onConnected: () => {
+            pylspConnected.value = true;
+            console.log('[Playground] Python LSP 已连接');
+            ElMessage.success('Python 语言服务器已连接');
+            
+            // 如果当前文件是 Python，打开文档
+            if (activeFile.value && getLanguageFromFile(activeFile.value.name) === 'python') {
+              syncPythonDocument();
+            }
+          },
+          onDisconnected: () => {
+            pylspConnected.value = false;
+            console.log('[Playground] Python LSP 已断开');
+          },
+          onError: (error) => {
+            console.error('[Playground] Python LSP 错误:', error);
+          }
+        });
+        
+        await pylspClient.connect();
+      } catch (error) {
+        console.error('[Playground] pylsp 初始化失败:', error);
+        throw error;
+      }
+    };
+    
+    // 同步 Python 文档到 LSP
+    const syncPythonDocument = () => {
+      if (!pylspClient || !pylspClient.initialized) {
+        return;
+      }
+      
+      const file = activeFile.value;
+      if (!file) {
+        return;
+      }
+      
+      const language = getLanguageFromFile(file.name);
+      if (language !== 'python') {
+        return;
+      }
+      
+      console.log('[Playground] 同步 Python 文档到 LSP');
+      pylspClient.openDocument(file.content, `file:///${file.name}`);
+    };
+    
+    // 监听 Python 文件内容变化
+    let pylspUpdateTimer = null;
+    watch(() => currentCode.value, (newContent) => {
+      if (!activeFile.value) return;
+      
+      const language = getLanguageFromFile(activeFile.value.name);
+      if (language === 'python' && pylspClient && pylspClient.initialized) {
+        // 防抖：延迟500ms更新
+        if (pylspUpdateTimer) {
+          clearTimeout(pylspUpdateTimer);
+        }
+        pylspUpdateTimer = setTimeout(() => {
+          console.log('[Playground] 更新 Python 文档内容');
+          pylspClient.updateDocument(newContent, `file:///${activeFile.value.name}`);
+        }, 500);
+      }
+    });
+    
+    // 监听文件切换
+    watch(activeFileId, () => {
+      const file = activeFile.value;
+      if (!file) return;
+      
+      const language = getLanguageFromFile(file.name);
+      if (language === 'python' && pylspClient && pylspClient.initialized) {
+        syncPythonDocument();
+      }
+    });
+    
+    // ===== IDE 功能 =====
     // IDE功能：切换自动换行
     const toggleWordWrap = () => {
       wordWrapEnabled.value = !wordWrapEnabled.value;
@@ -2048,11 +2252,15 @@ def parse_file_list(share_link_info, http, logger):
     // 发布解析器
     const publishParser = () => {
       const codeToPublish = currentCode.value;
+      const currentLanguage = activeFile.value?.language || getLanguageFromFile(activeFile.value?.name) || 'javascript';
+      const isPython = currentLanguage === 'python';
+      
       if (!codeToPublish.trim()) {
-        ElMessage.warning('请先编写JavaScript代码');
+        ElMessage.warning(`请先编写${isPython ? 'Python' : 'JavaScript'}代码`);
         return;
       }
       publishForm.value.jsCode = codeToPublish;
+      publishForm.value.language = currentLanguage;
       publishDialogVisible.value = true;
     };
 
@@ -2061,7 +2269,8 @@ def parse_file_list(share_link_info, http, logger):
       publishing.value = true;
       try {
         const codeToPublish = currentCode.value;
-        const result = await playgroundApi.saveParser(codeToPublish);
+        const currentLanguage = publishForm.value.language || 'javascript';
+        const result = await playgroundApi.saveParser(codeToPublish, currentLanguage);
         console.log('保存解析器响应:', result);
         // 检查响应格式
         if (result.code === 200 || result.success) {
@@ -2139,35 +2348,51 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
     // 加载解析器到编辑器（添加到新的文件tab标签）
     const loadParserToEditor = async (parser) => {
       try {
+        // 先检查是否已存在相同 dbId 的文件（防止重复打开）
+        const existingFile = files.value.find(f => f.dbId === parser.id);
+        if (existingFile) {
+          // 如果已存在，直接切换到该文件
+          activeFileId.value = existingFile.id;
+          activeTab.value = 'editor';
+          ElMessage.info('文件已打开，已切换到该标签');
+          return;
+        }
+        
         const result = await playgroundApi.getParserById(parser.id);
         if (result.code === 200 && result.data) {
           // 从代码中提取文件名
           const code = result.data.jsCode;
-          let fileName = parser.name || '解析器.js';
+          const isPython = parser.language === 'python' || result.data.language === 'python';
+          const fileExt = isPython ? '.py' : '.js';
+          let fileName = parser.name || ('解析器' + fileExt);
           
           // 尝试从@name提取文件名
           const nameMatch = code.match(/@name\s+([^\r\n]+)/);
           if (nameMatch && nameMatch[1]) {
             const parserName = nameMatch[1].trim();
-            fileName = parserName.endsWith('.js') ? parserName : parserName + '.js';
+            // 移除可能的错误扩展名并添加正确的
+            fileName = parserName.replace(/\.(js|py)$/i, '') + fileExt;
           }
           
           // 检查文件名是否已存在，如果存在则添加序号
           let finalFileName = fileName;
           let counter = 1;
           while (files.value.some(f => f.name === finalFileName)) {
-            const nameWithoutExt = fileName.replace(/\.js$/, '');
-            finalFileName = `${nameWithoutExt}_${counter}.js`;
+            const nameWithoutExt = fileName.replace(/\.(js|py)$/i, '');
+            finalFileName = `${nameWithoutExt}_${counter}${fileExt}`;
             counter++;
           }
           
-          // 创建新文件
+          // 创建新文件，包含数据库ID
           fileIdCounter.value++;
           const newFile = {
             id: 'file' + fileIdCounter.value,
             name: finalFileName,
             content: code,
-            modified: false
+            language: isPython ? 'python' : 'javascript',
+            modified: false,
+            pinned: false,
+            dbId: parser.id  // 保存数据库中的ID
           };
           
           files.value.push(newFile);
@@ -2436,6 +2661,9 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       // 添加页面关闭/刷新前的提示
       window.addEventListener('beforeunload', handleBeforeUnload);
       
+      // 添加点击事件关闭右键菜单
+      document.addEventListener('click', hideTabContextMenu);
+      
       // 检查认证状态
       const isAuthed = await checkAuthStatus();
       
@@ -2474,6 +2702,13 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       window.removeEventListener('resize', updateIsMobile);
       // 移除页面关闭/刷新前的提示
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      // 移除右键菜单关闭事件
+      document.removeEventListener('click', hideTabContextMenu);
+      // 断开 pylsp 连接
+      if (pylspClient) {
+        pylspClient.disconnect();
+        pylspClient = null;
+      }
     });
 
     return {
@@ -2493,8 +2728,16 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       activeFileId,
       activeFile,
       currentFileLanguageDisplay,
+      currentEditorLanguage,
       handleFileChange,
       removeFile,
+      // 标签页右键菜单
+      tabContextMenu,
+      showTabContextMenu,
+      hideTabContextMenu,
+      contextMenuAction,
+      getFileTabLabel,
+      isLastFile,
       // 新建文件
       newFileDialogVisible,
       newFileForm,
@@ -2553,6 +2796,8 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       helpCollapseActive,
       consoleLogs,
       clearConsoleLogs,
+      // Python LSP
+      pylspConnected,
       // 新增功能
       collapsedPanels,
       togglePanel,
@@ -3340,6 +3585,7 @@ html.dark .playground-container .splitpanes__splitter:hover {
 /* ===== 文件标签页 ===== */
 .file-tabs-container {
   margin-bottom: 12px;
+  position: relative;
 }
 
 .file-tabs-wrapper {
@@ -3350,6 +3596,33 @@ html.dark .playground-container .splitpanes__splitter:hover {
 
 .file-tabs {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* 标签页滚动支持 */
+.file-tabs :deep(.el-tabs__nav-wrap) {
+  overflow: hidden;
+}
+
+.file-tabs :deep(.el-tabs__nav-scroll) {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--el-border-color) transparent;
+}
+
+.file-tabs :deep(.el-tabs__nav-scroll)::-webkit-scrollbar {
+  height: 4px;
+}
+
+.file-tabs :deep(.el-tabs__nav-scroll)::-webkit-scrollbar-thumb {
+  background-color: var(--el-border-color);
+  border-radius: 2px;
+}
+
+.file-tabs :deep(.el-tabs__nav-scroll)::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .file-tabs :deep(.el-tabs__header) {
@@ -3361,16 +3634,119 @@ html.dark .playground-container .splitpanes__splitter:hover {
   height: 32px;
   line-height: 32px;
   font-size: 13px;
+  background-color: transparent;
+  border-color: var(--el-border-color);
 }
 
+/* 标签内文本样式 */
+.tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+}
+
+.tab-pinned {
+  font-weight: 500;
+}
+
+.pin-icon {
+  font-size: 12px;
+  color: var(--el-color-warning);
+}
+
+/* 非活动标签页样式 */
+.file-tabs :deep(.el-tabs__item:not(.is-active)) {
+  background-color: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
+}
+
+.file-tabs :deep(.el-tabs__item:not(.is-active):hover) {
+  background-color: var(--el-fill-color);
+  color: var(--el-text-color-primary);
+}
+
+/* 活动标签页样式 */
 .file-tabs :deep(.el-tabs__item.is-active) {
   background-color: var(--el-color-primary-light-9);
   color: var(--el-color-primary);
+  font-weight: 500;
 }
 
+/* 暗色模式非活动标签 */
+.dark-theme .file-tabs :deep(.el-tabs__item:not(.is-active)) {
+  background-color: rgba(255, 255, 255, 0.04);
+  color: var(--el-text-color-secondary);
+}
+
+.dark-theme .file-tabs :deep(.el-tabs__item:not(.is-active):hover) {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--el-text-color-primary);
+}
+
+/* 暗色模式活动标签 */
 .dark-theme .file-tabs :deep(.el-tabs__item.is-active) {
   background-color: rgba(64, 158, 255, 0.2);
   color: var(--el-color-primary);
+  font-weight: 500;
+}
+
+/* ===== 右键菜单样式 ===== */
+.tab-context-menu {
+  position: fixed;
+  z-index: 9999;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  padding: 6px 0;
+  min-width: 160px;
+}
+
+.dark-theme .tab-context-menu {
+  background: #2a2a2a;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+  transition: background-color 0.2s;
+}
+
+.context-menu-item:hover {
+  background-color: var(--el-fill-color-light);
+}
+
+.dark-theme .context-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.context-menu-item.disabled {
+  color: var(--el-text-color-disabled);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.context-menu-item .el-icon {
+  font-size: 16px;
+  color: var(--el-text-color-secondary);
+}
+
+.context-menu-divider {
+  height: 1px;
+  background-color: var(--el-border-color-lighter);
+  margin: 6px 0;
+}
+
+.dark-theme .context-menu-divider {
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 .new-file-tab-btn {
@@ -3664,6 +4040,48 @@ html.dark .playground-container .splitpanes__splitter:hover {
   color: var(--el-text-color-secondary);
   margin-top: 4px;
   line-height: 1.4;
+}
+
+/* 开发语言选择样式 */
+.language-radio-group {
+  display: flex;
+  gap: 20px;
+}
+
+.language-radio {
+  display: flex;
+  align-items: center;
+}
+
+.language-radio :deep(.el-radio__label) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.language-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.language-icon.js-icon {
+  background: linear-gradient(135deg, #f7df1e 0%, #e6c700 100%);
+  color: #323330;
+}
+
+.language-icon.py-icon {
+  background: linear-gradient(135deg, #3776ab 0%, #ffd43b 100%);
+  font-size: 14px;
+}
+
+.language-name {
+  font-size: 14px;
 }
 
 .empty-result {

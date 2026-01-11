@@ -6,6 +6,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "PythonSecurityTestMain",
+            "request": "launch",
+            "mainClass": "cn.qaiu.parser.custompy.PythonSecurityTestMain",
+            "projectName": "parser"
+        },
+        {
+            "type": "java",
             "name": "Current File",
             "request": "launch",
             "mainClass": "${file}"

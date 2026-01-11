@@ -4,6 +4,19 @@
 
 本指南介绍如何使用JavaScript编写自定义网盘解析器，支持通过JavaScript代码实现网盘解析逻辑，无需编写Java代码。
 
+### 技术规格
+
+- **JavaScript 引擎**: Nashorn (JDK 8-14 内置)
+- **ECMAScript 版本**: ES5.1 (ECMA-262 5.1 Edition)
+- **语法支持**: ES5 标准语法，不支持 ES6+ 特性（如箭头函数、async/await、模板字符串等）
+- **运行模式**: 同步执行，所有操作都是阻塞式的
+
+### 参考文档
+
+- **ECMAScript 5.1 规范**: https://262.ecma-international.org/5.1/
+- **MDN JavaScript 文档**: https://developer.mozilla.org/zh-CN/docs/Web/JavaScript
+- **Nashorn 用户指南**: https://docs.oracle.com/javase/8/docs/technotes/guides/scripting/nashorn/
+
 ## 目录
 
 - [快速开始](#快速开始)
@@ -711,9 +724,17 @@ var response = http.get("https://api.example.com/data");
 
 ## 相关文档
 
+### 项目文档
 - [自定义解析器扩展指南](CUSTOM_PARSER_GUIDE.md) - Java自定义解析器扩展
 - [自定义解析器快速开始](CUSTOM_PARSER_QUICKSTART.md) - 快速上手指南
 - [解析器开发文档](README.md) - 解析器开发约定和规范
+- [Python解析器开发指南](PYTHON_PARSER_GUIDE.md) - Python 版本解析器指南
+
+### 外部资源
+- **ECMAScript 5.1 规范**: https://262.ecma-international.org/5.1/
+- **MDN JavaScript 参考**: https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference
+- **MDN JavaScript 指南**: https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide
+- **Nashorn 文档**: https://docs.oracle.com/javase/8/docs/technotes/guides/scripting/nashorn/
 
 ## 更新日志
 

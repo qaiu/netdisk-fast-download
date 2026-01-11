@@ -119,6 +119,19 @@
             <version>${graalpy.version}</version>
             <type>pom</type>
         </dependency>
+        <!-- GraalPy Python 包资源支持 -->
+        <dependency>
+            <groupId>org.graalvm.python</groupId>
+            <artifactId>python-embedding</artifactId>
+            <version>${graalpy.version}</version>
+        </dependency>
+        <!-- GraalPy LLVM 支持 - 允许多 Context 使用原生模块 (如 unicodedata) -->
+        <dependency>
+            <groupId>org.graalvm.polyglot</groupId>
+            <artifactId>llvm-community</artifactId>
+            <version>${graalpy.version}</version>
+            <type>pom</type>
+        </dependency>
 
         <!-- Compression (Brotli) -->
         <dependency>
@@ -138,6 +151,28 @@
 
     <build>
         <plugins>
+
+            <!-- GraalPy Maven Plugin - 仅创建 Python Home，不使用 pip 安装 -->
+            <!-- pip 包手动安装到 src/main/resources/graalpy-packages/，可打包进 jar -->
+            <!-- 安装方法: ./setup-graalpy-packages.sh -->
+            <plugin>
+                <groupId>org.graalvm.python</groupId>
+                <artifactId>graalpy-maven-plugin</artifactId>
+                <version>${graalpy.version}</version>
+                <configuration>
+                    <!-- 不声明 packages，避免代理问题 -->
+                    <!-- pip 包从 resources/graalpy-packages 加载 -->
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>prepare-python-resources</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>process-graalpy-resources</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
 
             <!-- 编译 -->
             <plugin>

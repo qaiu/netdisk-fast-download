@@ -50,4 +50,14 @@ public interface DbService extends BaseAsyncService {
      */
     Future<JsonObject> getPlaygroundParserById(Long id);
 
+    /**
+     * 根据type查询解析器是否存在
+     */
+    Future<Boolean> existsPlaygroundParserByType(String type);
+
+    /**
+     * 初始化示例解析器（JS和Python）
+     */
+    Future<Void> initExampleParsers();
+
 }

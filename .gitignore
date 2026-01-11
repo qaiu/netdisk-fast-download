@@ -80,3 +80,7 @@ yarn-error.log*
 *.iml
 *.ipr
 *.iws
+
+# GraalPy pip packages (local installation)
+parser/src/main/resources/graalpy-packages/
+**/graalpy-packages/

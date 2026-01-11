@@ -1,0 +1,346 @@
+# NetDisk Fast Download - Agent 规则文件
+
+## 项目概述
+网盘快速下载项目，支持多种网盘链接解析和下载加速。
+
+## 技术栈
+
+### 后端
+- **Java 版本**: JDK 17
+- **构建工具**: Maven 3.x
+- **核心框架**: Vert.x 4.5.23
+- **日志框架**: SLF4J 2.0.5 + Logback 1.5.19
+- **工具库**: 
+  - Lombok 1.18.38
+  - Apache Commons Lang3 3.18.0
+  - Apache Commons BeanUtils 2.0.0
+  - Jackson 2.14.2
+  - Reflections 0.10.2
+
+### 前端
+- Vue.js 框架
+- Monaco Editor (代码编辑器)
+
+### 测试
+- JUnit 4.13.2
+- **Maven 测试配置**: 默认跳过测试，使用 `-Dmaven.test.skip=false` 执行测试
+
+## 项目模块结构
+
+```
+netdisk-fast-download/
+├── core/              # 核心功能模块
+├── core-database/     # 数据库模块
+├── parser/            # 解析器模块（支持自定义解析器）
+├── web-service/       # Web 服务模块
+└── web-front/         # 前端模块
+```
+
+## 编码规范
+
+### Java 代码规范
+1. **使用 Lombok 注解简化代码**
+   - `@Data`, `@Getter`, `@Setter`, `@Builder` 等
+   - `@Slf4j` 用于日志
+
+2. **异步编程**
+   - 使用 Vert.x 的 Future/Promise 模式
+   - 遵循响应式编程范式
+   - 避免阻塞操作
+
+3. **日志规范**
+   - 使用 SLF4J + Logback
+   - 日志级别：ERROR（错误）、WARN（警告）、INFO（重要信息）、DEBUG（调试信息）
+   - 日志文件按日期分目录存储在 `logs/` 下
+
+4. **包命名规范**
+   - 基础包名：`cn.qaiu`
+   - 子包按模块功能划分
+
+### 测试规范
+1. **默认跳过测试**: 打包时使用 `mvn clean package`
+2. **执行测试**: 使用 `mvn test -Dmaven.test.skip=false`
+3. 测试类放在 `src/test/java` 目录下
+
+### Core 模块封装（禁止重复造轮子）
+
+#### Web 路由封装
+**核心类**: `cn.qaiu.vx.core.handlerfactory.RouterHandlerFactory`
+
+使用注解方式定义路由，无需手动创建 Router：
+```java
+// ✅ 推荐：使用注解定义路由
+@RouteHandler("/api")  // 类级别路由前缀
+@Slf4j
+public class MyController {
+    
+    @RouteMapping(value = "/users", method = RouteMethod.GET)
+    public Future<List<User>> getUsers() {
+        // 返回 Future，框架自动处理响应
+        return userService.findAll();
+    }
+    
+    @RouteMapping(value = "/user/:id", method = RouteMethod.GET)
+    public Future<User> getUserById(String id) {
+        // 路径参数自动注入
+        return userService.findById(id);
+    }
+    
+    @RouteMapping(value = "/user", method = RouteMethod.POST)
+    public Future<JsonResult<User>> createUser(HttpServerRequest request, String name, Integer age) {
+        // 查询参数自动注入
+        return userService.create(name, age)
+            .map(JsonResult::success);
+    }
+}
+
+// ❌ 避免：手动创建路由
+Router router = Router.router(vertx);
+router.get("/api/users").handler(ctx -> {
+    // 不要这样写
+});
+```
+
+**支持的注解：**
+- `@RouteHandler(value="/path", order=0)` - 标记路由处理类
+- `@RouteMapping(value="/path", method=RouteMethod.GET)` - 标记路由方法
+- `@SockRouteMapper("/ws")` - WebSocket 路由
+
+**自动参数注入：**
+- `HttpServerRequest` - 请求对象
+- `HttpServerResponse` - 响应对象  
+- `RoutingContext` - 路由上下文
+- `String param` - 路径参数或查询参数（自动匹配名称）
+- 自定义对象 - 自动从请求体反序列化
+
+#### 响应处理工具
+**工具类**: `cn.qaiu.vx.core.util.ResponseUtil`
+
+```java
+// ✅ 推荐：使用 ResponseUtil
+ResponseUtil.redirect(response, "https://example.com");
+ResponseUtil.fireJsonObjectResponse(ctx, jsonObject);
+ResponseUtil.fireJsonResultResponse(ctx, JsonResult.success(data));
+
+// ❌ 避免：手动设置响应头
+response.putHeader("Content-Type", "application/json");
+response.end(json);
+```
+
+#### 统一响应模型
+**模型类**: `cn.qaiu.vx.core.model.JsonResult<T>`
+
+```java
+// ✅ 推荐：使用 JsonResult 统一响应格式
+public Future<JsonResult<User>> getUser(String id) {
+    return userService.findById(id)
+        .map(JsonResult::success)  // 成功响应
+        .otherwise(err -> JsonResult.error(err.getMessage()));  // 错误响应
+}
+
+// 响应格式：
+// {"code": 200, "msg": "success", "success": true, "data": {...}, "timestamp": 123456789}
+```
+
+#### 异步服务代理
+**工具类**: `cn.qaiu.vx.core.util.AsyncServiceUtil`
+
+```java
+// ✅ 推荐：使用服务代理
+private final UserService userService = AsyncServiceUtil.getAsyncServiceInstance(UserService.class);
+
+// ❌ 避免：手动管理服务实例和 EventBus
+```
+
+### Core-Database 模块封装（禁止重复造轮子）
+
+#### DDL 自动生成
+**核心类**: `cn.qaiu.db.ddl.CreateTable`
+
+使用注解定义实体，自动生成建表 SQL：
+```java
+// ✅ 推荐：使用注解定义实体
+@Data
+@Table("users")  // 表名
+public class User {
+    @Constraint(autoIncrement = true)
+    private Long id;  // 自动识别为主键
+    
+    @Constraint(notNull = true, uniqueKey = "uk_email")
+    @Length(varcharSize = 100)
+    private String email;
+    
+    @Constraint(notNull = true)
+    private String name;
+    
+    @Constraint(defaultValue = "0", defaultValueIsFunction = false)
+    private Integer status;
+    
+    @Constraint(defaultValue = "NOW()", defaultValueIsFunction = true)
+    private Date createdAt;
+}
+
+// 自动建表
+CreateTable.createTable(pool, JDBCType.MySQL);
+
+// ❌ 避免：手写建表 SQL
+pool.query("CREATE TABLE users (...)").execute();
+```
+
+**支持的注解：**
+- `@Table("tableName")` - 指定表名和主键
+- `@Constraint` - 字段约束
+  - `notNull` - 非空约束
+  - `uniqueKey` - 唯一键约束
+  - `defaultValue` - 默认值
+  - `autoIncrement` - 自增
+- `@Length` - 字段长度
+  - `varcharSize` - VARCHAR 长度
+  - `decimalSize` - DECIMAL 精度
+- `@TableGenIgnore` - 忽略字段（不生成列）
+- `@Column(name="column_name")` - 自定义列名
+
+#### 自动数据库创建
+**工具类**: `cn.qaiu.db.ddl.CreateDatabase`
+
+```java
+// ✅ 推荐：自动创建数据库
+JsonObject dbConfig = config.getJsonObject("database");
+CreateDatabase.createDatabase(dbConfig);
+
+// ❌ 避免：手动连接和执行 SQL
+```
+
+### Parser 模块特殊说明
+1. 支持自定义解析器（Java、Python、JavaScript）
+2. Python 解析器使用 GraalPy 实现
+3. 支持 WebSocket 连接到外部 Python 环境
+4. 包含安全测试和沙箱机制
+
+## Maven 命令
+
+### 常用命令
+```bash
+# 编译打包（跳过测试）
+mvn clean package
+
+# 安装到本地仓库（跳过测试）
+mvn clean install
+
+# 执行测试
+mvn test -Dmaven.test.skip=false
+
+# 编译并执行测试
+mvn clean package -Dmaven.test.skip=false
+
+# 只编译不打包
+mvn clean compile
+
+# 清理
+mvn clean
+```
+
+### 模块化构建
+```bash
+# 只构建特定模块
+mvn clean package -pl parser -am
+
+# 构建多个模块
+mvn clean package -pl core,parser -am
+```
+
+## 部署相关
+
+### 目录结构
+- `bin/`: 启动脚本和服务安装脚本
+- `db/`: 数据库文件
+- `logs/`: 日志文件（按日期分目录）
+- `webroot/`: Web 静态资源根目录
+
+### 脚本文件
+- `run.sh` / `run.bat`: 启动脚本
+- `stop.sh`: 停止脚本
+- `service-install.sh`: Linux 服务安装
+- `nfd-service-install.bat`: Windows 服务安装
+
+## 开发注意事项
+
+1. **字符编码**: 统一使用 UTF-8
+2. **Java 版本**: 必须使用 JDK 17 或更高版本
+3. **Vert.x 异步**: 避免在 Event Loop 线程中执行阻塞操作
+4. **资源文件**: 
+   - 静态资源放在 `webroot/` 目录
+   - 前端构建产物输出到 `web-front/public/`
+5. **日志文件**: 不要提交 `logs/` 目录到版本控制
+6. **测试**: 新增功能必须编写单元测试，使用 `-Dmaven.test.skip=false` 验证
+
+## 代码审查要点
+
+1. 是否正确处理异步操作
+2. 是否有潜在的资源泄漏（连接、文件句柄等）
+3. 异常处理是否完善
+4. 日志记录是否合理
+5. 是否遵循单一职责原则
+6. 是否有适当的注释说明复杂逻辑
+
+## 性能优化建议
+
+1. 使用 Vert.x 的异步特性，避免阻塞
+2. 合理使用缓存机制
+3. 数据库查询优化
+4. 静态资源压缩和缓存策略
+5. 使用连接池管理数据库连接
+
+## 安全注意事项
+
+1. **Parser 模块**: 
+   - 自定义解析器需要经过安全验证
+   - Python/JavaScript 代码执行需要沙箱隔离
+   - 参考 `parser/doc/SECURITY_TESTING_GUIDE.md`
+
+2. **输入验证**: 
+   - 所有外部输入必须验证和清理
+   - 防止注入攻击
+
+3. **敏感信息**: 
+   - 不要在日志中输出敏感信息
+   - 配置文件中的密钥要加密存储
+
+## 文档参考
+
+- Parser 模块文档: `parser/doc/`
+  - API 使用指南: `API_USAGE.md`
+  - 自定义解析器指南: `CUSTOM_PARSER_GUIDE.md`
+  - Python 解析器指南: `PYTHON_PARSER_GUIDE.md`
+  - JavaScript 解析器指南: `JAVASCRIPT_PARSER_GUIDE.md`
+  - 安全测试指南: `SECURITY_TESTING_GUIDE.md`
+
+- 前端文档: `web-front/doc/`
+  - Monaco Editor 集成: `MONACO_EDITOR_NPM.md`
+  - Playground UI 升级: `PLAYGROUND_UI_UPGRADE.md`
+
+## Git 提交规范
+
+使用语义化提交信息：
+- `feat`: 新功能
+- `fix`: 修复 Bug
+- `docs`: 文档更新
+- `style`: 代码格式调整
+- `refactor`: 重构
+- `test`: 测试相关
+- `chore`: 构建/工具链相关
+
+示例：
+```
+feat(parser): 添加新的网盘解析器支持
+fix(core): 修复下载链接过期问题
+docs(readme): 更新安装说明
+```
+
+## AI 助手使用建议
+
+1. 在修改代码前，先理解项目的模块结构和依赖关系
+2. 生成的代码要符合项目现有的编码风格
+3. 涉及异步操作时，优先使用 Vert.x 的 Future/Promise API
+4. 修改配置文件时要考虑向后兼容性
+5. 新增功能时同步更新相关文档

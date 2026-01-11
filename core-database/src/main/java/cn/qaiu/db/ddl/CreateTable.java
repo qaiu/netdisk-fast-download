@@ -303,7 +303,7 @@ public class CreateTable {
             return promise.future();
         }
 
-        List<Future<Object>> futures = new ArrayList<>();
+        List<Future<Object>> createFutures = new ArrayList<>();
 
         for (Class<?> clazz : tableClasses) {
             List<String> sqlList = getCreateTableSQL(clazz, type);
@@ -312,23 +312,41 @@ public class CreateTable {
             for (String sql : sqlList) {
                 try {
                     pool.query(sql).execute().toCompletionStage().toCompletableFuture().join();
-                    futures.add(Future.succeededFuture());
+                    createFutures.add(Future.succeededFuture());
                     LOGGER.debug("Executed SQL:\n{}", sql);
                 } catch (Exception e) {
                     String message = e.getMessage();
                     if (message != null && message.contains("Duplicate key name")) {
                         LOGGER.warn("Ignoring duplicate key error: {}", message);
-                        futures.add(Future.succeededFuture());
+                        createFutures.add(Future.succeededFuture());
                     } else {
                         LOGGER.error("SQL Error: {}\nSQL: {}", message, sql);
-                        futures.add(Future.failedFuture(e));
+                        createFutures.add(Future.failedFuture(e));
                         throw new RuntimeException(e); // Stop execution for other exceptions
                     }
                 }
             }
         }
 
-        Future.all(futures).onSuccess(r -> promise.complete()).onFailure(promise::fail);
+        // 创建表完成后，执行表结构迁移检查
+        Future.all(createFutures)
+            .compose(v -> {
+                LOGGER.info("开始检查表结构变更...");
+                List<Future<Void>> migrationFutures = new ArrayList<>();
+                for (Class<?> clazz : tableClasses) {
+                    migrationFutures.add(SchemaMigration.migrateTable(pool, clazz, type));
+                }
+                return Future.all(migrationFutures).mapEmpty();
+            })
+            .onSuccess(v -> {
+                LOGGER.info("表结构检查和变更完成");
+                promise.complete();
+            })
+            .onFailure(err -> {
+                LOGGER.error("表结构变更失败", err);
+                promise.fail(err);
+            });
+
         return promise.future();
     }
 
