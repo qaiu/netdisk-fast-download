@@ -19,7 +19,7 @@ QQ群：1017480890
 > **📌 分支说明：** 
 > - 本分支 (`feature/graalpy-parser`) 为 **Python 解析器支持版本**，包含 GraalPy 环境
 > - 如需标准版本（更小的镜像体积），请访问 [main 分支](https://github.com/qaiu/netdisk-fast-download/tree/main)
-> - Docker 镜像：Python 版本使用 `v0.1.9b19py` 等 py 标签，标准版本使用 `latest` 标签
+> - Docker 镜像：Python 版本使用 py 标签（如 `v0.1.9b19py`），标准版本使用 `latest` 标签
 
 netdisk-fast-download网盘直链云解析(nfd云解析)能把网盘分享下载链接转化为直链，支持多款云盘，已支持蓝奏云/蓝奏云优享/奶牛快传/移动云云空间/小飞机盘/亿方云/123云盘/Cloudreve等，支持加密分享，以及部分网盘文件夹分享。  
 
@@ -344,12 +344,15 @@ mvn package -DskipTests
 - ⚠️ 镜像体积较大（约增加 200MB）
 
 #### 海外服务器Docker部署（Python版）
+
+> **注意：** 请根据 [Releases](https://github.com/qaiu/netdisk-fast-download/releases) 页面使用最新的 py 标签版本
+
 ```shell
 # 创建目录
 mkdir -p netdisk-fast-download
 cd netdisk-fast-download
 
-# 拉取镜像（使用 py 标签）
+# 拉取镜像（使用 py 标签，请替换为最新版本号）
 docker pull ghcr.io/qaiu/netdisk-fast-download:v0.1.9b19py
 
 # 复制配置文件（或下载仓库web-service\src\main\resources）
@@ -371,12 +374,15 @@ docker run -d -it --name netdisk-fast-download -p 6401:6401 --restart unless-sto
 ```
 
 #### 国内Docker部署（Python版）
+
+> **注意：** 请根据 [Releases](https://github.com/qaiu/netdisk-fast-download/releases) 页面使用最新的 py 标签版本
+
 ```shell
 # 创建目录
 mkdir -p netdisk-fast-download
 cd netdisk-fast-download
 
-# 拉取镜像（使用 py 标签）
+# 拉取镜像（使用 py 标签，请替换为最新版本号）
 docker pull ghcr.nju.edu.cn/qaiu/netdisk-fast-download:v0.1.9b19py
 
 # 复制配置文件（或下载仓库web-service\src\main\resources）
