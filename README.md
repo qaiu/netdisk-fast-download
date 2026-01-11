@@ -16,6 +16,11 @@
 # netdisk-fast-download 网盘分享链接云解析服务  
 QQ群：1017480890
 
+> **📌 分支说明：** 
+> - 本分支 (`feature/graalpy-parser`) 为 **Python 解析器支持版本**，包含 GraalPy 环境
+> - 如需标准版本（更小的镜像体积），请访问 [main 分支](https://github.com/qaiu/netdisk-fast-download/tree/main)
+> - Docker 镜像：Python 版本使用 `v0.1.9b19py` 等 py 标签，标准版本使用 `latest` 标签
+
 netdisk-fast-download网盘直链云解析(nfd云解析)能把网盘分享下载链接转化为直链，支持多款云盘，已支持蓝奏云/蓝奏云优享/奶牛快传/移动云云空间/小飞机盘/亿方云/123云盘/Cloudreve等，支持加密分享，以及部分网盘文件夹分享。  
 
 ## 快速开始
