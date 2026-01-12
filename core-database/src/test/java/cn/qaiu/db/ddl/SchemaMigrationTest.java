@@ -22,18 +22,18 @@ public class SchemaMigrationTest {
 
     private Vertx vertx;
     private JDBCPool pool;
-
-    @Before
-    public void setUp() {
-        vertx = Vertx.vertx();
-        
-        // 创建 H2 内存数据库连接池
-        pool = JDBCPool.pool(vertx,
-            "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1",
-            "sa",
-            ""
-        );
-    }
+//
+//    @Before
+//    public void setUp() {
+//        vertx = Vertx.vertx();
+//
+//        // 创建 H2 内存数据库连接池
+//        pool = JDBCPool.pool(vertx,
+//            "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1",
+//            "sa",
+//            ""
+//        );
+//    }
 
     @After
     public void tearDown() {
