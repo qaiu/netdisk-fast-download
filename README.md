@@ -16,6 +16,11 @@
 # netdisk-fast-download 网盘分享链接云解析服务  
 QQ群：1017480890
 
+> **📌 分支说明：** 
+> - 本分支 (`feature/graalpy-parser`) 为 **Python 解析器支持版本**，包含 GraalPy 环境
+> - 如需标准版本（更小的镜像体积），请访问 [main 分支](https://github.com/qaiu/netdisk-fast-download/tree/main)
+> - Docker 镜像：Python 版本使用 py 标签（如 `v0.1.9b19py`），标准版本使用 `latest` 标签
+
 netdisk-fast-download网盘直链云解析(nfd云解析)能把网盘分享下载链接转化为直链，支持多款云盘，已支持蓝奏云/蓝奏云优享/奶牛快传/移动云云空间/小飞机盘/亿方云/123云盘/Cloudreve等，支持加密分享，以及部分网盘文件夹分享。  
 
 ## 快速开始
@@ -327,7 +332,82 @@ mvn package -DskipTests
 
 ## Linux服务部署
 
-### Docker 部署（Main分支）
+### Docker 部署
+
+> **注意：** 本分支（feature/graalpy-parser）包含 Python 解析器支持（GraalPy），镜像体积较大。
+> 如果不需要 Python 解析器功能，建议使用 main 分支的标准版本。
+
+#### Python 版本特性
+- ✅ 支持 Python 自定义解析器（基于 GraalPy）
+- ✅ 内置 Python 语言服务器（pylsp）支持代码补全
+- ✅ 支持外部 Python 环境通过 WebSocket 连接
+- ⚠️ 镜像体积较大（约增加 200MB）
+
+#### 海外服务器Docker部署（Python版）
+
+> **注意：** 请根据 [Releases](https://github.com/qaiu/netdisk-fast-download/releases) 页面使用最新的 py 标签版本
+
+```shell
+# 创建目录
+mkdir -p netdisk-fast-download
+cd netdisk-fast-download
+
+# 拉取镜像（使用 py 标签，请替换为最新版本号）
+docker pull ghcr.io/qaiu/netdisk-fast-download:v0.1.9b19py
+
+# 复制配置文件（或下载仓库web-service\src\main\resources）
+docker create --name netdisk-fast-download ghcr.io/qaiu/netdisk-fast-download:v0.1.9b19py
+docker cp netdisk-fast-download:/app/resources ./resources
+docker rm netdisk-fast-download
+
+# 启动容器
+docker run -d -it --name netdisk-fast-download -p 6401:6401 --restart unless-stopped -e TZ=Asia/Shanghai -v ./resources:/app/resources -v ./db:/app/db -v ./logs:/app/logs ghcr.io/qaiu/netdisk-fast-download:v0.1.9b19py
+
+# 反代6401端口
+
+# 升级容器（请手动指定版本号）
+# 注意：Python 版本不会更新 latest 标签，需要手动指定版本
+docker pull ghcr.io/qaiu/netdisk-fast-download:v0.1.9b19py
+docker stop netdisk-fast-download
+docker rm netdisk-fast-download
+docker run -d -it --name netdisk-fast-download -p 6401:6401 --restart unless-stopped -e TZ=Asia/Shanghai -v ./resources:/app/resources -v ./db:/app/db -v ./logs:/app/logs ghcr.io/qaiu/netdisk-fast-download:v0.1.9b19py
+```
+
+#### 国内Docker部署（Python版）
+
+> **注意：** 请根据 [Releases](https://github.com/qaiu/netdisk-fast-download/releases) 页面使用最新的 py 标签版本
+
+```shell
+# 创建目录
+mkdir -p netdisk-fast-download
+cd netdisk-fast-download
+
+# 拉取镜像（使用 py 标签，请替换为最新版本号）
+docker pull ghcr.nju.edu.cn/qaiu/netdisk-fast-download:v0.1.9b19py
+
+# 复制配置文件（或下载仓库web-service\src\main\resources）
+docker create --name netdisk-fast-download ghcr.nju.edu.cn/qaiu/netdisk-fast-download:v0.1.9b19py
+docker cp netdisk-fast-download:/app/resources ./resources
+docker rm netdisk-fast-download
+
+# 启动容器
+docker run -d -it --name netdisk-fast-download -p 6401:6401 --restart unless-stopped -e TZ=Asia/Shanghai -v ./resources:/app/resources -v ./db:/app/db -v ./logs:/app/logs ghcr.nju.edu.cn/qaiu/netdisk-fast-download:v0.1.9b19py
+
+# 反代6401端口
+
+# 升级容器（请手动指定版本号）
+# 注意：Python 版本不会更新 latest 标签，需要手动指定版本
+docker pull ghcr.nju.edu.cn/qaiu/netdisk-fast-download:v0.1.9b19py
+docker stop netdisk-fast-download
+docker rm netdisk-fast-download
+docker run -d -it --name netdisk-fast-download -p 6401:6401 --restart unless-stopped -e TZ=Asia/Shanghai -v ./resources:/app/resources -v ./db:/app/db -v ./logs:/app/logs ghcr.nju.edu.cn/qaiu/netdisk-fast-download:v0.1.9b19py
+```
+
+---
+
+### Docker 部署（标准版 - Main分支）
+
+如果不需要 Python 解析器功能，建议使用标准版本：
 
 #### 海外服务器Docker部署
 ```shell
