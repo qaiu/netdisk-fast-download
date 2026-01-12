@@ -152,16 +152,28 @@
     <build>
         <plugins>
 
-            <!-- GraalPy Maven Plugin - 仅创建 Python Home，不使用 pip 安装 -->
-            <!-- pip 包手动安装到 src/main/resources/graalpy-packages/，可打包进 jar -->
-            <!-- 安装方法: ./setup-graalpy-packages.sh -->
+            <!-- GraalPy Maven Plugin - 创建 Python Home 和 venv，自动安装 pip 包 -->
+            <!--
+                注意: python-lsp-server 依赖 ujson（需编译 C 扩展），GraalPy pip 无法安装。
+                如需 python-lsp-server 功能，请运行 setup-graalpy-packages.sh 使用系统 pip 安装。
+                
+                此处只配置 requests 及其纯 Python 依赖，Maven 构建时会自动安装到 
+                target/classes/org.graalvm.python.vfs/venv/lib/python3.11/site-packages/
+            -->
             <plugin>
                 <groupId>org.graalvm.python</groupId>
                 <artifactId>graalpy-maven-plugin</artifactId>
                 <version>${graalpy.version}</version>
                 <configuration>
-                    <!-- 不声明 packages，避免代理问题 -->
-                    <!-- pip 包从 resources/graalpy-packages 加载 -->
+                    <!-- pip 包列表 - 仅纯 Python 包 -->
+                    <packages>
+                        <!-- requests 及其依赖 - HTTP 客户端 (解析器核心功能必需) -->
+                        <package>requests</package>
+                        <package>urllib3</package>
+                        <package>charset_normalizer</package>
+                        <package>idna</package>
+                        <package>certifi</package>
+                    </packages>
                 </configuration>
                 <executions>
                     <execution>

@@ -448,13 +448,13 @@ public class PyContextPool {
      * 配置 Python 路径，确保能够加载 pip 包
      * 使用路径缓存机制，避免重复检测文件系统
      * 
-     * pip 包安装在 src/main/resources/graalpy-packages/ 中，会打包进 jar。
-     * 运行时从 classpath 或文件系统加载。
+     * pip 包安装来源：
+     * 1. Maven 构建时 graalpy-maven-plugin 自动安装 requests 等核心包到
+     *    target/classes/org.graalvm.python.vfs/venv/lib/python3.11/site-packages/
+     * 2. 可选：运行 parser/setup-graalpy-packages.sh 安装 python-lsp-server（Playground 代码提示）
      * 
      * 注意：GraalPy 的 NativeModules 限制 - 只有进程中的第一个 Context 可以使用原生模块。
      * 后续 Context 会回退到 LLVM 模式，这可能导致某些依赖原生模块的库无法正常工作。
-     * 
-     * 安装方法：运行 parser/setup-graalpy-packages.sh
      */
     private void setupPythonPath(Context context) {
         try {
@@ -541,7 +541,7 @@ public class PyContextPool {
             } else {
                 String error = bindings.getMember("_error_msg").asString();
                 log.warn("Python 环境配置: requests 不可用 ({}), sys.path长度: {}. " +
-                        "请运行: ./setup-graalpy-packages.sh", error, pathLength);
+                        "检查 Maven 构建是否正常完成 (graalpy-maven-plugin)", error, pathLength);
             }
             
         } catch (Exception e) {

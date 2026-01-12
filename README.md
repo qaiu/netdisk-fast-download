@@ -318,13 +318,51 @@ json返回数据格式示例:
 
 ## 开发和打包
 
-```shell
-# 环境要求: Jdk17 + maven;
-mvn clean
-mvn package -DskipTests
+### 环境要求
+- JDK 17+
+- Maven 3.x
+- Python 3.x（可选，仅当需要 Playground 代码智能提示功能时）
 
+### 本地构建步骤
+
+#### 1. Maven 打包
+
+```shell
+# 清理并打包（跳过测试）
+mvn clean package -DskipTests
+
+# 如果遇到代理问题，可以禁用代理
+mvn clean package -DskipTests -Dhttp.proxyHost= -Dhttps.proxyHost=
 ```
-打包好的文件位于 web-service/target/netdisk-fast-download-bin.zip
+
+> **说明：** 
+> - Maven 构建时会自动安装 **requests** 等核心 Python 包（由 graalpy-maven-plugin 处理）
+> - 打包好的文件位于 `web-service/target/netdisk-fast-download-bin.zip`
+
+#### 2. （可选）安装 Python LSP 服务器
+
+如果需要使用 **Playground 代码智能提示功能**，需要额外安装 python-lsp-server：
+
+```shell
+# 进入 parser 目录
+cd parser
+
+# 运行 pip 包安装脚本
+chmod +x setup-graalpy-packages.sh
+./setup-graalpy-packages.sh
+
+# 返回项目根目录
+cd ..
+```
+
+该脚本会将以下包安装到 `parser/src/main/resources/graalpy-packages/`：
+- **python-lsp-server** 及其依赖（jedi, python-lsp-jsonrpc, pluggy）- Python LSP 服务器（代码智能提示）
+- **pylsp 可选功能**（pyflakes, pycodestyle, autopep8, rope, yapf）- 代码检查和格式化
+
+> **注意：** 
+> - 这些包需要用系统 pip 安装，因为 python-lsp-server 依赖 ujson（需编译 C 扩展）
+> - 安装后的包会被打包进 jar 文件，不会被 `mvn clean` 清理
+> - 如果不需要 Playground 的代码智能提示功能，可以跳过此步骤
 
 ## 🚀 快速部署
 
