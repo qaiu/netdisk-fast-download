@@ -42,7 +42,8 @@ public class ServerApi {
         return promise.future();
     }
 
-    @RouteMapping(value = "/json/parser", method = RouteMethod.GET, order = 1)
+    // order=2000 确保此路由优先于 /json/:type/:key 匹配（数字越大越先注册）
+    @RouteMapping(value = "/json/parser", method = RouteMethod.GET, order = 2000)
     public Future<CacheLinkInfo> parseJson(HttpServerRequest request, String pwd) {
         String url = URLParamUtil.parserParams(request);
         return cacheService.getCachedByShareUrlAndPwd(url, pwd, JsonObject.of("UA",request.headers().get("user-agent")));
