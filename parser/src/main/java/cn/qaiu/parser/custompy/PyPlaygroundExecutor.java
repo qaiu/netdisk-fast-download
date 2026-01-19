@@ -6,6 +6,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,6 +77,11 @@ public class PyPlaygroundExecutor {
         }
         playgroundLogger.debugJava("安全检查通过");
         
+        // Python代码预处理 - 检测并注入猴子补丁
+        PyCodePreprocessor.PyPreprocessResult preprocessResult = PyCodePreprocessor.preprocess(pyCode);
+        playgroundLogger.infoJava(preprocessResult.getLogMessage());
+        String codeToExecute = preprocessResult.getProcessedCode();
+        
         CompletableFuture<String> executionFuture = CompletableFuture.supplyAsync(() -> {
             playgroundLogger.infoJava("开始执行parse方法");
             
@@ -91,7 +97,7 @@ public class PyPlaygroundExecutor {
                 
                 // 执行Python代码（已支持真正的 pip 包如 requests, zlib 等）
                 playgroundLogger.debugJava("执行Python代码");
-                context.eval("python", pyCode);
+                context.eval("python", codeToExecute);
                 
                 // 调用parse函数
                 Value parseFunc = bindings.getMember("parse");
@@ -113,6 +119,11 @@ public class PyPlaygroundExecutor {
                     playgroundLogger.errorJava(errorMsg);
                     throw new RuntimeException(errorMsg);
                 }
+            } catch (PolyglotException e) {
+                // 处理 Python 语法错误和运行时错误
+                String errorMsg = formatPolyglotException(e);
+                playgroundLogger.errorJava("执行parse方法失败: " + errorMsg);
+                throw new RuntimeException(errorMsg, e);
             } catch (Exception e) {
                 String errorMsg = e.getMessage();
                 if (errorMsg == null || errorMsg.isEmpty()) {
@@ -164,6 +175,11 @@ public class PyPlaygroundExecutor {
     public Future<List<FileInfo>> executeParseFileListAsync() {
         Promise<List<FileInfo>> promise = Promise.promise();
         
+        // Python代码预处理 - 检测并注入猴子补丁
+        PyCodePreprocessor.PyPreprocessResult preprocessResult = PyCodePreprocessor.preprocess(pyCode);
+        playgroundLogger.infoJava(preprocessResult.getLogMessage());
+        String codeToExecute = preprocessResult.getProcessedCode();
+        
         CompletableFuture<List<FileInfo>> executionFuture = CompletableFuture.supplyAsync(() -> {
             playgroundLogger.infoJava("开始执行parse_file_list方法");
             
@@ -177,7 +193,7 @@ public class PyPlaygroundExecutor {
                 bindings.putMember("crypto", cryptoUtils);
                 
                 // 执行Python代码（已支持真正的 pip 包）
-                context.eval("python", pyCode);
+                context.eval("python", codeToExecute);
                 
                 Value parseFileListFunc = bindings.getMember("parse_file_list");
                 if (parseFileListFunc == null || !parseFileListFunc.canExecute()) {
@@ -191,6 +207,11 @@ public class PyPlaygroundExecutor {
                 List<FileInfo> fileList = convertToFileInfoList(result);
                 playgroundLogger.infoJava("文件列表解析成功，共 " + fileList.size() + " 个文件");
                 return fileList;
+            } catch (PolyglotException e) {
+                // 处理 Python 语法错误和运行时错误
+                String errorMsg = formatPolyglotException(e);
+                playgroundLogger.errorJava("执行parse_file_list方法失败: " + errorMsg);
+                throw new RuntimeException(errorMsg, e);
             } catch (Exception e) {
                 playgroundLogger.errorJava("执行parse_file_list方法失败: " + e.getMessage(), e);
                 throw new RuntimeException(e);
@@ -229,6 +250,11 @@ public class PyPlaygroundExecutor {
     public Future<String> executeParseByIdAsync() {
         Promise<String> promise = Promise.promise();
         
+        // Python代码预处理 - 检测并注入猴子补丁
+        PyCodePreprocessor.PyPreprocessResult preprocessResult = PyCodePreprocessor.preprocess(pyCode);
+        playgroundLogger.infoJava(preprocessResult.getLogMessage());
+        String codeToExecute = preprocessResult.getProcessedCode();
+        
         CompletableFuture<String> executionFuture = CompletableFuture.supplyAsync(() -> {
             playgroundLogger.infoJava("开始执行parse_by_id方法");
             
@@ -242,7 +268,7 @@ public class PyPlaygroundExecutor {
                 bindings.putMember("crypto", cryptoUtils);
                 
                 // 执行Python代码（已支持真正的 pip 包）
-                context.eval("python", pyCode);
+                context.eval("python", codeToExecute);
                 
                 Value parseByIdFunc = bindings.getMember("parse_by_id");
                 if (parseByIdFunc == null || !parseByIdFunc.canExecute()) {
@@ -371,5 +397,75 @@ public class PyPlaygroundExecutor {
             playgroundLogger.errorJava("转换FileInfo对象失败: " + e.getMessage());
             return null;
         }
+    }
+    
+    /**
+     * 格式化 PolyglotException 异常信息，提取详细的错误位置和描述
+     */
+    private String formatPolyglotException(PolyglotException e) {
+        StringBuilder sb = new StringBuilder();
+        
+        // 判断是否为语法错误
+        if (e.isSyntaxError()) {
+            sb.append("Python语法错误: ");
+        } else if (e.isGuestException()) {
+            sb.append("Python运行时错误: ");
+        } else {
+            sb.append("Python执行错误: ");
+        }
+        
+        // 添加错误消息
+        String message = e.getMessage();
+        if (message != null && !message.isEmpty()) {
+            sb.append(message);
+        }
+        
+        // 添加源代码位置信息
+        if (e.getSourceLocation() != null) {
+            org.graalvm.polyglot.SourceSection sourceSection = e.getSourceLocation();
+            sb.append("\n位置: ");
+            
+            // 文件名（如果有）
+            if (sourceSection.getSource() != null && sourceSection.getSource().getName() != null) {
+                sb.append(sourceSection.getSource().getName()).append(", ");
+            }
+            
+            // 行号和列号
+            sb.append("第 ").append(sourceSection.getStartLine()).append(" 行");
+            if (sourceSection.hasColumns()) {
+                sb.append(", 第 ").append(sourceSection.getStartColumn()).append(" 列");
+            }
+            
+            // 显示出错的代码行（如果可用）
+            if (sourceSection.hasCharIndex() && sourceSection.getCharacters() != null) {
+                sb.append("\n错误代码: ").append(sourceSection.getCharacters().toString().trim());
+            }
+        }
+        
+        // 添加堆栈跟踪（仅显示Python部分）
+        if (e.isGuestException() && e.getPolyglotStackTrace() != null) {
+            sb.append("\n\nPython堆栈跟踪:");
+            boolean foundPythonFrame = false;
+            for (PolyglotException.StackFrame frame : e.getPolyglotStackTrace()) {
+                if (frame.isGuestFrame() && frame.getLanguage() != null && 
+                    frame.getLanguage().getId().equals("python")) {
+                    foundPythonFrame = true;
+                    sb.append("\n  at ").append(frame.getRootName() != null ? frame.getRootName() : "<unknown>");
+                    if (frame.getSourceLocation() != null) {
+                        org.graalvm.polyglot.SourceSection loc = frame.getSourceLocation();
+                        sb.append(" (");
+                        if (loc.getSource() != null && loc.getSource().getName() != null) {
+                            sb.append(loc.getSource().getName()).append(":");
+                        }
+                        sb.append("line ").append(loc.getStartLine()).append(")");
+                    }
+                }
+            }
+            if (!foundPythonFrame) {
+                sb.append("\n  (无Python堆栈信息)");
+            }
+        }
+        
+        return sb.toString();
     }
 }

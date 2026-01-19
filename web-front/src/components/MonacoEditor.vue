@@ -4,6 +4,7 @@
 
 <script>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { registerPythonCompletionProvider, disposePythonCompletionProvider } from '@/utils/pythonCompletions';
 
 export default {
   name: 'MonacoEditor',
@@ -35,6 +36,7 @@ export default {
     let editor = null;
     let monaco = null;
     let touchHandlers = { start: null, move: null };
+    let pythonCompletionProvider = null;
 
     const defaultOptions = {
       value: props.modelValue,
@@ -125,6 +127,35 @@ export default {
           ...defaultOptions,
           value: props.modelValue
         });
+        
+        // 为JavaScript添加全局对象的类型定义，避免"已声明但未使用"的警告
+        if (monaco.languages && monaco.languages.typescript) {
+          const jsDefaults = monaco.languages.typescript.javascriptDefaults;
+          
+          // 添加全局对象的类型定义
+          jsDefaults.addExtraLib(`
+            // 演练场运行时注入的全局对象
+            declare const shareLinkInfo: {
+              getShareUrl(): string;
+              getShareKey(): string;
+              getOtherParam(key: string): string;
+              getFullShareUrl(): string;
+            };
+            
+            declare const http: {
+              get(url: string, headers?: Record<string, string>): any;
+              post(url: string, body: any, headers?: Record<string, string>): any;
+              sendJson(url: string, json: any, headers?: Record<string, string>): any;
+            };
+            
+            declare const logger: {
+              info(message: string, ...args: any[]): void;
+              debug(message: string, ...args: any[]): void;
+              warn(message: string, ...args: any[]): void;
+              error(message: string, ...args: any[]): void;
+            };
+          `, 'ts:playground-globals.d.ts');
+        }
 
         // 监听内容变化
         editor.onDidChangeModelContent(() => {
@@ -138,12 +169,18 @@ export default {
           editorContainer.value.style.height = props.height;
         }
         
-        // 移动端：添加触摸缩放来调整字体大小
+        // 注册Python补全提供器
+        pythonCompletionProvider = registerPythonCompletionProvider(monaco);
+        console.log('[MonacoEditor] Python补全提供器已注册');
+        
+        // 移动端：添加触摸缩放来调整字体大小（丝滑连续缩放）
         if (window.innerWidth <= 768 && editorContainer.value) {
           let initialDistance = 0;
           let initialFontSize = defaultOptions.fontSize || 14;
           const minFontSize = 8;
-          const maxFontSize = 24;
+          const maxFontSize = 30;
+          let rafId = null; // 使用 requestAnimationFrame 优化性能
+          let lastFontSize = initialFontSize;
           
           const getTouchDistance = (touch1, touch2) => {
             const dx = touch1.clientX - touch2.clientX;
@@ -155,27 +192,50 @@ export default {
             if (e.touches.length === 2 && editor) {
               initialDistance = getTouchDistance(e.touches[0], e.touches[1]);
               initialFontSize = editor.getOption(monaco.editor.EditorOption.fontSize);
+              lastFontSize = initialFontSize;
             }
           };
           
           touchHandlers.move = (e) => {
             if (e.touches.length === 2 && editor) {
               e.preventDefault(); // 防止页面缩放
+              
               const currentDistance = getTouchDistance(e.touches[0], e.touches[1]);
               const scale = currentDistance / initialDistance;
-              const newFontSize = Math.round(initialFontSize * scale);
+              
+              // 使用连续缩放，保留小数以获得丝滑效果
+              const newFontSize = initialFontSize * scale;
               
               // 限制字体大小范围
               const clampedFontSize = Math.max(minFontSize, Math.min(maxFontSize, newFontSize));
               
-              if (clampedFontSize !== editor.getOption(monaco.editor.EditorOption.fontSize)) {
-                editor.updateOptions({ fontSize: clampedFontSize });
+              // 使用 requestAnimationFrame 优化性能，避免频繁更新
+              if (rafId) {
+                cancelAnimationFrame(rafId);
               }
+              
+              // 只有当变化超过 0.5 时才更新（减少不必要的更新）
+              if (Math.abs(clampedFontSize - lastFontSize) >= 0.5) {
+                rafId = requestAnimationFrame(() => {
+                  editor.updateOptions({ fontSize: Math.round(clampedFontSize) });
+                  lastFontSize = clampedFontSize;
+                });
+              }
+            }
+          };
+          
+          touchHandlers.end = () => {
+            // 清理 RAF
+            if (rafId) {
+              cancelAnimationFrame(rafId);
+              rafId = null;
             }
           };
           
           editorContainer.value.addEventListener('touchstart', touchHandlers.start, { passive: false });
           editorContainer.value.addEventListener('touchmove', touchHandlers.move, { passive: false });
+          editorContainer.value.addEventListener('touchend', touchHandlers.end, { passive: true });
+          editorContainer.value.addEventListener('touchcancel', touchHandlers.end, { passive: true });
         }
       } catch (error) {
         console.error('Monaco Editor初始化失败:', error);
@@ -231,10 +291,15 @@ export default {
     });
 
     onBeforeUnmount(() => {
+      // 清理Python补全提供器
+      disposePythonCompletionProvider(pythonCompletionProvider);
+      
       // 清理触摸事件监听器
       if (editorContainer.value && touchHandlers.start && touchHandlers.move) {
         editorContainer.value.removeEventListener('touchstart', touchHandlers.start);
         editorContainer.value.removeEventListener('touchmove', touchHandlers.move);
+        editorContainer.value.removeEventListener('touchend', touchHandlers.end);
+        editorContainer.value.removeEventListener('touchcancel', touchHandlers.end);
       }
       if (editor) {
         editor.dispose();

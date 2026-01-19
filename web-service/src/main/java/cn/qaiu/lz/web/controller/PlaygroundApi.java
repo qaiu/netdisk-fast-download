@@ -667,6 +667,9 @@ public class PlaygroundApi {
                 String version = config.getMetadata().get("version");
                 String matchPattern = config.getMatchPattern() != null ? config.getMatchPattern().pattern() : null;
                 final boolean isPython = "python".equals(language);
+                
+                // 在外部提取forceOverwrite参数，避免lambda中类型转换问题
+                final boolean forceOverwrite = Boolean.TRUE.equals(body.getValue("forceOverwrite"));
 
                 // 检查数量限制
                 dbService.getPlaygroundParserCount().onSuccess(count -> {
@@ -678,23 +681,29 @@ public class PlaygroundApi {
                     // 检查type是否已存在
                     dbService.getPlaygroundParserList().onSuccess(listResult -> {
                         var list = listResult.getJsonArray("data");
-                        boolean exists = false;
+                        Long existingId = null;
                         if (list != null) {
                             for (int i = 0; i < list.size(); i++) {
                                 var item = list.getJsonObject(i);
                                 if (type.equals(item.getString("type"))) {
-                                    exists = true;
+                                    existingId = item.getLong("id");
                                     break;
                                 }
                             }
                         }
 
-                        if (exists) {
-                            promise.complete(JsonResult.error("解析器类型 " + type + " 已存在，请使用其他类型标识").toJsonObject());
+                        if (existingId != null && !forceOverwrite) {
+                            // type已存在且未强制覆盖，返回错误信息和existingId
+                            JsonObject errorResult = JsonResult.error("解析器类型 " + type + " 已存在，是否覆盖？").toJsonObject();
+                            errorResult.put("existingId", existingId);
+                            errorResult.put("existingType", type);
+                            promise.complete(errorResult);
                             return;
                         }
+                        
+                        final Long finalExistingId = existingId;
 
-                        // 保存到数据库
+                        // 准备解析器数据
                         JsonObject parser = new JsonObject();
                         parser.put("name", name);
                         parser.put("type", type);
@@ -708,16 +717,35 @@ public class PlaygroundApi {
                         parser.put("ip", getClientIp(ctx.request()));
                         parser.put("enabled", true);
 
-                        dbService.savePlaygroundParser(parser).onSuccess(result -> {
-                            // 保存成功后，立即注册到解析器系统
+                        // 根据是否覆盖选择不同的操作
+                        Future<JsonObject> saveFuture;
+                        if (finalExistingId != null) {
+                            // 覆盖模式：更新现有解析器
+                            saveFuture = dbService.updatePlaygroundParser(finalExistingId, parser);
+                            log.info("覆盖现有解析器，ID: {}, type: {}", finalExistingId, type);
+                        } else {
+                            // 新增模式
+                            saveFuture = dbService.savePlaygroundParser(parser);
+                        }
+                        
+                        saveFuture.onSuccess(result -> {
+                            // 保存成功后，注册/重新注册到解析器系统
                             try {
+                                // 先注销旧的（覆盖模式需要）
+                                if (finalExistingId != null) {
+                                    CustomParserRegistry.unregister(type);
+                                }
+                                
+                                // 注册新的
                                 if (isPython) {
                                     CustomParserRegistry.registerPy(config);
                                 } else {
                                     CustomParserRegistry.register(config);
                                 }
-                                log.info("已注册演练场{}解析器: {} ({})", isPython ? "Python" : "JavaScript", displayName, type);
-                                promise.complete(JsonResult.success("保存并注册成功").toJsonObject());
+                                
+                                String action = finalExistingId != null ? "覆盖并重新注册" : "保存并注册";
+                                log.info("{}演练场{}解析器: {} ({})", action, isPython ? "Python" : "JavaScript", displayName, type);
+                                promise.complete(JsonResult.success(action + "成功").toJsonObject());
                             } catch (Exception e) {
                                 log.error("注册解析器失败", e);
                                 // 虽然注册失败，但保存成功了，返回警告
@@ -922,6 +950,64 @@ public class PlaygroundApi {
             return Future.succeededFuture(JsonResult.error("未授权访问").toJsonObject());
         }
         return dbService.getPlaygroundParserById(id);
+    }
+
+    /**
+     * 获取示例解析器代码
+     * @param language 语言类型 (javascript 或 python)
+     */
+    @RouteMapping(value = "/example/:language", method = RouteMethod.GET)
+    public void getExampleParser(HttpServerResponse response, String language) {
+        // 权限检查（示例代码也需要认证）
+        if (!checkEnabled()) {
+            ResponseUtil.fireJsonObjectResponse(response, 
+                JsonResult.error("演练场功能已禁用").toJsonObject());
+            return;
+        }
+        
+        try {
+            String resourcePath;
+            String contentType = "text/plain; charset=utf-8";
+            
+            if ("python".equalsIgnoreCase(language)) {
+                resourcePath = "custom-parsers/py/example_parser.py";
+            } else if ("javascript".equalsIgnoreCase(language)) {
+                resourcePath = "custom-parsers/example-demo.js";
+            } else {
+                ResponseUtil.fireJsonObjectResponse(response, 
+                    JsonResult.error("不支持的语言类型: " + language).toJsonObject());
+                return;
+            }
+            
+            // 从资源文件加载示例代码
+            InputStream inputStream = getClass().getClassLoader().getResourceAsStream(resourcePath);
+            if (inputStream == null) {
+                log.error("无法找到示例文件: {}", resourcePath);
+                ResponseUtil.fireJsonObjectResponse(response, 
+                    JsonResult.error("示例文件不存在").toJsonObject());
+                return;
+            }
+            
+            StringBuilder content = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    content.append(line).append("\n");
+                }
+            }
+            
+            // 返回示例代码
+            response.putHeader("Content-Type", contentType);
+            response.end(content.toString());
+            
+            log.debug("返回{}示例代码，长度: {} 字节", language, content.length());
+            
+        } catch (Exception e) {
+            log.error("加载示例文件失败", e);
+            ResponseUtil.fireJsonObjectResponse(response, 
+                JsonResult.error("加载示例失败: " + e.getMessage()).toJsonObject());
+        }
     }
 
     /**

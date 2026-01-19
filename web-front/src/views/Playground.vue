@@ -40,7 +40,7 @@
         <div class="auth-icon">
           <el-icon :size="50"><Lock /></el-icon>
         </div>
-        <div class="auth-title">脚本解析器演练场</div>
+        <div class="auth-title">脚本演练场</div>
         <div class="auth-subtitle">请输入访问密码</div>
         <el-input
           v-model="inputPassword"
@@ -65,110 +65,123 @@
       </div>
     </div>
 
-    <div class="header-left">
-            <div class="header-left-top">
-              <!-- 面包屑导航 -->
-              <el-breadcrumb separator="/" class="breadcrumb-nav">
-                <el-breadcrumb-item>
-                  <el-link :underline="false" @click="goHomeInNewWindow" class="breadcrumb-link">
-                    <el-icon><HomeFilled /></el-icon>
-                    <span style="margin-left: 4px;">首页</span>
-                  </el-link>
-                </el-breadcrumb-item>
-                <el-breadcrumb-item>
-                  脚本解析器演练场 
-                  <span style="color: var(--el-text-color-secondary); font-size: 12px; margin-left: 8px;">
-                    {{ currentFileLanguageDisplay }}
-                  </span>
-                  <!-- Python LSP 状态指示器 -->
-                  <el-tag 
-                    v-if="currentFileLanguageDisplay.includes('Python')"
-                    :type="pylspConnected ? 'success' : 'info'" 
-                    size="small" 
-                    style="margin-left: 8px;"
-                  >
-                    <el-icon style="margin-right: 3px;">
-                      <component :is="pylspConnected ? 'CircleCheck' : 'CircleClose'" />
-                    </el-icon>
-                    LSP {{ pylspConnected ? '已连接' : '未连接' }}
-                  </el-tag>
-                </el-breadcrumb-item>
-              </el-breadcrumb>
-            </div>
-          </div>
+    <!-- 面包屑导航 - 移到页面最顶部 -->
+    <div v-if="authed && !loading" class="breadcrumb-top-bar">
+      <el-breadcrumb separator="/" class="breadcrumb-nav">
+        <el-breadcrumb-item>
+          <el-link :underline="false" @click="goHomeInNewWindow" class="breadcrumb-link">
+            <el-icon><HomeFilled /></el-icon>
+            <span style="margin-left: 4px;">首页</span>
+          </el-link>
+        </el-breadcrumb-item>
+        <el-breadcrumb-item>
+          脚本演练场 
+          <span style="color: var(--el-text-color-secondary); font-size: 12px; margin-left: 8px;">
+            {{ currentFileLanguageDisplay }}
+          </span>
+          <!-- Python LSP 状态指示器 -->
+          <el-tag 
+            v-if="currentFileLanguageDisplay.includes('Python')"
+            :type="pylspConnected ? 'success' : 'info'" 
+            size="small" 
+            style="margin-left: 8px;"
+          >
+            <el-icon style="margin-right: 3px;">
+              <component :is="pylspConnected ? 'CircleCheck' : 'CircleClose'" />
+            </el-icon>
+            LSP {{ pylspConnected ? '已连接' : '未连接' }}
+          </el-tag>
+        </el-breadcrumb-item>
+      </el-breadcrumb>
+    </div>
           
     <!-- 原有内容 - 只在已认证时显示 -->
     <el-card v-if="authed && !loading" class="playground-card">
       <template #header>
         <div class="card-header">
-          <div class="header-actions">
-            <!-- 主要操作 -->
-            <el-button-group size="small" style="margin-left: 10px;">
-              <el-tooltip content="运行测试 (Ctrl+Enter)" placement="bottom">
-                <el-button :icon="testing ? 'Loading' : 'CaretRight'" @click="executeTest" :loading="testing">
-                  运行
+          <div class="header-actions" :class="{ 'mobile-two-rows': isMobile }">
+            <!-- 第一排：主要操作（带文字） -->
+            <div class="action-row">
+              <el-button-group size="small">
+                <el-tooltip content="新建文件 (Ctrl+N)" placement="bottom">
+                  <el-button icon="DocumentAdd" @click="showNewFileDialog">新建</el-button>
+                </el-tooltip>
+                <el-tooltip content="保存代码 (Ctrl+S)" placement="bottom">
+                  <el-button icon="Document" @click="saveCode">保存</el-button>
+                </el-tooltip>
+                <el-tooltip content="复制 (Ctrl+C)" placement="bottom">
+                  <el-button icon="CopyDocument" @click="copyAll">复制</el-button>
+                </el-tooltip>
+                <el-tooltip content="粘贴 (Ctrl+V)" placement="bottom">
+                  <el-button icon="Notebook" @click="pasteCode">粘贴</el-button>
+                </el-tooltip>
+                <el-tooltip content="全选 (Ctrl+A)" placement="bottom">
+                  <el-button icon="Tickets" @click="selectAll">全选</el-button>
+                </el-tooltip>
+              </el-button-group>
+            </div>
+            
+            <!-- 第二排：运行和格式化 + 设置 -->
+            <div class="action-row">
+              <el-button-group size="small">
+                <el-tooltip content="运行测试 (Ctrl+Enter)" placement="bottom">
+                  <el-button :icon="testing ? 'Loading' : 'CaretRight'" @click="isMobile ? (mobileTestDialogVisible = true) : executeTest()" :loading="testing">
+                    运行
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="格式化代码 (Shift+Alt+F)" placement="bottom">
+                  <el-button icon="MagicStick" @click="formatCode">格式化</el-button>
+                </el-tooltip>
+              </el-button-group>
+              
+              <!-- 主题切换 -->
+              <el-dropdown size="small" @command="changeTheme" style="margin-left: 10px;">
+                <el-button size="small">
+                  <el-icon><component :is="themes.find(t => t.name === currentTheme)?.icon || 'Sunny'" /></el-icon>
+                  <span style="margin-left: 5px;">{{ currentTheme }}</span>
                 </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item v-for="theme in themes" :key="theme.name" :command="theme.name">
+                      <el-icon><component :is="theme.icon" /></el-icon>
+                      <span style="margin-left: 5px;">{{ theme.name }}</span>
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+              
+              <!-- 全屏 -->
+              <el-tooltip content="全屏模式 (F11)" placement="bottom">
+                <el-button size="small" :icon="isFullscreen ? 'FullScreen' : 'FullScreen'" @click="toggleFullscreen" />
               </el-tooltip>
-              <el-tooltip content="保存代码 (Ctrl+S)" placement="bottom">
-                <el-button icon="Document" @click="saveCode">保存</el-button>
-              </el-tooltip>
-              <el-tooltip content="格式化代码 (Shift+Alt+F)" placement="bottom">
-                <el-button icon="MagicStick" @click="formatCode">格式化</el-button>
-              </el-tooltip>
-            </el-button-group>
-            
-            <!-- IDE功能按钮 -->
-            <el-button-group size="small" style="margin-left: 10px;">
-              <el-tooltip content="新建文件 (Ctrl+N)" placement="bottom">
-                <el-button icon="DocumentAdd" @click="showNewFileDialog">新建</el-button>
-              </el-tooltip>
-              <el-tooltip content="复制全部 (Ctrl+A, Ctrl+C)" placement="bottom">
-                <el-button icon="CopyDocument" @click="copyAll">复制全部</el-button>
-              </el-tooltip>
-              <el-tooltip content="全选 (Ctrl+A)" placement="bottom">
-                <el-button icon="Select" @click="selectAll">全选</el-button>
-              </el-tooltip>
-              <el-tooltip :content="editorOptions.wordWrap === 'on' ? '关闭自动换行' : '开启自动换行'" placement="bottom">
-                <el-button :icon="editorOptions.wordWrap === 'on' ? 'Operation' : 'Sort'" @click="toggleWordWrap">
-                  {{ editorOptions.wordWrap === 'on' ? '换行' : '不换行' }}
-                </el-button>
-              </el-tooltip>
-            </el-button-group>
-            
-            <!-- 主题切换 -->
-            <el-dropdown size="small" @command="changeTheme" style="margin-left: 10px;">
-              <el-button size="small">
-                <el-icon><component :is="themes.find(t => t.name === currentTheme)?.icon || 'Sunny'" /></el-icon>
-                <span style="margin-left: 5px;">{{ currentTheme }}</span>
-              </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item v-for="theme in themes" :key="theme.name" :command="theme.name">
-                    <el-icon><component :is="theme.icon" /></el-icon>
-                    <span style="margin-left: 5px;">{{ theme.name }}</span>
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-            
-            <!-- 全屏 -->
-            <el-tooltip content="全屏模式 (F11)" placement="bottom">
-              <el-button size="small" :icon="isFullscreen ? 'FullScreen' : 'FullScreen'" @click="toggleFullscreen" />
-            </el-tooltip>
-            
-            <!-- 更多操作 -->
-            <el-dropdown size="small" style="margin-left: 5px;">
-              <el-button size="small" icon="More" />
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item icon="DocumentAdd" @click="loadTemplate">加载示例 (Ctrl+R)</el-dropdown-item>
-                  <el-dropdown-item icon="Delete" @click="clearCode">清空代码</el-dropdown-item>
-                  <el-dropdown-item icon="Download" @click="exportCurrentFile">导出当前JS</el-dropdown-item>
-                  <el-dropdown-item icon="Promotion" @click="publishParser">发布脚本</el-dropdown-item>
-                  <el-dropdown-item icon="QuestionFilled" @click="showShortcutsHelp">快捷键 (Ctrl+/)</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+              
+              <!-- 更多操作（包含发布脚本等） -->
+              <el-dropdown size="small" style="margin-left: 5px;">
+                <el-button size="small" icon="More" />
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item icon="Promotion" @click="publishParser">发布脚本</el-dropdown-item>
+                    <el-dropdown-item icon="DocumentAdd" @click="loadTemplate">加载示例 (Ctrl+R)</el-dropdown-item>
+                    <el-dropdown-item icon="Upload" @click="importFile">导入文件</el-dropdown-item>
+                    <el-dropdown-item icon="Delete" @click="clearCode">清空代码</el-dropdown-item>
+                    <el-dropdown-item icon="Download" @click="exportCurrentFile">导出当前JS</el-dropdown-item>
+                    <el-dropdown-item :icon="useNativeEditor ? 'Monitor' : 'EditPen'" @click="toggleNativeEditor">
+                      {{ useNativeEditor ? '切换Monaco编辑器' : '切换原生编辑器' }}
+                    </el-dropdown-item>
+                    <el-dropdown-item icon="QuestionFilled" @click="showShortcutsHelp">快捷键 (Ctrl+/)</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+              
+              <!-- 隐藏的文件导入input -->
+              <input 
+                ref="fileImportInput"
+                type="file"
+                style="display: none"
+                @change="handleFileImport"
+                accept=".js,.py,.txt"
+              />
+            </div>
           </div>
         </div>
       </template>
@@ -256,62 +269,77 @@
           <!-- 移动端：不使用 splitpanes，内容自然向下流动 -->
           <div v-if="isMobile" class="mobile-layout">
             <!-- 编辑器区域 -->
-            <div class="editor-section">
+            <div class="editor-section" style="position: relative;" :style="{ height: mobileEditorHeight + 'px' }">
+              <!-- 原生编辑器 -->
+              <textarea
+                v-if="useNativeEditor"
+                ref="nativeEditorRef"
+                v-model="currentCode"
+                class="native-editor"
+                :style="{ height: mobileEditorHeight + 'px' }"
+                @blur="handleNativeEditorChange"
+                spellcheck="false"
+                placeholder="在此输入代码..."
+              />
+              <!-- Monaco 编辑器 -->
               <MonacoEditor
+                v-else
+                :key="activeFileId"
                 ref="editorRef"
                 v-model="currentCode"
                 :language="currentEditorLanguage"
                 :theme="editorTheme"
-                :height="'400px'"
+                :height="mobileEditorHeight + 'px'"
                 :options="editorOptions"
                 @change="onCodeChange"
               />
               
-              <!-- 移动端悬浮操作按钮 -->
-              <div class="mobile-editor-actions">
-                <el-button-group>
-                  <el-tooltip content="撤销 (Ctrl+Z)" placement="top">
-                    <el-button 
-                      size="small" 
-                      icon="RefreshLeft" 
-                      circle
-                      @click="undo"
-                      class="editor-action-btn"
-                    />
-                  </el-tooltip>
-                  <el-tooltip content="重做 (Ctrl+Y)" placement="top">
-                    <el-button 
-                      size="small" 
-                      icon="RefreshRight" 
-                      circle
-                      @click="redo"
-                      class="editor-action-btn"
-                    />
-                  </el-tooltip>
-                  <el-tooltip content="格式化 (Shift+Alt+F)" placement="top">
-                    <el-button 
-                      size="small" 
-                      icon="MagicStick" 
-                      circle
-                      @click="formatCode"
-                      class="editor-action-btn"
-                    />
-                  </el-tooltip>
-                  <el-tooltip content="全选 (Ctrl+A)" placement="top">
-                    <el-button 
-                      size="small" 
-                      icon="Select" 
-                      circle
-                      @click="selectAll"
-                      class="editor-action-btn"
-                    />
-                  </el-tooltip>
-                </el-button-group>
+              <!-- 拖拽条改变编辑器高度 -->
+              <div 
+                class="editor-resize-handle"
+                @mousedown="startResize"
+                @touchstart="startResize"
+              >
+                <div class="resize-handle-bar"></div>
               </div>
+              
+              <!-- 移动端代码问题浮窗按钮 -->
+              <transition name="fade">
+                <div v-if="codeProblems.length > 0" class="mobile-problems-btn" @click="showProblemsDialog">
+                  <el-badge :value="codeProblems.length" :max="99" class="problems-badge">
+                    <el-icon :size="20"><WarningFilled /></el-icon>
+                  </el-badge>
+                </div>
+              </transition>
             </div>
             
-            <!-- 测试参数和结果区域 -->
-            <div v-if="!collapsedPanels.rightPanel" class="test-section mobile-test-section">
+            <!-- 移动端当前行问题提示 -->
+            <transition name="slide-up">
+              <div 
+                v-if="isMobile && currentLineProblem" 
+                class="mobile-current-problem"
+                :class="{ 'warning': currentLineProblem.severity !== 8 }"
+              >
+                <div class="problem-header">
+                  <el-icon :class="currentLineProblem.severity === 8 ? 'error-icon' : 'warning-icon'">
+                    <WarningFilled />
+                  </el-icon>
+                  <span class="problem-title">
+                    {{ currentLineProblem.severity === 8 ? '错误' : '警告' }}
+                    - 第 {{ currentLineProblem.startLineNumber }} 行
+                  </span>
+                  <el-icon class="close-icon" @click="currentLineProblem = null">
+                    <Close />
+                  </el-icon>
+                </div>
+                <div class="problem-message">
+                  {{ currentLineProblem.message }}
+                </div>
+              </div>
+            </transition>
+            
+            <!-- 测试参数和结果区域 - 移动端不显示，改用弹框 -->
+            <div v-if="false" class="test-section mobile-test-section">
               <!-- 测试参数 -->
               <el-card class="test-params-card collapsible-card" shadow="never" style="margin-top: 12px">
                 <template #header>
@@ -327,37 +355,38 @@
                 </template>
                 <transition name="collapse">
                   <div v-show="!collapsedPanels.testParams">
-                    <el-form :model="testParams" label-width="0px" size="small" class="test-params-form">
-                      <el-form-item label="" class="share-url-item">
+                    <el-form :model="testParams" label-width="0px" size="small" class="test-params-form mobile-single-row">
+                      <div class="test-params-row">
                         <el-input
                           v-model="testParams.shareUrl"
-                          placeholder="请输入分享链接"
+                          placeholder="分享链接"
                           clearable
+                          size="small"
+                          class="url-input"
                         />
-                      </el-form-item>
-                      <el-form-item label="" class="password-item">
                         <el-input
                           v-model="testParams.pwd"
-                          placeholder="密码（可选）"
+                          placeholder="密码"
                           clearable
+                          size="small"
+                          class="pwd-input"
                         />
-                      </el-form-item>
-                      <el-form-item label="" class="method-item-horizontal">
-                        <el-radio-group v-model="testParams.method" size="small">
+                      </div>
+                      <div class="test-params-row">
+                        <el-radio-group v-model="testParams.method" size="small" class="method-radio">
                           <el-radio label="parse">parse</el-radio>
-                          <el-radio label="parseFileList">parseFileList</el-radio>
+                          <el-radio label="parseFileList">list</el-radio>
                         </el-radio-group>
-                      </el-form-item>
-                      <el-form-item class="button-item">
                         <el-button
                           type="primary"
                           :loading="testing"
                           @click="executeTest"
-                          style="width: 100%"
+                          size="small"
+                          class="test-button"
                         >
                           执行测试
                         </el-button>
-                      </el-form-item>
+                      </div>
                     </el-form>
                   </div>
                 </transition>
@@ -425,7 +454,20 @@
             <!-- 编辑器区域 (左侧) -->
             <Pane :size="collapsedPanels.rightPanel ? 100 : splitSizes[0]" min-size="30" class="editor-pane">
               <div class="editor-section">
+                <!-- 原生编辑器 -->
+                <textarea
+                  v-if="useNativeEditor"
+                  ref="nativeEditorRef"
+                  v-model="currentCode"
+                  class="native-editor"
+                  @blur="handleNativeEditorChange"
+                  spellcheck="false"
+                  placeholder="在此输入代码..."
+                />
+                <!-- Monaco 编辑器 -->
                 <MonacoEditor
+                  v-else
+                  :key="activeFileId"
                   ref="editorRef"
                   v-model="currentCode"
                   :language="currentEditorLanguage"
@@ -447,113 +489,19 @@
                     <el-icon><CaretRight /></el-icon>
                   </div>
                 </el-tooltip>
-                <!-- 测试参数 -->
-                <el-card class="test-params-card collapsible-card" shadow="never">
-                  <template #header>
-                    <div class="card-header-with-collapse">
-                      <span>测试参数</span>
-                      <el-button 
-                        text 
-                        size="small" 
-                        :icon="collapsedPanels.testParams ? 'ArrowDown' : 'ArrowUp'"
-                        @click="togglePanel('testParams')"
-                      />
-                    </div>
-                  </template>
-                  <transition name="collapse">
-                    <div v-show="!collapsedPanels.testParams">
-              <el-form :model="testParams" label-width="0px" size="small" class="test-params-form">
-                <el-form-item label="" class="share-url-item">
-                  <el-input
-                    v-model="testParams.shareUrl"
-                    placeholder="请输入分享链接"
-                    clearable
-                  />
-                </el-form-item>
-                <el-form-item label="" class="password-item">
-                  <el-input
-                    v-model="testParams.pwd"
-                    placeholder="密码（可选）"
-                    clearable
-                  />
-                </el-form-item>
-                <el-form-item label="" class="method-item-horizontal">
-                  <el-radio-group v-model="testParams.method" size="small">
-                    <el-radio label="parse">parse</el-radio>
-                    <el-radio label="parseFileList">parseFileList</el-radio>
-                    <!-- <el-radio label="parseById">parseById</el-radio> -->
-                  </el-radio-group>
-                </el-form-item>
-                <el-form-item class="button-item">
-                  <el-button
-                    type="primary"
-                    :loading="testing"
-                    @click="executeTest"
-                    style="width: 100%"
-                  >
-                    执行测试
-                  </el-button>
-                </el-form-item>
-              </el-form>
-                    </div>
-                  </transition>
-                </el-card>
-
-            <!-- 执行结果 -->
-            <el-card class="result-card collapsible-card" shadow="never" style="margin-top: 10px">
-              <template #header>
-                <div class="card-header-with-collapse">
-                  <span>执行结果</span>
-                  <el-button 
-                    text 
-                    size="small" 
-                    :icon="collapsedPanels.testResult ? 'ArrowDown' : 'ArrowUp'"
-                    @click="togglePanel('testResult')"
-                  />
-                </div>
-              </template>
-              <transition name="collapse">
-                <div v-show="!collapsedPanels.testResult">
-              <div v-if="testResult" class="result-content">
-                <el-alert
-                  :type="testResult.success ? 'success' : 'error'"
-                  :title="testResult.success ? '执行成功' : '执行失败'"
-                  :closable="false"
-                  style="margin-bottom: 10px"
-                />
                 
-                <div v-if="testResult.success" class="result-section">
-                  <div class="section-title">结果数据：</div>
-                  <!-- 调试：直接显示 result -->
-                  <div v-if="testResult.result" class="result-debug-box">
-                    <strong>结果内容：</strong>{{ testResult.result }}
-                  </div>
-                  <JsonViewer :value="testResult.result" :expand-depth="3" />
-                </div>
-
-                <div v-if="testResult.error" class="result-section">
-                  <div class="section-title">错误信息：</div>
-                  <el-alert type="error" :title="testResult.error" :closable="false" />
-                  <div v-if="testResult.stackTrace" class="stack-trace">
-                    <el-collapse>
-                      <el-collapse-item title="查看堆栈信息" name="stack">
-                        <pre>{{ testResult.stackTrace }}</pre>
-                      </el-collapse-item>
-                    </el-collapse>
-                  </div>
-                </div>
-
-                <div v-if="testResult.executionTime" class="result-section">
-                  <div class="section-title">执行时间：</div>
-                  <div>{{ testResult.executionTime }}ms</div>
-                </div>
-              </div>
-              <div v-else class="empty-result">
-                <el-empty description="暂无执行结果" :image-size="80" />
-              </div>
-                </div>
-              </transition>
-            </el-card>
+                <!-- 使用TestPanel组件 -->
+                <TestPanel
+                  :test-params="testParams"
+                  :test-result="testResult"
+                  :testing="testing"
+                  :code-problems="codeProblems"
+                  :url-history="urlHistory"
+                  @execute-test="executeTest"
+                  @clear-result="testResult = null"
+                  @goto-problem="goToProblemLine"
+                  @update:test-params="(params) => Object.assign(testParams, params)"
+                />
               </div>
             </Pane>
           </Splitpanes>
@@ -596,12 +544,14 @@
               :class="[
                 'console-entry', 
                 'console-' + log.level.toLowerCase(),
-                log.source === 'JS' ? 'console-js-source' : 'console-java-source'
+                log.source === 'JS' ? 'console-js-source' : (log.source === 'java' ? 'console-java-source' : 'console-python-source')
               ]"
             >
               <span class="console-time">{{ formatTime(log.timestamp) }}</span>
               <span class="console-level">{{ log.level }}</span>
-              <span v-if="log.source === 'JS'" class="console-source-tag">[JS]</span>
+              <span v-if="log.source" class="console-source-tag" :class="'console-source-' + (log.source || 'unknown')">
+                [{{ log.source === 'java' ? 'JAVA' : (log.source === 'JS' ? 'JS' : 'PYTHON') }}]
+              </span>
               <span class="console-message">{{ log.message }}</span>
             </div>
             <div v-if="consoleLogs.length === 0" class="empty-console">
@@ -635,7 +585,7 @@
             <transition name="collapse">
               <div v-show="!collapsedPanels.help">
               <div class="help-content">
-                <h3>什么是脚本解析器演练场？</h3>
+                <h3>什么是脚本演练场？</h3>
                 <p>演练场允许您快速编写、测试和发布JavaScript解析脚本，无需重启服务器即可调试和验证解析逻辑。</p>
                 
                 <h3>快速开始</h3>
@@ -645,6 +595,19 @@
                   <li>输入测试URL和密码，点击"执行测试"验证代码</li>
                   <li>测试通过后，点击"发布脚本"保存到数据库</li>
                 </ol>
+
+                <h3>📱 移动端操作说明</h3>
+                <ul>
+                  <li><strong>顶部运行按钮</strong>：点击打开测试参数弹框，可输入分享链接和密码后执行</li>
+                  <li><strong>底部悬浮运行按钮</strong>：
+                    <ul style="margin-top: 5px;">
+                      <li>点击：使用当前参数直接快速执行测试</li>
+                      <li>长按（0.5秒）：打开测试参数弹框，可修改参数</li>
+                    </ul>
+                  </li>
+                  <li><strong>底部悬浮按钮</strong>：从左到右依次为撤销、重做、格式化、全选、运行测试</li>
+                  <li><strong>编辑器高度调整</strong>：拖动编辑器底部的横条可调整编辑器高度</li>
+                </ul>
 
                 <h3>脚本格式要求</h3>
                 <ul>
@@ -900,6 +863,93 @@
       </template>
     </el-dialog>
     
+    <!-- 代码问题对话框（移动端） -->
+    <el-dialog 
+      v-model="problemsDialogVisible"
+      title="代码问题"
+      :width="isMobile ? '90%' : '600px'"
+      class="problems-dialog"
+    >
+      <div v-if="codeProblems.length > 0" class="problems-list">
+        <el-alert
+          v-for="(problem, index) in codeProblems"
+          :key="index"
+          :title="`行 ${problem.startLineNumber}: ${problem.message}`"
+          :type="problem.severity === 8 ? 'error' : problem.severity === 4 ? 'warning' : 'info'"
+          :closable="false"
+          style="margin-bottom: 10px; cursor: pointer;"
+          @click="goToProblemLine(problem)"
+        >
+          <template #default>
+            <div style="font-size: 12px; color: #666; margin-top: 5px;">
+              第 {{problem.startLineNumber}} 行，第 {{problem.startColumn}} 列
+            </div>
+          </template>
+        </el-alert>
+      </div>
+      <el-empty v-else description="没有发现代码问题" :image-size="80" />
+      <template #footer>
+        <el-button @click="problemsDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+    
+    <!-- 移动端悬浮操作按钮 - 固定定位 -->
+    <div v-if="isMobile" class="mobile-editor-actions">
+      <el-button-group size="small">
+        <el-tooltip content="撤销" placement="top">
+          <el-button 
+            icon="RefreshLeft" 
+            circle
+            @click="undo"
+          />
+        </el-tooltip>
+        <el-tooltip content="重做" placement="top">
+          <el-button 
+            icon="RefreshRight" 
+            circle
+            @click="redo"
+          />
+        </el-tooltip>
+        <el-tooltip content="格式化" placement="top">
+          <el-button 
+            icon="MagicStick" 
+            circle
+            @click="formatCode"
+          />
+        </el-tooltip>
+        <el-tooltip content="全选" placement="top">
+          <el-button 
+            icon="Select" 
+            circle
+            @click="selectAll"
+          />
+        </el-tooltip>
+        <el-tooltip content="运行测试" placement="top">
+          <el-button 
+            type="primary" 
+            icon="CaretRight" 
+            circle 
+            @click="handleMobileQuickTest"
+            @touchstart="handleRunButtonTouchStart"
+            @touchend="handleRunButtonTouchEnd"
+            @touchcancel="handleRunButtonTouchEnd"
+            :loading="testing"
+          />
+        </el-tooltip>
+      </el-button-group>
+    </div>
+    
+    <!-- 移动端测试模态框 -->
+    <MobileTestModal
+      v-model="mobileTestDialogVisible"
+      :test-params="testParams"
+      :test-result="testResult"
+      :testing="testing"
+      :url-history="urlHistory"
+      @execute-test="handleMobileExecuteTest"
+      @update:test-params="(params) => Object.assign(testParams, params)"
+    />
+    
     <!-- 快捷键帮助对话框 -->
     <el-dialog 
       v-model="shortcutsDialogVisible" 
@@ -932,6 +982,8 @@ import { useRouter } from 'vue-router';
 import { Splitpanes, Pane } from 'splitpanes';
 import 'splitpanes/dist/splitpanes.css';
 import MonacoEditor from '@/components/MonacoEditor.vue';
+import TestPanel from '@/components/TestPanel.vue';
+import MobileTestModal from '@/components/MobileTestModal.vue';
 import { playgroundApi } from '@/utils/playgroundApi';
 import { configureMonacoTypes, loadTypesFromApi } from '@/utils/monacoTypes';
 import PylspClient from '@/utils/pylspClient';
@@ -949,7 +1001,9 @@ export default {
     MonacoEditor,
     JsonViewer,
     Splitpanes,
-    Pane
+    Pane,
+    TestPanel,
+    MobileTestModal
   },
   setup() {
     const router = useRouter();
@@ -960,7 +1014,12 @@ export default {
     };
 
     const editorRef = ref(null);
+    const fileImportInput = ref(null);
     const jsCode = ref('');
+    
+    // ===== 编辑器模式切换 =====
+    const useNativeEditor = ref(false);
+    const nativeEditorRef = ref(null);
     
     // ===== 多文件管理 =====
     const files = ref([
@@ -1252,6 +1311,7 @@ export default {
       jsCode: '',
       language: 'javascript'
     });
+    const overwriteInfo = ref(null); // 存储需要覆盖的解析器信息
     const helpCollapseActive = ref([]); // 默认折叠
     const consoleLogs = ref([]); // 控制台日志
     
@@ -1259,12 +1319,71 @@ export default {
     let pylspClient = null;
     const pylspConnected = ref(false);
     
+    // ===== 代码问题 =====
+    const codeProblems = ref([]);
+    const problemsDialogVisible = ref(false);
+    const currentLineProblem = ref(null); // 当前行的问题
+    let markersChangeListener = null; // Monaco标记变化监听器
+    let cursorChangeListener = null; // 光标变化监听器
+    
+    // ===== 移动端测试模态框 =====
+    const mobileTestDialogVisible = ref(false);
+    const mobileResultDialogVisible = ref(false);
+    
+    // ===== 移动端编辑器高度 =====
+    const mobileEditorHeight = ref(350); // 默认高度350px
+    let isResizing = ref(false);
+    let startY = 0;
+    let startHeight = 0;
+    
+    // 开始拖拽
+    const startResize = (e) => {
+      isResizing.value = true;
+      startY = e.touches ? e.touches[0].clientY : e.clientY;
+      startHeight = mobileEditorHeight.value;
+      
+      document.addEventListener('mousemove', doResize);
+      document.addEventListener('mouseup', stopResize);
+      document.addEventListener('touchmove', doResize);
+      document.addEventListener('touchend', stopResize);
+      
+      e.preventDefault();
+    };
+    
+    // 拖拽中
+    const doResize = (e) => {
+      if (!isResizing.value) return;
+      
+      const currentY = e.touches ? e.touches[0].clientY : e.clientY;
+      const diff = currentY - startY;
+      const newHeight = Math.max(200, Math.min(window.innerHeight - 150, startHeight + diff));
+      mobileEditorHeight.value = newHeight;
+    };
+    
+    // 停止拖拽
+    const stopResize = () => {
+      isResizing.value = false;
+      document.removeEventListener('mousemove', doResize);
+      document.removeEventListener('mouseup', stopResize);
+      document.removeEventListener('touchmove', doResize);
+      document.removeEventListener('touchend', stopResize);
+    };
+    
+    // ===== URL历史记录 =====
+    const urlHistory = ref([]);
+    const HISTORY_KEY = 'playground_url_history';
+    const MAX_HISTORY = 10;
+    
+    // ===== 右侧Tab页签 =====
+    const rightPanelTab = ref('test'); // test, problems
+    
     // ===== 新增状态管理 =====
     // 折叠状态
     const collapsedPanels = ref({
       rightPanel: false,      // 右侧整体面板
       testParams: false,      // 测试参数卡片
       testResult: false,      // 测试结果卡片
+      codeProblems: false,    // 代码问题卡片
       console: false,         // 控制台卡片
       help: true              // 使用说明（默认折叠）
     });
@@ -1327,8 +1446,9 @@ export default {
         wordWrap: wordWrapEnabled.value ? 'on' : 'off',
         lineNumbers: 'on',
         lineNumbersMinChars: isMobile.value ? 3 : 5, // 移动端行号最多显示3位
-        formatOnPaste: true,
-        formatOnType: true,
+        // 移动端禁用自动格式化，避免粘贴时每行前面添加额外空格
+        formatOnPaste: !isMobile.value,
+        formatOnType: !isMobile.value,
         tabSize: 2,
         // 启用缩放功能
         mouseWheelZoom: true, // PC端：Ctrl/Cmd + 鼠标滚轮缩放
@@ -1609,7 +1729,7 @@ export default {
       }
     };
 
-    // 代码变化处理
+    // 代码变化处理（Monaco编辑器）
     const onCodeChange = (value) => {
       currentCode.value = value;
       // 更新第一个文件的名称（如果代码中包含@name）
@@ -1618,6 +1738,133 @@ export default {
       }
       // 保存到localStorage（保存所有文件）
       saveAllFilesToStorage();
+      
+      // 更新代码问题列表
+      setTimeout(() => {
+        updateCodeProblems();
+      }, 500);
+    };
+    
+    // 原生编辑器变化处理（失去焦点时保存）
+    const handleNativeEditorChange = () => {
+      // 更新第一个文件的名称（如果代码中包含@name）
+      if (activeFile.value && activeFile.value.id === 'file1') {
+        updateFileNameFromCode(activeFile.value);
+      }
+      // 保存到localStorage（保存所有文件）
+      saveAllFilesToStorage();
+    };
+    
+    // 更新代码问题列表
+    const updateCodeProblems = () => {
+      if (editorRef.value && editorRef.value.getEditor) {
+        const editor = editorRef.value.getEditor();
+        const monaco = editorRef.value.getMonaco && editorRef.value.getMonaco() || window.monaco;
+        if (editor && monaco) {
+          const model = editor.getModel();
+          if (model) {
+            // 获取所有诊断标记（包括语法错误、LSP问题等）
+            const markers = monaco.editor.getModelMarkers({ resource: model.uri });
+            codeProblems.value = markers;
+            console.log(`[Playground] 检测到 ${markers.length} 个代码问题`, markers);
+            
+            // 移动端：更新当前行问题
+            if (isMobile.value) {
+              updateCurrentLineProblem();
+            }
+          }
+        }
+      }
+    };
+    
+    // 更新当前行的问题信息（移动端）
+    const updateCurrentLineProblem = () => {
+      if (!isMobile.value) {
+        currentLineProblem.value = null;
+        return;
+      }
+      
+      try {
+        if (!editorRef.value || !editorRef.value.getEditor) {
+          return;
+        }
+        
+        const editor = editorRef.value.getEditor();
+        if (!editor) {
+          return;
+        }
+        
+        const position = editor.getPosition();
+        if (!position) {
+          currentLineProblem.value = null;
+          return;
+        }
+        
+        // 查找当前行的问题
+        const lineNumber = position.lineNumber;
+        const problem = codeProblems.value.find(p => 
+          p.startLineNumber <= lineNumber && p.endLineNumber >= lineNumber
+        );
+        
+        currentLineProblem.value = problem || null;
+      } catch (error) {
+        // 忽略错误，不影响其他功能
+        if (!error.message || !error.message.includes('Canceled')) {
+          console.warn('[Playground] 更新当前行问题失败:', error);
+        }
+      }
+    };
+    
+    // 初始化Monaco编辑器标记监听器
+    const setupMarkersListener = () => {
+      if (editorRef.value && editorRef.value.getMonaco) {
+        const monaco = editorRef.value.getMonaco() || window.monaco;
+        if (monaco && monaco.editor) {
+          // 移除旧的监听器
+          if (markersChangeListener) {
+            markersChangeListener.dispose();
+          }
+          
+          // 添加新的监听器
+          markersChangeListener = monaco.editor.onDidChangeMarkers((uris) => {
+            // 当任何模型的标记发生变化时触发
+            console.log('[Playground] Monaco标记变化', uris);
+            updateCodeProblems();
+          });
+          
+          console.log('[Playground] Monaco标记监听器已启用');
+          
+          // 立即更新一次
+          setTimeout(() => {
+            updateCodeProblems();
+          }, 1000);
+        }
+        
+        // 移动端：添加光标变化监听器
+        if (isMobile.value && editorRef.value.getEditor) {
+          const editor = editorRef.value.getEditor();
+          if (editor) {
+            // 移除旧的监听器
+            if (cursorChangeListener) {
+              cursorChangeListener.dispose();
+            }
+            
+            // 添加光标位置变化监听器
+            cursorChangeListener = editor.onDidChangeCursorPosition(() => {
+              try {
+                updateCurrentLineProblem();
+              } catch (error) {
+                // 忽略Monaco Editor的Canceled错误
+                if (!error.message || !error.message.includes('Canceled')) {
+                  console.error('[Playground] 更新问题提示失败:', error);
+                }
+              }
+            });
+            
+            console.log('[Playground] 光标变化监听器已启用（移动端）');
+          }
+        }
+      }
     };
     
     // 保存所有文件到localStorage
@@ -1679,6 +1926,11 @@ export default {
               const language = newFile.language || getLanguageFromFile(newFile.name);
               updateEditorLanguage(language);
             }
+            
+            // 更新代码问题列表
+            setTimeout(() => {
+              updateCodeProblems();
+            }, 500);
           }
         }
         // 切换完成后，取消标记
@@ -1807,6 +2059,56 @@ export default {
       }
     };
     
+    // IDE功能：粘贴 - 支持原生文本框和移动端输入法
+    const pasteCode = async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        
+        if (!text) {
+          ElMessage.warning('剪贴板为空');
+          return;
+        }
+
+        if (editorRef.value && editorRef.value.getEditor) {
+          const editor = editorRef.value.getEditor();
+          if (editor) {
+            const model = editor.getModel();
+            if (!model) {
+              ElMessage.error('编辑器未就绪');
+              return;
+            }
+
+            // 获取当前选择范围，如果没有选择则使用光标位置
+            const selection = editor.getSelection();
+            const range = selection || new (window.monaco?.Range || editor.getModel().constructor.Range)(1, 1, 1, 1);
+
+            // 使用executeEdits执行粘贴操作，支持一次多行粘贴
+            const edits = [{
+              range: range,
+              text: text,
+              forceMoveMarkers: true
+            }];
+
+            editor.executeEdits('paste-command', edits, [(selection || range)]);
+            editor.focus();
+            
+            const lineCount = text.split('\n').length;
+            ElMessage.success(`已粘贴 ${lineCount} 行内容`);
+          }
+        } else {
+          ElMessage.error('编辑器未加载');
+        }
+      } catch (error) {
+        if (error.name === 'NotAllowedError') {
+          // 权限被拒绝，提示用户使用Ctrl+V
+          ElMessage.warning('粘贴权限被拒绝，请使用 Ctrl+V 快捷键');
+        } else {
+          console.error('粘贴失败:', error);
+          ElMessage.error('粘贴失败: ' + (error.message || '请使用 Ctrl+V'));
+        }
+      }
+    };
+    
     // IDE功能：全选
     const selectAll = () => {
       if (editorRef.value && editorRef.value.getEditor) {
@@ -1867,6 +2169,8 @@ export default {
                 const model = editor.getModel();
                 if (model) {
                   monaco.editor.setModelMarkers(model, 'pylsp', markers);
+                  // 更新代码问题列表（用于移动端显示）
+                  codeProblems.value = markers;
                   console.log(`[Playground] 已更新 ${markers.length} 个诊断标记`);
                 }
               }
@@ -1989,8 +2293,15 @@ export default {
       if (editorRef.value && editorRef.value.getEditor) {
         const editor = editorRef.value.getEditor();
         if (editor) {
-          editor.trigger('keyboard', 'undo', null);
-          editor.focus();
+          try {
+            editor.trigger('keyboard', 'undo', null);
+            editor.focus();
+          } catch (error) {
+            // 忽略Monaco Editor的Canceled错误
+            if (!error.message || !error.message.includes('Canceled')) {
+              console.error('撤销操作失败:', error);
+            }
+          }
         }
       }
     };
@@ -2000,8 +2311,15 @@ export default {
       if (editorRef.value && editorRef.value.getEditor) {
         const editor = editorRef.value.getEditor();
         if (editor) {
-          editor.trigger('keyboard', 'redo', null);
-          editor.focus();
+          try {
+            editor.trigger('keyboard', 'redo', null);
+            editor.focus();
+          } catch (error) {
+            // 忽略Monaco Editor的Canceled错误
+            if (!error.message || !error.message.includes('Canceled')) {
+              console.error('重做操作失败:', error);
+            }
+          }
         }
       }
     };
@@ -2030,23 +2348,41 @@ export default {
     };
 
     // 加载示例代码
-    const loadTemplate = () => {
+    const loadTemplate = async () => {
       if (activeFile.value) {
-        activeFile.value.content = exampleCode;
-        activeFile.value.modified = true;
+        try {
+          // 根据当前语言从服务器加载示例代码
+          const language = activeFile.value.language;
+          const exampleContent = await playgroundApi.getExampleParser(language);
+          
+          activeFile.value.content = exampleContent;
+          activeFile.value.modified = true;
+          
+          // 重置测试参数为示例链接
+          testParams.value.shareUrl = 'https://example.com/s/abc';
+          testParams.value.pwd = '';
+          testParams.value.method = 'parse';
+          // 清空测试结果
+          testResult.value = null;
+          consoleLogs.value = [];
+          
+          const languageName = language === 'python' ? 'Python' : 'JavaScript';
+          ElMessage.success(`已加载${languageName}示例代码`);
+        } catch (error) {
+          ElMessage.error('加载示例代码失败: ' + error.message);
+          console.error('Failed to load example code:', error);
+        }
       }
-      // 重置测试参数为示例链接
-      testParams.value.shareUrl = 'https://example.com/s/abc';
-      testParams.value.pwd = '';
-      testParams.value.method = 'parse';
-      // 清空测试结果
-      testResult.value = null;
-      consoleLogs.value = [];
-      ElMessage.success('已加载JavaScript示例代码');
     };
 
     // 格式化代码
     const formatCode = () => {
+      // 原生编辑器模式下不支持格式化
+      if (useNativeEditor.value) {
+        ElMessage.warning('原生编辑器模式不支持代码格式化，请切换到Monaco编辑器');
+        return;
+      }
+      
       if (editorRef.value && editorRef.value.getEditor) {
         const editor = editorRef.value.getEditor();
         if (editor) {
@@ -2077,6 +2413,97 @@ export default {
         activeFile.value.modified = true;
       }
       testResult.value = null;
+    };
+    
+    // 切换原生编辑器
+    const toggleNativeEditor = () => {
+      useNativeEditor.value = !useNativeEditor.value;
+      const mode = useNativeEditor.value ? '原生文本框' : 'Monaco编辑器';
+      ElMessage.success(`已切换到 ${mode}`);
+      
+      if (useNativeEditor.value) {
+        // 切换到原生编辑器：清理Monaco相关功能
+        
+        // 1. 移除Monaco标记监听器
+        if (markersChangeListener) {
+          markersChangeListener.dispose();
+          markersChangeListener = null;
+        }
+        
+        // 2. 移除光标变化监听器
+        if (cursorChangeListener) {
+          cursorChangeListener.dispose();
+          cursorChangeListener = null;
+        }
+        
+        // 3. 清空代码问题列表
+        codeProblems.value = [];
+        currentLineProblem.value = null;
+        
+        // 4. 自动聚焦到原生编辑器
+        nextTick(() => {
+          if (nativeEditorRef.value) {
+            nativeEditorRef.value.focus();
+          }
+        });
+        
+        console.log('[Playground] 已切换到原生编辑器，Monaco功能已禁用');
+      } else {
+        // 切换回Monaco编辑器：重新启用Monaco功能
+        nextTick(() => {
+          // 重新初始化Monaco标记监听器
+          setupMarkersListener();
+          console.log('[Playground] 已切换到Monaco编辑器，Monaco功能已启用');
+        });
+      }
+    };
+
+    // 导入文件 - 触发文件选择对话框
+    const importFile = () => {
+      if (fileImportInput.value) {
+        fileImportInput.value.click();
+      }
+    };
+
+    // 处理文件导入 - 读取文件内容并替换当前代码
+    const handleFileImport = async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) {
+        return;
+      }
+
+      try {
+        const fileContent = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.onerror = () => reject(new Error('文件读取失败'));
+          reader.readAsText(file, 'UTF-8');
+        });
+
+        if (activeFile.value) {
+          activeFile.value.content = fileContent;
+          activeFile.value.modified = true;
+          // 更新文件名
+          activeFile.value.name = file.name;
+          // 根据文件扩展名识别语言
+          const ext = file.name.split('.').pop().toLowerCase();
+          if (ext === 'py') {
+            activeFile.value.language = 'python';
+          } else if (ext === 'js' || ext === 'txt') {
+            activeFile.value.language = 'javascript';
+          }
+          saveAllFilesToStorage();
+          ElMessage.success(`文件"${file.name}"已导入，大小：${(file.size / 1024).toFixed(2)}KB`);
+        }
+      } catch (error) {
+        ElMessage.error('导入失败: ' + error.message);
+        console.error('文件导入错误:', error);
+      }
+
+      // 重置input的value，允许再次选择同一文件
+      if (fileImportInput.value) {
+        fileImportInput.value.value = '';
+      }
     };
 
     // 语言切换处理
@@ -2265,13 +2692,44 @@ export default {
     };
 
     // 确认发布
-    const confirmPublish = async () => {
+    const confirmPublish = async (forceOverwrite = false) => {
       publishing.value = true;
       try {
         const codeToPublish = currentCode.value;
         const currentLanguage = publishForm.value.language || 'javascript';
-        const result = await playgroundApi.saveParser(codeToPublish, currentLanguage);
+        const result = await playgroundApi.saveParser(codeToPublish, currentLanguage, forceOverwrite);
         console.log('保存解析器响应:', result);
+        
+        // 检查是否需要覆盖确认
+        if (result.code !== 200 && result.existingId && result.existingType) {
+          // type已存在，显示覆盖确认对话框
+          publishing.value = false;
+          overwriteInfo.value = {
+            id: result.existingId,
+            type: result.existingType,
+            message: result.msg || result.error
+          };
+          
+          ElMessageBox.confirm(
+            `解析器类型 "${result.existingType}" 已存在，是否覆盖现有解析器？`,
+            '确认覆盖',
+            {
+              confirmButtonText: '覆盖',
+              cancelButtonText: '取消',
+              type: 'warning',
+              distinguishCancelAndClose: true
+            }
+          ).then(() => {
+            // 用户确认覆盖，重新发布
+            confirmPublish(true);
+          }).catch(() => {
+            // 用户取消
+            ElMessage.info('已取消发布');
+            overwriteInfo.value = null;
+          });
+          return;
+        }
+        
         // 检查响应格式
         if (result.code === 200 || result.success) {
           // 从响应或代码中提取type信息
@@ -2330,6 +2788,7 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
           });
           
           publishDialogVisible.value = false;
+          overwriteInfo.value = null; // 清理覆盖信息
           // 切换到列表标签页并刷新
           activeTab.value = 'list';
           await loadParserList();
@@ -2522,6 +2981,104 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       shortcutsDialogVisible.value = true;
     };
     
+    // ===== 代码问题相关 =====
+    // 显示代码问题对话框（移动端）
+    const showProblemsDialog = () => {
+      problemsDialogVisible.value = true;
+    };
+    
+    // 跳转到问题行
+    const goToProblemLine = (problem) => {
+      if (editorRef.value && editorRef.value.getEditor) {
+        const editor = editorRef.value.getEditor();
+        if (editor) {
+          // 跳转到问题所在行
+          editor.revealLineInCenter(problem.startLineNumber);
+          // 设置光标位置
+          editor.setPosition({
+            lineNumber: problem.startLineNumber,
+            column: problem.startColumn || 1
+          });
+          // 聚焦编辑器
+          editor.focus();
+          // 关闭对话框
+          problemsDialogVisible.value = false;
+        }
+      }
+    };
+    
+    // ===== URL历史记录功能 =====
+    // 添加URL到历史记录
+    const addToUrlHistory = (url) => {
+      if (!url || !url.trim()) return;
+      
+      // 去重并添加到开头
+      const filtered = urlHistory.value.filter(item => item !== url);
+      filtered.unshift(url);
+      
+      // 限制数量
+      if (filtered.length > MAX_HISTORY) {
+        filtered.length = MAX_HISTORY;
+      }
+      
+      urlHistory.value = filtered;
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(filtered));
+    };
+    
+    // 移动端执行测试包装函数
+    const handleMobileExecuteTest = async () => {
+      await executeTest();
+      // 如果执行成功，添加到历史记录
+      if (testResult.value && testResult.value.success) {
+        addToUrlHistory(testParams.value.shareUrl);
+        ElMessage.success('测试执行成功');
+      }
+    };
+    
+    // 移动端快速测试（使用当前参数直接执行）
+    const handleMobileQuickTest = async () => {
+      if (testing.value) return;
+      
+      // 检查是否有测试参数
+      if (!testParams.value.shareUrl || !testParams.value.shareUrl.trim()) {
+        ElMessage.warning('请先设置测试参数');
+        mobileTestDialogVisible.value = true;
+        return;
+      }
+      
+      await handleMobileExecuteTest();
+    };
+    
+    // 长按定时器
+    let longPressTimer = null;
+    const LONG_PRESS_DURATION = 500; // 500ms
+    
+    // 处理运行按钮触摸开始
+    const handleRunButtonTouchStart = (e) => {
+      // 清除之前的定时器
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+      }
+      
+      // 设置长按定时器
+      longPressTimer = setTimeout(() => {
+        // 长按触发：打开测试弹框
+        e.preventDefault();
+        mobileTestDialogVisible.value = true;
+        longPressTimer = null;
+      }, LONG_PRESS_DURATION);
+    };
+    
+    // 处理运行按钮触摸结束
+    const handleRunButtonTouchEnd = () => {
+      // 如果定时器还在，说明是短按（点击）
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+        // 短按由 @click 事件处理，这里不需要做任何事
+      }
+    };
+    
     // ===== 快捷键系统 =====
     const keys = useMagicKeys();
     const ctrlEnter = keys['Ctrl+Enter'];
@@ -2551,9 +3108,9 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       }
     });
     
-    // 格式化代码 - Shift + Alt + F
+    // 格式化代码 - Shift + Alt + F（仅Monaco编辑器模式）
     watch(shiftAltF, (pressed) => {
-      if (pressed) {
+      if (pressed && !useNativeEditor.value) {
         formatCode();
       }
     });
@@ -2654,6 +3211,17 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
     };
 
     onMounted(async () => {
+      // 加载URL历史记录
+      const savedHistory = localStorage.getItem(HISTORY_KEY);
+      if (savedHistory) {
+        try {
+          urlHistory.value = JSON.parse(savedHistory);
+        } catch (e) {
+          console.error('加载URL历史失败:', e);
+          urlHistory.value = [];
+        }
+      }
+      
       // 初始化移动端检测
       updateIsMobile();
       window.addEventListener('resize', updateIsMobile);
@@ -2696,6 +3264,11 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       
       // 初始化splitpanes样式
       updateSplitpanesStyle();
+      
+      // 初始化Monaco标记监听器
+      setTimeout(() => {
+        setupMarkersListener();
+      }, 2000);
     });
     
     onUnmounted(() => {
@@ -2708,6 +3281,11 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       if (pylspClient) {
         pylspClient.disconnect();
         pylspClient = null;
+      }
+      // 清理Monaco标记监听器
+      if (markersChangeListener) {
+        markersChangeListener.dispose();
+        markersChangeListener = null;
       }
     });
 
@@ -2747,14 +3325,23 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       createNewFile,
       // IDE功能
       copyAll,
+      pasteCode,
       selectAll,
       toggleWordWrap,
       wordWrapEnabled,
       exportCurrentFile,
+      importFile,
+      handleFileImport,
+      fileImportInput,
       undo,
       redo,
       updateEditorLanguage,
       getLanguageFromFile,
+      // 原生编辑器切换
+      useNativeEditor,
+      nativeEditorRef,
+      toggleNativeEditor,
+      handleNativeEditorChange,
       // 加载和认证
       loading,
       loadProgress,
@@ -2811,9 +3398,29 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       shortcutsDialogVisible,
       showShortcutsHelp,
       shortcutsData,
+      codeProblems,
+      currentLineProblem,
+      problemsDialogVisible,
+      showProblemsDialog,
+      goToProblemLine,
+      updateCodeProblems,
+      setupMarkersListener,
       splitSizes,
       playgroundContainer,
-      handleResize
+      handleResize,
+      // URL历史记录
+      urlHistory,
+      addToUrlHistory,
+      // 移动端模态框
+      mobileTestDialogVisible,
+      handleMobileExecuteTest,
+      handleMobileQuickTest,
+      handleRunButtonTouchStart,
+      handleRunButtonTouchEnd,
+      // 移动端编辑器拖拽
+      mobileEditorHeight,
+      startResize,
+      isResizing
     };
   }
 };
@@ -3072,8 +3679,12 @@ body.dark-theme .splitpanes__splitter:hover,
   border-right: none;
 }
 
+.playground-container.is-mobile .playground-card :deep(.el-card__header) {
+  padding: 0 !important;
+}
+
 .playground-container.is-mobile .playground-card :deep(.el-card__body) {
-  padding: 12px;
+  padding: 0 8px !important;
 }
 
 .dark-theme .playground-card {
@@ -3084,6 +3695,56 @@ body.dark-theme .splitpanes__splitter:hover,
 .dark-theme .playground-card :deep(.el-card__header) {
   background: #1f1f1f;
   border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ===== 顶部面包屑导航栏样式 ===== */
+.breadcrumb-top-bar {
+  background: var(--el-bg-color);
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  margin: -20px -20px 20px -20px;
+}
+
+.dark-theme .breadcrumb-top-bar {
+  background: var(--el-bg-color-overlay);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* 移动端顶部面包屑 */
+@media screen and (max-width: 768px) {
+  .breadcrumb-top-bar {
+    padding: 10px 15px;
+    margin: -10px -10px 10px -10px;
+  }
+}
+
+/* ===== 顶部面包屑导航栏样式 ===== */
+.breadcrumb-top-bar {
+  background: var(--el-bg-color);
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  margin: -20px -20px 20px -20px;
+}
+
+.dark-theme .breadcrumb-top-bar {
+  background: var(--el-bg-color-overlay);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* 移动端顶部面包屑 */
+@media screen and (max-width: 768px) {
+  .breadcrumb-top-bar {
+    padding: 10px 15px;
+    margin: -10px -10px 10px -10px;
+  }
 }
 
 /* ===== 工具栏样式 ===== */
@@ -3610,6 +4271,8 @@ html.dark .playground-container .splitpanes__splitter:hover {
   overflow-y: hidden;
   scrollbar-width: thin;
   scrollbar-color: var(--el-border-color) transparent;
+  scroll-behavior: smooth; /* 平滑滚动 */
+  -webkit-overflow-scrolling: touch; /* iOS 弹性滚动 */
 }
 
 .file-tabs :deep(.el-tabs__nav-scroll)::-webkit-scrollbar {
@@ -3704,9 +4367,9 @@ html.dark .playground-container .splitpanes__splitter:hover {
 }
 
 .dark-theme .tab-context-menu {
-  background: #2a2a2a;
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  background: #2a2a2a !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
 }
 
 .context-menu-item {
@@ -3724,8 +4387,12 @@ html.dark .playground-container .splitpanes__splitter:hover {
   background-color: var(--el-fill-color-light);
 }
 
+.dark-theme .context-menu-item {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
 .dark-theme .context-menu-item:hover {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 .context-menu-item.disabled {
@@ -3762,6 +4429,43 @@ html.dark .playground-container .splitpanes__splitter:hover {
   height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+/* 原生编辑器样式 */
+.native-editor {
+  width: 100%;
+  height: 100%;
+  padding: 12px;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  background: var(--el-bg-color);
+  color: var(--el-text-color-primary);
+  tab-size: 2;
+  white-space: pre;
+  overflow-wrap: normal;
+  overflow-x: auto;
+}
+
+.native-editor::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.native-editor::-webkit-scrollbar-track {
+  background: var(--el-fill-color-lighter);
+}
+
+.native-editor::-webkit-scrollbar-thumb {
+  background: var(--el-fill-color-dark);
+  border-radius: 5px;
+}
+
+.native-editor::-webkit-scrollbar-thumb:hover {
+  background: var(--el-border-color-darker);
 }
 
 /* ===== 测试区域 ===== */
@@ -4124,6 +4828,8 @@ html.dark .playground-container .splitpanes__splitter:hover {
   font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
   font-size: 13px;
   transition: all 0.3s ease;
+  scroll-behavior: smooth; /* 平滑滚动 */
+  -webkit-overflow-scrolling: touch; /* iOS 弹性滚动 */
 }
 
 .dark-theme .console-container {
@@ -4211,13 +4917,30 @@ html.dark .playground-container .splitpanes__splitter:hover {
   background: var(--el-color-success-light-9) !important;
 }
 
+.console-java-source {
+  border-left-color: var(--el-color-warning) !important;
+  background: var(--el-color-warning-light-9) !important;
+}
+
+.console-python-source {
+  border-left-color: var(--el-color-info) !important;
+  background: var(--el-color-info-light-9) !important;
+}
+
 .dark-theme .console-js-source {
   background: rgba(103, 194, 58, 0.15) !important;
 }
 
+.dark-theme .console-java-source {
+  background: rgba(230, 162, 60, 0.15) !important;
+}
+
+.dark-theme .console-python-source {
+  background: rgba(64, 158, 255, 0.15) !important;
+}
+
 .console-source-tag {
   display: inline-block;
-  background: linear-gradient(135deg, var(--el-color-success) 0%, var(--el-color-success-light-3) 100%);
   color: white;
   font-size: 10px;
   padding: 3px 8px;
@@ -4225,7 +4948,22 @@ html.dark .playground-container .splitpanes__splitter:hover {
   margin-right: 8px;
   font-weight: 600;
   flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.console-source-JS {
+  background: linear-gradient(135deg, var(--el-color-success) 0%, var(--el-color-success-light-3) 100%);
   box-shadow: 0 2px 4px rgba(103, 194, 58, 0.3);
+}
+
+.console-source-java {
+  background: linear-gradient(135deg, var(--el-color-warning) 0%, var(--el-color-warning-light-3) 100%);
+  box-shadow: 0 2px 4px rgba(230, 162, 60, 0.3);
+}
+
+.console-source-python {
+  background: linear-gradient(135deg, var(--el-color-info) 0%, var(--el-color-info-light-3) 100%);
+  box-shadow: 0 2px 4px rgba(64, 158, 255, 0.3);
 }
 
 .console-message {
@@ -4327,8 +5065,64 @@ html.dark .playground-container .splitpanes__splitter:hover {
 .mobile-layout .editor-section {
   width: 100%;
   margin: 0;
-  margin-bottom: 12px;
+  margin-bottom: 0;
   padding: 0;
+  position: relative;
+}
+
+/* 编辑器拖拽调整高度手柄 */
+.editor-resize-handle {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(to bottom, transparent, var(--el-fill-color-light));
+  z-index: 100;
+  touch-action: none;
+}
+
+.editor-resize-handle:hover,
+.editor-resize-handle:active {
+  background: linear-gradient(to bottom, transparent, var(--el-color-primary-light-8));
+}
+
+.resize-handle-bar {
+  width: 50px;
+  height: 4px;
+  background: var(--el-border-color);
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+
+.editor-resize-handle:hover .resize-handle-bar,
+.editor-resize-handle:active .resize-handle-bar {
+  background: var(--el-color-primary);
+  width: 70px;
+}
+
+/* 暗色主题下的拖拽横条 */
+.dark-theme .editor-resize-handle {
+  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.05)) !important;
+}
+
+.dark-theme .editor-resize-handle:hover,
+.dark-theme .editor-resize-handle:active {
+  background: linear-gradient(to bottom, transparent, rgba(64, 158, 255, 0.2)) !important;
+}
+
+.dark-theme .resize-handle-bar {
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+
+.dark-theme .editor-resize-handle:hover .resize-handle-bar,
+.dark-theme .editor-resize-handle:active .resize-handle-bar {
+  background: var(--el-color-primary) !important;
+  width: 70px;
 }
 
 /* 移动端编辑器容器：去掉所有边距 */
@@ -4344,14 +5138,94 @@ html.dark .playground-container .splitpanes__splitter:hover {
   border-right: none;
 }
 
-/* 移动端编辑器悬浮操作按钮 */
+/* 移动端编辑器悬浮操作按钮 - 固定定位 */
 .mobile-editor-actions {
+  position: fixed;
+  bottom: 150px;
+  right: 16px;
+  z-index: 1500;
+  display: flex;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.mobile-editor-actions .el-button-group {
+  display: flex;
+  gap: 2px;
+}
+
+.mobile-editor-actions .el-button {
+  margin: 0;
+}
+
+/* 暗色主题下的移动端悬浮按钮 */
+.dark-theme .mobile-editor-actions {
+  background: rgba(30, 30, 30, 0.95);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+/* 移动端编辑器高度优化 */
+@media screen and (max-width: 768px) {
+  .mobile-layout .editor-section {
+    position: relative;
+    min-height: 300px;
+    max-height: calc(100vh - 180px);
+  }
+  
+  .mobile-layout .editor-section :deep(.monaco-editor-container) {
+    border-radius: 0 !important;
+  }
+  
+  .mobile-layout .editor-section :deep(.monaco-editor) {
+    /* 不需要设置最小高度 */
+  }
+  
+  /* 编辑器滚动区域底部留白 */
+  .mobile-layout .editor-section :deep(.monaco-scrollable-element) {
+    padding-bottom: 10px !important;
+  }
+}
+
+/* 移动端代码问题浮窗按钮 */
+.mobile-problems-btn {
   position: absolute;
-  bottom: 20px;
+  top: 20px;
   right: 20px;
   z-index: 10;
+  background: linear-gradient(135deg, #f56c6c 0%, #ff8787 100%);
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
   display: flex;
-  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(245, 108, 108, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: white;
+}
+
+.mobile-problems-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(245, 108, 108, 0.5);
+}
+
+.mobile-problems-btn:active {
+  transform: scale(0.95);
+}
+
+.mobile-problems-btn .problems-badge :deep(.el-badge__content) {
+  background-color: #fff;
+  color: #f56c6c;
+  border: 2px solid #f56c6c;
+}
+
+.dark-theme .mobile-problems-btn {
+  background: linear-gradient(135deg, #c45656 0%, #d66b6b 100%);
+  box-shadow: 0 4px 12px rgba(196, 86, 86, 0.5);
 }
 
 .mobile-editor-actions .editor-action-btn {
@@ -4375,6 +5249,270 @@ html.dark .playground-container .splitpanes__splitter:hover {
 .dark-theme .mobile-editor-actions .editor-action-btn:hover {
   background: rgba(40, 40, 40, 0.95);
   border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 移动端当前行问题提示 - 浅色系 */
+.mobile-current-problem {
+  position: fixed;
+  bottom: 80px;
+  left: 12px;
+  right: 12px;
+  background: #fee2e2;
+  color: #1f2937;
+  padding: 12px 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 2000;
+  border-radius: 8px;
+  border-left: 4px solid #dc2626;
+  border-right: 1px solid #fca5a5;
+  border-top: 1px solid #fca5a5;
+  border-bottom: 1px solid #fca5a5;
+}
+
+.mobile-current-problem .problem-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #1f2937;
+}
+
+.mobile-current-problem .error-icon {
+  color: #dc2626;
+  font-size: 18px;
+}
+
+.mobile-current-problem .warning-icon {
+  color: #ea580c;
+  font-size: 18px;
+}
+
+.mobile-current-problem .problem-title {
+  flex: 1;
+  color: #374151;
+}
+
+.mobile-current-problem .close-icon {
+  font-size: 18px;
+  cursor: pointer;
+  color: #6b7280;
+  transition: color 0.2s;
+}
+
+.mobile-current-problem .close-icon:hover {
+  color: #1f2937;
+}
+
+.mobile-current-problem .problem-message {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #4b5563;
+  word-break: break-word;
+}
+
+/* 警告类型的问题 - 浅橙色 */
+.mobile-current-problem.warning {
+  background: #fed7aa;
+  border-left-color: #ea580c;
+  border-right-color: #fdba74;
+  border-top-color: #fdba74;
+  border-bottom-color: #fdba74;
+}
+
+.mobile-current-problem.warning .problem-header,
+.mobile-current-problem.warning .problem-title {
+  color: #9a3412;
+}
+
+.mobile-current-problem.warning .problem-message {
+  color: #7c2d12;
+}
+
+/* 暗色主题下的移动端错误提示框 */
+.dark-theme .mobile-current-problem {
+  background: #7f1d1d !important;
+  border-left-color: #dc2626 !important;
+  border-right-color: #991b1b !important;
+  border-top-color: #991b1b !important;
+  border-bottom-color: #991b1b !important;
+}
+
+.dark-theme .mobile-current-problem .problem-header,
+.dark-theme .mobile-current-problem .problem-title,
+.dark-theme .mobile-current-problem .problem-message {
+  color: #fecaca !important;
+}
+
+.dark-theme .mobile-current-problem .error-icon {
+  color: #fca5a5 !important;
+}
+
+.dark-theme .mobile-current-problem .warning-icon {
+  color: #fdba74 !important;
+}
+
+.dark-theme .mobile-current-problem .close-icon {
+  color: #fca5a5 !important;
+}
+
+.dark-theme .mobile-current-problem .close-icon:hover {
+  color: #fecaca !important;
+}
+
+/* 暗色主题下的警告 - 使用明显的橙黄色 */
+.dark-theme .mobile-current-problem.warning {
+  background: #854d0e !important;
+  border-left-color: #f59e0b !important;
+  border-right-color: #a16207 !important;
+  border-top-color: #a16207 !important;
+  border-bottom-color: #a16207 !important;
+}
+
+.dark-theme .mobile-current-problem.warning .problem-header,
+.dark-theme .mobile-current-problem.warning .problem-title,
+.dark-theme .mobile-current-problem.warning .problem-message {
+  color: #fde047 !important;
+}
+
+.dark-theme .mobile-current-problem.warning .warning-icon {
+  color: #fbbf24 !important;
+}
+
+.dark-theme .mobile-current-problem.warning .close-icon {
+  color: #fde047 !important;
+}
+
+.dark-theme .mobile-current-problem.warning .close-icon:hover {
+  color: #fef3c7 !important;
+}
+
+/* 暗色主题下的全局弹出层和下拉框背景修复 */
+.dark-theme :deep(.el-popper),
+.dark-theme :deep(.el-select-dropdown),
+.dark-theme :deep(.el-autocomplete-suggestion),
+.dark-theme :deep(.el-dropdown-menu),
+.dark-theme :deep(.el-tooltip__popper) {
+  background: #1f1f1f !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark-theme :deep(.el-popper.is-light),
+.dark-theme :deep(.el-tooltip__popper.is-light) {
+  background: #2a2a2a !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.dark-theme :deep(.el-select-dropdown__item),
+.dark-theme :deep(.el-autocomplete-suggestion__list li),
+.dark-theme :deep(.el-dropdown-menu__item) {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.dark-theme :deep(.el-select-dropdown__item:hover),
+.dark-theme :deep(.el-autocomplete-suggestion__list li:hover),
+.dark-theme :deep(.el-dropdown-menu__item:hover) {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 代码问题对话框样式 */
+.problems-dialog .problems-list {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.problems-dialog .el-alert {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.problems-dialog .el-alert:hover {
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 桌面端代码问题列表 */
+.problems-list-desktop {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.problem-item {
+  padding: 10px 12px;
+  border-left: 3px solid;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--el-fill-color-lighter);
+}
+
+.problem-item:hover {
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.problem-error {
+  border-left-color: #f56c6c;
+  background: rgba(245, 108, 108, 0.05);
+}
+
+.problem-warning {
+  border-left-color: #e6a23c;
+  background: rgba(230, 162, 60, 0.05);
+}
+
+.problem-info {
+  border-left-color: #909399;
+  background: rgba(144, 147, 153, 0.05);
+}
+
+.problem-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.problem-error .problem-header {
+  color: #f56c6c;
+}
+
+.problem-warning .problem-header {
+  color: #e6a23c;
+}
+
+.problem-info .problem-header {
+  color: #909399;
+}
+
+.problem-line {
+  font-size: 13px;
+}
+
+.problem-message {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  margin-left: 24px;
+  line-height: 1.5;
+}
+
+.dark-theme .problem-item {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dark-theme .problem-error {
+  background: rgba(245, 108, 108, 0.1);
+}
+
+.dark-theme .problem-warning {
+  background: rgba(230, 162, 60, 0.1);
+}
+
+.dark-theme .problem-info {
+  background: rgba(144, 147, 153, 0.1);
 }
 
 .mobile-test-section {
@@ -4426,8 +5564,53 @@ html.dark .playground-container .splitpanes__splitter:hover {
   
   .card-header {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
+    align-items: stretch;
+    gap: 4px;
+    padding: 4px 8px !important;
+    margin: 0 !important;
+  }
+  
+  /* 移动端两排按钮布局 */
+  .header-actions.mobile-two-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: 100%;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  .header-actions.mobile-two-rows .action-row {
+    display: flex;
+    width: 100%;
+    margin: 0;
+  }
+  
+  .header-actions.mobile-two-rows .el-button-group {
+    flex: 1;
+    display: flex;
+    width: 100%;
+  }
+  
+  .header-actions.mobile-two-rows .el-button-group .el-button {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 4px !important;
+    font-size: 12px !important;
+    margin: 0 !important;
+  }
+  
+  /* 隐藏移动端不必要的元素（主题切换、全屏、更多按钮） */
+  .header-actions.mobile-two-rows > .el-dropdown,
+  .header-actions.mobile-two-rows > .el-tooltip,
+  .header-actions.mobile-two-rows > .el-button {
+    display: none !important;
+  }
+  
+  /* 显示 action-row 内的按钮 */
+  .header-actions.mobile-two-rows .action-row .el-button-group,
+  .header-actions.mobile-two-rows .action-row .el-tooltip {
+    display: flex !important;
   }
   
   .console-container {
@@ -4445,18 +5628,64 @@ html.dark .playground-container .splitpanes__splitter:hover {
     padding: 6px 0;
   }
   
-  .header-actions {
-    width: 100%;
-    justify-content: flex-start;
-  }
-  
   .panel-expand-btn {
     right: 10px;
   }
   
   .test-params-form .method-item-horizontal :deep(.el-radio-group) {
-    flex-direction: column;
-    gap: 8px;
+    flex-direction: row;
+    gap: 4px;
+  }
+  
+  /* 移动端单行测试参数布局 */
+  .test-params-form.mobile-single-row {
+    padding: 0;
+  }
+  
+  .test-params-form.mobile-single-row .test-params-row {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+  
+  .test-params-form.mobile-single-row .url-input {
+    flex: 2;
+    min-width: 0;
+  }
+  
+  .test-params-form.mobile-single-row .pwd-input {
+    flex: 1;
+    min-width: 60px;
+  }
+  
+  .test-params-form.mobile-single-row .method-radio {
+    flex: 1;
+    display: flex;
+    gap: 4px;
+  }
+  
+  .test-params-form.mobile-single-row .method-radio :deep(.el-radio) {
+    margin-right: 0;
+    flex: 1;
+  }
+  
+  .test-params-form.mobile-single-row .method-radio :deep(.el-radio__label) {
+    padding-left: 4px;
+    font-size: 11px;
+  }
+  
+  .test-params-form.mobile-single-row .test-button {
+    flex: 0 0 auto;
+    min-width: 70px;
+  }
+  
+  /* 减小测试参数卡片边距 */
+  .mobile-test-section .test-params-card {
+    margin-top: 4px !important;
+  }
+  
+  .mobile-test-section .test-params-card :deep(.el-card__body) {
+    padding: 8px !important;
   }
   
   /* 移动端结果区域自适应高度 */
@@ -4550,11 +5779,53 @@ html.dark .playground-container .splitpanes__splitter:hover {
   background: var(--el-border-color-extra-light);
 }
 
+/* 移动端平滑滚动优化 */
+@media screen and (max-width: 768px) {
+  .test-section,
+  .console-container,
+  .result-content,
+  .file-tabs :deep(.el-tabs__nav-scroll),
+  .problems-list,
+  .help-content {
+    scroll-behavior: smooth !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  /* 移动端隐藏滚动条，更简洁 */
+  .test-section::-webkit-scrollbar,
+  .console-container::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .test-section,
+  .console-container {
+    scrollbar-width: none; /* Firefox */
+  }
+}
+
 /* ===== 暗色主题优化 ===== */
 .dark-theme .editor-section {
   border-color: rgba(255, 255, 255, 0.15);
   background: #1a1a1a;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* 暗色主题下的原生编辑器 */
+.dark-theme .native-editor {
+  background: #1a1a1a;
+  color: #d4d4d4;
+}
+
+.dark-theme .native-editor::-webkit-scrollbar-track {
+  background: #2a2a2a;
+}
+
+.dark-theme .native-editor::-webkit-scrollbar-thumb {
+  background: #4a4a4a;
+}
+
+.dark-theme .native-editor::-webkit-scrollbar-thumb:hover {
+  background: #5a5a5a;
 }
 
 /* 暗色模式下所有el-card的body部分背景 */

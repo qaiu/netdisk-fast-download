@@ -126,13 +126,15 @@ export const playgroundApi = {
    * 保存解析器
    * @param {string} code - 代码
    * @param {string} language - 语言类型：javascript/python
+   * @param {boolean} forceOverwrite - 是否强制覆盖已存在的解析器
    */
-  async saveParser(code, language = 'javascript') {
+  async saveParser(code, language = 'javascript', forceOverwrite = false) {
     try {
       const response = await axiosInstance.post('/v2/playground/parsers', { 
         jsCode: code, // 兼容后端旧字段名
         code,
-        language 
+        language,
+        forceOverwrite
       });
       // 框架会自动包装成JsonResult
       if (response.data && response.data.data) {
@@ -145,6 +147,20 @@ export const playgroundApi = {
       }
       return response.data;
     } catch (error) {
+      // 检查是否是type已存在的错误（需要覆盖确认）
+      const errorData = error.response?.data;
+      if (errorData && errorData.existingId && errorData.existingType) {
+        // 返回包含existingId的错误信息，供前端显示覆盖确认对话框
+        return {
+          code: errorData.code || 400,
+          msg: errorData.msg || errorData.error || '解析器已存在',
+          error: errorData.msg || errorData.error,
+          existingId: errorData.existingId,
+          existingType: errorData.existingType,
+          success: false
+        };
+      }
+      
       const errorMsg = error.response?.data?.data?.error || 
                       error.response?.data?.error || 
                       error.response?.data?.msg || 
@@ -205,6 +221,22 @@ export const playgroundApi = {
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.error || error.response?.data?.msg || error.message || '获取解析器失败');
+    }
+  },
+
+  /**
+   * 获取示例解析器代码
+   * @param {string} language - 语言类型：javascript/python
+   * @returns {Promise<string>} 示例代码
+   */
+  async getExampleParser(language = 'javascript') {
+    try {
+      const response = await axiosInstance.get(`/v2/playground/example/${language}`, {
+        responseType: 'text'
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.error || error.message || `获取${language}示例失败`);
     }
   },
 

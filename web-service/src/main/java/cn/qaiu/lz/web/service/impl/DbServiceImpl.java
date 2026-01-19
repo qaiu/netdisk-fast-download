@@ -299,47 +299,70 @@ public class DbServiceImpl implements DbService {
             // ==UserScript==
             // @name         示例JS解析器
             // @description  演示如何编写JavaScript解析器，访问 https://httpbin.org/html 获取HTML内容
-            // @type         example-js
+            // @type         example_js
             // @displayName  JS示例
             // @version      1.0.0
             // @author       System
-            // @matchPattern ^https?://httpbin\\.org/.*$
+            // @match        https?://httpbin\\.org/s/(?<KEY>\\w+)
             // ==/UserScript==
             
             /**
-             * 解析入口函数
-             * @param {string} url 分享链接URL
-             * @param {string} pwd 提取码（可选）
-             * @returns {object} 包含下载链接的结果对象
+             * 解析单个文件下载链接
+             * @param {ShareLinkInfo} shareLinkInfo - 分享链接信息对象
+             * @param {JsHttpClient} http - HTTP客户端实例
+             * @param {JsLogger} logger - 日志记录器实例
+             * @returns {string} 下载链接
              */
-            function parse(url, pwd) {
-                log.info("开始解析: " + url);
+            function parse(shareLinkInfo, http, logger) {
+                logger.info("===== JS示例解析器 =====");
+                
+                var shareUrl = shareLinkInfo.getShareUrl();
+                var shareKey = shareLinkInfo.getShareKey();
+                logger.info("分享链接: " + shareUrl);
+                logger.info("分享Key: " + shareKey);
                 
                 // 使用内置HTTP客户端发送GET请求
                 var response = http.get("https://httpbin.org/html");
                 
-                if (response.statusCode === 200) {
-                    var body = response.body;
-                    log.info("获取到HTML内容，长度: " + body.length);
+                if (response.statusCode() === 200) {
+                    var body = response.text();
+                    logger.info("获取到HTML内容，长度: " + body.length);
                     
                     // 提取标题
                     var titleMatch = body.match(/<title>([^<]+)<\\/title>/i);
                     var title = titleMatch ? titleMatch[1] : "未知标题";
+                    logger.info("页面标题: " + title);
                     
-                    // 返回结果
-                    return {
-                        downloadUrl: "https://httpbin.org/html",
-                        fileName: title + ".html",
-                        fileSize: body.length,
-                        extra: {
-                            title: title,
-                            contentType: "text/html"
-                        }
-                    };
+                    // 返回下载链接（示例：返回HTML页面URL）
+                    return "https://httpbin.org/html";
                 } else {
-                    log.error("请求失败，状态码: " + response.statusCode);
-                    throw new Error("请求失败: " + response.statusCode);
+                    logger.error("请求失败，状态码: " + response.statusCode());
+                    throw new Error("请求失败: " + response.statusCode());
                 }
+            }
+            
+            /**
+             * 解析文件列表（可选）
+             * @param {ShareLinkInfo} shareLinkInfo - 分享链接信息对象
+             * @param {JsHttpClient} http - HTTP客户端实例
+             * @param {JsLogger} logger - 日志记录器实例
+             * @returns {FileInfo[]} 文件信息列表
+             */
+            function parseFileList(shareLinkInfo, http, logger) {
+                logger.info("===== 解析文件列表 =====");
+                
+                var response = http.get("https://httpbin.org/json");
+                var data = response.json();
+                
+                // 返回文件列表
+                return [{
+                    fileName: "example.html",
+                    fileId: "1",
+                    fileType: "file",
+                    size: 1024,
+                    sizeStr: "1 KB",
+                    parserUrl: "https://httpbin.org/html"
+                }];
             }
             """;
         
@@ -347,55 +370,128 @@ public class DbServiceImpl implements DbService {
         String pyExampleCode = """
             # ==UserScript==
             # @name         示例Python解析器
-            # @description  演示如何编写Python解析器，访问 https://httpbin.org/json 获取JSON数据
-            # @type         example-py
+            # @type         example_py
             # @displayName  Python示例
-            # @version      1.0.0
+            # @description  演示如何编写Python解析器，使用requests库和正则表达式
+            # @match        https?://httpbin\\.org/s/(?P<KEY>\\w+)
             # @author       System
-            # @matchPattern ^https?://httpbin\\.org/.*$
+            # @version      1.0.0
             # ==/UserScript==
             
-            def parse(url: str, pwd: str = None) -> dict:
+            \"\"\"
+            Python解析器示例 - 使用GraalPy运行
+            
+            可用模块：
+            - requests: HTTP请求库 (已内置，支持 get/post/put/delete 等)
+            - re: 正则表达式
+            - json: JSON处理
+            - base64: Base64编解码
+            - hashlib: 哈希算法
+            
+            内置对象：
+            - share_link_info: 分享链接信息
+            - http: 底层HTTP客户端（PyHttpClient）
+            - logger: 日志记录器（PyLogger）
+            - crypto: 加密工具 (md5/sha1/sha256/aes/base64)
+            \"\"\"
+            
+            import requests
+            import re
+            import json
+            
+            def parse(share_link_info, http, logger):
                 \"\"\"
-                解析入口函数
+                解析单个文件下载链接
                 
                 Args:
-                    url: 分享链接URL
-                    pwd: 提取码（可选）
-                    
+                    share_link_info: 分享链接信息对象
+                    http: HTTP客户端
+                    logger: 日志记录器
+                
                 Returns:
-                    包含下载链接的结果字典
+                    str: 直链下载地址
                 \"\"\"
-                log.info(f"开始解析: {url}")
+                url = share_link_info.get_share_url()
+                key = share_link_info.get_share_key()
+                pwd = share_link_info.get_share_password()
                 
-                # 使用内置HTTP客户端发送GET请求
-                response = http.get("https://httpbin.org/json")
+                logger.info("===== Python示例解析器 =====")
+                logger.info(f"分享链接: {url}")
+                logger.info(f"分享Key: {key}")
                 
-                if response['statusCode'] == 200:
-                    body = response['body']
-                    log.info(f"获取到JSON内容，长度: {len(body)}")
-                    
-                    # 解析JSON
-                    import json
-                    data = json.loads(body)
-                    
-                    # 返回结果
-                    return {
-                        "downloadUrl": "https://httpbin.org/json",
-                        "fileName": "data.json",
-                        "fileSize": len(body),
-                        "extra": {
-                            "title": data.get("slideshow", {}).get("title", "未知"),
-                            "contentType": "application/json"
-                        }
+                # 方式1：使用 requests 库发起请求（推荐）
+                response = requests.get('https://httpbin.org/html', headers={
+                    "Referer": url,
+                    "User-Agent": "Mozilla/5.0"
+                })
+                
+                if response.status_code != 200:
+                    logger.error(f"请求失败: {response.status_code}")
+                    raise Exception(f"请求失败: {response.status_code}")
+                
+                html = response.text
+                logger.info(f"获取到HTML内容，长度: {len(html)}")
+                
+                # 示例：使用正则表达式提取标题
+                match = re.search(r'<title>([^<]+)</title>', html, re.IGNORECASE)
+                if match:
+                    title = match.group(1)
+                    logger.info(f"页面标题: {title}")
+                
+                # 方式2：使用内置HTTP客户端（适合简单场景）
+                # json_response = http.get("https://httpbin.org/json")
+                # data = json_response.json()
+                # logger.info(f"JSON数据: {data.get('slideshow', {}).get('title', '未知')}")
+                
+                # 返回下载链接
+                return "https://httpbin.org/html"
+            
+            def parse_file_list(share_link_info, http, logger):
+                \"\"\"
+                解析文件列表（可选）
+            
+                Args:
+                    share_link_info: 分享链接信息对象
+                    http: HTTP客户端
+                    logger: 日志记录器
+            
+                Returns:
+                    list: 文件信息列表
+                \"\"\"
+                dir_id = share_link_info.get_other_param("dirId") or "0"
+                logger.info(f"解析文件列表，目录ID: {dir_id}")
+                
+                # 使用requests获取文件列表
+                response = requests.get('https://httpbin.org/json')
+                data = response.json()
+                
+                # 构建文件列表
+                file_list = [
+                    {
+                        "fileName": "example.html",
+                        "fileId": "1",
+                        "fileType": "file",
+                        "size": 2048,
+                        "sizeStr": "2 KB",
+                        "createTime": "2026-01-15 12:00:00",
+                        "parserUrl": "https://httpbin.org/html"
+                    },
+                    {
+                        "fileName": "subfolder",
+                        "fileId": "2",
+                        "fileType": "folder",
+                        "size": 0,
+                        "sizeStr": "-",
+                        "parserUrl": ""
                     }
-                else:
-                    log.error(f"请求失败，状态码: {response['statusCode']}")
-                    raise Exception(f"请求失败: {response['statusCode']}")
+                ]
+                
+                logger.info(f"返回 {len(file_list)} 个文件/文件夹")
+                return file_list
             """;
         
         // 先检查JS示例是否存在
-        existsPlaygroundParserByType("example-js").compose(jsExists -> {
+        existsPlaygroundParserByType("example_js").compose(jsExists -> {
             if (jsExists) {
                 log.info("JS示例解析器已存在，跳过初始化");
                 return Future.succeededFuture();
@@ -403,12 +499,12 @@ public class DbServiceImpl implements DbService {
             // 插入JS示例解析器
             JsonObject jsParser = new JsonObject()
                 .put("name", "示例JS解析器")
-                .put("type", "example-js")
+                .put("type", "example_js")
                 .put("displayName", "JS示例")
                 .put("description", "演示如何编写JavaScript解析器")
                 .put("author", "System")
                 .put("version", "1.0.0")
-                .put("matchPattern", "^https?://httpbin\\.org/.*$")
+                .put("matchPattern", "https?://httpbin\\.org/s/(?<KEY>\\w+)")
                 .put("jsCode", jsExampleCode)
                 .put("language", "javascript")
                 .put("ip", "127.0.0.1")
@@ -416,7 +512,7 @@ public class DbServiceImpl implements DbService {
             return savePlaygroundParser(jsParser);
         }).compose(v -> {
             // 检查Python示例是否存在
-            return existsPlaygroundParserByType("example-py");
+            return existsPlaygroundParserByType("example_py");
         }).compose(pyExists -> {
             if (pyExists) {
                 log.info("Python示例解析器已存在，跳过初始化");
@@ -425,12 +521,12 @@ public class DbServiceImpl implements DbService {
             // 插入Python示例解析器
             JsonObject pyParser = new JsonObject()
                 .put("name", "示例Python解析器")
-                .put("type", "example-py")
+                .put("type", "example_py")
                 .put("displayName", "Python示例")
                 .put("description", "演示如何编写Python解析器")
                 .put("author", "System")
                 .put("version", "1.0.0")
-                .put("matchPattern", "^https?://httpbin\\.org/.*$")
+                .put("matchPattern", "https?://httpbin\\.org/s/(?P<KEY>\\w+)")
                 .put("jsCode", pyExampleCode)
                 .put("language", "python")
                 .put("ip", "127.0.0.1")

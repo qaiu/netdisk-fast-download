@@ -23,6 +23,10 @@ Python解析器示例
 可选实现的函数:
 - parse_file_list(share_link_info, http, logger): 解析文件列表，返回文件信息列表
 - parse_by_id(share_link_info, http, logger): 根据文件ID解析下载链接
+
+注意事项:
+- http、logger、crypto 等对象已在全局注入，无需导入
+- 如需使用标准库，直接 import 即可（如：import json, import re）
 """
 
 

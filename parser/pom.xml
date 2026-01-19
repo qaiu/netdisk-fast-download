@@ -69,6 +69,12 @@
         <junit.version>4.13.2</junit.version>
         <!-- GraalPy -->
         <graalpy.version>24.1.1</graalpy.version>
+        
+        <!-- 代理配置（可选）- 如不需要代理请保持注释 -->
+        <!-- <http.proxyHost>127.0.0.1</http.proxyHost>
+        <http.proxyPort>7890</http.proxyPort>
+        <https.proxyHost>127.0.0.1</https.proxyHost>
+        <https.proxyPort>7890</https.proxyPort> -->
     </properties>
 
     <dependencies>
