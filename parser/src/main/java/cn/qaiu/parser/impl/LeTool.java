@@ -15,6 +15,7 @@ import java.util.UUID;
  */
 public class LeTool extends PanBase {
     private static final String API_URL_PREFIX = "https://lecloud.lenovo.com/share/api/clouddiskapi/share/public/v1/";
+    private static final String DEFAULT_FILE_TYPE = "file";
 
     public LeTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
@@ -98,6 +99,9 @@ public class LeTool extends PanBase {
     /**
      * Create FileInfo object from JSON response
      * Handles null checks and missing fields gracefully
+     * 
+     * Note: Field names try multiple variations to handle different API versions
+     * and JSON structure variations that may exist in the Lenovo LeCloud API
      */
     private FileInfo createFileInfo(JsonObject fileInfoJson) {
         FileInfo fileInfo = new FileInfo();
@@ -156,8 +160,8 @@ public class LeTool extends PanBase {
             if (fileType != null) {
                 fileInfo.setFileType(fileType);
             } else {
-                // Default to "file" if not available
-                fileInfo.setFileType("file");
+                // Default to generic file type if not available
+                fileInfo.setFileType(DEFAULT_FILE_TYPE);
             }
             
             // Set panType
