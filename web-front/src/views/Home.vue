@@ -400,7 +400,7 @@ export default {
         const data = result.data
         
         // 检查是否支持目录解析
-        const supportedPans = ["iz", "lz", "fj", "ye"]
+        const supportedPans = ["iz", "lz", "fj", "ye", "le"]
         if (!supportedPans.includes(data.shareLinkInfo.type)) {
           this.$message.error("当前网盘不支持目录解析")
           return
