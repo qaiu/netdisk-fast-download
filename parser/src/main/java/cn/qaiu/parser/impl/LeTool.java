@@ -1,7 +1,9 @@
 package cn.qaiu.parser.impl;
 
+import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo; 
 import cn.qaiu.parser.PanBase;
+import cn.qaiu.util.FileSizeConverter;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -44,7 +46,10 @@ public class LeTool extends PanBase {
                             }
                             JsonObject fileInfoJson = files.getJsonObject(0);
                             if (fileInfoJson != null) {
-                                // TODO 文件大小fileSize和文件名fileName
+                                // Extract and populate FileInfo
+                                FileInfo fileInfo = createFileInfo(fileInfoJson);
+                                shareLinkInfo.getOtherParam().put("fileInfo", fileInfo);
+                                
                                 String fileId = fileInfoJson.getString("fileId");
                                 // 根据文件ID获取跳转链接
                                 getDownURL(dataKey, fileId);
@@ -88,5 +93,92 @@ public class LeTool extends PanBase {
                         fail("Result JSON数据异常: result字段不存在");
                     }
                 }).onFailure(handleFail(apiUrl2));
+    }
+
+    /**
+     * Create FileInfo object from JSON response
+     * Handles null checks and missing fields gracefully
+     */
+    private FileInfo createFileInfo(JsonObject fileInfoJson) {
+        FileInfo fileInfo = new FileInfo();
+        
+        try {
+            // Set fileId (required field)
+            String fileId = fileInfoJson.getString("fileId");
+            if (fileId != null) {
+                fileInfo.setFileId(fileId);
+            }
+            
+            // Set fileName - try common field names
+            String fileName = fileInfoJson.getString("fileName");
+            if (fileName == null) {
+                fileName = fileInfoJson.getString("name");
+            }
+            if (fileName != null) {
+                fileInfo.setFileName(fileName);
+            }
+            
+            // Set file size - try to parse from fileSize field
+            Long fileSize = fileInfoJson.getLong("fileSize");
+            if (fileSize == null) {
+                fileSize = fileInfoJson.getLong("size");
+            }
+            if (fileSize != null) {
+                fileInfo.setSize(fileSize);
+                // Convert to readable size string
+                fileInfo.setSizeStr(FileSizeConverter.convertToReadableSize(fileSize));
+            } else {
+                // Try to get size as string and convert
+                String sizeStr = fileInfoJson.getString("sizeStr");
+                if (sizeStr == null) {
+                    sizeStr = fileInfoJson.getString("fileSize");
+                }
+                if (sizeStr != null && !sizeStr.isEmpty()) {
+                    try {
+                        long bytes = FileSizeConverter.convertToBytes(sizeStr);
+                        fileInfo.setSize(bytes);
+                        fileInfo.setSizeStr(sizeStr);
+                    } catch (Exception e) {
+                        // If conversion fails, just set the string
+                        fileInfo.setSizeStr(sizeStr);
+                    }
+                }
+            }
+            
+            // Set fileType - try common field names
+            String fileType = fileInfoJson.getString("fileType");
+            if (fileType == null) {
+                fileType = fileInfoJson.getString("type");
+            }
+            if (fileType == null) {
+                fileType = fileInfoJson.getString("category");
+            }
+            if (fileType != null) {
+                fileInfo.setFileType(fileType);
+            } else {
+                // Default to "file" if not available
+                fileInfo.setFileType("file");
+            }
+            
+            // Set panType
+            fileInfo.setPanType(shareLinkInfo.getType());
+            
+            // Set createTime if available
+            String createTime = fileInfoJson.getString("createTime");
+            if (createTime == null) {
+                createTime = fileInfoJson.getString("uploadTime");
+            }
+            if (createTime == null) {
+                createTime = fileInfoJson.getString("modifyTime");
+            }
+            if (createTime != null) {
+                fileInfo.setCreateTime(createTime);
+            }
+            
+        } catch (Exception e) {
+            log.warn("Error extracting file info from JSON: {}", e.getMessage());
+        }
+        
+        return fileInfo;
     }
 }
