@@ -131,7 +131,7 @@ public class LeTool extends PanBase {
                 // Try to get size as string and convert
                 String sizeStr = fileInfoJson.getString("sizeStr");
                 if (sizeStr == null) {
-                    sizeStr = fileInfoJson.getString("fileSize");
+                    sizeStr = fileInfoJson.getString("fileSizeStr");
                 }
                 if (sizeStr != null && !sizeStr.isEmpty()) {
                     try {
