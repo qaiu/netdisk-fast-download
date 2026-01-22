@@ -124,10 +124,10 @@ public class LeTool extends PanBase {
                 fileInfo.setSizeStr(FileSizeConverter.convertToReadableSize(fileSize));
             }
             
-            // Set fileType
-            Object fileTypeObj = fileInfoJson.getValue("fileType");
-            if (fileTypeObj != null) {
-                fileInfo.setFileType(String.valueOf(fileTypeObj));
+            // Set fileType (API returns it as an integer)
+            Integer fileTypeInt = fileInfoJson.getInteger("fileType");
+            if (fileTypeInt != null) {
+                fileInfo.setFileType(String.valueOf(fileTypeInt));
             } else {
                 // Default to generic file type if not available
                 fileInfo.setFileType(DEFAULT_FILE_TYPE);
