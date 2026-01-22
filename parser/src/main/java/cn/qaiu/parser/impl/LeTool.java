@@ -98,67 +98,36 @@ public class LeTool extends PanBase {
 
     /**
      * Create FileInfo object from JSON response
-     * Handles null checks and missing fields gracefully
-     * 
-     * Note: Field names try multiple variations to handle different API versions
-     * and JSON structure variations that may exist in the Lenovo LeCloud API
+     * Uses exact field names from the API response without fallback checks
      */
     private FileInfo createFileInfo(JsonObject fileInfoJson) {
         FileInfo fileInfo = new FileInfo();
         
         try {
-            // Set fileId (required field)
+            // Set fileId
             String fileId = fileInfoJson.getString("fileId");
             if (fileId != null) {
                 fileInfo.setFileId(fileId);
             }
             
-            // Set fileName - try common field names
+            // Set fileName
             String fileName = fileInfoJson.getString("fileName");
-            if (fileName == null) {
-                fileName = fileInfoJson.getString("name");
-            }
             if (fileName != null) {
                 fileInfo.setFileName(fileName);
             }
             
-            // Set file size - try to parse from fileSize field
+            // Set file size
             Long fileSize = fileInfoJson.getLong("fileSize");
-            if (fileSize == null) {
-                fileSize = fileInfoJson.getLong("size");
-            }
             if (fileSize != null) {
                 fileInfo.setSize(fileSize);
                 // Convert to readable size string
                 fileInfo.setSizeStr(FileSizeConverter.convertToReadableSize(fileSize));
-            } else {
-                // Try to get size as string and convert
-                String sizeStr = fileInfoJson.getString("sizeStr");
-                if (sizeStr == null) {
-                    sizeStr = fileInfoJson.getString("fileSizeStr");
-                }
-                if (sizeStr != null && !sizeStr.isEmpty()) {
-                    try {
-                        long bytes = FileSizeConverter.convertToBytes(sizeStr);
-                        fileInfo.setSize(bytes);
-                        fileInfo.setSizeStr(sizeStr);
-                    } catch (Exception e) {
-                        // If conversion fails, just set the string
-                        fileInfo.setSizeStr(sizeStr);
-                    }
-                }
             }
             
-            // Set fileType - try common field names
-            String fileType = fileInfoJson.getString("fileType");
-            if (fileType == null) {
-                fileType = fileInfoJson.getString("type");
-            }
-            if (fileType == null) {
-                fileType = fileInfoJson.getString("category");
-            }
-            if (fileType != null) {
-                fileInfo.setFileType(fileType);
+            // Set fileType (API returns it as an integer)
+            Integer fileTypeInt = fileInfoJson.getInteger("fileType");
+            if (fileTypeInt != null) {
+                fileInfo.setFileType(String.valueOf(fileTypeInt));
             } else {
                 // Default to generic file type if not available
                 fileInfo.setFileType(DEFAULT_FILE_TYPE);
@@ -166,18 +135,6 @@ public class LeTool extends PanBase {
             
             // Set panType
             fileInfo.setPanType(shareLinkInfo.getType());
-            
-            // Set createTime if available
-            String createTime = fileInfoJson.getString("createTime");
-            if (createTime == null) {
-                createTime = fileInfoJson.getString("uploadTime");
-            }
-            if (createTime == null) {
-                createTime = fileInfoJson.getString("modifyTime");
-            }
-            if (createTime != null) {
-                fileInfo.setCreateTime(createTime);
-            }
             
         } catch (Exception e) {
             log.warn("Error extracting file info from JSON: {}", e.getMessage());
