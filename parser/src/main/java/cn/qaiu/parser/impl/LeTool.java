@@ -10,6 +10,8 @@ import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -202,12 +204,21 @@ public class LeTool extends PanBase {
                 fileInfo.setFileType("folder");
                 fileInfo.setSize(0L);
                 fileInfo.setSizeStr("0B");
-                // 设置目录解析的URL - 注意：从API返回的fileId已经是URL编码的，直接使用
-                // 不需要再次编码，避免双重编码导致解析失败
-                fileInfo.setParserUrl(String.format("%s/v2/getFileList?url=%s&dirId=%s", 
-                        getDomainName(), 
-                        shareLinkInfo.getShareUrl(), 
-                        fileId));
+                // 设置目录解析的URL - fileId 需要进行 URL 编码以保持特殊字符的编码状态
+                try {
+                    String encodedFileId = URLEncoder.encode(fileId, "UTF-8");
+                    fileInfo.setParserUrl(String.format("%s/v2/getFileList?url=%s&dirId=%s", 
+                            getDomainName(), 
+                            shareLinkInfo.getShareUrl(), 
+                            encodedFileId));
+                } catch (UnsupportedEncodingException e) {
+                    log.error("URL编码失败: {}", e.getMessage());
+                    // 降级方案：直接使用原始 fileId
+                    fileInfo.setParserUrl(String.format("%s/v2/getFileList?url=%s&dirId=%s", 
+                            getDomainName(), 
+                            shareLinkInfo.getShareUrl(), 
+                            fileId));
+                }
             } else {
                 // 文件类型
                 fileInfo.setFileType(fileType != null ? String.valueOf(fileType) : DEFAULT_FILE_TYPE);
