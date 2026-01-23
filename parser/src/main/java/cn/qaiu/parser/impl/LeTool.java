@@ -18,7 +18,7 @@ import java.util.UUID;
  * <a href="https://lecloud.lenovo.com/">联想乐云</a>
  */
 public class LeTool extends PanBase {
-    private static final String API_URL_PREFIX = "https://lecloud.lenovo.com/mshare/api/clouddiskapi/share/public/v1/";
+    private static final String API_URL_PREFIX = "https://lecloud.lenovo.com/share/api/clouddiskapi/share/public/v1/";
     private static final String DEFAULT_FILE_TYPE = "file";
     private static final int FILE_TYPE_DIRECTORY = 0; // 目录类型
 
@@ -87,24 +87,13 @@ public class LeTool extends PanBase {
         
         // 如果参数里的目录ID不为空，则直接解析目录
         String dirId = (String) shareLinkInfo.getOtherParam().get("dirId");
-        if (dirId != null && !dirId.isEmpty()) {
-            parseDirectory(dirId, dataKey, listPromise);
-            return listPromise.future();
+        if (dirId == null || dirId.isEmpty()) {
+            // 如果没有指定目录ID，使用根目录ID "-1"
+            dirId = "-1";
         }
-
-        // 先解析获取根目录ID
-        parse().onSuccess(id -> {
-            if (id != null && !id.isEmpty()) {
-                // 解析目录
-                parseDirectory(id, dataKey, listPromise);
-            } else {
-                listPromise.fail("解析目录ID失败");
-            }
-        }).onFailure(failRes -> {
-            log.error("解析目录失败: {}", failRes.getMessage());
-            listPromise.fail(failRes);
-        });
-
+        
+        // 直接请求shareInfo接口解析目录
+        parseDirectory(dirId, dataKey, listPromise);
         return listPromise.future();
     }
 
@@ -179,21 +168,12 @@ public class LeTool extends PanBase {
                 fileInfo.setFileType("folder");
                 fileInfo.setSize(0L);
                 fileInfo.setSizeStr("0B");
-                // 设置目录解析的URL - 注意：fileId已经是URL编码的，直接使用
-                // 使用 URLEncoder 确保特殊字符被正确编码
-                try {
-                    String encodedFileId = java.net.URLEncoder.encode(fileId, "UTF-8");
-                    fileInfo.setParserUrl(String.format("%s/v2/getFileList?url=%s&dirId=%s", 
-                            getDomainName(), 
-                            shareLinkInfo.getShareUrl(), 
-                            encodedFileId));
-                } catch (Exception e) {
-                    // 如果编码失败，直接使用原始fileId
-                    fileInfo.setParserUrl(String.format("%s/v2/getFileList?url=%s&dirId=%s", 
-                            getDomainName(), 
-                            shareLinkInfo.getShareUrl(), 
-                            fileId));
-                }
+                // 设置目录解析的URL - 注意：从API返回的fileId已经是URL编码的，直接使用
+                // 不需要再次编码，避免双重编码导致解析失败
+                fileInfo.setParserUrl(String.format("%s/v2/getFileList?url=%s&dirId=%s", 
+                        getDomainName(), 
+                        shareLinkInfo.getShareUrl(), 
+                        fileId));
             } else {
                 // 文件类型
                 fileInfo.setFileType(fileType != null ? String.valueOf(fileType) : DEFAULT_FILE_TYPE);
@@ -211,7 +191,11 @@ public class LeTool extends PanBase {
                 fileInfo.setParserUrl(String.format("%s/v2/redirectUrl/%s/%s", 
                         getDomainName(), 
                         shareLinkInfo.getType(), 
-                        paramBase64));
+                        paramBase64))
+                        .setPreviewUrl(String.format("%s/v2/viewUrl/%s/%s", 
+                                getDomainName(),
+                                shareLinkInfo.getType(), 
+                                paramBase64));
             }
             
         } catch (Exception e) {
