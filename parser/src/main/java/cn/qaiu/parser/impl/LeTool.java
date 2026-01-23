@@ -5,6 +5,7 @@ import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.FileSizeConverter;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -18,21 +19,52 @@ import java.util.UUID;
  * <a href="https://lecloud.lenovo.com/">联想乐云</a>
  */
 public class LeTool extends PanBase {
-    private static final String API_URL_PREFIX = "https://lecloud.lenovo.com/share/api/clouddiskapi/share/public/v1/";
+    private static final String API_URL_PREFIX = "https://lecloud.lenovo.com/mshare/api/clouddiskapi/share/public/v1/";
     private static final String DEFAULT_FILE_TYPE = "file";
     private static final int FILE_TYPE_DIRECTORY = 0; // 目录类型
+
+    private static final MultiMap HEADERS;
+
+    static {
+        HEADERS = MultiMap.caseInsensitiveMultiMap();
+        HEADERS.set("Accept", "application/json, text/plain, */*");
+        HEADERS.set("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
+        HEADERS.set("Cache-Control", "no-cache");
+        HEADERS.set("Connection", "keep-alive");
+        HEADERS.set("Content-Type", "application/json");
+        HEADERS.set("DNT", "1");
+        HEADERS.set("Origin", "https://lecloud.lenovo.com");
+        HEADERS.set("Pragma", "no-cache");
+        HEADERS.set("Sec-Fetch-Dest", "empty");
+        HEADERS.set("Sec-Fetch-Mode", "cors");
+        HEADERS.set("Sec-Fetch-Site", "same-origin");
+        HEADERS.set("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1 Edg/143.0.0.0");
+    }
 
     public LeTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
     }
 
+    /**
+     * 获取干净的 shareId（去掉可能的查询参数）
+     * URL 如 https://lecloud.lenovo.com/share/5eoN3RA5PLhQcH4zE?path=... 会导致 shareKey 包含查询参数
+     */
+    private String getCleanShareId() {
+        String shareKey = shareLinkInfo.getShareKey();
+        if (shareKey != null && shareKey.contains("?")) {
+            return shareKey.split("\\?")[0];
+        }
+        return shareKey;
+    }
+
     public Future<String> parse() {
-        final String dataKey = shareLinkInfo.getShareKey();
+        final String dataKey = getCleanShareId();
         final String pwd = shareLinkInfo.getSharePassword();
         // {"shareId":"xxx","password":"xxx","directoryId":"-1"}
         String apiUrl1 = API_URL_PREFIX + "shareInfo";
         client.postAbs(apiUrl1)
-                .sendJsonObject(JsonObject.of("shareId", dataKey, "password", pwd, "directoryId", "-1"))
+            .putHeaders(HEADERS)
+            .sendJsonObject(JsonObject.of("shareId", dataKey, "password", pwd, "directoryId", "-1"))
                 .onSuccess(res -> {
                     JsonObject resJson = asJson(res);
                     if (resJson.containsKey("result")) {
@@ -83,7 +115,7 @@ public class LeTool extends PanBase {
     public Future<List<FileInfo>> parseFileList() {
         Promise<List<FileInfo>> listPromise = Promise.promise();
 
-        String dataKey = shareLinkInfo.getShareKey();
+        String dataKey = getCleanShareId();
         
         // 如果参数里的目录ID不为空，则直接解析目录
         String dirId = (String) shareLinkInfo.getOtherParam().get("dirId");
@@ -101,16 +133,18 @@ public class LeTool extends PanBase {
      * 解析目录下的文件列表
      */
     private void parseDirectory(String directoryId, String shareId, Promise<List<FileInfo>> promise) {
-        log.debug("开始解析目录: directoryId={}, shareId={}", directoryId, shareId);
-        
         String pwd = shareLinkInfo.getSharePassword();
         if (pwd == null) {
             pwd = "";
         }
         String apiUrl = API_URL_PREFIX + "shareInfo";
         
+        JsonObject requestBody = JsonObject.of("shareId", shareId, "password", pwd, "directoryId", directoryId);
+        log.info("解析目录请求: url={}, body={}", apiUrl, requestBody.encode());
+        
         client.postAbs(apiUrl)
-                .sendJsonObject(JsonObject.of("shareId", shareId, "password", pwd, "directoryId", directoryId))
+            .putHeaders(HEADERS)
+            .sendJsonObject(requestBody)
                 .onSuccess(res -> {
                     JsonObject resJson = asJson(res);
                     
@@ -234,7 +268,8 @@ public class LeTool extends PanBase {
         String apiUrl = API_URL_PREFIX + "packageDownloadWithFileIds";
         
         client.postAbs(apiUrl)
-                .sendJsonObject(JsonObject.of("fileIds", fileIds, "shareId", shareId, "browserId", uuid))
+            .putHeaders(HEADERS)
+            .sendJsonObject(JsonObject.of("fileIds", fileIds, "shareId", shareId, "browserId", uuid))
                 .onSuccess(res -> {
                     JsonObject resJson = asJson(res);
                     if (resJson.containsKey("result")) {
@@ -264,7 +299,8 @@ public class LeTool extends PanBase {
         String apiUrl2 = API_URL_PREFIX + "packageDownloadWithFileIds";
         // {"fileIds":[123],"shareId":"xxx","browserId":"uuid"}
         client.postAbs(apiUrl2)
-                .sendJsonObject(JsonObject.of("fileIds", fileIds, "shareId", key, "browserId", uuid))
+            .putHeaders(HEADERS)
+            .sendJsonObject(JsonObject.of("fileIds", fileIds, "shareId", key, "browserId", uuid))
                 .onSuccess(res -> {
                     JsonObject resJson = asJson(res);
                     if (resJson.containsKey("result")) {
