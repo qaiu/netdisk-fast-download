@@ -94,6 +94,8 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 - [天翼云盘-p189](https://cloud.189.cn/)
 
 ## API接口
+
+[api接口文档](https://nfdparser.apifox.cn/)
   
 ### 服务端口
 - **6400**: API 服务端口（建议使用 Nginx 代理）
