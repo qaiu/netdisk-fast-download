@@ -104,7 +104,7 @@ public enum PanDomainTemplate {
                       "lanzoug|" +
                       "lanzoum" +
                      ")\\.com/(.+/)?(?<KEY>.+)"),
-            "https://lanzoux.com/{shareKey}",
+            "https://w1.lanzn.com/{shareKey}",
             LzTool.class),
 
     // https://www.feijix.com/s/
