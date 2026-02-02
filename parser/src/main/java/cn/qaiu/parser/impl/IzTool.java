@@ -20,7 +20,7 @@ import java.util.*;
 
 /**
  * 蓝奏云优享
- *
+ * v019b22
  */
 public class IzTool extends PanBase {
 
