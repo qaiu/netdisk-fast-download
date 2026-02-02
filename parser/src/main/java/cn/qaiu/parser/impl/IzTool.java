@@ -4,13 +4,15 @@ import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.AESUtils;
+import cn.qaiu.util.AcwScV2Generator;
 import cn.qaiu.util.FileSizeConverter;
-import cn.qaiu.util.UUIDUtil;
+import io.netty.handler.codec.http.cookie.DefaultCookie;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.WebClientSession;
 import io.vertx.uritemplate.UriTemplate;
 import org.apache.commons.lang3.StringUtils;
 
@@ -21,6 +23,8 @@ import java.util.*;
  *
  */
 public class IzTool extends PanBase {
+
+    WebClientSession webClientSession = WebClientSession.create(clientNoRedirects);
 
     private static final String API_URL_PREFIX = "https://api.ilanzou.com/unproved/";
 
@@ -70,6 +74,19 @@ public class IzTool extends PanBase {
         super(shareLinkInfo);
     }
 
+    private void setCookie(String html) {
+        int beginIndex = html.indexOf("arg1='") + 6;
+        String arg1 = html.substring(beginIndex, html.indexOf("';", beginIndex));
+        String acw_sc__v2 = AcwScV2Generator.acwScV2Simple(arg1);
+        // 创建一个 Cookie 并放入 CookieStore
+        DefaultCookie nettyCookie = new DefaultCookie("acw_sc__v2", acw_sc__v2);
+        nettyCookie.setDomain(".ilanzou.com"); // 设置域名
+        nettyCookie.setPath("/");             // 设置路径
+        nettyCookie.setSecure(false);
+        nettyCookie.setHttpOnly(false);
+        webClientSession.cookieStore().put(nettyCookie);
+    }
+
     public Future<String> parse() {
         String shareId = shareLinkInfo.getShareKey();
 
@@ -80,68 +97,98 @@ public class IzTool extends PanBase {
         // POST https://api.ilanzou.com/ws/recommend/list?devType=6&devModel=Chrome&extra=2&shareId=146731&type=0&offset=1&limit=60
         String url = StringUtils.isBlank(shareLinkInfo.getSharePassword()) ? FIRST_REQUEST_URL
                 : (FIRST_REQUEST_URL + "&code=" + shareLinkInfo.getSharePassword());
-        client.postAbs(UriTemplate.of(VIP_REQUEST_URL))
+        webClientSession.postAbs(UriTemplate.of(VIP_REQUEST_URL))
                 .setTemplateParam("uuid", uuid)
                 .setTemplateParam("ts", tsEncode)
                 .send().onSuccess(r0 -> { // 忽略res
                     // 第一次请求 获取文件信息
                     // POST https://api.feijipan.com/ws/recommend/list?devType=6&devModel=Chrome&extra=2&shareId=146731&type=0&offset=1&limit=60
-                    client.postAbs(UriTemplate.of(url))
+                    webClientSession.postAbs(UriTemplate.of(url))
                             .putHeaders(header)
                             .setTemplateParam("shareId", shareId)
                             .setTemplateParam("uuid", uuid)
                             .setTemplateParam("ts", tsEncode)
                             .send().onSuccess(res -> {
-                                JsonObject resJson = asJson(res);
-                                if (resJson.getInteger("code") != 200) {
-                                    fail(FIRST_REQUEST_URL + " 返回异常: " + resJson);
+                                String resBody = asText(res);
+                                // 检查是否包含 cookie 验证
+                                if (resBody.contains("var arg1='")) {
+                                    webClientSession = WebClientSession.create(clientNoRedirects);
+                                    setCookie(resBody);
+                                    // 重新请求
+                                    webClientSession.postAbs(UriTemplate.of(url))
+                                            .putHeaders(header)
+                                            .setTemplateParam("shareId", shareId)
+                                            .setTemplateParam("uuid", uuid)
+                                            .setTemplateParam("ts", tsEncode)
+                                            .send().onSuccess(res2 -> {
+                                                handleParseResponse(asText(res2), shareId);
+                                            }).onFailure(handleFail(FIRST_REQUEST_URL));
                                     return;
                                 }
-                                if (resJson.getJsonArray("list").isEmpty()) {
-                                    fail(FIRST_REQUEST_URL + " 解析文件列表为空: " + resJson);
-                                    return;
-                                }
-                                if (!resJson.containsKey("list") || resJson.getJsonArray("list").isEmpty()) {
-                                    fail(FIRST_REQUEST_URL + " 解析文件列表为空: " + resJson);
-                                    return;
-                                }
-                                // 文件Id
-                                JsonObject fileInfo = resJson.getJsonArray("list").getJsonObject(0);
-                                // 如果是目录返回目录ID
-                                if (!fileInfo.containsKey("fileList") || fileInfo.getJsonArray("fileList").isEmpty()) {
-                                    fail(FIRST_REQUEST_URL + " 文件列表为空: " + fileInfo);
-                                    return;
-                                }
-                                JsonObject fileList = fileInfo.getJsonArray("fileList").getJsonObject(0);
-                                if (fileList.getInteger("fileType") == 2) {
-                                    promise.complete(fileList.getInteger("folderId").toString());
-                                    return;
-                                }
-
-                                String fileId = fileInfo.getString("fileIds");
-                                String userId = fileInfo.getString("userId");
-                                // 其他参数
-                                // String fidEncode = AESUtils.encrypt2HexIz(fileId + "|");
-                                String fidEncode = AESUtils.encrypt2HexIz(fileId + "|" + userId);
-                                String auth = AESUtils.encrypt2HexIz(fileId + "|" + nowTs);
-                                // 第二次请求
-                                clientNoRedirects.getAbs(UriTemplate.of(SECOND_REQUEST_URL))
-                                        .setTemplateParam("fidEncode", fidEncode)
-                                        .setTemplateParam("uuid", uuid)
-                                        .setTemplateParam("ts", tsEncode)
-                                        .setTemplateParam("auth", auth)
-                                        .setTemplateParam("shareId", shareId)
-                                        .putHeaders(header).send().onSuccess(res2 -> {
-                                            MultiMap headers = res2.headers();
-                                            if (!headers.contains("Location")) {
-                                                fail(SECOND_REQUEST_URL + " 未找到重定向URL: \n" + headers);
-                                                return;
-                                            }
-                                            promise.complete(headers.get("Location"));
-                                        }).onFailure(handleFail(SECOND_REQUEST_URL));
+                                handleParseResponse(resBody, shareId);
                             }).onFailure(handleFail(FIRST_REQUEST_URL));
                 });
         return promise.future();
+    }
+
+    private void handleParseResponse(String resBody, String shareId) {
+        JsonObject resJson;
+        try {
+            resJson = new JsonObject(resBody);
+        } catch (Exception e) {
+            fail(FIRST_REQUEST_URL + " 解析JSON失败: " + resBody);
+            return;
+        }
+        if (resJson.isEmpty()) {
+            fail(FIRST_REQUEST_URL + " 返回内容为空");
+            return;
+        }
+        if (resJson.getInteger("code") != 200) {
+            fail(FIRST_REQUEST_URL + " 返回异常: " + resJson);
+            return;
+        }
+        if (resJson.getJsonArray("list").isEmpty()) {
+            fail(FIRST_REQUEST_URL + " 解析文件列表为空: " + resJson);
+            return;
+        }
+        if (!resJson.containsKey("list") || resJson.getJsonArray("list").isEmpty()) {
+            fail(FIRST_REQUEST_URL + " 解析文件列表为空: " + resJson);
+            return;
+        }
+        // 文件Id
+        JsonObject fileInfo = resJson.getJsonArray("list").getJsonObject(0);
+        // 如果是目录返回目录ID
+        if (!fileInfo.containsKey("fileList") || fileInfo.getJsonArray("fileList").isEmpty()) {
+            fail(FIRST_REQUEST_URL + " 文件列表为空: " + fileInfo);
+            return;
+        }
+        JsonObject fileList = fileInfo.getJsonArray("fileList").getJsonObject(0);
+        if (fileList.getInteger("fileType") == 2) {
+            promise.complete(fileList.getInteger("folderId").toString());
+            return;
+        }
+
+        String fileId = fileInfo.getString("fileIds");
+        String userId = fileInfo.getString("userId");
+        // 其他参数
+        // String fidEncode = AESUtils.encrypt2HexIz(fileId + "|");
+        String fidEncode = AESUtils.encrypt2HexIz(fileId + "|" + userId);
+        String auth = AESUtils.encrypt2HexIz(fileId + "|" + nowTs);
+        // 第二次请求
+        webClientSession.getAbs(UriTemplate.of(SECOND_REQUEST_URL))
+                .setTemplateParam("fidEncode", fidEncode)
+                .setTemplateParam("uuid", uuid)
+                .setTemplateParam("ts", tsEncode)
+                .setTemplateParam("auth", auth)
+                .setTemplateParam("shareId", shareId)
+                .putHeaders(header).send().onSuccess(res2 -> {
+                    MultiMap headers = res2.headers();
+                    if (!headers.contains("Location")) {
+                        fail(SECOND_REQUEST_URL + " 未找到重定向URL: \n" + headers);
+                        return;
+                    }
+                    promise.complete(headers.get("Location"));
+                }).onFailure(handleFail(SECOND_REQUEST_URL));
     }
 
     @Override
@@ -174,7 +221,7 @@ public class IzTool extends PanBase {
         log.debug("开始解析目录: {}, shareId: {}, uuid: {}, ts: {}", id, shareId, uuid, tsEncode);
         // 开始解析目录: 164312216, shareId: bPMsbg5K, uuid: 0fmVWTx2Ea4zFwkpd7KXf, ts: 20865d7b7f00828279f437cd1f097860
         // 拿到目录ID
-        client.postAbs(UriTemplate.of(FILE_LIST_URL))
+        webClientSession.postAbs(UriTemplate.of(FILE_LIST_URL))
                 .putHeaders(header)
                 .setTemplateParam("shareId", shareId)
                 .setTemplateParam("uuid", uuid)
@@ -264,7 +311,7 @@ public class IzTool extends PanBase {
     public Future<String> parseById() {
         // 第二次请求
         JsonObject paramJson = (JsonObject)shareLinkInfo.getOtherParam().get("paramJson");
-        clientNoRedirects.getAbs(UriTemplate.of(SECOND_REQUEST_URL))
+        webClientSession.getAbs(UriTemplate.of(SECOND_REQUEST_URL))
                 .setTemplateParam("fidEncode", paramJson.getString("fidEncode"))
                 .setTemplateParam("uuid", paramJson.getString("uuid"))
                 .setTemplateParam("ts", paramJson.getString("ts"))
