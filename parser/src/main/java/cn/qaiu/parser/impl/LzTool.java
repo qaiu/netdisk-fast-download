@@ -294,65 +294,96 @@ public class LzTool extends PanBase {
         String sUrl = shareLinkInfo.getShareUrl();
         String pwd = shareLinkInfo.getSharePassword();
 
-        WebClient client = clientNoRedirects;
-        client.getAbs(sUrl).send().onSuccess(res -> {
+        webClientSession.getAbs(sUrl).send().onSuccess(res -> {
             String html = res.bodyAsString();
-            try {
-                String jsText = getJsByPwd(pwd, html, "var urls =window.location.href");
-                ScriptObjectMirror scriptObjectMirror = JsExecUtils.executeDynamicJs(jsText, "file");
-                Map<String, Object> data = CastUtil.cast(scriptObjectMirror.get("data"));
-                MultiMap map = MultiMap.caseInsensitiveMultiMap();
-                data.forEach((k, v) -> map.set(k, v.toString()));
-                log.debug("解析参数: {}", map);
-                MultiMap headers = getHeaders(sUrl);
-
-                String url = SHARE_URL_PREFIX + "/filemoreajax.php?file=" + data.get("fid");
-                client.postAbs(url).putHeaders(headers).sendForm(map).onSuccess(res2 -> {
-                    JsonObject fileListJson = asJson(res2);
-                    if (fileListJson.getInteger("zt") != 1) {
-                        promise.fail(baseMsg() + fileListJson.getString("info"));
-                        return;
-                    }
-                    List<FileInfo> list = new ArrayList<>();
-                    fileListJson.getJsonArray("text").forEach(item -> {
-                        /*
-                        {
-                          "icon": "apk",
-                          "t": 0,
-                          "id": "iULV2n4361c",
-                          "name_all": "xx.apk",
-                          "size": "49.8 M",
-                          "time": "2021-03-19",
-                          "duan": "in4361",
-                          "p_ico": 0
-                        }
-                         */
-                        JsonObject fileJson = (JsonObject) item;
-                        FileInfo fileInfo = new FileInfo();
-                        String size = fileJson.getString("size");
-                        Long sizeNum = FileSizeConverter.convertToBytes(size);
-                        String panType = shareLinkInfo.getType();
-                        String id = fileJson.getString("id");
-                        fileInfo.setFileName(fileJson.getString("name_all"))
-                                .setFileId(id)
-                                .setCreateTime(fileJson.getString("time"))
-                                .setFileType(fileJson.getString("icon"))
-                                .setSizeStr(fileJson.getString("size"))
-                                .setSize(sizeNum)
-                                .setPanType(panType)
-                                .setParserUrl(getDomainName() + "/d/" + panType + "/" + id)
-                                .setPreviewUrl(String.format("%s/v2/view/%s/%s", getDomainName(),
-                                        shareLinkInfo.getType(), id));
-                        log.debug("文件信息: {}", fileInfo);
-                        list.add(fileInfo);
-                    });
-                    promise.complete(list);
-                });
-            } catch (ScriptException | NoSuchMethodException e) {
-                promise.fail(e);
+            // 检查是否需要 cookie 验证
+            if (html.contains("var arg1='")) {
+                webClientSession = WebClientSession.create(clientNoRedirects);
+                setCookie(html);
+                // 重新请求
+                webClientSession.getAbs(sUrl).send().onSuccess(res2 -> {
+                    handleFileListParse(res2.bodyAsString(), pwd, sUrl, promise);
+                }).onFailure(err -> promise.fail(err));
+                return;
             }
-        });
+            handleFileListParse(html, pwd, sUrl, promise);
+        }).onFailure(err -> promise.fail(err));
         return promise.future();
+    }
+
+    private void handleFileListParse(String html, String pwd, String sUrl, Promise<List<FileInfo>> promise) {
+        try {
+            String jsText = getJsByPwd(pwd, html, "var urls =window.location.href");
+            ScriptObjectMirror scriptObjectMirror = JsExecUtils.executeDynamicJs(jsText, "file");
+            Map<String, Object> data = CastUtil.cast(scriptObjectMirror.get("data"));
+            MultiMap map = MultiMap.caseInsensitiveMultiMap();
+            data.forEach((k, v) -> map.set(k, v.toString()));
+            log.debug("解析参数: {}", map);
+            MultiMap headers = getHeaders(sUrl);
+
+            String url = SHARE_URL_PREFIX + "/filemoreajax.php?file=" + data.get("fid");
+            webClientSession.postAbs(url).putHeaders(headers).sendForm(map).onSuccess(res2 -> {
+                String resBody = asText(res2);
+                // 再次检查是否需要 cookie 验证
+                if (resBody.contains("var arg1='")) {
+                    setCookie(resBody);
+                    // 重新请求
+                    webClientSession.postAbs(url).putHeaders(headers).sendForm(map).onSuccess(res3 -> {
+                        handleFileListResponse(asText(res3), promise);
+                    }).onFailure(err -> promise.fail(err));
+                    return;
+                }
+                handleFileListResponse(resBody, promise);
+            }).onFailure(err -> promise.fail(err));
+        } catch (ScriptException | NoSuchMethodException e) {
+            promise.fail(e);
+        }
+    }
+
+    private void handleFileListResponse(String responseBody, Promise<List<FileInfo>> promise) {
+        try {
+            JsonObject fileListJson = new JsonObject(responseBody);
+            if (fileListJson.getInteger("zt") != 1) {
+                promise.fail(baseMsg() + fileListJson.getString("info"));
+                return;
+            }
+            List<FileInfo> list = new ArrayList<>();
+            fileListJson.getJsonArray("text").forEach(item -> {
+                /*
+                {
+                  "icon": "apk",
+                  "t": 0,
+                  "id": "iULV2n4361c",
+                  "name_all": "xx.apk",
+                  "size": "49.8 M",
+                  "time": "2021-03-19",
+                  "duan": "in4361",
+                  "p_ico": 0
+                }
+                 */
+                JsonObject fileJson = (JsonObject) item;
+                FileInfo fileInfo = new FileInfo();
+                String size = fileJson.getString("size");
+                Long sizeNum = FileSizeConverter.convertToBytes(size);
+                String panType = shareLinkInfo.getType();
+                String id = fileJson.getString("id");
+                fileInfo.setFileName(fileJson.getString("name_all"))
+                        .setFileId(id)
+                        .setCreateTime(fileJson.getString("time"))
+                        .setFileType(fileJson.getString("icon"))
+                        .setSizeStr(fileJson.getString("size"))
+                        .setSize(sizeNum)
+                        .setPanType(panType)
+                        .setParserUrl(getDomainName() + "/d/" + panType + "/" + id)
+                        .setPreviewUrl(String.format("%s/v2/view/%s/%s", getDomainName(),
+                                shareLinkInfo.getType(), id));
+                log.debug("文件信息: {}", fileInfo);
+                list.add(fileInfo);
+            });
+            promise.complete(list);
+        } catch (Exception e) {
+            promise.fail(e);
+        }
     }
 
     void setFileInfo(String html, ShareLinkInfo shareLinkInfo) {
