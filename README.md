@@ -88,7 +88,9 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 - Onedrive-pod
 - Dropbox-pdp
 - iCloud-pic
-### 仅专属版提供
+### 专属版提供
+- [夸克云盘-qk](https://pan.quark.cn/)
+- [UC云盘-uc](https://fast.uc.cn/)
 - [移动云盘-p139](https://yun.139.com/)
 - [联通云盘-pwo](https://pan.wo.cn/)
 - [天翼云盘-p189](https://cloud.189.cn/)
