@@ -263,7 +263,7 @@ public enum PanDomainTemplate {
 
     // https://pan-yz.cldisk.com/external/m/file/953658049102462976
     Pcx("超星云盘(需要referer头)",
-            compile("https://pan-yz\\.cldisk\\.com/external/m/file/(?<KEY>\\w+)"),
+            compile("https://pan-yz\\.(chaoxing\\.com|cldisk\\.com)/external/m/file/(?<KEY>\\w+)(\\?.*)?"),
             "https://pan-yz.cldisk.com/external/m/file/{shareKey}",
             PcxTool.class),
     // WPS：分享格式：https://www.kdocs.cn/l/ck0azivLlDi3 ；API格式：https://www.kdocs.cn/api/office/file/{shareKey}/download 
