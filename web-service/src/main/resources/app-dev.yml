@@ -8,6 +8,8 @@ server:
   domainName: http://127.0.0.1:6401
   # 预览服务URL
   previewURL: https://nfd-parser.github.io/nfd-preview/preview.html?src=
+  # auth参数加密密钥（16位AES密钥）
+  authEncryptKey: 'nfd_auth_key2026'
 #  domainName: https://lz.qaiu.top
 
 # 反向代理服务器配置路径(不用加后缀)

@@ -272,6 +272,19 @@ public enum PanDomainTemplate {
             compile("https://(?:[a-zA-Z\\d-]+\\.)?kdocs\\.cn/l/(?<KEY>.+)"),
             "https://www.kdocs.cn/l/{shareKey}",
             PwpsTool.class),
+
+    // https://fast.uc.cn/s/33197dd53ace4
+    // https://drive.uc.cn/s/e623b6da278e4?public=1#/list/share
+    UC("UC网盘",
+            compile("https://(fast|drive)\\.uc\\.cn/s/(?<KEY>\\w+)(\\?public=\\d+)?([&#].*)?"),
+            "https://drive.uc.cn/s/{shareKey}",
+            UcTool.class),
+    // https://pan.quark.cn/s/6a325cdaec58
+    QK("夸克网盘",
+            compile("https://pan\\.quark\\.cn/s/(?<KEY>\\w+)([&#].*)?"),
+            "https://pan.quark.cn/s/{shareKey}",
+            QkTool.class),
+
     // =====================音乐类解析 分享链接标志->MxxS (单歌曲/普通音质)==========================
     // http://163cn.tv/xxx
     MNES("网易云音乐分享",

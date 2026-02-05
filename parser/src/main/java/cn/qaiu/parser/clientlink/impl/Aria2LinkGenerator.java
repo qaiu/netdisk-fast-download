@@ -41,6 +41,8 @@ public class Aria2LinkGenerator implements ClientLinkGenerator {
         parts.add("--continue"); // 支持断点续传
         parts.add("--max-tries=3"); // 最大重试次数
         parts.add("--retry-wait=5"); // 重试等待时间
+        parts.add("-s 8"); // 分成8片段下载
+        parts.add("-x 8"); // 每个服务器使用8个连接
         
         // 添加URL
         parts.add("\"" + meta.getUrl() + "\"");

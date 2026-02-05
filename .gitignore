@@ -80,3 +80,6 @@ yarn-error.log*
 *.iml
 *.ipr
 *.iws
+**/target/
+**/${project.build.directory}/
+**/classes/

@@ -7,6 +7,13 @@ import java.util.Map;
 /**
  * 客户端下载链接生成工具类
  * 提供便捷的静态方法来生成各种客户端下载链接
+ * <p>
+ * 支持的客户端类型：
+ * <ul>
+ *     <li>CURL - cURL 命令，支持 Cookie</li>
+ *     <li>ARIA2 - Aria2 命令，支持 Cookie</li>
+ *     <li>THUNDER - 迅雷协议，不支持 Cookie</li>
+ * </ul>
  * 
  * @author <a href="https://qaiu.top">QAIU</a>
  * Create at 2025/01/21
@@ -35,7 +42,7 @@ public class ClientLinkUtils {
     }
     
     /**
-     * 生成 curl 命令
+     * 生成 curl 命令（支持 Cookie）
      * 
      * @param info ShareLinkInfo 对象
      * @return curl 命令字符串
@@ -45,17 +52,7 @@ public class ClientLinkUtils {
     }
     
     /**
-     * 生成 wget 命令
-     * 
-     * @param info ShareLinkInfo 对象
-     * @return wget 命令字符串
-     */
-    public static String generateWgetCommand(ShareLinkInfo info) {
-        return generateClientLink(info, ClientLinkType.WGET);
-    }
-    
-    /**
-     * 生成 aria2 命令
+     * 生成 aria2 命令（支持 Cookie）
      * 
      * @param info ShareLinkInfo 对象
      * @return aria2 命令字符串
@@ -65,63 +62,13 @@ public class ClientLinkUtils {
     }
     
     /**
-     * 生成迅雷链接
+     * 生成迅雷链接（不支持 Cookie）
      * 
      * @param info ShareLinkInfo 对象
      * @return 迅雷协议链接
      */
     public static String generateThunderLink(ShareLinkInfo info) {
         return generateClientLink(info, ClientLinkType.THUNDER);
-    }
-    
-    /**
-     * 生成 IDM 链接
-     * 
-     * @param info ShareLinkInfo 对象
-     * @return IDM 协议链接
-     */
-    public static String generateIdmLink(ShareLinkInfo info) {
-        return generateClientLink(info, ClientLinkType.IDM);
-    }
-    
-    /**
-     * 生成比特彗星链接
-     * 
-     * @param info ShareLinkInfo 对象
-     * @return 比特彗星协议链接
-     */
-    public static String generateBitCometLink(ShareLinkInfo info) {
-        return generateClientLink(info, ClientLinkType.BITCOMET);
-    }
-    
-    /**
-     * 生成 Motrix 导入格式
-     * 
-     * @param info ShareLinkInfo 对象
-     * @return Motrix JSON 格式字符串
-     */
-    public static String generateMotrixFormat(ShareLinkInfo info) {
-        return generateClientLink(info, ClientLinkType.MOTRIX);
-    }
-    
-    /**
-     * 生成 FDM 导入格式
-     * 
-     * @param info ShareLinkInfo 对象
-     * @return FDM 格式字符串
-     */
-    public static String generateFdmFormat(ShareLinkInfo info) {
-        return generateClientLink(info, ClientLinkType.FDM);
-    }
-    
-    /**
-     * 生成 PowerShell 命令
-     * 
-     * @param info ShareLinkInfo 对象
-     * @return PowerShell 命令字符串
-     */
-    public static String generatePowerShellCommand(ShareLinkInfo info) {
-        return generateClientLink(info, ClientLinkType.POWERSHELL);
     }
     
     /**

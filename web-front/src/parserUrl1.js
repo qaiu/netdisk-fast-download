@@ -345,6 +345,18 @@
             host: /www\.kdocs\.cn/,
             name: 'WPS云文档'
         },
+
+        quark: {
+            reg: /https:\/\/pan\.quark\.cn\/s\/[a-zA-Z\d]+/,
+            host: /pan\.quark\.cn/,
+            name: '夸克网盘'
+        },
+        uc: {
+            reg: /https:\/\/(fast|drive)\.uc\.cn\/s\/[a-zA-Z\d]+(?:\?public=\d+)?(?:[#&].*)?/,
+            host: /(fast|drive)\.uc\.cn/,
+            name: 'UC网盘'
+        },
+
         other: {
             reg: /https:\/\/([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\.)+[a-zA-Z]{2,}\/s\/.+/,
             host: /.*/,

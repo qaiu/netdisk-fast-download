@@ -38,7 +38,19 @@
     </div>
     <el-row :gutter="20" style="margin-left: 0; margin-right: 0;">
       <el-card class="box-card">
-        <div style="text-align: right">
+        <div style="text-align: right; display: flex; justify-content: space-between; align-items: center;">
+          <!-- 左侧认证配置按钮 -->
+          <el-tooltip content="配置临时认证信息" placement="bottom">
+            <el-button 
+              :type="hasAuthConfig ? 'primary' : 'default'" 
+              :class="{ 'auth-config-btn-active': hasAuthConfig }"
+              circle 
+              size="small" 
+              @click="showAuthConfigDialog = true">
+              <el-icon><Key /></el-icon>
+            </el-button>
+          </el-tooltip>
+          <!-- 右侧暗色模式切换 -->
           <DarkMode @theme-change="handleThemeChange" />
         </div>
         <div class="demo-basic--circle">
@@ -48,7 +60,7 @@
         </div>
         <!-- 项目简介移到卡片内 -->
         <div class="project-intro">
-          <div class="intro-title">NFD网盘直链解析0.1.9_b15</div>
+          <div class="intro-title">NFD网盘直链解析0.2.1</div>
           <div class="intro-desc">
             <div>支持网盘：蓝奏云、蓝奏云优享、小飞机盘、123云盘、奶牛快传、移动云空间、QQ邮箱云盘、QQ闪传等 <el-link style="color:#606cf5" href="https://github.com/qaiu/netdisk-fast-download?tab=readme-ov-file#%E7%BD%91%E7%9B%98%E6%94%AF%E6%8C%81%E6%83%85%E5%86%B5" target="_blank"> &gt;&gt; </el-link></div>
             <div>文件夹解析支持：蓝奏云、蓝奏云优享、小飞机盘、123云盘</div>
@@ -91,7 +103,7 @@
               <el-button style="margin-left: 20px" @click="generateMarkdown">生成Markdown</el-button>
               <el-button style="margin-left: 20px" @click="generateQRCode">扫码下载</el-button>
               <el-button style="margin-left: 20px" @click="getStatistics">分享统计</el-button>
-              <el-button v-if="false" style="margin-left: 20px" @click="goToClientLinks" type="primary">客户端链接(实验)</el-button>
+              <el-button style="margin-left: 20px" @click="goToClientLinks" type="primary">生成命令行链接</el-button>
             </p>
           </div>
 
@@ -195,6 +207,110 @@
               <el-button @click="errorDialogVisible = false">关闭</el-button>
             </template>
           </el-dialog>
+
+          <!-- 临时认证配置弹窗 -->
+          <el-dialog
+              v-model="showAuthConfigDialog"
+              title="临时认证配置"
+              width="550px"
+              :close-on-click-modal="false">
+            <el-form :model="authConfig" label-width="100px" size="default">
+              <el-form-item label="网盘类型" required>
+                <el-select v-model="authConfig.panType" placeholder="请选择网盘类型" style="width: 100%" @change="onPanTypeChange">
+                  <el-option-group label="必须认证">
+                    <el-option label="夸克网盘 (QK)" value="QK">
+                      <span>夸克网盘 (QK)</span>
+                      <el-tag size="small" type="danger" style="margin-left: 8px">必须</el-tag>
+                    </el-option>
+                    <el-option label="UC网盘 (UC)" value="UC">
+                      <span>UC网盘 (UC)</span>
+                      <el-tag size="small" type="danger" style="margin-left: 8px">必须</el-tag>
+                    </el-option>
+                  </el-option-group>
+                  <el-option-group label="大文件需认证">
+                    <el-option label="小飞机网盘 (FJ)" value="FJ">
+                      <span>小飞机网盘 (FJ)</span>
+                      <el-tag size="small" type="warning" style="margin-left: 8px">大文件</el-tag>
+                    </el-option>
+                    <el-option label="蓝奏优享 (IZ)" value="IZ">
+                      <span>蓝奏优享 (IZ)</span>
+                      <el-tag size="small" type="warning" style="margin-left: 8px">大文件</el-tag>
+                    </el-option>
+                  </el-option-group>
+                </el-select>
+              </el-form-item>
+              
+              <el-form-item label="认证类型">
+                <el-select v-model="authConfig.authType" placeholder="请选择认证类型" style="width: 100%">
+                  <el-option 
+                    v-for="opt in getSupportedAuthTypes()" 
+                    :key="opt.value" 
+                    :label="opt.label" 
+                    :value="opt.value" />
+                </el-select>
+              </el-form-item>
+              
+              <el-form-item v-if="authConfig.authType === 'password'" label="用户名">
+                <el-input v-model="authConfig.username" placeholder="请输入用户名" />
+              </el-form-item>
+              
+              <el-form-item v-if="authConfig.authType === 'password'" label="密码">
+                <el-input v-model="authConfig.password" type="password" show-password placeholder="请输入密码" />
+              </el-form-item>
+              
+              <el-form-item v-if="authConfig.authType && authConfig.authType !== 'password'" label="Token/Cookie">
+                <el-input 
+                  v-model="authConfig.token" 
+                  type="textarea" 
+                  :rows="3" 
+                  :placeholder="getTokenPlaceholder()" />
+              </el-form-item>
+              
+              <el-form-item v-if="authConfig.authType === 'custom'" label="扩展字段1">
+                <el-input v-model="authConfig.ext1" placeholder="格式: key:value" />
+              </el-form-item>
+              
+              <el-form-item v-if="authConfig.authType === 'custom'" label="扩展字段2">
+                <el-input v-model="authConfig.ext2" placeholder="格式: key:value" />
+              </el-form-item>
+              
+              <el-alert 
+                :type="getPanAuthAlertType()"
+                :closable="false"
+                show-icon
+                style="margin-bottom: 15px;">
+                <template #title>
+                  <span>{{ getPanAuthHint() }}</span>
+                </template>
+              </el-alert>
+              
+              <!-- 已配置的网盘列表 -->
+              <div v-if="Object.keys(allAuthConfigs).length > 0" style="margin-top: 10px;">
+                <el-divider content-position="left">已配置的网盘</el-divider>
+                <el-tag 
+                  v-for="(config, panType) in allAuthConfigs" 
+                  :key="panType"
+                  closable
+                  :type="panType === authConfig.panType ? 'primary' : 'info'"
+                  style="margin-right: 8px; margin-bottom: 8px; cursor: pointer;"
+                  @click="loadPanConfig(panType)"
+                  @close="removePanConfig(panType)">
+                  {{ getPanDisplayName(panType) }}
+                </el-tag>
+              </div>
+            </el-form>
+            
+            <template #footer>
+              <el-button @click="clearAuthConfig">
+                <el-icon><Delete /></el-icon> 清除配置
+              </el-button>
+              <el-button @click="showAuthConfigDialog = false">取消</el-button>
+              <el-button type="primary" @click="saveAuthConfig">
+                <el-icon><Check /></el-icon> 保存
+              </el-button>
+            </template>
+          </el-dialog>
+
           <!-- 目录树组件 -->
           <div v-if="showDirectoryTree" class="directory-tree-container">
             <div style="margin-bottom: 10px; text-align: right;">
@@ -301,10 +417,307 @@ export default {
       buildVersion: '',
       
       // 演练场启用状态
-      playgroundEnabled: false
+      playgroundEnabled: false,
+      
+      // 临时认证配置
+      showAuthConfigDialog: false,
+      authConfig: {
+        panType: '',     // 网盘类型: QK, UC, FJ, IZ
+        authType: 'cookie',
+        username: '',
+        password: '',
+        token: '',
+        cookie: '',
+        auth: '',
+        ext1: '',
+        ext2: '',
+        ext3: '',
+        ext4: '',
+        ext5: ''
+      },
+      // 所有网盘的认证配置 { panType: config }
+      allAuthConfigs: {}
+    }
+  },
+  computed: {
+    // 检查是否配置了认证信息（针对当前链接的网盘类型）
+    hasAuthConfig() {
+      const panType = this.getCurrentPanType()
+      if (!panType) return false
+      return !!this.allAuthConfigs[panType]
+    },
+    // 获取已配置认证的网盘数量
+    authConfigCount() {
+      return Object.keys(this.allAuthConfigs).length
     }
   },
   methods: {
+    // 从分享链接中提取网盘类型
+    getCurrentPanType() {
+      if (!this.link) return ''
+      const url = this.link.toLowerCase()
+      if (url.includes('quark.cn') || url.includes('pan.quark.cn')) return 'QK'
+      if (url.includes('drive.uc.cn') || url.includes('fast.uc.cn')) return 'UC'
+      if (url.includes('feijipan.com') || url.includes('feijihe.com') || url.includes('xiaofeiyang.com')) return 'FJ'
+      if (url.includes('ilanzou.com') || url.includes('lanzouv.com')) return 'IZ'
+      return ''
+    },
+    
+    // 获取网盘显示名称
+    getPanDisplayName(panType) {
+      const names = {
+        'QK': '夸克网盘',
+        'UC': 'UC网盘',
+        'FJ': '小飞机网盘',
+        'IZ': '蓝奏优享'
+      }
+      return names[panType] || panType
+    },
+    
+    // 获取认证提示信息
+    getPanAuthHint() {
+      const hints = {
+        'QK': '夸克网盘必须配置 Cookie 才能解析和下载（登录后从浏览器开发者工具获取）',
+        'UC': 'UC网盘必须配置 Cookie 才能解析和下载（登录后从浏览器开发者工具获取）',
+        'FJ': '小飞机网盘大文件（>100MB）需要配置认证信息',
+        'IZ': '蓝奏优享大文件需要配置认证信息'
+      }
+      return hints[this.authConfig.panType] || '请选择网盘类型后配置认证信息'
+    },
+    
+    // 获取提示类型
+    getPanAuthAlertType() {
+      if (!this.authConfig.panType) return 'info'
+      if (this.authConfig.panType === 'QK' || this.authConfig.panType === 'UC') return 'warning'
+      return 'info'
+    },
+    
+    // 根据网盘类型获取支持的认证方式列表
+    getSupportedAuthTypes() {
+      const panType = this.authConfig.panType?.toLowerCase() || ''
+      
+      // 定义所有认证类型
+      const allAuthTypes = {
+        cookie: { label: 'Cookie', value: 'cookie' },
+        accesstoken: { label: 'AccessToken', value: 'accesstoken' },
+        authorization: { label: 'Authorization', value: 'authorization' },
+        password: { label: '用户名密码', value: 'password' },
+        custom: { label: '自定义', value: 'custom' }
+      }
+      
+      // 根据网盘类型返回支持的认证方式
+      switch (panType) {
+        case 'qk':  // 夸克网盘：只支持Cookie
+        case 'uc':  // UC网盘：只支持Cookie
+        case 'qqwy': // QQ微云：只支持Cookie
+        case 'pali': // 阿里云盘：只支持Cookie
+          return [allAuthTypes.cookie]
+          
+        case 'fj':  // 小飞机网盘：只支持用户名密码
+        case 'iz':  // 蓝奏优享：只支持用户名密码
+          return [allAuthTypes.password]
+          
+        case 'ye':  // 123网盘：支持用户名密码和Authorization
+          return [allAuthTypes.password, allAuthTypes.authorization]
+          
+        case 'p189': // 天翼云盘：支持用户名密码、AccessToken、Cookie
+          return [allAuthTypes.password, allAuthTypes.accesstoken, allAuthTypes.cookie]
+          
+        case 'p139': // 移动云盘：支持Authorization
+          return [allAuthTypes.authorization]
+          
+        case 'pwo':  // 联通云盘：支持AccessToken
+          return [allAuthTypes.accesstoken]
+          
+        default:
+          // 默认显示所有选项
+          return Object.values(allAuthTypes)
+      }
+    },
+    
+    // 网盘类型变更时加载对应配置
+    onPanTypeChange(panType) {
+      // 先临时设置panType以便获取支持的认证类型
+      const tempAuthConfig = { ...this.authConfig, panType }
+      this.authConfig = tempAuthConfig
+      
+      // 获取该网盘支持的认证类型
+      const supportedTypes = this.getSupportedAuthTypes()
+      const defaultAuthType = supportedTypes.length > 0 ? supportedTypes[0].value : 'cookie'
+      
+      if (this.allAuthConfigs[panType]) {
+        // 加载已有配置
+        const config = this.allAuthConfigs[panType]
+        this.authConfig = { ...this.authConfig, ...config, panType }
+        // 确保认证类型在支持列表中
+        if (!supportedTypes.find(t => t.value === this.authConfig.authType)) {
+          this.authConfig.authType = defaultAuthType
+        }
+      } else {
+        // 重置为默认值，使用该网盘默认的认证类型
+        this.authConfig = {
+          panType,
+          authType: defaultAuthType,
+          username: '',
+          password: '',
+          token: '',
+          cookie: '',
+          auth: '',
+          ext1: '',
+          ext2: '',
+          ext3: '',
+          ext4: '',
+          ext5: ''
+        }
+      }
+    },
+    
+    // 加载指定网盘的配置
+    loadPanConfig(panType) {
+      this.authConfig.panType = panType
+      this.onPanTypeChange(panType)
+    },
+    
+    // 删除指定网盘的配置
+    removePanConfig(panType) {
+      delete this.allAuthConfigs[panType]
+      localStorage.setItem('nfd_auth_configs', JSON.stringify(this.allAuthConfigs))
+      if (this.authConfig.panType === panType) {
+        this.authConfig.panType = ''
+      }
+      this.$message.success(`已删除 ${this.getPanDisplayName(panType)} 的认证配置`)
+      this.updateDirectLink()
+    },
+    
+    // 获取 Token 输入框的提示文本
+    getTokenPlaceholder() {
+      const placeholders = {
+        'accesstoken': '请输入 AccessToken',
+        'cookie': '请输入 Cookie，例如: __puus=xxx; __pus=xxx（从浏览器开发者工具获取）',
+        'authorization': '请输入 Authorization 头内容，例如: Bearer xxx',
+        'custom': '请输入主 Token'
+      }
+      return placeholders[this.authConfig.authType] || '请输入认证信息'
+    },
+    
+    // 保存认证配置
+    saveAuthConfig() {
+      if (!this.authConfig.panType) {
+        this.$message.warning('请先选择网盘类型')
+        return
+      }
+      if (!this.authConfig.authType) {
+        this.$message.warning('请选择认证类型')
+        return
+      }
+      if (!this.authConfig.token && !this.authConfig.username) {
+        this.$message.warning('请填写认证信息')
+        return
+      }
+      
+      // 保存到配置集合
+      const configToSave = { ...this.authConfig }
+      this.allAuthConfigs[this.authConfig.panType] = configToSave
+      
+      // 持久化到 localStorage
+      localStorage.setItem('nfd_auth_configs', JSON.stringify(this.allAuthConfigs))
+      this.showAuthConfigDialog = false
+      this.$message.success(`${this.getPanDisplayName(this.authConfig.panType)} 认证配置已保存`)
+      // 更新智能直链
+      this.updateDirectLink()
+    },
+    
+    // 清除所有认证配置
+    clearAuthConfig() {
+      this.authConfig = {
+        panType: '',
+        authType: 'cookie',
+        username: '',
+        password: '',
+        token: '',
+        cookie: '',
+        auth: '',
+        ext1: '',
+        ext2: '',
+        ext3: '',
+        ext4: '',
+        ext5: ''
+      }
+      this.allAuthConfigs = {}
+      localStorage.removeItem('nfd_auth_configs')
+      this.$message.success('所有认证配置已清除')
+      this.showAuthConfigDialog = false
+      // 更新智能直链
+      this.updateDirectLink()
+    },
+    
+    // 加载认证配置
+    loadAuthConfig() {
+      const saved = localStorage.getItem('nfd_auth_configs')
+      if (saved) {
+        try {
+          this.allAuthConfigs = JSON.parse(saved)
+        } catch (e) {
+          console.error('加载认证配置失败:', e)
+        }
+      }
+    },
+    
+    // 生成加密的 auth 参数（根据当前链接的网盘类型）
+    generateAuthParam() {
+      const panType = this.getCurrentPanType()
+      if (!panType || !this.allAuthConfigs[panType]) {
+        return ''
+      }
+      
+      const config = this.allAuthConfigs[panType]
+      
+      // 构建 JSON 对象
+      const authObj = {}
+      if (config.authType) authObj.authType = config.authType
+      if (config.username) authObj.username = config.username
+      if (config.password) authObj.password = config.password
+      if (config.token) authObj.token = config.token
+      if (config.cookie) authObj.cookie = config.cookie
+      if (config.auth) authObj.auth = config.auth
+      if (config.ext1) authObj.ext1 = config.ext1
+      if (config.ext2) authObj.ext2 = config.ext2
+      if (config.ext3) authObj.ext3 = config.ext3
+      if (config.ext4) authObj.ext4 = config.ext4
+      if (config.ext5) authObj.ext5 = config.ext5
+      
+      // AES 加密 + Base64 + URL 编码
+      try {
+        const jsonStr = JSON.stringify(authObj)
+        const encrypted = this.aesEncrypt(jsonStr, 'nfd_auth_key2026')
+        return encodeURIComponent(encrypted)
+      } catch (e) {
+        console.error('生成认证参数失败:', e)
+        return ''
+      }
+    },
+    
+    // AES 加密 (ECB 模式, PKCS5Padding)
+    aesEncrypt(text, key) {
+      // 使用 CryptoJS 进行 AES 加密
+      const CryptoJS = require('crypto-js')
+      const keyBytes = CryptoJS.enc.Utf8.parse(key)
+      const encrypted = CryptoJS.AES.encrypt(text, keyBytes, {
+        mode: CryptoJS.mode.ECB,
+        padding: CryptoJS.pad.Pkcs7
+      })
+      return encrypted.toString() // Base64 编码
+    },
+    
+    // 更新智能直链
+    updateDirectLink() {
+      if (this.link) {
+        const authParam = this.generateAuthParam()
+        const authSuffix = authParam ? `&auth=${authParam}` : ''
+        this.directLink = `${this.baseAPI}/parser?url=${this.link}${this.password ? `&pwd=${this.password}` : ''}${authSuffix}`
+      }
+    },
+
     // 生成预览链接（WPS 云文档特殊处理）
     getPreviewLink() {
       // 判断 shareKey 是否以 pwps: 开头（WPS 云文档）
@@ -348,11 +761,16 @@ export default {
       this.directoryData = []
     },
 
-    // 统一API调用
+    // 统一API调用（自动添加认证参数）
     async callAPI(endpoint, params = {}) {
       this.errorButtonVisible = false
       try {
         this.isLoading = true
+        // 添加认证参数
+        const authParam = this.generateAuthParam()
+        if (authParam) {
+          params.auth = authParam
+        }
         const response = await axios.get(`${this.baseAPI}${endpoint}`, { params })
         
         if (response.data.code === 200) {
@@ -376,13 +794,46 @@ export default {
     async parseFile() {
       try {
         this.validateInput()
+        
+        // 先调用 linkInfo 获取网盘类型
+        const linkInfoResult = await this.callAPI('/v2/linkInfo', { 
+          url: this.link,
+          ...(this.password && { pwd: this.password })
+        })
+        
+        const panType = linkInfoResult.data?.shareLinkInfo?.type
+        const panName = linkInfoResult.data?.shareLinkInfo?.panName || '未知网盘'
+        
+        // 根据网盘类型给出提示
+        if (panType === 'qk' || panType === 'uc') {
+          // UC和夸克：提示使用命令行下载
+          this.$message.warning({
+            message: `${panName}无法在网页端直接下载，请点击"生成下载命令"按钮，使用命令行工具下载`,
+            duration: 5000,
+            showClose: true
+          })
+        } else if (panType === 'fj' || panType === 'lz' || panType === 'iz' || panType === 'le') {
+          // 小飞机、蓝奏、优享、联想乐云：提示大文件需要认证
+          const hasAuth = this.allAuthConfigs[panType]?.cookie || 
+                          this.allAuthConfigs[panType]?.username
+          if (!hasAuth) {
+            this.$message.info({
+              message: `${panName}的大文件解析需要配置认证信息，请在"配置认证"中添加`,
+              duration: 4000,
+              showClose: true
+            })
+          }
+        }
+        
+        // 继续解析文件
         const params = { url: this.link }
         if (this.password) params.pwd = this.password
         
         const result = await this.callAPI('/json/parser', params)
         this.parseResult = result
         this.downloadUrl = result.data?.directLink
-        this.directLink = `${this.baseAPI}/parser?url=${this.link}${this.password ? `&pwd=${this.password}` : ''}`
+        // 更新智能直链（包含认证参数）
+        this.updateDirectLink()
         this.$message.success('文件解析成功！')
       } catch (error) {
         console.error('文件解析失败:', error)
@@ -513,7 +964,8 @@ export default {
           if (linkInfo.link !== this.link || pwd !== this.password) {
             this.password = pwd
             this.link = linkInfo.link
-            this.directLink = `${this.baseAPI}/parser?url=${this.link}${this.password ? `&pwd=${this.password}` : ''}`
+            // 更新智能直链（包含认证参数）
+            this.updateDirectLink()
             // 聚焦期间只提示一次
             if (!this.hasClipboardSuccessTip) {
               this.$message.success(`自动识别分享成功, 网盘类型: ${linkInfo.name}; 分享URL ${this.link}; 分享密码: ${this.password || '空'}`)
@@ -633,6 +1085,10 @@ export default {
         const params = { url: this.link }
         if (this.password) params.pwd = this.password
         
+        // 添加认证参数
+        const authParam = this.generateAuthParam()
+        if (authParam) params.auth = authParam
+        
         const response = await axios.get(`${this.baseAPI}/v2/clientLinks`, { params })
         const result = response.data
         
@@ -668,6 +1124,9 @@ export default {
     if (savedAutoRead !== null) {
       this.autoReadClipboard = savedAutoRead === 'true'
     }
+
+    // 加载认证配置
+    this.loadAuthConfig()
 
     // 获取初始统计信息
     this.getInfo()
@@ -1026,5 +1485,35 @@ hr {
 
 #app.dark-theme .playground-link:hover {
   color: #66b1ff;
+}
+
+/* 认证配置按钮样式 */
+.auth-config-btn-active {
+  animation: auth-pulse 2s infinite;
+}
+
+@keyframes auth-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(64, 158, 255, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(64, 158, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(64, 158, 255, 0);
+  }
+}
+
+/* 认证配置弹窗暗色模式适配 */
+#app.dark-theme .el-dialog {
+  background: #2d2d2d;
+}
+
+#app.dark-theme .el-dialog__title {
+  color: #eee;
+}
+
+#app.dark-theme .el-form-item__label {
+  color: #ccc;
 }
 </style>
