@@ -80,6 +80,12 @@ yarn-error.log*
 *.iml
 *.ipr
 *.iws
+
+# Build directories
 **/target/
-**/${project.build.directory}/
+**/build/
 **/classes/
+**/out/
+**/${project.build.directory}/
+**/${project.basedir}/target/
+**/${basedir}/target/
