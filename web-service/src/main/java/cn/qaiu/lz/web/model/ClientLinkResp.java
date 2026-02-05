@@ -59,4 +59,28 @@ public class ClientLinkResp {
      * 解析信息
      */
     private String parserInfo;
+    
+    /**
+     * 网盘类型代码
+     */
+    private String panType;
+    
+    /**
+     * 是否必须使用客户端下载（直链需要特殊头部，浏览器无法直接下载）
+     * 适用于：UC、QK、PCX、COW等
+     */
+    private boolean requiresClient;
+    
+    /**
+     * 认证需求级别：
+     * - "none": 不需要认证
+     * - "required": 必须认证（UC、QK）
+     * - "optional": 可选认证，大文件需要（FJ、IZ）
+     */
+    private String authRequirement;
+    
+    /**
+     * 认证提示信息
+     */
+    private String authHint;
 }

@@ -4,7 +4,9 @@ package cn.qaiu.lz.web.controller;
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.lz.common.cache.CacheManager;
+import cn.qaiu.lz.common.util.AuthParamCodec;
 import cn.qaiu.lz.common.util.URLParamUtil;
+import cn.qaiu.lz.web.model.AuthParam;
 import cn.qaiu.lz.web.model.CacheLinkInfo;
 import cn.qaiu.lz.web.model.ClientLinkResp;
 import cn.qaiu.lz.web.model.LinkInfoResp;
@@ -50,15 +52,18 @@ public class ParserApi {
     private final ServerApi serverApi = new ServerApi();
 
     @RouteMapping(value = "/linkInfo", method = RouteMethod.GET)
-    public Future<LinkInfoResp> parse(HttpServerRequest request, String pwd) {
+    public Future<LinkInfoResp> parse(HttpServerRequest request, String pwd, String auth) {
         Promise<LinkInfoResp> promise = Promise.promise();
         String url = URLParamUtil.parserParams(request);
         ParserCreate parserCreate = ParserCreate.fromShareUrl(url).setShareLinkInfoPwd(pwd);
         ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();
+        
+        // 构建链接信息响应，如果有 auth 参数则附加到链接中
+        String authSuffix = (auth != null && !auth.isEmpty()) ? "&auth=" + auth : "";
         LinkInfoResp build = LinkInfoResp.builder()
-                .downLink(getDownLink(parserCreate, false))
-                .apiLink(getDownLink(parserCreate, true))
-                .viewLink(getViewLink(parserCreate))
+                .downLink(getDownLink(parserCreate, false) + authSuffix)
+                .apiLink(getDownLink(parserCreate, true) + authSuffix)
+                .viewLink(getViewLink(parserCreate) + authSuffix)
                 .shareLinkInfo(shareLinkInfo).build();
         // 解析次数统计
         shareLinkInfo.getOtherParam().put("UA",request.headers().get("user-agent"));
@@ -214,7 +219,7 @@ public class ParserApi {
         }
         
         String previewURL = SharedDataUtil.getJsonStringForServerConfig("previewURL");
-        new ServerApi().parseJson(request, pwd).onSuccess(res -> {
+        new ServerApi().parseJson(request, pwd, null).onSuccess(res -> {
             redirect(response, previewURL, res);
         }).onFailure(e -> {
             ResponseUtil.fireJsonResultResponse(response, JsonResult.error(e.toString()));
@@ -252,16 +257,34 @@ public class ParserApi {
      * 
      * @param request HTTP请求
      * @param pwd 提取码
+     * @param auth 加密的认证参数
      * @return 客户端下载链接响应
      */
     @RouteMapping(value = "/clientLinks", method = RouteMethod.GET)
-    public Future<ClientLinkResp> getClientLinks(HttpServerRequest request, String pwd) {
+    public Future<ClientLinkResp> getClientLinks(HttpServerRequest request, String pwd, String auth) {
         Promise<ClientLinkResp> promise = Promise.promise();
         
         try {
             String shareUrl = URLParamUtil.parserParams(request);
             ParserCreate parserCreate = ParserCreate.fromShareUrl(shareUrl).setShareLinkInfoPwd(pwd);
             ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();
+            
+            // 处理认证参数
+            if (auth != null && !auth.isEmpty()) {
+                AuthParam authParam = AuthParamCodec.decode(auth);
+                if (authParam != null && authParam.hasValidAuth()) {
+                    URLParamUtil.addTempAuthParam(parserCreate,
+                        authParam.getAuthType(),
+                        authParam.getPrimaryCredential(),
+                        authParam.getPassword(),
+                        authParam.getExt1(),
+                        authParam.getExt2(),
+                        authParam.getExt3(),
+                        authParam.getExt4(),
+                        authParam.getExt5());
+                    log.debug("客户端链接API: 已解码认证参数 authType={}", authParam.getAuthType());
+                }
+            }
             
             // 使用默认方法解析并生成客户端链接
             parserCreate.createTool().parseWithClientLinks()
@@ -345,6 +368,10 @@ public class ParserApi {
         String directLink = (String) shareLinkInfo.getOtherParam().get("downloadUrl");
         Map<String, String> supportedClients = buildSupportedClientsMap();
         FileInfo fileInfo = extractFileInfo(shareLinkInfo);
+        String panType = shareLinkInfo.getType().toUpperCase();
+        
+        // 判断是否需要客户端下载和认证需求
+        PanRequirementInfo requirementInfo = getPanRequirementInfo(panType);
         
         return ClientLinkResp.builder()
             .success(true)
@@ -354,7 +381,64 @@ public class ParserApi {
             .clientLinks(clientLinks)
             .supportedClients(supportedClients)
             .parserInfo(shareLinkInfo.getPanName() + " - " + shareLinkInfo.getType())
+            .panType(panType)
+            .requiresClient(requirementInfo.requiresClient)
+            .authRequirement(requirementInfo.authRequirement)
+            .authHint(requirementInfo.authHint)
             .build();
+    }
+    
+    /**
+     * 网盘需求信息内部类
+     */
+    private static class PanRequirementInfo {
+        boolean requiresClient;
+        String authRequirement;
+        String authHint;
+        
+        PanRequirementInfo(boolean requiresClient, String authRequirement, String authHint) {
+            this.requiresClient = requiresClient;
+            this.authRequirement = authRequirement;
+            this.authHint = authHint;
+        }
+    }
+    
+    /**
+     * 获取网盘需求信息
+     * 
+     * @param panType 网盘类型代码（大写）
+     * @return 网盘需求信息
+     */
+    private PanRequirementInfo getPanRequirementInfo(String panType) {
+        // 需要使用客户端下载的网盘类型（直链需要特殊头部，浏览器无法直接下载）
+        boolean requiresClient = switch (panType) {
+            case "UC", "QK", "PCX", "COW" -> true;
+            default -> false;
+        };
+        
+        // 认证需求判断
+        String authRequirement;
+        String authHint;
+        switch (panType) {
+            case "UC", "QK":
+                authRequirement = "required";
+                authHint = "此网盘必须配置认证信息（Cookie/Token）才能正常解析和下载";
+                break;
+            case "FJ":
+                authRequirement = "optional";
+                authHint = "小飞机网盘大文件（>100MB）需要配置认证信息";
+                break;
+            case "IZ":
+                authRequirement = "optional";
+                authHint = "蓝奏优享大文件需要配置认证信息";
+                break;
+            default:
+                authRequirement = "none";
+                authHint = null;
+                break;
+        }
+        
+        return new PanRequirementInfo(requiresClient, authRequirement, authHint);
     }
     
     /**

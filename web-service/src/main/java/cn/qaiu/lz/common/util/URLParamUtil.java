@@ -8,6 +8,8 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.shareddata.LocalMap;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -18,6 +20,7 @@ import java.nio.charset.StandardCharsets;
  * @author <a href="https://qaiu.top">QAIU</a>
  * Create at 2024/9/13
  */
+@Slf4j
 public class URLParamUtil {
 
     /**
@@ -60,12 +63,14 @@ public class URLParamUtil {
             }
         }
 
-        // 拼接被截断的URL参数，忽略pwd参数
+        // 拼接被截断的URL参数，忽略pwd、auth等参数
         StringBuilder urlBuilder = new StringBuilder(decodedUrl);
         boolean firstParam = !decodedUrl.contains("?");
 
         for (String paramName : params.names()) {
-            if (!paramName.equals("url") && !paramName.equals("pwd") && !paramName.equals("dirId") && !paramName.equals("uuid")) {  // 忽略 "url" 和 "pwd" 参数
+            // 忽略 "url", "pwd", "dirId", "uuid", "auth" 参数（这些参数单独处理，不应拼接到分享URL中）
+            if (!paramName.equals("url") && !paramName.equals("pwd") && !paramName.equals("dirId") 
+                    && !paramName.equals("uuid") && !paramName.equals("auth")) {
                 if (firstParam) {
                     urlBuilder.append("?");
                     firstParam = false;
@@ -115,5 +120,153 @@ public class URLParamUtil {
 
         String linkPrefix = SharedDataUtil.getJsonConfig("server").getString("domainName");
         parserCreate.getShareLinkInfo().getOtherParam().put("domainName", linkPrefix);
+    }
+
+    /**
+     * 添加临时认证参数（一次性，不保存到数据库或共享内存）
+     * 如果提供了临时认证参数，将覆盖后台配置的认证信息
+     * 
+     * @param parserCreate ParserCreate对象
+     * @param authType 认证类型
+     * @param authToken 认证token/用户名/accesstoken/cookie
+     * @param authPassword 密码（仅用于username_password认证）
+     * @param authInfo1-5 扩展认证信息（用于custom认证）
+     */
+    public static void addTempAuthParam(ParserCreate parserCreate, String authType, 
+                                         String authToken, String authPassword,
+                                         String authInfo1, String authInfo2, String authInfo3,
+                                         String authInfo4, String authInfo5) {
+        if (StringUtils.isBlank(authType) && StringUtils.isBlank(authToken)) {
+            // 没有提供临时认证参数，使用后台配置
+            addParam(parserCreate);
+            return;
+        }
+
+        // 先添加代理配置和域名配置
+        LocalMap<Object, Object> localMap = VertxHolder.getVertxInstance().sharedData()
+                .getLocalMap(ConfigConstant.LOCAL);
+        String type = parserCreate.getShareLinkInfo().getType();
+        
+        if (localMap.containsKey(ConfigConstant.PROXY)) {
+            JsonObject proxy = (JsonObject) localMap.get(ConfigConstant.PROXY);
+            if (proxy.containsKey(type)) {
+                parserCreate.getShareLinkInfo().getOtherParam().put(ConfigConstant.PROXY, proxy.getJsonObject(type));
+            }
+        }
+        
+        String linkPrefix = SharedDataUtil.getJsonConfig("server").getString("domainName");
+        parserCreate.getShareLinkInfo().getOtherParam().put("domainName", linkPrefix);
+
+        // 构建临时认证信息
+        MultiMap tempAuth = MultiMap.caseInsensitiveMultiMap();
+        
+        if (StringUtils.isNotBlank(authType)) {
+            tempAuth.set("authType", authType.trim());
+        }
+        
+        String authTypeValue = authType != null ? authType : "";
+        switch (authTypeValue.toLowerCase()) {
+            case "accesstoken":
+            case "authorization":
+                if (StringUtils.isNotBlank(authToken)) {
+                    tempAuth.set("token", authToken.trim());
+                }
+                break;
+                
+            case "cookie":
+                // cookie 类型需要同时设置 token 和 cookie 字段
+                // QkTool/UcTool 等从 auths.get("cookie") 获取 cookie 值
+                if (StringUtils.isNotBlank(authToken)) {
+                    tempAuth.set("token", authToken.trim());
+                    tempAuth.set("cookie", authToken.trim());
+                }
+                break;
+                
+            case "password":
+            case "username_password":
+                if (StringUtils.isNotBlank(authToken)) {
+                    tempAuth.set("username", authToken.trim());
+                    tempAuth.set("token", authToken.trim()); // 兼容旧的解析器
+                }
+                if (StringUtils.isNotBlank(authPassword)) {
+                    tempAuth.set("password", authPassword.trim());
+                }
+                break;
+                
+            case "custom":
+                // 自定义认证支持多个扩展字段
+                if (StringUtils.isNotBlank(authToken)) {
+                    tempAuth.set("token", authToken.trim());
+                }
+                if (StringUtils.isNotBlank(authInfo1)) {
+                    parseAndSetAuthInfo(tempAuth, authInfo1);
+                }
+                if (StringUtils.isNotBlank(authInfo2)) {
+                    parseAndSetAuthInfo(tempAuth, authInfo2);
+                }
+                if (StringUtils.isNotBlank(authInfo3)) {
+                    parseAndSetAuthInfo(tempAuth, authInfo3);
+                }
+                if (StringUtils.isNotBlank(authInfo4)) {
+                    parseAndSetAuthInfo(tempAuth, authInfo4);
+                }
+                if (StringUtils.isNotBlank(authInfo5)) {
+                    parseAndSetAuthInfo(tempAuth, authInfo5);
+                }
+                break;
+                
+            default:
+                // 默认处理：将authToken作为token
+                if (StringUtils.isNotBlank(authToken)) {
+                    tempAuth.set("token", authToken.trim());
+                }
+                break;
+        }
+        
+        // 设置临时认证信息（覆盖后台配置）
+        if (!tempAuth.isEmpty()) {
+            parserCreate.getShareLinkInfo().getOtherParam().put(ConfigConstant.AUTHS, tempAuth);
+            // 设置标记表示已添加临时认证
+            parserCreate.getShareLinkInfo().getOtherParam().put("__TEMP_AUTH_ADDED", true);
+            log.debug("已添加临时认证参数: diskType={}, authType={}", type, authType);
+        } else {
+            // 如果没有有效的临时认证参数，回退到使用后台配置
+            if (localMap.containsKey(ConfigConstant.AUTHS)) {
+                JsonObject auths = (JsonObject) localMap.get(ConfigConstant.AUTHS);
+                if (auths.containsKey(type)) {
+                    MultiMap entries = MultiMap.caseInsensitiveMultiMap();
+                    JsonObject jsonObject = auths.getJsonObject(type);
+                    if (jsonObject != null) {
+                        jsonObject.forEach(entity -> {
+                            if (entity == null || entity.getValue() == null) {
+                                return;
+                            }
+                            if (StringUtils.isEmpty(entity.getKey()) || StringUtils.isEmpty(entity.getValue().toString())) {
+                                return;
+                            }
+                            entries.set(StringUtils.trim(entity.getKey()), StringUtils.trim(entity.getValue().toString()));
+                        });
+                    }
+                    parserCreate.getShareLinkInfo().getOtherParam().put(ConfigConstant.AUTHS, entries);
+                }
+            }
+        }
+    }
+
+    /**
+     * 解析并设置认证信息（格式: key:value）
+     */
+    private static void parseAndSetAuthInfo(MultiMap authMap, String authInfo) {
+        if (StringUtils.isBlank(authInfo)) {
+            return;
+        }
+        String[] parts = authInfo.split(":", 2);
+        if (parts.length == 2) {
+            String key = parts[0].trim();
+            String value = parts[1].trim();
+            if (StringUtils.isNotBlank(key) && StringUtils.isNotBlank(value)) {
+                authMap.set(key, value);
+            }
+        }
     }
 }

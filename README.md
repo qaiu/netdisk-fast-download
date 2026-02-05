@@ -142,6 +142,44 @@ GET /json/getFileList?url={分享链接}&pwd={密码}
 - `{网盘标识}` 参考支持的网盘列表
 - `your_host` 替换为您的域名或 IP
 
+### 认证参数（v0.2.1+）
+
+部分网盘（如夸克、UC）需要登录后的 Cookie 才能解析和下载。可通过 `auth` 参数传递认证信息：
+
+**参数格式**：`auth` 参数值为 AES 加密后的 JSON 字符串，经过 Base64 编码和 URL 编码
+
+**加密方式**：
+- 算法：AES/ECB/PKCS5Padding
+- 密钥：`nfd_auth_key2026`（16字节）
+- 流程：JSON → AES加密 → Base64 → URL编码
+
+**JSON 结构**：
+```json
+{
+  "authType": "cookie",        // 认证类型: cookie/accesstoken/authorization/password/custom
+  "token": "your_cookie_here", // Cookie 或 Token 内容
+  "username": "",              // 用户名（password 类型时使用）
+  "password": "",              // 密码（password 类型时使用）
+  "ext1": "",                  // 扩展字段1（custom 类型时使用）
+  "ext2": ""                   // 扩展字段2（custom 类型时使用）
+}
+```
+
+**网盘认证要求**：
+| 网盘 | 认证要求 | 说明 |
+|------|---------|------|
+| 夸克网盘(QK) | **必须** | 必须配置 Cookie 才能解析 |
+| UC网盘(UC) | **必须** | 必须配置 Cookie 才能解析 |
+| 小飞机网盘(FJ) | 可选 | 大文件（>100MB）需要认证 |
+| 蓝奏优享(IZ) | 可选 | 大文件需要认证 |
+
+**使用示例**：
+```
+GET /parser?url={分享链接}&pwd={密码}&auth={加密后的认证参数}
+```
+
+> 💡 提示：Web 界面已内置认证配置功能，可自动处理加密过程，无需手动构造参数。
+
 ### 特殊说明
 
 - 移动云云空间的 `分享key` 取分享链接中的 `data` 参数值

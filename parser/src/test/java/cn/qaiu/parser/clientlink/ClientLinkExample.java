@@ -122,12 +122,12 @@ public class ClientLinkExample {
             
             // 使用便捷工具类
             String curlCommand = ClientLinkUtils.generateCurlCommand(shareLinkInfo);
-            String wgetCommand = ClientLinkUtils.generateWgetCommand(shareLinkInfo);
+            String aria2Command = ClientLinkUtils.generateAria2Command(shareLinkInfo);
             String thunderLink = ClientLinkUtils.generateThunderLink(shareLinkInfo);
             
             log.info("=== 使用便捷工具类生成的链接 ===");
             log.info("cURL命令: {}", curlCommand);
-            log.info("wget命令: {}", wgetCommand);
+            log.info("Aria2命令: {}", aria2Command);
             log.info("迅雷链接: {}", thunderLink);
             
         } catch (Exception e) {

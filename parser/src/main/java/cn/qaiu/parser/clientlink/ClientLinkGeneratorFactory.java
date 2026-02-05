@@ -11,6 +11,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 客户端下载链接生成器工厂类
+ * <p>
+ * 支持的客户端类型：
+ * <ul>
+ *     <li>CURL - cURL 命令，支持 Cookie</li>
+ *     <li>ARIA2 - Aria2 命令，支持 Cookie</li>
+ *     <li>THUNDER - 迅雷协议，不支持 Cookie</li>
+ * </ul>
  * 
  * @author <a href="https://qaiu.top">QAIU</a>
  * Create at 2025/01/21
@@ -25,16 +32,10 @@ public class ClientLinkGeneratorFactory {
     // 静态初始化块，注册默认的生成器
     static {
         try {
-            // 注册默认生成器 - 按指定顺序注册
-            register(new Aria2LinkGenerator());
-            register(new MotrixLinkGenerator());
-            register(new BitCometLinkGenerator());
-            register(new ThunderLinkGenerator());
-            register(new WgetLinkGenerator());
-            register(new CurlLinkGenerator());
-            register(new IdmLinkGenerator());
-            register(new FdmLinkGenerator());
-            register(new PowerShellLinkGenerator());
+            // 注册默认生成器 - 只保留3种（按需求）
+            register(new CurlLinkGenerator());    // cURL 命令，支持 Cookie
+            register(new Aria2LinkGenerator());   // Aria2 命令，支持 Cookie
+            register(new ThunderLinkGenerator()); // 迅雷协议，不支持 Cookie
             
             log.info("客户端链接生成器工厂初始化完成，已注册 {} 个生成器", generators.size());
         } catch (Exception e) {

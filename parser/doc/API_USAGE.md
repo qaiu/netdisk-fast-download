@@ -20,6 +20,32 @@
 |------|------|------|------|
 | url | string | ✅ 是 | 分享链接（需URL编码） |
 | pwd | string | ❌ 否 | 分享密码 |
+| auth | string | ❌ 否 | 认证参数（AES加密后的JSON，用于需要登录的网盘） |
+
+### 认证参数说明（v0.2.1+）
+
+部分网盘（如夸克QK、UC网盘）需要登录后的 Cookie 才能解析。`auth` 参数用于传递认证信息：
+
+**加密方式**：
+- 算法：AES/ECB/PKCS5Padding
+- 密钥：`nfd_auth_key2026`（16字节）
+- 流程：JSON → AES加密 → Base64 → URL编码
+
+**JSON 结构**：
+```json
+{
+  "authType": "cookie",        // 认证类型: cookie/accesstoken/authorization
+  "token": "your_cookie_here"  // Cookie 或 Token 内容
+}
+```
+
+**网盘认证要求**：
+| 网盘 | 认证要求 |
+|------|---------|
+| 夸克网盘(QK) | **必须** |
+| UC网盘(UC) | **必须** |
+| 小飞机网盘(FJ) | 大文件需要 |
+| 蓝奏优享(IZ) | 大文件需要 |
 
 ### 请求示例
 

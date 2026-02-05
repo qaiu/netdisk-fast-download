@@ -56,7 +56,15 @@ public abstract class PanBase implements IPanTool {
     protected WebClient clientNoRedirects = WebClient.create(WebClientVertxInit.get(),
             new WebClientOptions().setFollowRedirects(false));
 
+    /**
+     * Http client disable UserAgent
+     */
+    protected WebClient clientDisableUA = WebClient.create(WebClientVertxInit.get()
+            , new WebClientOptions().setUserAgentEnabled(false)
+    );
+
     protected ShareLinkInfo shareLinkInfo;
+    
 
     /**
      * 子类重写此构造方法不需要添加额外逻辑

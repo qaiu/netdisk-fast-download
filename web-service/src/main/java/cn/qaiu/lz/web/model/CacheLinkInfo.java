@@ -12,6 +12,9 @@ import io.vertx.core.json.jackson.DatabindCodec;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * @author <a href="https://qaiu.top">QAIU</a>
  * Create at 2024/9/11 16:06
@@ -52,6 +55,16 @@ public class CacheLinkInfo implements ToJson {
     private Long expiration;
 
     private FileInfo fileInfo;
+    
+    /**
+     * 其他参数，包含：
+     * - downloadHeaders: 下载请求头 Map<String, String>
+     * - aria2Command: aria2 命令行命令
+     * - aria2JsonRpc: aria2 JSON-RPC 请求体
+     * - curlCommand: curl 命令
+     */
+    @TableGenIgnore
+    private Map<String, Object> otherParam;
 
 
     // 使用 JsonObject 构造
@@ -74,6 +87,15 @@ public class CacheLinkInfo implements ToJson {
             this.setFileInfo(mapper.convertValue(json.getJsonObject("fileInfo"), FileInfo.class));
         }
         this.setCacheHit(json.getBoolean("cacheHit", false));
+        
+        // 初始化 otherParam
+        this.otherParam = new HashMap<>();
+        if (json.containsKey("otherParam")) {
+            JsonObject otherJson = json.getJsonObject("otherParam");
+            if (otherJson != null) {
+                this.otherParam.putAll(otherJson.getMap());
+            }
+        }
     }
 
 
