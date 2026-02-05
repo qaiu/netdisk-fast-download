@@ -50,6 +50,7 @@ package-lock.json
 
 # Test files
 test-filelist.java
+**/auth-test.properties
 
 # Temporary files
 *.tmp
