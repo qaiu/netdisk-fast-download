@@ -143,7 +143,7 @@ GET /json/getFileList?url={分享链接}&pwd={密码}
 - `your_host` 替换为您的域名或 IP
 
 ### 认证参数（v0.2.1+）
-
+[可以使用在线认证参数加密](https://qaiu.top/nfd-auth.html)
 部分网盘（如夸克、UC）需要登录后的 Cookie 才能解析和下载。可通过 `auth` 参数传递认证信息：
 
 **参数格式**：`auth` 参数值为 AES 加密后的 JSON 字符串，经过 Base64 编码和 URL 编码
@@ -179,7 +179,7 @@ GET /parser?url={分享链接}&pwd={密码}&auth={加密后的认证参数}
 ```
 
 > 💡 提示：Web 界面已内置认证配置功能，可自动处理加密过程，无需手动构造参数。
-
+> [可以使用在线认证参数加密](https://qaiu.top/nfd-auth.html)
 ### 特殊说明
 
 - 移动云云空间的 `分享key` 取分享链接中的 `data` 参数值
