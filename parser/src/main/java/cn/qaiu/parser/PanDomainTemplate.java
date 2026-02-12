@@ -218,11 +218,6 @@ public enum PanDomainTemplate {
                     "(?<KEY>[0-9a-zA-Z_-]+)(\\?p=(?<PWD>\\w+))?"),
             "https://474b.com/file/{shareKey}",
             CtTool.class),
-    // https://xxx.118pan.com/bxxx
-    P118("118网盘",
-            compile("https://(?:[a-zA-Z\\d-]+\\.)?118pan\\.com/b(?<KEY>.+)"),
-            "https://qaiu.118pan.com/b{shareKey}",
-            P118Tool.class),
     // https://www.vyuyun.com/s/QMa6ie?password=I4KG7H
     // https://www.vyuyun.com/s/QMa6ie/file?password=I4KG7H
     PVYY("微雨云存储",
