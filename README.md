@@ -67,7 +67,6 @@ main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/
 - [亿方云-fc](https://www.fangcloud.com/)
 - [123云盘-ye](https://www.123pan.com/)
 - ~[115网盘(失效)-p115](https://115.com/)~
-- ~[118网盘(已停服)-p118](https://www.118pan.com/)~
 - [文叔叔-ws](https://www.wenshushu.cn/)
 - [联想乐云-le](https://lecloud.lenovo.com/)
 - [QQ邮箱云盘-qqw](https://mail.qq.com/)
