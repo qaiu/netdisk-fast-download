@@ -21,18 +21,18 @@ netdisk-fast-download网盘直链云解析(nfd云解析)能把网盘分享下载
 ## 快速开始
 命令行下载分享文件：  
 ```shell
-curl -LOJ "https://lz.qaiu.top/parser?url=https://share.feijipan.com/s/nQOaNRPW&pwd=1234"  
+curl -LOJ "https://lz.qaiu.top/parser?url=https://share.feijipan.com/s/Tk1F2kGQ&pwd=1234"  
 ```
 或者使用wget:  
 ```shell
-wget -O bilibili.mp4 "https://lz.qaiu.top/parser?url=https://share.feijipan.com/s/nQOaNRPW&pwd=1234"
+wget -O bilibili.mp4 "https://lz.qaiu.top/parser?url=https://share.feijipan.com/s/Tk1F2kGQ&pwd=1234"
 ```
-或者使用浏览器[直接访问](https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.top%2Fparser%3Furl%3Dhttps%3A%2F%2Fshare.feijipan.com%2Fs%2FnQOaNRPW&name=bilibili.mp4&ext=mp4):
+或者使用浏览器[直接访问](https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.top%2Fparser%3Furl%3Dhttps%3A%2F%2Fshare.feijipan.com%2Fs%2FTk1F2kGQ&name=bilibili.mp4&ext=mp4):
 ```
 ### 调用演示站下载：
-https://lz.qaiu.top/parser?url=https://share.feijipan.com/s/nQOaNRPW&pwd=1234  
+https://lz.qaiu.top/parser?url=https://share.feijipan.com/s/Tk1F2kGQ&pwd=1234  
 ### 调用演示站预览：
-https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.top%2Fparser%3Furl%3Dhttps%3A%2F%2Fshare.feijipan.com%2Fs%2FnQOaNRPW&name=bilibili.mp4&ext=mp4  
+https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.top%2Fparser%3Furl%3Dhttps%3A%2F%2Fshare.feijipan.com%2Fs%2FTk1F2kGQ&name=bilibili.mp4&ext=mp4  
 
 ```
 
