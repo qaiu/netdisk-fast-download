@@ -68,42 +68,41 @@ public enum PanDomainTemplate {
         t-is.cn
      */
     LZ("蓝奏云",
-             compile("https://(?:[a-zA-Z\\d-]+\\.)?(" +
-                      "lanzoul|" +
-                      "lanzouh|" +
-                      "lanosso|" +
-                      "lanpv|" +
-                      "bakstotre|" +
-                      "lanzouo|" +
-                      "lanzov|" +
-                      "lanpw|" +
-                      "ulanzou|" +
-                      "lanzouf|" +
-                      "lanzn|" +
-                      "lanzouj|" +
-                      "lanzouk|" +
-                      "lanzouq|" +
-                      "lanzouv|" +
-                      "lanzoue|" +
-                      "lanzouw|" +
-                      "lanzoub|" +
-                      "lanzouu|" +
-                      "lanwp|" +
-                      "lanzouy|" +
-                      "lanzoup|" +
-                      "woozooo|" +
-                      "lanzv|" +
-                      "dmpdmp|" +
-                      "lanrar|" +
-                      "webgetstore|" +
-                      "lanzb|" +
-                      "lanzoux|" +
-                      "lanzout|" +
-                      "lanzouc|" +
-                      "lanzoui|" +
-                      "lanzoug|" +
-                      "lanzoum" +
-                     ")\\.com/(.+/)?(?<KEY>.+)"),
+            compile("https://(?:[a-zA-Z\\d-]+\\.)?(" +
+                    "lanzoul|" +
+                    "lanzouh|" +
+                    "lanosso|" +
+                    "lanpv|" +
+                    "bakstotre|" +
+                    "lanzouo|" +
+                    "lanzov|" +
+                    "lanpw|" +
+                    "ulanzou|" +
+                    "lanzouf|" +
+                    "lanzn|" +
+                    "lanzouj|" +
+                    "lanzouk|" +
+                    "lanzouq|" +
+                    "lanzouv|" +
+                    "lanzoue|" +
+                    "lanzouw|" +
+                    "lanzoub|" +
+                    "lanzouu|" +
+                    "lanwp|" +
+                    "lanzouy|" +
+                    "lanzoup|" +
+                    "woozooo|" +
+                    "lanzv|" +
+                    "dmpdmp|" +
+                    "lanrar|" +
+                    "lanzb|" +
+                    "lanzoux|" +
+                    "lanzout|" +
+                    "lanzouc|" +
+                    "lanzoui|" +
+                    "lanzoug|" +
+                    "lanzoum" +
+                    ")\\.com/(?<KEY>.+)"),
             "https://w1.lanzn.com/{shareKey}",
             LzTool.class),
 

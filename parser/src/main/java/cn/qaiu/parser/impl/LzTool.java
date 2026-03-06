@@ -64,7 +64,7 @@ public class LzTool extends PanBase {
                     String html = asText(res);
                     if (html.contains("var arg1='")) {
                         webClientSession = WebClientSession.create(clientNoRedirects);
-                        setCookie(html);
+                        setCookie(html, sUrl);
                         webClientSession.getAbs(sUrl)
                                 .putHeaders(headers0)
                                 .send().onSuccess(res2 -> {
@@ -81,6 +81,29 @@ public class LzTool extends PanBase {
     }
 
     private void doParser(String html, String pwd, String sUrl) {
+        // 检测是否为目录分享链接 (含 /s/、/b/ 路径段或 b0 开头的路径段)
+        if (sUrl.matches(".*/(s|b)/[^/]+.*") || sUrl.matches(".*/b0[^/]+.*")) {
+            fail("该链接为蓝奏云目录分享，请使用目录解析接口");
+            return;
+        }
+        // 若仍是校验页 (parse()中cookie域名与实际URL不匹配时会出现), 重试一次
+        if (html.contains("var arg1='")) {
+            webClientSession = WebClientSession.create(clientNoRedirects);
+            setCookie(html, sUrl);
+            webClientSession.getAbs(sUrl).putHeaders(headers0).send().onSuccess(res -> {
+                String html2 = asText(res);
+                if (html2.contains("var arg1='")) {
+                    fail("蓝奏云反爬校验失败，请稍后重试");
+                    return;
+                }
+                doParserInternal(html2, pwd, sUrl);
+            }).onFailure(handleFail(sUrl));
+            return;
+        }
+        doParserInternal(html, pwd, sUrl);
+    }
+
+    private void doParserInternal(String html, String pwd, String sUrl) {
         try {
             setFileInfo(html, shareLinkInfo);
         } catch (Exception e) {
@@ -98,20 +121,18 @@ public class LzTool extends PanBase {
             } catch (Exception e) {
                 fail(e, "js引擎执行失败");
             }
-        }
-        else {
+        } else {
             // 没有密码
             String iframePath = matcher.group(1);
             String absoluteURI = SHARE_URL_PREFIX + iframePath;
             webClientSession.getAbs(absoluteURI).putHeaders(headers0).send().onSuccess(res2 -> {
-                String html2= asText(res2);
-                // Matcher matcher2 = Pattern.compile("'sign'\s*:\s*'(\\w+)'").matcher(html2);
+                String html2 = asText(res2);
                 String jsText = getJsText(html2);
                 if (jsText == null) {
                     headers0.add("Referer", absoluteURI);
-                    setCookie(html2);
+                    setCookie(html2, absoluteURI);
                     webClientSession.getAbs(absoluteURI).send().onSuccess(res3 -> {
-                        String html3= asText(res3);
+                        String html3 = asText(res3);
                         String jsText3 = getJsText(html3);
                         if (jsText3 != null) {
                             try {
@@ -120,10 +141,8 @@ public class LzTool extends PanBase {
                             } catch (ScriptException | NoSuchMethodException e) {
                                 fail(e, "引擎执行失败");
                             }
-                        } else  {
-
+                        } else {
                             fail(SHARE_URL_PREFIX + iframePath + " -> " + sUrl + ": 获取失败0, 可能分享已失效");
-                            return;
                         }
                     });
                 } else {
@@ -138,14 +157,29 @@ public class LzTool extends PanBase {
         }
     }
 
-    private void setCookie(String html2) {
-        int beginIndex = html2.indexOf("arg1='") + 6;
-        String arg1 = html2.substring(beginIndex, html2.indexOf("';", beginIndex));
+    private void setCookie(String html, String url) {
+        int beginIndex = html.indexOf("arg1='") + 6;
+        int endIndex = html.indexOf("';", beginIndex);
+        if (beginIndex < 6 || endIndex == -1 || endIndex <= beginIndex) {
+            fail("蓝奏云反爬 arg1 Cookie 解析失败，页面内容异常");
+            return;
+        }
+        String arg1 = html.substring(beginIndex, endIndex);
         String acw_sc__v2 = AcwScV2Generator.acwScV2Simple(arg1);
+        // 从 URL 中动态提取域名（如 lanzoum.com, lanzoux.com 等）
+        String domain = ".lanzn.com"; // 默认兜底
+        try {
+            java.net.URL urlObj = new java.net.URL(url);
+            String host = urlObj.getHost(); // e.g. "dzvip.lanzoum.com"
+            int firstDot = host.indexOf('.');
+            if (firstDot >= 0) {
+                domain = host.substring(firstDot); // e.g. ".lanzoum.com"
+            }
+        } catch (Exception ignored) {}
         // 创建一个 Cookie 并放入 CookieStore
         DefaultCookie nettyCookie = new DefaultCookie("acw_sc__v2", acw_sc__v2);
-        nettyCookie.setDomain(".lanzn.com"); // 设置域名
-        nettyCookie.setPath("/");             // 设置路径
+        nettyCookie.setDomain(domain);
+        nettyCookie.setPath("/");
         nettyCookie.setSecure(false);
         nettyCookie.setHttpOnly(false);
         webClientSession.cookieStore().put(nettyCookie);
@@ -234,10 +268,18 @@ public class LzTool extends PanBase {
                                 int beginIndex = text.indexOf("arg1='") + 6;
                                 String arg1 = text.substring(beginIndex, text.indexOf("';", beginIndex));
                                 String acw_sc__v2 = AcwScV2Generator.acwScV2Simple(arg1);
+                                // 从 downUrl 中动态提取域名
+                                String downDomain = ".lanrar.com";
+                                try {
+                                    java.net.URL du = new java.net.URL(downUrl);
+                                    String h = du.getHost();
+                                    int dot = h.indexOf('.');
+                                    if (dot >= 0) downDomain = h.substring(dot);
+                                } catch (Exception ignored) {}
                                 // 创建一个 Cookie 并放入 CookieStore
                                 DefaultCookie nettyCookie = new DefaultCookie("acw_sc__v2", acw_sc__v2);
-                                nettyCookie.setDomain(".lanrar.com"); // 设置域名
-                                nettyCookie.setPath("/");             // 设置路径
+                                nettyCookie.setDomain(downDomain);
+                                nettyCookie.setPath("/");
                                 nettyCookie.setSecure(false);
                                 nettyCookie.setHttpOnly(false);
                                 WebClientSession webClientSession2 = WebClientSession.create(clientNoRedirects);
@@ -295,14 +337,14 @@ public class LzTool extends PanBase {
         String pwd = shareLinkInfo.getSharePassword();
 
         webClientSession.getAbs(sUrl).send().onSuccess(res -> {
-            String html = res.bodyAsString();
+            String html = asText(res);
             // 检查是否需要 cookie 验证
             if (html.contains("var arg1='")) {
                 webClientSession = WebClientSession.create(clientNoRedirects);
-                setCookie(html);
+                setCookie(html, sUrl);
                 // 重新请求
                 webClientSession.getAbs(sUrl).send().onSuccess(res2 -> {
-                    handleFileListParse(res2.bodyAsString(), pwd, sUrl, promise);
+                    handleFileListParse(asText(res2), pwd, sUrl, promise);
                 }).onFailure(err -> promise.fail(err));
                 return;
             }
@@ -312,6 +354,11 @@ public class LzTool extends PanBase {
     }
 
     private void handleFileListParse(String html, String pwd, String sUrl, Promise<List<FileInfo>> promise) {
+        // 检测是否为文件分享链接 (不含 /s/、/b/ 路径段且不含 b0 开头的路径段)
+        if (!sUrl.matches(".*/(s|b)/[^/]+.*") && !sUrl.matches(".*/b0[^/]+.*")) {
+            promise.fail(baseMsg() + "该链接为蓝奏云文件分享，请使用文件解析接口");
+            return;
+        }
         try {
             String jsText = getJsByPwd(pwd, html, "var urls =window.location.href");
             ScriptObjectMirror scriptObjectMirror = JsExecUtils.executeDynamicJs(jsText, "file");
@@ -321,12 +368,12 @@ public class LzTool extends PanBase {
             log.debug("解析参数: {}", map);
             MultiMap headers = getHeaders(sUrl);
 
-            String url = SHARE_URL_PREFIX + "/filemoreajax.php?file=" + data.get("fid");
+            String url = SHARE_URL_PREFIX + "filemoreajax.php?file=" + data.get("fid");
             webClientSession.postAbs(url).putHeaders(headers).sendForm(map).onSuccess(res2 -> {
                 String resBody = asText(res2);
                 // 再次检查是否需要 cookie 验证
                 if (resBody.contains("var arg1='")) {
-                    setCookie(resBody);
+                    setCookie(resBody, url);
                     // 重新请求
                     webClientSession.postAbs(url).putHeaders(headers).sendForm(map).onSuccess(res3 -> {
                         handleFileListResponse(asText(res3), promise);
@@ -335,7 +382,7 @@ public class LzTool extends PanBase {
                 }
                 handleFileListResponse(resBody, promise);
             }).onFailure(err -> promise.fail(err));
-        } catch (ScriptException | NoSuchMethodException e) {
+        } catch (ScriptException | NoSuchMethodException | RuntimeException e) {
             promise.fail(e);
         }
     }
@@ -367,14 +414,20 @@ public class LzTool extends PanBase {
                 Long sizeNum = FileSizeConverter.convertToBytes(size);
                 String panType = shareLinkInfo.getType();
                 String id = fileJson.getString("id");
-                fileInfo.setFileName(fileJson.getString("name_all"))
+                String fileName = fileJson.getString("name_all");
+                // 构建 base64 参数，用于 /v2/redirectUrl 接口
+                JsonObject paramJson = new JsonObject()
+                        .put("id", id)
+                        .put("fileName", fileName);
+                String param = CommonUtils.urlBase64Encode(paramJson.encode());
+                fileInfo.setFileName(fileName)
                         .setFileId(id)
                         .setCreateTime(fileJson.getString("time"))
                         .setFileType(fileJson.getString("icon"))
                         .setSizeStr(fileJson.getString("size"))
                         .setSize(sizeNum)
                         .setPanType(panType)
-                        .setParserUrl(getDomainName() + "/d/" + panType + "/" + id)
+                        .setParserUrl(String.format("%s/v2/redirectUrl/%s/%s", getDomainName(), panType, param))
                         .setPreviewUrl(String.format("%s/v2/view/%s/%s", getDomainName(),
                                 shareLinkInfo.getType(), id));
                 log.debug("文件信息: {}", fileInfo);
@@ -384,6 +437,15 @@ public class LzTool extends PanBase {
         } catch (Exception e) {
             promise.fail(e);
         }
+    }
+
+    @Override
+    public Future<String> parseById() {
+        JsonObject paramJson = (JsonObject) shareLinkInfo.getOtherParam().get("paramJson");
+        String id = paramJson.getString("id");
+        // 以文件ID重新构造标准访问URL，复用 parse() 流程
+        shareLinkInfo.setStandardUrl(SHARE_URL_PREFIX + id);
+        return parse();
     }
 
     void setFileInfo(String html, ShareLinkInfo shareLinkInfo) {
@@ -400,16 +462,17 @@ public class LzTool extends PanBase {
             String fileId = CommonUtils.extract(html, Pattern.compile("\\?f=(.*?)&|fid = (.*?);"));
             String createTime = CommonUtils.extract(html, Pattern.compile(">上传时间：</span>(.*?)<"));
             try {
-                long bytes = FileSizeConverter.convertToBytes(sizeStr);
                 fileInfo.setFileName(fileName)
-                        .setSize(bytes)
-                        .setSizeStr(FileSizeConverter.convertToReadableSize(bytes))
                         .setCreateBy(createBy)
                         .setPanType(shareLinkInfo.getType())
                         .setDescription(description)
                         .setFileType("file")
                         .setFileId(fileId)
                         .setCreateTime(createTime);
+                if (sizeStr != null && !sizeStr.isBlank()) {
+                    long bytes = FileSizeConverter.convertToBytes(sizeStr);
+                    fileInfo.setSize(bytes).setSizeStr(FileSizeConverter.convertToReadableSize(bytes));
+                }
             } catch (Exception e) {
                 log.warn("文件信息解析异常", e);
             }
