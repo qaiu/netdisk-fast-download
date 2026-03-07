@@ -252,7 +252,7 @@ public class LzTool extends PanBase {
                     return;
                 }
                 // 文件名
-                if (urlJson.containsKey("inf") && urlJson.getMap().get("inf") instanceof Character) {
+                if (urlJson.containsKey("inf") && urlJson.getMap().get("inf") instanceof CharSequence) {
                     ((FileInfo)shareLinkInfo.getOtherParam().get("fileInfo")).setFileName(name);
                 }
 
