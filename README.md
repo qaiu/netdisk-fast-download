@@ -42,10 +42,10 @@ https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.
 
 **Playground功能：** [JS解析器演练场密码保护说明](web-service/doc/PLAYGROUND_PASSWORD_PROTECTION.md)
 
-## 预览地址  
-[预览地址1](https://lz.qaiu.top)  
-[预览地址2](https://lz0.qaiu.top)  
-[天翼云盘/移动云盘限时体验版](https://189.qaiu.top)  
+## 体验地址  
+[公益解析1](https://lz.qaiu.top)  
+[公益解密2](https://lz0.qaiu.top)  
+[大文件解析专属版，限时开放，注册体验](https://189.qaiu.top)  
 
 main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/netdisk-fast-download/tree/main-jdk11)  
 **0.1.8及以上版本json接口格式有调整 参考json返回数据格式示例**  
