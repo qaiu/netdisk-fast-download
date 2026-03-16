@@ -44,7 +44,7 @@ https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.
 
 ## 体验地址  
 [公益解析1](https://lz.qaiu.top)  
-[公益解密2](https://lz0.qaiu.top)  
+[公益解析2](https://lz0.qaiu.top)  
 [大文件解析专属版，限时开放，注册体验](https://189.qaiu.top)  
 
 main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/netdisk-fast-download/tree/main-jdk11)  
