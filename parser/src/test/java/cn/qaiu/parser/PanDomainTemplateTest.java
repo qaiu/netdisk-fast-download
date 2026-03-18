@@ -7,11 +7,14 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.util.regex.Pattern.compile;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author <a href="https://qaiu.top">QAIU</a>
@@ -76,6 +79,55 @@ public class PanDomainTemplateTest {
         TimeUnit.SECONDS.sleep(5);
     }
 
+
+    @Test
+    public void testWsPatternMatching() {
+        Pattern wsPattern = PanDomainTemplate.WS.getPattern();
+
+        // 历史域名
+        String[] positiveUrls = {
+                "https://f.ws59.cn/f/f25625rv6p6",
+                "https://f.ws28.cn/f/somekey123",
+                "https://www.wenshushu.cn/f/abc123",
+                // 新增域名
+                "https://www.wenxiaozhan.net/f/testkey1",
+                "https://www.wenxiaozhan.cn/f/testkey2",
+                "https://www.wss.show/f/testkey3",
+                "https://www.ws28.cn/f/testkey4",
+                "https://www.wss.email/f/testkey5",
+                "https://www.wss1.cn/f/testkey6",
+                "https://www.ws59.cn/f/testkey7",
+                "https://www.wss.cc/f/testkey8",
+                "https://www.wss.pet/f/testkey9",
+                "https://www.wss.ink/f/testkey10",
+                "https://www.wenxiaozhan.com/f/testkey11",
+                "https://www.wenshushu.com/f/testkey12",
+                "https://www.wss.zone/f/testkey13",
+        };
+
+        for (String url : positiveUrls) {
+            Matcher m = wsPattern.matcher(url);
+            assertTrue("WS pattern should match: " + url, m.matches());
+            assertNotNull("KEY group should not be null for: " + url, m.group("KEY"));
+        }
+
+        // 验证 KEY 提取正确性
+        Matcher m1 = wsPattern.matcher("https://f.ws59.cn/f/f25625rv6p6");
+        assertTrue(m1.matches());
+        assertEquals("f25625rv6p6", m1.group("KEY"));
+
+        Matcher m2 = wsPattern.matcher("https://www.wenshushu.cn/f/abc123");
+        assertTrue(m2.matches());
+        assertEquals("abc123", m2.group("KEY"));
+
+        // 负例：错误路径不匹配
+        assertFalse("Wrong path should not match",
+                wsPattern.matcher("https://www.wenshushu.cn/x/abc123").matches());
+
+        // 负例：非白名单域名不匹配
+        assertFalse("Non-whitelisted domain should not match",
+                wsPattern.matcher("https://www.evil.com/f/abc123").matches());
+    }
 
     @Test
     public void verifyDuplicates() {
