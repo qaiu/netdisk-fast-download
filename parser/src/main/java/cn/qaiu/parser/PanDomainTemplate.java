@@ -142,9 +142,41 @@ public enum PanDomainTemplate {
             compile("https://qfile\\.qq\\.com/q/(?<KEY>.+)"),
             "https://qfile.qq.com/q/{shareKey}",
             QQscTool.class),
-    // https://f.ws59.cn/f/或者https://www.wenshushu.cn/f/
+    // https://f.ws59.cn/f/ 或者 https://www.wenshushu.cn/f/ 等多个镜像域名
+    /*
+        f.wsNN.cn (如 f.ws59.cn, f.ws28.cn 等)
+        www.wenshushu.cn
+        新增域名:
+        www.wenxiaozhan.net
+        www.wenxiaozhan.cn
+        www.wss.show
+        www.ws28.cn
+        www.wss.email
+        www.wss1.cn
+        www.ws59.cn
+        www.wss.cc
+        www.wss.pet
+        www.wss.ink
+        www.wenxiaozhan.com
+        www.wenshushu.com
+        www.wss.zone
+     */
     WS("文叔叔",
-            compile("https://(f\\.ws(\\d{2})\\.cn|www\\.wenshushu\\.cn)/f/(?<KEY>.+)"),
+            compile("https://(f\\.ws(\\d{2})\\.cn|" +
+                    "www\\.wenxiaozhan\\.net|" +
+                    "www\\.wenxiaozhan\\.cn|" +
+                    "www\\.wss\\.show|" +
+                    "www\\.ws28\\.cn|" +
+                    "www\\.wss\\.email|" +
+                    "www\\.wss1\\.cn|" +
+                    "www\\.ws59\\.cn|" +
+                    "www\\.wss\\.cc|" +
+                    "www\\.wss\\.pet|" +
+                    "www\\.wss\\.ink|" +
+                    "www\\.wenxiaozhan\\.com|" +
+                    "www\\.wenshushu\\.com|" +
+                    "www\\.wss\\.zone|" +
+                    "www\\.wenshushu\\.cn)/f/(?<KEY>.+)"),
             "https://www.wenshushu.cn/f/{shareKey}",
             WsTool.class),
     // https://www.123pan.com/s/
