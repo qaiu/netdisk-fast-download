@@ -121,7 +121,7 @@ public enum PanDomainTemplate {
 
     // https://v2.fangcloud.com/s/
     FC("亿方云",
-            compile("https://v2\\.fangcloud\\.(com|cn)/(s|sharing)/(?<KEY>.+)"),
+            compile("https://v2\\.fangcloud\\.(com|cn)/(s|share|sharing)/(?<KEY>.+)"),
             "https://v2.fangcloud.com/s/{shareKey}",
             "https://www.fangcloud.com/",
             FcTool.class),

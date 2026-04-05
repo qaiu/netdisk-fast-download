@@ -274,7 +274,7 @@
             name: '联想乐云'
         },
         fangcloud: {
-            reg: /https:\/\/v2\.fangcloud\.(com|cn)\/(s|sharing)\/.+/,
+            reg: /https:\/\/v2\.fangcloud\.(com|cn)\/(s|share|sharing)\/.+/,
             host: /fangcloud\.(com|cn)/,
             name: '亿方云'
         },
