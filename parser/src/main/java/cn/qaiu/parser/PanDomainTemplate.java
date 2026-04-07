@@ -230,7 +230,7 @@ public enum PanDomainTemplate {
                     "123635\\.com|" +
                     "123242\\.com|" +
                     "123795\\.com"  +
-                    ")/s/(?<KEY>.+)(.html)?"),
+                    ")/s/(?<KEY>[a-zA-Z0-9_-]+)(?:\\.html)?"),
             "https://www.123pan.com/s/{shareKey}",
             Ye2Tool.class),
     // https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data={code}&isShare=1
