@@ -68,8 +68,8 @@ public enum PanDomainTemplate {
         t-is.cn
      */
     LZ("蓝奏云",
-            compile("https://(?:[a-zA-Z\\d-]+\\.)?(" +
-                    "lanzoul|" +
+            compile("https://(?:[a-zA-Z\\d-]+\\.)?(?:" +
+                    "(?:lanzoul|" +
                     "lanzouh|" +
                     "lanosso|" +
                     "lanpv|" +
@@ -95,14 +95,16 @@ public enum PanDomainTemplate {
                     "lanzv|" +
                     "dmpdmp|" +
                     "lanrar|" +
+                    "webgetstore|" +
                     "lanzb|" +
                     "lanzoux|" +
                     "lanzout|" +
                     "lanzouc|" +
                     "lanzoui|" +
                     "lanzoug|" +
-                    "lanzoum" +
-                    ")\\.com/(?<KEY>.+)"),
+                    "lanzoum)\\.com" +
+                    "|t-is\\.cn" +
+                    ")/(?<KEY>.+)"),
             "https://w1.lanzn.com/{shareKey}",
             LzTool.class),
 
@@ -115,7 +117,7 @@ public enum PanDomainTemplate {
 
     // https://lecloud.lenovo.com/share/
     LE("联想乐云",
-            compile("https://lecloud?\\.lenovo\\.com/share/(?<KEY>.+)"),
+            compile("https://lecloud\\.lenovo\\.com/share/(?<KEY>.+)"),
             "https://lecloud.lenovo.com/share/{shareKey}",
             LeTool.class),
 
@@ -241,7 +243,7 @@ public enum PanDomainTemplate {
             EcTool.class),
     // https://cowtransfer.com/s/
     COW("奶牛快传",
-            compile("https://(.*)cowtransfer\\.com/s/(?<KEY>.+)"),
+            compile("https://(?:[a-zA-Z\\d-]+\\.)?cowtransfer\\.com/s/(?<KEY>.+)"),
             "https://cowtransfer.com/s/{shareKey}",
             CowTool.class),
     CT("城通网盘",
@@ -264,7 +266,7 @@ public enum PanDomainTemplate {
             PodTool.class),
     // 404网盘 https://drive.google.com/file/d/xxx/view?usp=sharing
     PGD("GoogleDrive",
-            compile("https://drive\\.google\\.com/file/d/(?<KEY>.+)/view(\\?usp=(sharing|drive_link))?"),
+            compile("https://(?:[a-zA-Z\\d-]+\\.)?drive\\.google\\.com/file/d/(?<KEY>.+)/view(\\?usp=(sharing|drive_link))?"),
             "https://drive.google.com/file/d/{shareKey}/view?usp=sharing",
             PgdTool.class),
     // iCloud https://www.icloud.com.cn/iclouddrive/xxx#fonts
@@ -274,11 +276,11 @@ public enum PanDomainTemplate {
             PicTool.class),
     // https://www.dropbox.com/scl/fi/cwnbms1yn8u6rcatzyta7/emqx-5.0.26-el7-amd64.tar.gz?rlkey=3uoi4bxz5mv93jmlaws0nlol1&e=8&st=fe0lclc2&dl=0
     PDB("dropbox",
-            compile("https://www.dropbox.com/scl/fi/(?<KEY>\\w+)/.+?rlkey=(?<PWD>\\w+).*"),
+            compile("https://www\\.dropbox\\.com/scl/fi/(?<KEY>\\w+)/.+?rlkey=(?<PWD>\\w+).*"),
             "https://www.dropbox.com/scl/fi/{shareKey}/?rlkey={pwd}&dl=0",
             PdbTool.class),
     P115("115网盘",
-            compile("https://(115|anxia).com/s/(?<KEY>\\w+)(\\?password=(?<PWD>\\w+))?([&#].*)?"),
+            compile("https://(115|anxia)\\.com/s/(?<KEY>\\w+)(\\?password=(?<PWD>\\w+))?([&#].*)?"),
             "https://115.com/s/{shareKey}?password={pwd}",
             P115Tool.class),
     // 链接：https://www.yunpan.com/surl_yD7wz4VgU9v（提取码：fc70）
@@ -319,7 +321,7 @@ public enum PanDomainTemplate {
             MnesTool.class),
     // https://music.163.com/#/song?id=xxx
     MNE("网易云音乐歌曲详情",
-            compile("https://(y.)?music\\.163\\.com/(#|m/)?song\\?id=(?<KEY>.+)(&.*)?"),
+            compile("https://(y\\.)?music\\.163\\.com/(?:#/|m/)?song\\?id=(?<KEY>.+)(&.*)?"),
             "https://music.163.com/#/song?id={shareKey}",
             MnesTool.MneTool.class),
     // https://c6.y.qq.com/base/fcgi-bin/u?__=xxx
@@ -340,7 +342,7 @@ public enum PanDomainTemplate {
             MkgsTool.class),
     // https://www.kugou.com/share/2bi8Fe9CSV3.html?id=2bi8Fe9CSV3#6ed9gna4"
     MKGS2("酷狗音乐分享2",
-            compile("https://(?:[a-zA-Z\\d-]+\\.)?kugou\\.com/share/(?<KEY>.+).html.*"),
+            compile("https://(?:[a-zA-Z\\d-]+\\.)?kugou\\.com/share/(?<KEY>.+)\\.html.*"),
             "https://www.kugou.com/share/{shareKey}.html",
             MkgsTool.Mkgs2Tool.class),
     // https://www.kugou.com/mixsong/2bi8Fe9CSV3
