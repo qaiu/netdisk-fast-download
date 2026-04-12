@@ -24,7 +24,12 @@
 # netdisk-fast-download 网盘分享链接云解析服务  
 QQ交流群：1017480890
 
-netdisk-fast-download网盘直链云解析(nfd云解析)能把网盘分享下载链接转化为直链，支持多款云盘，已支持蓝奏云/蓝奏云优享/奶牛快传/移动云云空间/小飞机盘/亿方云/123云盘/Cloudreve等，支持加密分享，以及部分网盘文件夹分享。  
+netdisk-fast-download网盘直链解析可以把云盘分享链接转为直链，可广泛应用于各类下载站，资源站，个人博客，图床，APP下载更新，视频点播等领域。支持市面各大主流云盘的文件分享以及文件夹分享链接，已支持蓝奏云/蓝奏云优享/奶牛快传/移动云云空间/小飞机盘/亿方云/123云盘/Cloudreve等，支持加密分享，以及部分网盘文件夹分享。  
+[官方文档](https://nfd-parser.github.io/)
+[API接入](https://nfdparser.apifox.cn/)
+[公益解析1](https://lz.qaiu.top)  
+[公益解析2](https://lz0.qaiu.top)  
+[大文件解析专属版，注册体验](https://189.qaiu.top)  
 
 ## 快速开始
 命令行下载分享文件：  
@@ -50,10 +55,6 @@ https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.
 
 **Playground功能：** [JS解析器演练场密码保护说明](web-service/doc/PLAYGROUND_PASSWORD_PROTECTION.md)
 
-## 体验地址  
-[公益解析1](https://lz.qaiu.top)  
-[公益解析2](https://lz0.qaiu.top)  
-[大文件解析专属版，限时开放，注册体验](https://189.qaiu.top)  
 
 main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/netdisk-fast-download/tree/main-jdk11)  
 **0.1.8及以上版本json接口格式有调整 参考json返回数据格式示例**  
