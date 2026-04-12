@@ -57,8 +57,6 @@ https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.
 **Playground功能：** [JS解析器演练场密码保护说明](web-service/doc/PLAYGROUND_PASSWORD_PROTECTION.md)
 
 
-main分支依赖JDK17, 提供了JDK11分支[main-jdk11](https://github.com/qaiu/netdisk-fast-download/tree/main-jdk11)  
-**0.1.8及以上版本json接口格式有调整 参考json返回数据格式示例**  
 **注意⚠️小飞机解析有IP限制，多数云服务商的大陆IP会被拦截（可以自行配置代理），和本程序无关**  
 **注意⚠️收到很多用户反馈，小飞机近期封号频繁，请尽可能选择其他网盘分享**  
 **注意⚠️请不要过度依赖 lz.qaiu.top，建议本地搭建或者云服务器自行搭建。请求量过多的话服务器可能会被云盘厂商限制，遇到解析失败的分享链接不要着急提issues，请先检查分享是否有效，** [lz站](https://lz.qaiu.top) 和 [lz0](https://lz0.qaiu.top) 不支持大文件，请使用 [189站](https://189.qaiu.top) 注册体验。
