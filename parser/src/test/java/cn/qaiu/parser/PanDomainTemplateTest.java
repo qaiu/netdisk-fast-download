@@ -130,6 +130,25 @@ public class PanDomainTemplateTest {
     }
 
     @Test
+    public void testLePatternMatching() {
+        Pattern lePattern = PanDomainTemplate.LE.getPattern();
+
+        // /share/ 格式
+        Matcher m1 = lePattern.matcher("https://lecloud.lenovo.com/share/abc123");
+        assertTrue("LE pattern should match /share/ format", m1.matches());
+        assertEquals("abc123", m1.group("KEY"));
+
+        // /mshare/ 格式
+        Matcher m2 = lePattern.matcher("https://lecloud.lenovo.com/mshare/xyz789");
+        assertTrue("LE pattern should match /mshare/ format", m2.matches());
+        assertEquals("xyz789", m2.group("KEY"));
+
+        // 负例：错误路径不匹配
+        assertFalse("Wrong path should not match",
+                lePattern.matcher("https://lecloud.lenovo.com/s/abc123").matches());
+    }
+
+    @Test
     public void verifyDuplicates() {
 
         Matcher matcher = compile("https://(?:[a-zA-Z\\d-]+\\.)?drive\\.google\\.com/file/d/(?<KEY>.+)/view(\\?usp=(sharing|drive_link))?")
