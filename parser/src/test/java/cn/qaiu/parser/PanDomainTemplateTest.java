@@ -184,8 +184,10 @@ public class PanDomainTemplateTest {
         assertTrue("COW should match share.cowtransfer.com", m2.find());
         assertEquals("abc123", m2.group("KEY"));
 
-        // 潜在的URL注入攻击（修复前 (.*) 能匹配此类URL）
-        assertFalse("COW should NOT match redirect URLs",
+        // 潜在的URL注入：`(.*)` 是贪婪捕获组，可匹配 `evil.com/redirect/` 等前缀，
+        // 使形如 `https://evil.com/redirect/cowtransfer.com/s/key` 的 URL 被误识别。
+        // 修复后改为 `(?:[a-zA-Z\d-]+\.)?` 仅匹配一级合法子域名（可选），消除误匹配。
+        assertFalse("COW should NOT match redirect URLs containing cowtransfer.com in path",
                 cowPattern.matcher("https://evil.com/redirect/cowtransfer.com/s/abc").find());
     }
 
@@ -208,8 +210,10 @@ public class PanDomainTemplateTest {
         assertTrue("MNE should match y.music.163.com", m3.find());
         assertEquals("12345", m3.group("KEY"));
 
-        // 原 (y.) 未转义时 yXmusic.163.com 会被误匹配（现已修复）
-        assertFalse("MNE should NOT match yXmusic.163.com",
+        // 原 (y.) 中 `.` 未转义（`.` 匹配任意字符）：对于 `yXmusic.163.com`，
+        // `(y.)` 会消费 `yX`（y + 任意字符），剩余 `music.163.com` 再被 `music\.163\.com` 匹配，导致误匹配。
+        // 修复后 `(y\.)` 要求字面 `.`，`yX` 中 X ≠ `.` 无法匹配，不再误匹配。
+        assertFalse("MNE should NOT match yXmusic.163.com (old (y.) could erroneously match via backtracking)",
                 mnePattern.matcher("https://yXmusic.163.com/song?id=12345").find());
     }
 
