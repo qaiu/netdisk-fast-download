@@ -26,8 +26,8 @@ QQ交流群：1017480890
 
 > netdisk-fast-download网盘直链解析可以把云盘分享链接转为直链，可广泛应用于各类下载站，资源站，个人博客，图床，APP下载更新，视频点播等领域。支持市面各大主流云盘的文件分享以及文件夹分享链接，已支持蓝奏云/蓝奏云优享/奶牛快传/移动云云空间/小飞机盘/亿方云/123云盘/Cloudreve等，支持加密分享，以及部分网盘文件夹分享。  
 
-[官方文档](https://nfd-parser.github.io/)
-[API接入](https://nfdparser.apifox.cn/)
+[官方文档](https://nfd-parser.github.io/)  
+[API接入](https://nfdparser.apifox.cn/)  
 [公益解析1](https://lz.qaiu.top)  
 [公益解析2](https://lz0.qaiu.top)  
 [大文件解析专属版，注册体验](https://189.qaiu.top)  
