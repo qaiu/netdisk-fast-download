@@ -1,3 +1,15 @@
+# 一款网盘分享链接云解析快速下载服务  
+QQ交流群：1017480890
+<p align="center">
+<a href="https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml"><img src="https://img.shields.io/github/actions/workflow/status/qaiu/netdisk-fast-download/maven.yml?branch=v0.1.9b8a&style=flat"></a>
+<a href="https://www.oracle.com/cn/java/technologies/downloads"><img src="https://img.shields.io/badge/jdk-%3E%3D17-blue"></a>
+<a href="https://vertx-china.github.io"><img src="https://img.shields.io/badge/vert.x-4.5.22-blue?style=flat"></a>
+<a href="https://raw.githubusercontent.com/qaiu/netdisk-fast-download/master/LICENSE"><img src="https://img.shields.io/github/license/qaiu/netdisk-fast-download?style=flat"></a>
+<a href="https://github.com/qaiu/netdisk-fast-download/releases/"><img src="https://img.shields.io/github/v/release/qaiu/netdisk-fast-download?style=flat"></a>
+<p align="center">
+  <a href="https://trendshift.io/repositories/12101" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12101" alt="qaiu%2Fnetdisk-fast-download | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+</p>
+
 <div align="center" style="display:flex; justify-content:center; gap:10px; align-items:flex-start;">
   <img
     src="https://github.com/user-attachments/assets/bf266d0a-aaf8-4772-9231-e38a4b7bb6cb"
@@ -10,19 +22,6 @@
     style="width:300px; max-width:300px; flex:none;"
   >
 </div>
-<p align="center">
-  <a href="https://trendshift.io/repositories/12101" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12101" alt="qaiu%2Fnetdisk-fast-download | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-</p>
-
-<p align="center">
-<a href="https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml"><img src="https://img.shields.io/github/actions/workflow/status/qaiu/netdisk-fast-download/maven.yml?branch=v0.1.9b8a&style=flat"></a>
-<a href="https://www.oracle.com/cn/java/technologies/downloads"><img src="https://img.shields.io/badge/jdk-%3E%3D17-blue"></a>
-<a href="https://vertx-china.github.io"><img src="https://img.shields.io/badge/vert.x-4.5.22-blue?style=flat"></a>
-<a href="https://raw.githubusercontent.com/qaiu/netdisk-fast-download/master/LICENSE"><img src="https://img.shields.io/github/license/qaiu/netdisk-fast-download?style=flat"></a>
-<a href="https://github.com/qaiu/netdisk-fast-download/releases/"><img src="https://img.shields.io/github/v/release/qaiu/netdisk-fast-download?style=flat"></a>
-
-# netdisk-fast-download 网盘分享链接云解析服务  
-QQ交流群：1017480890
 
 > netdisk-fast-download网盘直链解析可以把云盘分享链接转为直链，可广泛应用于各类下载站，资源站，个人博客，图床，APP下载更新，视频点播等领域。支持市面各大主流云盘的文件分享以及文件夹分享链接，已支持蓝奏云/蓝奏云优享/奶牛快传/移动云云空间/小飞机盘/亿方云/123云盘/Cloudreve等，支持加密分享，以及部分网盘文件夹分享。  
 
