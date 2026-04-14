@@ -28,7 +28,7 @@ QQ交流群：1017480890
 [官方文档](https://nfd-parser.github.io/)  
 [API接入](https://nfdparser.apifox.cn/)  
 [公益解析，lz站](https://lz.qaiu.top)  
-[公益解析，lz0m站](https://lz0.qaiu.top)  
+[公益解析，lz0站](https://lz0.qaiu.top)  
 [专业版189站，注册体验](https://189.qaiu.top)  
 
 ## 快速开始
