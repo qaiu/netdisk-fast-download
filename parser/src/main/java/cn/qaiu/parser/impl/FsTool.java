@@ -45,11 +45,26 @@ public class FsTool extends PanBase {
             0, 2, 22, 44, 3, 30, 8, 11, 12, 84, 123, 124
     };
 
+    /** 每页返回条目数 */
+    private static final int PAGE_SIZE = 50;
+
     /**
      * 从分享链接中提取 tenant 的正则
      */
     private static final Pattern TENANT_PATTERN =
             Pattern.compile("https://([^.]+)\\.feishu\\.cn/");
+
+    /** 解析 Content-Disposition: filename*=UTF-8''xxx */
+    private static final Pattern CD_FILENAME_STAR_PATTERN =
+            Pattern.compile("filename\\*=UTF-8''(.+?)(?:;|$)");
+
+    /** 解析 Content-Disposition: filename="xxx" 或 filename=xxx */
+    private static final Pattern CD_FILENAME_PATTERN =
+            Pattern.compile("filename=\"?([^\";]+)\"?");
+
+    /** 解析 Content-Range 中的总大小 */
+    private static final Pattern CONTENT_RANGE_SIZE_PATTERN =
+            Pattern.compile("/(\\d+)");
 
     public FsTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
@@ -226,7 +241,8 @@ public class FsTool extends PanBase {
         StringBuilder urlBuilder = new StringBuilder();
         urlBuilder.append(baseUrl)
                 .append("/space/api/explorer/v3/children/list/")
-                .append("?length=50&asc=1&rank=5&token=").append(folderToken);
+                .append("?length=").append(PAGE_SIZE)
+                .append("&asc=1&rank=5&token=").append(folderToken);
 
         for (int type : LIST_OBJ_TYPES) {
             urlBuilder.append("&obj_type=").append(type);
@@ -289,7 +305,8 @@ public class FsTool extends PanBase {
                                     long size = Long.parseLong(
                                             extra.getString("size", "0"));
                                     fileInfo.setSize(size);
-                                } catch (NumberFormatException ignored) {
+                                } catch (NumberFormatException e) {
+                                    log.warn("无法解析文件大小: {}", extra.getString("size"), e);
                                 }
 
                                 fileInfo.setParserUrl(
@@ -368,7 +385,7 @@ public class FsTool extends PanBase {
         if (cd == null || cd.isEmpty()) return null;
 
         // 优先解析 filename*=UTF-8''xxx
-        Matcher m1 = Pattern.compile("filename\\*=UTF-8''(.+?)(?:;|$)").matcher(cd);
+        Matcher m1 = CD_FILENAME_STAR_PATTERN.matcher(cd);
         if (m1.find()) {
             try {
                 return URLDecoder.decode(m1.group(1).trim(), StandardCharsets.UTF_8);
@@ -377,7 +394,7 @@ public class FsTool extends PanBase {
         }
 
         // 降级解析 filename="xxx" 或 filename=xxx
-        Matcher m2 = Pattern.compile("filename=\"?([^\";]+)\"?").matcher(cd);
+        Matcher m2 = CD_FILENAME_PATTERN.matcher(cd);
         if (m2.find()) {
             try {
                 return URLDecoder.decode(m2.group(1).trim(), StandardCharsets.UTF_8);
@@ -390,7 +407,7 @@ public class FsTool extends PanBase {
 
     private void parseSizeFromContentRange(String cr, FileInfo fileInfo) {
         if (cr != null) {
-            Matcher m = Pattern.compile("/(\\d+)").matcher(cr);
+            Matcher m = CONTENT_RANGE_SIZE_PATTERN.matcher(cr);
             if (m.find()) {
                 fileInfo.setSize(Long.parseLong(m.group(1)));
             }
