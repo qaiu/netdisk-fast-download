@@ -251,6 +251,72 @@ public class PanDomainTemplateTest {
     }
 
     @Test
+    public void testFsPatternMatching() {
+        Pattern fsPattern = PanDomainTemplate.FS.getPattern();
+
+        // 文件链接
+        Matcher m1 = fsPattern.matcher(
+                "https://kcncuknojm60.feishu.cn/file/VnCxbt35KoowKoxldO3c3C7VnMc");
+        assertTrue("FS should match file link", m1.matches());
+        assertEquals("VnCxbt35KoowKoxldO3c3C7VnMc", m1.group("KEY"));
+
+        // 文件链接带 ?from=from_copylink
+        Matcher m2 = fsPattern.matcher(
+                "https://kcncuknojm60.feishu.cn/file/VnCxbt35KoowKoxldO3c3C7VnMc?from=from_copylink");
+        assertTrue("FS should match file link with query param", m2.matches());
+        assertEquals("VnCxbt35KoowKoxldO3c3C7VnMc", m2.group("KEY"));
+
+        // 文件夹链接
+        Matcher m3 = fsPattern.matcher(
+                "https://kcncuknojm60.feishu.cn/drive/folder/RQSKf8EQ4l7dMedqzHucpMbancg");
+        assertTrue("FS should match folder link", m3.matches());
+        assertEquals("RQSKf8EQ4l7dMedqzHucpMbancg", m3.group("KEY"));
+
+        // 文件夹链接带 ?from=from_copylink
+        Matcher m4 = fsPattern.matcher(
+                "https://kcncuknojm60.feishu.cn/drive/folder/RQSKf8EQ4l7dMedqzHucpMbancg?from=from_copylink");
+        assertTrue("FS should match folder link with query param", m4.matches());
+        assertEquals("RQSKf8EQ4l7dMedqzHucpMbancg", m4.group("KEY"));
+
+        // 不同的 tenant 子域名
+        Matcher m5 = fsPattern.matcher(
+                "https://pokepangle.feishu.cn/file/VW30bpK74ontiTxvRg1cZcgvnGg");
+        assertTrue("FS should match different tenant", m5.matches());
+        assertEquals("VW30bpK74ontiTxvRg1cZcgvnGg", m5.group("KEY"));
+
+        // 负例: 非feishu域名不匹配
+        assertFalse("FS should NOT match non-feishu domain",
+                fsPattern.matcher("https://evil.com/file/abc123").matches());
+
+        // 负例: feishu.cn上的其他路径不匹配
+        assertFalse("FS should NOT match other feishu paths",
+                fsPattern.matcher("https://xxx.feishu.cn/docs/abc123").matches());
+    }
+
+    @Test
+    public void testFsFromShareUrl() {
+        // 测试文件链接解析
+        String fileUrl = "https://kcncuknojm60.feishu.cn/file/VnCxbt35KoowKoxldO3c3C7VnMc?from=from_copylink";
+        ParserCreate parserCreate = ParserCreate.fromShareUrl(fileUrl);
+        ShareLinkInfo info = parserCreate.getShareLinkInfo();
+
+        assertNotNull("ShareLinkInfo should not be null", info);
+        assertEquals("fs", info.getType());
+        assertEquals("飞书云盘", info.getPanName());
+        assertEquals("VnCxbt35KoowKoxldO3c3C7VnMc", info.getShareKey());
+
+        // 测试文件夹链接解析
+        String folderUrl = "https://kcncuknojm60.feishu.cn/drive/folder/RQSKf8EQ4l7dMedqzHucpMbancg";
+        ParserCreate parserCreate2 = ParserCreate.fromShareUrl(folderUrl);
+        ShareLinkInfo info2 = parserCreate2.getShareLinkInfo();
+
+        assertNotNull("ShareLinkInfo should not be null", info2);
+        assertEquals("fs", info2.getType());
+        assertEquals("飞书云盘", info2.getPanName());
+        assertEquals("RQSKf8EQ4l7dMedqzHucpMbancg", info2.getShareKey());
+    }
+
+    @Test
     public void verifyDuplicates() {
 
         // 校验重复

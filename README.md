@@ -94,6 +94,7 @@ https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.
 - Onedrive-pod
 - Dropbox-pdp
 - iCloud-pic
+- [飞书云盘-fs](https://www.feishu.cn/)
 ### 专属版提供
 - [夸克云盘-qk](https://pan.quark.cn/)
 - [UC云盘-uc](https://fast.uc.cn/)
@@ -340,6 +341,7 @@ json返回数据格式示例:
 | WPS云文档      | √       | X        | 5G(免费)   | 10M(免费)/2G(会员)  |
 | 夸克网盘        | x       | √        | 10G       | 不限大小            | 
 | UC网盘        | x       | √        | 10G       | 不限大小            | 
+| 飞书云盘        | √       | X        | 15G       | 不限大小            |
 
 # 打包部署
 
