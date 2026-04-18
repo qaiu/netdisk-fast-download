@@ -313,6 +313,14 @@ public enum PanDomainTemplate {
             "https://pan.quark.cn/s/{shareKey}",
             QkTool.class),
 
+    // https://xxx.feishu.cn/file/VnCxbt35KoowKoxldO3c3C7VnMc
+    // https://xxx.feishu.cn/drive/folder/RQSKf8EQ4l7dMedqzHucpMbancg
+    FS("飞书云盘",
+            compile("https://[^.]+\\.feishu\\.cn/(?:file|drive/folder)/(?<KEY>[A-Za-z0-9_-]+)(\\?.*)?"),
+            "https://feishu.cn/file/{shareKey}",
+            "https://www.feishu.cn/",
+            FsTool.class),
+
     // =====================音乐类解析 分享链接标志->MxxS (单歌曲/普通音质)==========================
     // http://163cn.tv/xxx
     MNES("网易云音乐分享",
