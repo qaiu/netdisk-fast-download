@@ -29,6 +29,7 @@ QQ交流群：1017480890
 [API接入](https://nfdparser.apifox.cn/)  
 [公益解析，lz站](https://lz.qaiu.top)  
 [公益解析，lz0站](https://lz0.qaiu.top)  
+[专业版](https://189.qaiu.top)  
   
 
 ## 快速开始
@@ -58,7 +59,7 @@ https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.
 
 **注意⚠️小飞机解析有IP限制，多数云服务商的大陆IP会被拦截（可以自行配置代理），和本程序无关**  
 **注意⚠️收到很多用户反馈，小飞机近期封号频繁，请尽可能选择其他网盘分享**  
-**注意⚠️请不要过度依赖 lz.qaiu.top，建议本地搭建或者云服务器自行搭建。请求量过多的话服务器可能会被云盘厂商限制，遇到解析失败的分享链接不要着急提issues，请先检查分享是否有效。
+**注意⚠️请不要过度依赖 lz.qaiu.top，建议本地搭建或者云服务器自行搭建。请求量过多的话服务器可能会被云盘厂商限制，遇到解析失败的分享链接不要着急提issues，请先检查分享是否有效。**
 
 ## 网盘支持情况:
 > 20230905 奶牛云直链做了防盗链，需加入请求头：Referer: https://cowtransfer.com/  
