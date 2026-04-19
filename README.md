@@ -29,7 +29,7 @@ QQ交流群：1017480890
 [API接入](https://nfdparser.apifox.cn/)  
 [公益解析，lz站](https://lz.qaiu.top)  
 [公益解析，lz0站](https://lz0.qaiu.top)  
-[专业版189站，注册体验](https://189.qaiu.top)  
+  
 
 ## 快速开始
 命令行下载分享文件：  
@@ -90,17 +90,10 @@ https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.
 - [WPS云文档-pwps](https://www.kdocs.cn/)
 - [汽水音乐-qishui_music](https://music.douyin.com/qishui/)
 - [咪咕音乐-migu](https://music.migu.cn/)
-- [一刻相册-baidu_photo](https://photo.baidu.com/)
 - Google云盘-pgd
 - Onedrive-pod
 - Dropbox-pdp
 - iCloud-pic
-### 专属版提供
-- [夸克云盘-qk](https://pan.quark.cn/)
-- [UC云盘-uc](https://fast.uc.cn/)
-- [移动云盘-p139](https://yun.139.com/)
-- [联通云盘-pwo](https://pan.wo.cn/)
-- [天翼云盘-p189](https://cloud.189.cn/)
 
 ## API接口
 
@@ -494,23 +487,6 @@ auths:
 
 **注意：** 目前仅支持 123（ye）的认证配置。
 
-## 开发计划
-### v0.1.8~v0.1.9 ✓
-- API添加文件信息(专属版/开源版)
-- 目录解析(专属版/开源版)
-- 文件预览功能(专属版/开源版)
-- 文件夹预览功能(开源版)
-- 友好的错误提示和一键反馈功能(开源版)
-- 带cookie/token/username/pwd参数解析大文件(专属版)
-### v0.2.x
-- web后台管理--认证配置/分享链接管理(开源版/专属版)
-- 123/小飞机/蓝奏优享等大文件解析(开源版)
-- 直链分享(开源版/专属版)
-- aria2/idm+/curl/wget链接生成(开源版/专属版)
-- IP限流配置(开源版/专属版)
-- refere防盗链，API鉴权防盗链(专属版)
-- 123/小飞机/蓝奏优享/蓝奏文件夹解析API，天翼云盘/移动云盘文件夹解析API(专属版)
-- 用户管理面板--营销推广系统(专属版)
 
 **技术栈:**
 Jdk17+Vert.x4
@@ -534,20 +510,6 @@ Core模块集成Vert.x实现类似spring的注解式路由API
 </a>
 </p>
 
-
-### 关于赞助定制专属版
-1. 专属版提供对小飞机,蓝奏优享大文件解析的支持, 提供天翼云盘/移动云盘/联通云盘的解析支持。  
-2. 可提供托管服务：包含部署服务和云服务器环境。  
-3. 可提供功能定制开发。  
-您可能需要提供一定的资金赞助支持定制专属版， 请添加以下任意一个联系方式详谈赞助模式:  
-<p>qq: 197575894</p>
-<p>wechat: imcoding_</p>
-
-<!--
-![image](https://github.com/qaiu/netdisk-fast-download/assets/29825328/54276aee-cc3f-4ebd-8973-2e15f6295819)
-
-[手机端支付宝打赏跳转链接](https://qr.alipay.com/fkx01882dnoxxtjenhlxt53)
--->
 
 
 
