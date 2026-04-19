@@ -3,6 +3,7 @@ package cn.qaiu.parser.impl;
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
+import cn.qaiu.util.CommonUtils;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
@@ -124,7 +125,10 @@ public class FsTool extends PanBase {
                                 if (fileName != null) {
                                     FileInfo fileInfo = new FileInfo();
                                     fileInfo.setFileName(fileName);
+                                    fileInfo.setFileId(token);
+                                    fileInfo.setFileType("file");
                                     fileInfo.setPanType(shareLinkInfo.getType());
+                                    fileInfo.setParserUrl(buildRedirectUrl(shareUrl, token));
                                     parseSizeFromContentRange(
                                             probeRes.getHeader("Content-Range"), fileInfo);
                                     shareLinkInfo.getOtherParam().put("fileInfo", fileInfo);
@@ -309,8 +313,17 @@ public class FsTool extends PanBase {
                                     log.warn("无法解析文件大小: {}", extra.getString("size"), e);
                                 }
 
-                                fileInfo.setParserUrl(
-                                        buildDownloadUrl(tenant, objToken));
+                                fileInfo.setParserUrl(buildRedirectUrl(
+                                        shareLinkInfo.getShareUrl(), objToken));
+
+                                // 添加下载所需的请求头到extParameters
+                                Map<String, Object> extParams = new HashMap<>();
+                                Map<String, String> downloadHeaders = new HashMap<>();
+                                downloadHeaders.put("Referer", referer);
+                                downloadHeaders.put("User-Agent", UA);
+                                extParams.put("downloadHeaders", downloadHeaders);
+                                fileInfo.setExtParameters(extParams);
+
                                 items.add(fileInfo);
                             }
                         }
@@ -353,7 +366,16 @@ public class FsTool extends PanBase {
                     fileInfo.setFileId(token);
                     fileInfo.setPanType(shareLinkInfo.getType());
                     fileInfo.setFileType("file");
-                    fileInfo.setParserUrl(dlUrl);
+                    fileInfo.setParserUrl(buildRedirectUrl(referer, token));
+
+                    // 添加下载所需的请求头到extParameters
+                    Map<String, Object> extParams = new HashMap<>();
+                    Map<String, String> downloadHeaders = new HashMap<>();
+                    downloadHeaders.put("Referer", referer);
+                    downloadHeaders.put("User-Agent", UA);
+                    extParams.put("downloadHeaders", downloadHeaders);
+                    fileInfo.setExtParameters(extParams);
+
                     p.complete(fileInfo);
                 })
                 .onFailure(t -> p.fail("探测文件失败: " + t.getMessage()));
@@ -361,7 +383,40 @@ public class FsTool extends PanBase {
         return p.future();
     }
 
+    @Override
+    public Future<String> parseById() {
+        Promise<String> parsePromise = Promise.promise();
+
+        try {
+            JsonObject paramJson = (JsonObject) shareLinkInfo.getOtherParam().get("paramJson");
+            String shareUrl = paramJson.getString("shareUrl");
+            String objToken = paramJson.getString("objToken");
+            String tenant = extractTenant(shareUrl);
+
+            if (shareUrl == null || objToken == null || tenant == null) {
+                parsePromise.fail("飞书目录文件下载参数不完整");
+                return parsePromise.future();
+            }
+
+            parsePromise.complete(buildDownloadUrl(tenant, objToken));
+        } catch (Exception e) {
+            parsePromise.fail("解析飞书目录文件参数失败: " + e.getMessage());
+        }
+
+        return parsePromise.future();
+    }
+
     // ─── 工具方法 ────────────────────────────────────────
+
+    private String buildRedirectUrl(String shareUrl, String objToken) {
+        JsonObject paramJson = new JsonObject()
+                .put("shareUrl", shareUrl)
+                .put("objToken", objToken);
+        return String.format("%s/v2/redirectUrl/%s/%s",
+                getDomainName(),
+                shareLinkInfo.getType(),
+                CommonUtils.urlBase64Encode(paramJson.encode()));
+    }
 
     private String buildDownloadUrl(String tenant, String objToken) {
         return "https://" + tenant

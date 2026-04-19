@@ -35,27 +35,36 @@
         <i class="fas fa-server feedback-icon"></i>
         部署
       </a>
-      <a href="javascript:void(0)" class="feedback-link mini donate-link" @click="showDonateDialog = true">
-        <i class="fas fa-gift feedback-icon" style="color: #e74c3c;"></i>
-        捐赠账号
-      </a>
     </div>
     <el-row :gutter="20" style="margin-left: 0; margin-right: 0;">
       <el-card class="box-card">
-        <div style="text-align: right; display: flex; justify-content: space-between; align-items: center;">
-          <!-- 左侧认证配置按钮 -->
-          <el-tooltip content="配置临时认证信息" placement="bottom">
-            <el-button 
-              :type="hasAuthConfig ? 'primary' : 'default'" 
-              :class="{ 'auth-config-btn-active': hasAuthConfig }"
-              circle 
-              size="small" 
-              @click="showAuthConfigDialog = true">
-              <el-icon><Key /></el-icon>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <!-- 左侧：认证配置 + 捐赠账号 按钮组 -->
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <el-tooltip content="配置临时认证信息" placement="bottom">
+              <el-button 
+                :type="hasAuthConfig ? 'primary' : 'default'" 
+                :class="{ 'auth-config-btn-active': hasAuthConfig }"
+                circle 
+                size="small" 
+                @click="showAuthConfigDialog = true">
+                <el-icon><Key /></el-icon>
+              </el-button>
+            </el-tooltip>
+            <el-tooltip content="捐赠网盘账号" placement="bottom">
+              <el-button circle size="small" type="warning" @click="showDonateDialog = true">
+                <el-icon><Present /></el-icon>
+              </el-button>
+            </el-tooltip>
+          </div>
+          <!-- 右侧：下载器 + 暗色模式 -->
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <el-button link type="primary" @click="openAria2Dialog" style="position: relative;">
+              <span :class="['aria2-status-dot', aria2Connected ? 'connected' : 'disconnected']"></span>
+              {{ aria2Connected ? ('已连接 - ' + downloaderTypeName) : '下载器' }}
             </el-button>
-          </el-tooltip>
-          <!-- 右侧暗色模式切换 -->
-          <DarkMode @theme-change="handleThemeChange" />
+            <DarkMode @theme-change="handleThemeChange" />
+          </div>
         </div>
         <div class="demo-basic--circle">
           <div class="block" style="text-align: center;">
@@ -107,7 +116,7 @@
               <el-button style="margin-left: 20px" @click="generateMarkdown">生成Markdown</el-button>
               <el-button style="margin-left: 20px" @click="generateQRCode">扫码下载</el-button>
               <el-button style="margin-left: 20px" @click="getStatistics">分享统计</el-button>
-              <el-button style="margin-left: 20px" @click="goToClientLinks" type="primary">生成命令行链接</el-button>
+
             </p>
           </div>
 
@@ -115,31 +124,92 @@
           <div v-if="parseResult.code" style="margin-top: 10px">
             <strong>解析结果: </strong>
             <json-viewer :value="parseResult" :expand-depth="5" copyable boxed sort />
-            <!-- 文件信息美化展示区 -->
-            <div v-if="downloadUrl" class="file-meta-info-card">
-              <div class="file-meta-row">
-                <span class="file-meta-label">下载链接：</span>
-                <a :href="downloadUrl" target="_blank" class="file-meta-link" rel="noreferrer noopener">点击下载</a>
-              </div>
-              <div class="file-meta-row" v-if="parseResult.data?.downloadShortUrl">
-                <span class="file-meta-label">下载短链：</span>
-                <a :href="parseResult.data.downloadShortUrl" target="_blank" class="file-meta-link">{{ parseResult.data.downloadShortUrl }}</a>
-              </div>
-              <div class="file-meta-row">
-                <span class="file-meta-label">文件预览：</span>
-                <a :href="getPreviewLink()" target="_blank" class="file-meta-link">点击预览</a>
-              </div>
-              <div class="file-meta-row">
-                <span class="file-meta-label">文件名：</span>{{ extractFileNameAndExt(downloadUrl).name }}
-              </div>
-              <div class="file-meta-row">
-                <span class="file-meta-label">文件类型：</span>{{ getFileTypeClass({ fileName: extractFileNameAndExt(downloadUrl).name }) }}
-              </div>
-              <div class="file-meta-row" v-if="parseResult.data?.sizeStr">
-                <span class="file-meta-label">文件大小：</span>{{ parseResult.data.sizeStr }}
-              </div>
+            <!-- 下载链接卡片 -->
+            <div v-if="downloadUrl" style="margin-top: 15px;">
+              <el-card shadow="hover" class="download-result-card">
+                <template #header>
+                  <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>下载链接</span>
+                    <div style="display: flex; gap: 8px;">
+                      <el-button @click="openUrl(downloadUrl)" type="primary" size="small">
+                        <el-icon style="margin-right: 4px;"><Download /></el-icon> 下载
+                      </el-button>
+                      <el-button @click="openUrl(getPreviewLink())" type="default" size="small">
+                        <el-icon style="margin-right: 4px;"><View /></el-icon> 预览
+                      </el-button>
+                      <el-tooltip :disabled="aria2Connected"
+                        content="下载器未连接，请点击右上角「下载器」配置" placement="top">
+                        <el-button
+                          @click="handleAria2Download" :loading="aria2Downloading"
+                          type="success" size="small" :disabled="!aria2Connected">
+                          <el-icon style="margin-right: 4px;"><Download /></el-icon> 发送到下载器
+                        </el-button>
+                      </el-tooltip>
+                    </div>
+                  </div>
+                </template>
+                <el-input :value="downloadUrl" readonly>
+                  <template #append>
+                    <el-button v-clipboard:copy="downloadUrl" v-clipboard:success="onCopy"
+                      v-clipboard:error="onError" style="padding: 0 14px;">
+                      <el-icon><CopyDocument/></el-icon>
+                    </el-button>
+                  </template>
+                </el-input>
+                <!-- 文件元信息 -->
+                <div style="margin-top: 10px; font-size: 13px; color: var(--el-text-color-secondary);">
+                  <span v-if="parseResult.data?.sizeStr" style="margin-right: 16px;">
+                    大小: <strong>{{ parseResult.data.sizeStr }}</strong>
+                  </span>
+                  <span v-if="parseResult.data?.downloadShortUrl" style="margin-right: 16px;">
+                    短链: <a :href="parseResult.data.downloadShortUrl" target="_blank" class="file-meta-link">{{ parseResult.data.downloadShortUrl }}</a>
+                  </span>
+                </div>
+                <!-- 调试命令区（默认折叠） -->
+                <div v-if="aria2Command || aria2JsonRpc || curlCommand" style="margin-top: 12px;">
+                  <el-collapse v-model="activeDebugCommands">
+                    <el-collapse-item name="debug">
+                      <template #title>
+                        <span style="font-size: 13px; color: var(--el-text-color-secondary);">命令行 / 调试参数</span>
+                      </template>
+                      <div v-if="aria2Command" class="debug-cmd-section">
+                        <div class="debug-cmd-label">Aria2 下载命令</div>
+                        <el-input :value="aria2Command" type="textarea" :rows="2" readonly />
+                        <div style="text-align: right; margin-top: 6px;">
+                          <el-button v-clipboard:copy="aria2Command" v-clipboard:success="onCopy"
+                            v-clipboard:error="onError" size="small">
+                            <el-icon><CopyDocument/></el-icon> 复制
+                          </el-button>
+                        </div>
+                      </div>
+                      <div v-if="aria2JsonRpc" class="debug-cmd-section">
+                        <div class="debug-cmd-label">Aria2 JSON-RPC</div>
+                        <el-input :value="aria2JsonRpc" type="textarea" :rows="2" readonly />
+                        <div style="text-align: right; margin-top: 6px;">
+                          <el-button v-clipboard:copy="aria2JsonRpc" v-clipboard:success="onCopy"
+                            v-clipboard:error="onError" size="small">
+                            <el-icon><CopyDocument/></el-icon> 复制
+                          </el-button>
+                        </div>
+                      </div>
+                      <div v-if="curlCommand" class="debug-cmd-section">
+                        <div class="debug-cmd-label">curl 下载命令</div>
+                        <el-input :value="curlCommand" type="textarea" :rows="2" readonly />
+                        <div style="text-align: right; margin-top: 6px;">
+                          <el-button v-clipboard:copy="curlCommand" v-clipboard:success="onCopy"
+                            v-clipboard:error="onError" size="small">
+                            <el-icon><CopyDocument/></el-icon> 复制
+                          </el-button>
+                        </div>
+                      </div>
+                    </el-collapse-item>
+                  </el-collapse>
+                </div>
+              </el-card>
             </div>
           </div>
+          <!-- 文件需要下载器弹窗 -->
+          <DownloadDialog v-model:visible="downloadDialogVisible" :download-info="downloadDialogInfo" />
 
           <!-- Markdown链接 -->
           <div v-if="markdownText" style="text-align: center">
@@ -334,6 +404,79 @@
         </div>
       </el-card>
     </el-row>
+
+      <!-- 下载器设置 Dialog -->
+      <el-dialog v-model="aria2DialogVisible" title="下载器设置" width="min(500px, 92vw)" :close-on-click-modal="false">
+        <div class="aria2-config-section">
+          <div class="aria2-config-title">
+            <el-icon><Setting /></el-icon>
+            <span>下载器类型</span>
+          </div>
+          <el-select v-model="aria2ConfigForm.downloaderType" style="width: 100%;" @change="onDownloaderTypeChange">
+            <el-option label="Motrix (推荐)" value="motrix" />
+            <el-option label="Gopeed" value="gopeed" />
+            <el-option label="Aria2" value="aria2" />
+            <el-option label="迅雷" value="thunder" />
+          </el-select>
+          <el-alert
+            v-if="aria2ConfigForm.downloaderType !== 'thunder'"
+            title="Motrix: 端口 16800 | Gopeed: 端口 9999 | Aria2: 端口 6800"
+            type="info" :closable="false" show-icon style="margin-top: 8px;"
+          />
+          <el-alert
+            v-else
+            title="迅雷通过 JS-SDK 调用本地客户端，无需配置 RPC"
+            type="info" :closable="false" show-icon style="margin-top: 8px;"
+          />
+          <div style="margin-top: 10px; font-size: 13px; color: var(--el-text-color-secondary);">
+            没有下载器？
+            <el-link type="primary" href="https://motrix.app" target="_blank" rel="noopener noreferrer">Motrix</el-link> /
+            <el-link type="primary" href="https://github.com/GopeedLab/gopeed/releases" target="_blank" rel="noopener noreferrer">Gopeed</el-link> /
+            <el-link type="primary" href="https://www.xunlei.com" target="_blank" rel="noopener noreferrer">迅雷</el-link>
+          </div>
+        </div>
+        <div v-show="aria2ConfigForm.downloaderType !== 'thunder'" class="aria2-config-section">
+          <div class="aria2-config-title"><el-icon><Monitor /></el-icon><span>RPC 地址</span></div>
+          <el-input v-model="aria2ConfigForm.rpcUrl" placeholder="http://localhost:6800/jsonrpc" clearable />
+        </div>
+        <div v-show="aria2ConfigForm.downloaderType !== 'thunder'" class="aria2-config-section">
+          <div class="aria2-config-title"><el-icon><Key /></el-icon><span>RPC 密钥 (可选)</span></div>
+          <el-input v-model="aria2ConfigForm.rpcSecret" placeholder="如果设置了密钥请输入" show-password clearable autocomplete="new-password" />
+        </div>
+        <div class="aria2-config-section">
+          <el-button link type="primary" @click="aria2ShowAdvanced = !aria2ShowAdvanced">
+            {{ aria2ShowAdvanced ? '收起选项 ▲' : '更多选项 ▼' }}
+          </el-button>
+          <el-collapse-transition>
+            <div v-show="aria2ShowAdvanced" style="margin-top: 10px;">
+              <div class="aria2-config-title"><el-icon><Folder /></el-icon><span>下载目录</span></div>
+              <el-input v-model="aria2ConfigForm.downloadDir" placeholder="留空使用默认下载目录" clearable />
+            </div>
+          </el-collapse-transition>
+        </div>
+        <div v-if="aria2Version && aria2ConfigForm.downloaderType !== 'thunder'" class="aria2-config-section" style="text-align: center;">
+          <el-tag type="success" size="small">
+            <el-icon style="vertical-align: middle;"><SuccessFilled /></el-icon>
+            已连接 - {{ downloaderTypeName }} {{ aria2Version }}
+          </el-tag>
+        </div>
+        <div v-if="aria2ConfigForm.downloaderType === 'thunder'" class="aria2-config-section" style="text-align: center;">
+          <el-tag type="info" size="small">迅雷通过浏览器唤起本地客户端，无需测试连接</el-tag>
+        </div>
+        <div v-show="aria2ConfigForm.downloaderType !== 'thunder'" class="aria2-config-section" style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+          <el-button :loading="aria2Testing" @click="testAria2Connection(false)" type="primary" plain>
+            <el-icon><Download /></el-icon> 测试连接
+          </el-button>
+          <el-button :loading="aria2AutoDetecting" @click="autoDetectDownloader" type="success" plain>
+            <el-icon><Search /></el-icon> 自动检测
+          </el-button>
+        </div>
+        <div style="text-align: center; margin-top: 12px;">
+          <el-button type="primary" @click="saveAria2Config" style="min-width: 180px;">
+            <el-icon><Select /></el-icon> 保存设置
+          </el-button>
+        </div>
+      </el-dialog>
     
     <!-- 版本号显示 -->
     <div class="version-info">
@@ -341,21 +484,6 @@
       <el-link v-if="playgroundEnabled" :href="'/playground'" class="playground-link">脚本演练场</el-link>
     </div>
     
-    <!-- 文件解析结果区下方加分享按钮 -->
-<!--    <div v-if="parseResult.code && downloadUrl" style="margin-top: 10px; text-align: right;">-->
-<!--      <el-button type="primary" @click="copyShowFileLink">分享文件直链</el-button>-->
-<!--    </div>-->
-    <!-- 目录解析结果区下方加分享按钮 -->
-<!--    <div v-if="showDirectoryTree && directoryData.length" style="margin-top: 10px; text-align: right;">-->
-<!--      <el-input :value="showListLink" readonly style="width: 350px; margin-right: 10px;">-->
-<!--        <template #append>-->
-<!--          <el-button v-clipboard:copy="showListLink" v-clipboard:success="onCopy" v-clipboard:error="onError">-->
-<!--            <el-icon><CopyDocument /></el-icon>复制分享链接-->
-<!--          </el-button>-->
-<!--        </template>-->
-<!--      </el-input>-->
-<!--    </div>-->
-
     <!-- 捐赠账号弹窗 -->
     <el-dialog
         v-model="showDonateDialog"
@@ -461,16 +589,18 @@ import axios from 'axios'
 import QRCode from 'qrcode'
 import DarkMode from '@/components/DarkMode'
 import DirectoryTree from '@/components/DirectoryTree'
+import DownloadDialog from '@/components/DownloadDialog'
 import parserUrl from '../parserUrl1'
 import fileTypeUtils from '@/utils/fileTypeUtils'
 import { ElMessage } from 'element-plus'
 import { playgroundApi } from '@/utils/playgroundApi'
+import { testConnection, autoDetect, addDownload, getConfig, saveConfig } from '@/utils/downloaderService'
 
 export const previewBaseUrl = 'https://nfd-parser.github.io/nfd-preview/preview.html?src=';
 
 export default {
   name: 'App',
-  components: { DarkMode, DirectoryTree },
+  components: { DarkMode, DirectoryTree, DownloadDialog },
   mixins: [fileTypeUtils],
   data() {
     return {
@@ -553,7 +683,32 @@ export default {
       donateAccountCounts: {
         active: { total: 0 },
         inactive: { total: 0 }
-      }
+      },
+      
+      // 下载器相关
+      aria2Connected: false,
+      aria2Version: '',
+      aria2DialogVisible: false,
+      aria2ShowAdvanced: false,
+      aria2Testing: false,
+      aria2AutoDetecting: false,
+      aria2Downloading: false,
+      aria2ConfigForm: {
+        downloaderType: 'aria2',
+        rpcUrl: 'http://localhost:6800/jsonrpc',
+        rpcSecret: '',
+        downloadDir: ''
+      },
+      // 下载命令
+      aria2Command: '',
+      aria2JsonRpc: '',
+      curlCommand: '',
+      activeDebugCommands: [],
+      // 下载器特殊头对话框
+      downloadDialogVisible: false,
+      downloadDialogInfo: null,
+      // 目录解析支持的网盘列表
+      directoryParseSupportedPans: []
     }
   },
   computed: {
@@ -566,6 +721,16 @@ export default {
     // 获取已配置认证的网盘数量
     authConfigCount() {
       return Object.keys(this.allAuthConfigs).length
+    },
+    // 下载器类型名称
+    downloaderTypeName() {
+      const map = {
+        motrix: 'Motrix',
+        gopeed: 'Gopeed',
+        aria2: 'Aria2',
+        thunder: '迅雷'
+      }
+      return map[this.aria2ConfigForm.downloaderType] || 'Aria2'
     }
   },
   methods: {
@@ -967,8 +1132,27 @@ export default {
         const result = await this.callAPI('/json/parser', params)
         this.parseResult = result
         this.downloadUrl = result.data?.directLink
+        // 提取命令行参数
+        const otherParam = result.data?.otherParam || {}
+        this.aria2Command = otherParam.aria2Command || ''
+        this.aria2JsonRpc = otherParam.aria2JsonRpc || ''
+        this.curlCommand = otherParam.curlCommand || ''
+        this.activeDebugCommands = []
         // 更新智能直链（包含认证参数）
         this.updateDirectLink()
+        // 如果需要下载器（含特殊头），弹出下载器对话框
+        if (result.data?.needDownloader) {
+          this.downloadDialogInfo = {
+            downloadUrl: result.data.directLink,
+            fileName: result.data.fileName || '',
+            downloadHeaders: result.data.downloadHeaders || {},
+            aria2Command: this.aria2Command,
+            curlCommand: this.curlCommand,
+            aria2JsonRpc: this.aria2JsonRpc,
+            needDownloader: true
+          }
+          this.downloadDialogVisible = true
+        }
         this.$message.success('文件解析成功！')
       } catch (error) {
         console.error('文件解析失败:', error)
@@ -982,17 +1166,7 @@ export default {
         const params = { url: this.link }
         if (this.password) params.pwd = this.password
         
-        const result = await this.callAPI('/v2/linkInfo', params)
-        const data = result.data
-        
-        // 检查是否支持目录解析
-        const supportedPans = ["iz", "lz", "fj", "ye", "le"]
-        if (!supportedPans.includes(data.shareLinkInfo.type)) {
-          this.$message.error("当前网盘不支持目录解析")
-          return
-        }
-
-        // 获取目录数据
+        // 直接调用 getFileList，让后端返回错误（不做客户端类型检查）
         const directoryResult = await this.callAPI('/v2/getFileList', params)
         this.directoryData = directoryResult.data || []
         this.showDirectoryTree = true
@@ -1363,6 +1537,117 @@ export default {
       } catch (e) {
         console.error('加载捐赠账号统计失败:', e)
       }
+    },
+
+    // ===== 下载器相关方法 =====
+    openAria2Dialog() {
+      this.aria2DialogVisible = true
+    },
+    onDownloaderTypeChange() {
+      const defaults = {
+        motrix: 'http://localhost:16800/jsonrpc',
+        gopeed: 'http://localhost:9999/api/v1',
+        aria2: 'http://localhost:6800/jsonrpc',
+        thunder: ''
+      }
+      if (defaults[this.aria2ConfigForm.downloaderType] !== undefined) {
+        this.aria2ConfigForm.rpcUrl = defaults[this.aria2ConfigForm.downloaderType]
+      }
+    },
+    async testAria2Connection(silent = false) {
+      this.aria2Testing = true
+      try {
+        if (this.aria2ConfigForm.downloaderType === 'thunder') {
+          const result = await testConnection()
+          this.aria2Connected = result.connected
+          this.aria2Version = result.version || 'JS-SDK'
+          if (!silent) {
+            if (result.connected) this.$message.success('迅雷 JS-SDK 已就绪')
+            else this.$message.error('迅雷客户端未检测到，请确认已安装并启动迅雷')
+          }
+          return
+        }
+        const result = await testConnection(
+          this.aria2ConfigForm.rpcUrl,
+          this.aria2ConfigForm.rpcSecret
+        )
+        if (result.connected) {
+          this.aria2Connected = true
+          this.aria2Version = result.version || ''
+          if (!silent) this.$message.success(`连接成功：${this.downloaderTypeName} ${this.aria2Version}`)
+        } else {
+          this.aria2Connected = false
+          this.aria2Version = ''
+          if (!silent) this.$message.error('连接失败：请检查下载器是否启动')
+        }
+      } catch (e) {
+        this.aria2Connected = false
+        this.aria2Version = ''
+        if (!silent) this.$message.error('连接失败：' + e.message)
+      } finally {
+        this.aria2Testing = false
+      }
+    },
+    async autoDetectDownloader() {
+      this.aria2AutoDetecting = true
+      try {
+        const result = await autoDetect(this.aria2ConfigForm.rpcSecret)
+        if (result.found) {
+          this.aria2ConfigForm.rpcUrl = result.rpcUrl
+          this.aria2ConfigForm.downloaderType = result.type || 'aria2'
+          this.aria2Connected = true
+          this.aria2Version = result.version || ''
+          this.$message.success(`检测到 ${this.downloaderTypeName} ${this.aria2Version}`)
+        } else {
+          this.$message.warning('未检测到本地下载器，请确认 Motrix/Gopeed/Aria2 正在运行')
+        }
+      } catch (e) {
+        this.$message.error('自动检测失败：' + e.message)
+      } finally {
+        this.aria2AutoDetecting = false
+      }
+    },
+    saveAria2Config() {
+      saveConfig(this.aria2ConfigForm)
+      this.$message.success('下载器配置已保存')
+      this.aria2DialogVisible = false
+      // 保存后自动测试连接
+      this.testAria2Connection(true)
+    },
+    getAria2Config() {
+      const cfg = getConfig()
+      if (cfg) {
+        this.aria2ConfigForm = { ...this.aria2ConfigForm, ...cfg }
+        // 启动后静默测试连接
+        this.testAria2Connection(true)
+      }
+    },
+    async handleAria2Download() {
+      if (!this.downloadUrl) return
+      this.aria2Downloading = true
+      try {
+        const headers = this.parseResult.data?.otherParam?.downloadHeaders || {}
+        const fileName = this.parseResult.data?.fileInfo?.fileName || ''
+        await addDownload(this.downloadUrl, headers, fileName, this.aria2ConfigForm)
+        this.$message.success('已发送到下载器')
+      } catch (e) {
+        this.$message.error('发送失败：' + e.message)
+      } finally {
+        this.aria2Downloading = false
+      }
+    },
+    openUrl(url) {
+      if (url) window.open(url, '_blank', 'noopener,noreferrer')
+    },
+    async loadDirectoryParseSupportedPans() {
+      try {
+        const result = await this.callAPI('/v2/supportedParsePans', {})
+        if (result.data && Array.isArray(result.data)) {
+          this.directoryParseSupportedPans = result.data.map(p => (typeof p === 'string' ? p.toLowerCase() : p))
+        }
+      } catch (e) {
+        // 静默失败，使用默认列表
+      }
     }
   },
   
@@ -1387,6 +1672,9 @@ export default {
 
     // 检查演练场是否启用
     this.checkPlaygroundEnabled()
+
+    // 初始化下载器配置
+    this.getAria2Config()
 
     // 自动读取剪切板
     if (this.autoReadClipboard) {
@@ -1661,6 +1949,45 @@ hr {
   background: #232323 !important;
   color: #eee !important;
   border-color: #444 !important;
+}
+
+/* 下载器状态指示点 */
+.aria2-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+.aria2-status-dot.connected { background: #67c23a; }
+.aria2-status-dot.disconnected { background: #909399; }
+
+/* 下载器配置区块 */
+.aria2-config-section {
+  margin-bottom: 14px;
+}
+.aria2-config-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 6px;
+}
+
+/* 下载结果卡片 */
+.download-result-card {
+  margin-top: 10px;
+}
+
+/* 调试命令区 */
+.debug-cmd-section {
+  margin-bottom: 14px;
+}
+.debug-cmd-label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 4px;
 }
 #app.dark-theme .jv-key {
   color: #4a9eff !important;
