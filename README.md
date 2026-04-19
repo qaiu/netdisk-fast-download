@@ -86,6 +86,7 @@ https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.
 - [Cloudreve自建网盘-ce](https://github.com/cloudreve/Cloudreve)
 - ~[微雨云存储-pvvy](https://www.vyuyun.com/)~
 - [超星云盘(需要referer: https://pan-yz.chaoxing.com)-pcx](https://pan-yz.chaoxing.com)
+- [飞书云盘-fs](https://www.feishu.cn/)
 - [WPS云文档-pwps](https://www.kdocs.cn/)
 - [汽水音乐-qishui_music](https://music.douyin.com/qishui/)
 - [咪咕音乐-migu](https://music.migu.cn/)
@@ -94,7 +95,6 @@ https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.
 - Onedrive-pod
 - Dropbox-pdp
 - iCloud-pic
-- [飞书云盘-fs](https://www.feishu.cn/)
 ### 专属版提供
 - [夸克云盘-qk](https://pan.quark.cn/)
 - [UC云盘-uc](https://fast.uc.cn/)

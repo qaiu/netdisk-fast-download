@@ -19,19 +19,19 @@ module.exports = {
     port: 6444,
     proxy: {
       '/parser': {
-        target: 'http://127.0.0.1:6400/',  // 请求本地
+        target: 'http://127.0.0.1:6401/',  // 请求本地
         ws: false
       },
       '/v2': {
-        target: 'http://127.0.0.1:6400/',  // 请求本地
+        target: 'http://127.0.0.1:6401/',  // 请求本地
         ws: false
       },
       '/json': {
-        target: 'http://127.0.0.1:6400/',  // 请求本地
+        target: 'http://127.0.0.1:6401/',  // 请求本地
         ws: false
       },
       '/d': {
-        target: 'http://127.0.0.1:6400/',  // 请求本地
+        target: 'http://127.0.0.1:6401/',  // 请求本地
         ws: false
       },
     }
