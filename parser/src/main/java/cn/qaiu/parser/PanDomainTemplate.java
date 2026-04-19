@@ -115,9 +115,9 @@ public enum PanDomainTemplate {
             "https://www.feijix.com/s/{shareKey}",
             FjTool.class),
 
-    // https://lecloud.lenovo.com/share/
-    LE("联想乐云",
-            compile("https://lecloud\\.lenovo\\.com/share/(?<KEY>.+)"),
+        // https://lecloud.lenovo.com/share/  https://lecloud.lenovo.com/mshare/
+        LE("联想乐云",
+                        compile("https://lecloud\\.lenovo\\.com/m?share/(?<KEY>.+)"),
             "https://lecloud.lenovo.com/share/{shareKey}",
             LeTool.class),
 

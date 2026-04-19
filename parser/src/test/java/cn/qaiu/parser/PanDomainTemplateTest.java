@@ -161,14 +161,23 @@ public class PanDomainTemplateTest {
     public void testLePatternFix() {
         Pattern lePattern = PanDomainTemplate.LE.getPattern();
 
-        // lecloud.lenovo.com 应匹配
+        // /share/ 格式应匹配
         Matcher m1 = lePattern.matcher("https://lecloud.lenovo.com/share/abc123");
-        assertTrue("LE should match lecloud.lenovo.com", m1.find());
+        assertTrue("LE should match /share/ format", m1.find());
         assertEquals("abc123", m1.group("KEY"));
 
-        // leclou.lenovo.com (去掉'd') 不应匹配（原 lecloud? 的 bug）
+        // /mshare/ 格式应匹配
+        Matcher m2 = lePattern.matcher("https://lecloud.lenovo.com/mshare/xyz789");
+        assertTrue("LE should match /mshare/ format", m2.find());
+        assertEquals("xyz789", m2.group("KEY"));
+
+        // leclou.lenovo.com (去掉'd') 不应匹配
         assertFalse("LE should NOT match leclou.lenovo.com",
                 lePattern.matcher("https://leclou.lenovo.com/share/abc123").find());
+
+        // 错误路径不应匹配
+        assertFalse("LE should NOT match wrong path",
+                lePattern.matcher("https://lecloud.lenovo.com/s/abc123").find());
     }
 
     @Test
