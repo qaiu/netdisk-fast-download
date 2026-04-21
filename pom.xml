@@ -26,13 +26,13 @@
         <packageDirectory>${project.basedir}/web-service/target/package</packageDirectory>
 
         <!-- Vert.x 4.5.24 已包含安全修复，无需单独指定 Netty 版本 -->
-        <vertx.version>4.5.14</vertx.version>
+        <vertx.version>4.5.24</vertx.version>
         <org.reflections.version>0.10.2</org.reflections.version>
         <lombok.version>1.18.38</lombok.version>
         <slf4j.version>2.0.16</slf4j.version>
         <commons-lang3.version>3.18.0</commons-lang3.version>
         <commons-beanutils2.version>2.0.0</commons-beanutils2.version>
-        <jackson.version>2.18.2</jackson.version>
+        <jackson.version>2.18.6</jackson.version>
         <!-- Logback 最新稳定版 -->
         <logback.version>1.5.18</logback.version>
         <junit.version>4.13.2</junit.version>

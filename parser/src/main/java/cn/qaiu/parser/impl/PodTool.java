@@ -99,7 +99,8 @@ public class PodTool extends PanBase {
                                 Matcher matcher1 =
                                         Pattern.compile("\"downloadUrl\":\"(?<url>https?://[^\s\"]+)").matcher(body);
                                 if (matcher1.find()) {
-                                    complete(matcher1.group("url"));
+                                    // 响应体是 JSON 文本，URL 中的 '&' 被转义为 \u0026，需要反转义
+                                    complete(unescapeJsonUnicode(matcher1.group("url")));
                                 } else {
                                     fail();
                                 }
@@ -132,6 +133,34 @@ public class PodTool extends PanBase {
             return url;
         }
         throw new RuntimeException("URL匹配失败");
+    }
+
+    /**
+     * 反转义 JSON 响应文本中残留的 Unicode 转义序列（主要是 \u0026 -> &）。
+     * 主分支通过正则直接从 JSON 原文抠 URL，未经过 JSON 解析器，需要手动还原。
+     */
+    private String unescapeJsonUnicode(String s) {
+        if (s == null || s.indexOf("\\u") < 0) {
+            return s;
+        }
+        StringBuilder sb = new StringBuilder(s.length());
+        int i = 0;
+        while (i < s.length()) {
+            char c = s.charAt(i);
+            if (c == '\\' && i + 5 < s.length() && s.charAt(i + 1) == 'u') {
+                try {
+                    int cp = Integer.parseInt(s.substring(i + 2, i + 6), 16);
+                    sb.append((char) cp);
+                    i += 6;
+                    continue;
+                } catch (NumberFormatException ignored) {
+                    // 非法转义按原样保留
+                }
+            }
+            sb.append(c);
+            i++;
+        }
+        return sb.toString();
     }
 
 
