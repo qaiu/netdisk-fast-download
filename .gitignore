@@ -41,7 +41,9 @@ gradlew.bat
 unused.txt
 /web-service/src/main/generated/
 /db
+/netdisk-fast-download/
 /webroot/nfd-front/
+/netdisk-fast-download/webroot/nfd-front/
 package-lock.json
 
 # Maven generated files

@@ -344,7 +344,7 @@
 
 <script>
 import axios from 'axios'
-import { ElTree } from 'element-plus'
+import { ElTree, ElMessageBox } from 'element-plus'
 import { Splitpanes, Pane } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
 import fileTypeUtils from '@/utils/fileTypeUtils'
@@ -677,7 +677,31 @@ export default {
         this.$message.success(`自动检测到 ${detected.type} ${detected.version}`)
         return true
       }
-      this.$message.error('下载器连接失败，请先在首页设置中配置下载器')
+      try {
+        await ElMessageBox.confirm(
+          '未检测到本地下载器，是否切换为迅雷下载？',
+          '下载器未检测到',
+          {
+            confirmButtonText: '使用迅雷',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+        const thunderConfig = {
+          ...config,
+          downloaderType: 'thunder',
+          rpcUrl: ''
+        }
+        saveConfig(thunderConfig)
+        const thunderResult = await testConnection()
+        if (thunderResult.connected) {
+          this.$message.success('已切换并保存为迅雷下载器配置')
+          return true
+        }
+        this.$message.error('已保存为迅雷配置，但未检测到迅雷客户端，请先启动迅雷')
+      } catch {
+        this.$message.error('下载器连接失败，请先在首页设置中配置下载器')
+      }
       return false
     },
     async sendSingleToDownloader(file) {

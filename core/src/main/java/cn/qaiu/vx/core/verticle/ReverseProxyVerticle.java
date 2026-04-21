@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.Map;
 
 /**
@@ -77,25 +78,13 @@ public class ReverseProxyVerticle extends AbstractVerticle {
      * @param proxyConf 代理配置
      */
     private void handleProxyConf(JsonObject proxyConf) {
-        // page404 path
-        if (proxyConf.containsKey(
-
-                "page404")) {
-            System.getProperty("user.dir");
-            String path = proxyConf.getString("page404");
-            if (StringUtils.isEmpty(path)) {
-                proxyConf.put("page404", DEFAULT_PATH_404);
-            } else {
-                if (!path.startsWith("/")) {
-                    path = "/" + path;
-                }
-                if (!new File(System.getProperty("user.dir") + path).exists()) {
-                    proxyConf.put("page404", DEFAULT_PATH_404);
-                }
-            }
-        } else {
-            proxyConf.put("page404", DEFAULT_PATH_404);
+        // page404 path: 兼容不同启动目录(根目录或子模块目录)
+        String configured404 = proxyConf.getString("page404");
+        String resolved404 = resolveExistingPath(configured404, false);
+        if (resolved404 == null) {
+            resolved404 = resolveExistingPath(DEFAULT_PATH_404, false);
         }
+        proxyConf.put("page404", resolved404 == null ? DEFAULT_PATH_404 : resolved404);
 
         final HttpClient httpClient = VertxHolder.getVertxInstance().createHttpClient();
         Router proxyRouter = Router.router(vertx);
@@ -180,7 +169,14 @@ public class ReverseProxyVerticle extends AbstractVerticle {
 
         StaticHandler staticHandler;
         if (staticConf.containsKey("root")) {
-            staticHandler = StaticHandler.create(staticConf.getString("root"));
+            String configuredRoot = staticConf.getString("root");
+            String resolvedRoot = resolveStaticRoot(configuredRoot);
+            if (resolvedRoot != null) {
+                staticHandler = StaticHandler.create(resolvedRoot);
+            } else {
+                LOGGER.warn("static root not found, fallback to configured path: {}", configuredRoot);
+                staticHandler = StaticHandler.create(configuredRoot);
+            }
         } else {
             staticHandler = StaticHandler.create();
         }
@@ -252,5 +248,78 @@ public class ReverseProxyVerticle extends AbstractVerticle {
             }
 
         });
+    }
+
+    /**
+     * 解析配置路径: 优先绝对路径, 否则尝试 user.dir 和 user.dir/..。
+     */
+    private String resolveExistingPath(String path, boolean directory) {
+        if (StringUtils.isBlank(path)) {
+            return null;
+        }
+
+        File directFile = new File(path);
+        if (existsByType(directFile, directory)) {
+            return directFile.getAbsolutePath();
+        }
+
+        String userDir = System.getProperty("user.dir");
+        File inUserDir = new File(userDir, path);
+        if (existsByType(inUserDir, directory)) {
+            return inUserDir.getAbsolutePath();
+        }
+
+        File inParentDir = new File(new File(userDir).getParentFile(), path);
+        if (existsByType(inParentDir, directory)) {
+            return inParentDir.getAbsolutePath();
+        }
+
+        return null;
+    }
+
+    /**
+     * StaticHandler 只接受相对 web root，不接受以 / 开头的绝对路径。
+     */
+    private String resolveStaticRoot(String path) {
+        if (StringUtils.isBlank(path)) {
+            return null;
+        }
+
+        File directFile = new File(path);
+        if (existsByType(directFile, true)) {
+            return path;
+        }
+
+        String userDir = System.getProperty("user.dir");
+        File inUserDir = new File(userDir, path);
+        if (existsByType(inUserDir, true)) {
+            return relativizePath(new File(userDir), inUserDir);
+        }
+
+        File userDirFile = new File(userDir);
+        File parentDir = userDirFile.getParentFile();
+        File inParentDir = parentDir == null ? null : new File(parentDir, path);
+        if (existsByType(inParentDir, true)) {
+            return relativizePath(userDirFile, inParentDir);
+        }
+
+        return null;
+    }
+
+    private String relativizePath(File baseDir, File target) {
+        try {
+            Path basePath = baseDir.toPath().toAbsolutePath().normalize();
+            Path targetPath = target.toPath().toAbsolutePath().normalize();
+            return basePath.relativize(targetPath).toString().replace(File.separatorChar, '/');
+        } catch (IllegalArgumentException ignored) {
+            return target.getPath().replace(File.separatorChar, '/');
+        }
+    }
+
+    private boolean existsByType(File file, boolean directory) {
+        if (file == null || !file.exists()) {
+            return false;
+        }
+        return directory ? file.isDirectory() : file.isFile();
     }
 }

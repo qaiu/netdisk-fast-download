@@ -73,9 +73,9 @@
         </div>
         <!-- 项目简介移到卡片内 -->
         <div class="project-intro">
-          <div class="intro-title">NFD网盘直链解析0.2.1b3</div>
+          <div class="intro-title">NFD网盘直链解析0.3.0</div>
           <div class="intro-desc">
-            <div>支持网盘：蓝奏云、蓝奏云优享、小飞机盘、123云盘、奶牛快传、移动云空间、QQ邮箱云盘、QQ闪传等 <el-link style="color:#606cf5" href="https://github.com/qaiu/netdisk-fast-download?tab=readme-ov-file#%E7%BD%91%E7%9B%98%E6%94%AF%E6%8C%81%E6%83%85%E5%86%B5" target="_blank"> &gt;&gt; </el-link></div>
+            <div>支持网盘：蓝奏云、蓝奏云优享、小飞机盘、123云盘、iCloud、移动云空间、联想乐云、QQ闪传等 <el-link style="color:#606cf5" href="https://github.com/qaiu/netdisk-fast-download?tab=readme-ov-file#%E7%BD%91%E7%9B%98%E6%94%AF%E6%8C%81%E6%83%85%E5%86%B5" target="_blank"> &gt;&gt; </el-link></div>
             <div>文件夹解析支持：蓝奏云、蓝奏云优享、小飞机盘、123云盘</div>
           </div>
         </div>
@@ -111,8 +111,8 @@
             </el-input>
 
             <p style="text-align: center">
-              <el-button style="margin-left: 40px" @click="parseFile">解析文件</el-button>
-              <el-button style="margin-left: 20px" @click="parseDirectory">解析目录</el-button>
+              <el-button class="parse-action-btn" type="success" style="margin-left: 40px" @click="parseFile">解析文件</el-button>
+              <el-button class="parse-action-btn" type="success" style="margin-left: 20px" @click="parseDirectory">解析目录</el-button>
               <el-button style="margin-left: 20px" @click="generateMarkdown">生成Markdown</el-button>
               <el-button style="margin-left: 20px" @click="generateQRCode">扫码下载</el-button>
               <el-button style="margin-left: 20px" @click="getStatistics">分享统计</el-button>
@@ -592,7 +592,7 @@ import DirectoryTree from '@/components/DirectoryTree'
 import DownloadDialog from '@/components/DownloadDialog'
 import parserUrl from '../parserUrl1'
 import fileTypeUtils from '@/utils/fileTypeUtils'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { playgroundApi } from '@/utils/playgroundApi'
 import { testConnection, autoDetect, addDownload, getConfig, saveConfig } from '@/utils/downloaderService'
 
@@ -708,7 +708,9 @@ export default {
       downloadDialogVisible: false,
       downloadDialogInfo: null,
       // 目录解析支持的网盘列表
-      directoryParseSupportedPans: []
+      directoryParseSupportedPans: [],
+      // 后端支持网盘列表（用于短格式 type:key@pwd 展开）
+      panList: []
     }
   },
   computed: {
@@ -1041,12 +1043,65 @@ export default {
 
     // 验证输入
     validateInput() {
+      this.normalizeShortcutInput()
       this.clearResults()
       
       if (!this.link.startsWith("https://") && !this.link.startsWith("http://")) {
         this.$message.error("请输入有效链接!")
         throw new Error('请输入有效链接')
       }
+    },
+
+    // 获取后端支持网盘列表
+    async getPanList() {
+      try {
+        const response = await axios.get(`${this.baseAPI}/v2/getPanList`)
+        const payload = response?.data
+        const list = Array.isArray(payload)
+          ? payload
+          : (Array.isArray(payload?.data) ? payload.data : [])
+        if (list.length > 0) {
+          this.panList = list
+        }
+      } catch (error) {
+        // 静默失败：短格式解析会自动回退
+      }
+    },
+
+    // 按后端网盘列表展开短格式（type:key@pwd）
+    expandShortFormat(text) {
+      const raw = (text || '').trim()
+      if (!raw) return null
+
+      const shortMatch = raw.match(/^([a-zA-Z][a-zA-Z0-9]{1,10}):([^@]+?)(?:@(.+))?$/)
+      if (!shortMatch) return null
+
+      const [, shortType, shortKey, shortPwd] = shortMatch
+      const pan = this.panList.find(p => (p.type || '').toLowerCase() === shortType.toLowerCase())
+      if (!pan || !pan.shareUrlFormat) return null
+
+      const link = pan.shareUrlFormat
+        .replace('{shareKey}', shortKey)
+        .replace(/\{pwd}/g, shortPwd || '')
+
+      return {
+        link,
+        pwd: shortPwd || '',
+        name: pan.name || pan.type || shortType
+      }
+    },
+
+    // 识别并转换短链输入（如 lz:shareKey@pwd）
+    normalizeShortcutInput() {
+      const shortInfo = this.expandShortFormat(this.link)
+      if (!shortInfo) return
+
+      this.link = shortInfo.link
+      if (!this.password && shortInfo.pwd) {
+        this.password = shortInfo.pwd
+      }
+      this.$message.success(`已识别短格式并自动转换，网盘类型: ${shortInfo.name}`)
+      this.updateDirectLink()
     },
 
     // 清除结果
@@ -1265,6 +1320,23 @@ export default {
       try {
         const text = await navigator.clipboard.readText()
         console.log('获取到的文本内容是：', text)
+
+        const shortInfo = this.expandShortFormat(text)
+        if (shortInfo) {
+          if (shortInfo.link !== this.link || shortInfo.pwd !== this.password) {
+            this.password = shortInfo.pwd
+            this.link = shortInfo.link
+            this.updateDirectLink()
+            if (!this.hasClipboardSuccessTip) {
+              this.$message.success(`自动识别分享成功, 网盘类型: ${shortInfo.name}; 分享URL ${this.link}; 分享密码: ${this.password || '空'}`)
+              this.hasClipboardSuccessTip = true
+            }
+          } else {
+            this.$message.warning(`[${shortInfo.name}]分享信息无变化`)
+          }
+          this.hasWarnedNoLink = false
+          return
+        }
         
         const linkInfo = parserUrl.parseLink(text)
         const pwd = parserUrl.parsePwd(text) || ''
@@ -1375,6 +1447,7 @@ export default {
     
     // 跳转到客户端链接页面
     async goToClientLinks() {
+      this.normalizeShortcutInput()
       // 验证输入
       if (!this.link.trim()) {
         this.$message.warning('请先输入分享链接')
@@ -1550,8 +1623,18 @@ export default {
         aria2: 'http://localhost:6800/jsonrpc',
         thunder: ''
       }
+
+      // 切换类型时先清空旧连接状态，避免显示残留版本信息
+      this.aria2Connected = false
+      this.aria2Version = ''
+
       if (defaults[this.aria2ConfigForm.downloaderType] !== undefined) {
         this.aria2ConfigForm.rpcUrl = defaults[this.aria2ConfigForm.downloaderType]
+      }
+
+      // 非迅雷类型在切换后自动静默重测，刷新连接状态
+      if (this.aria2ConfigForm.downloaderType !== 'thunder') {
+        this.$nextTick(() => this.testAria2Connection(true))
       }
     },
     async testAria2Connection(silent = false) {
@@ -1599,7 +1682,25 @@ export default {
           this.aria2Version = result.version || ''
           this.$message.success(`检测到 ${this.downloaderTypeName} ${this.aria2Version}`)
         } else {
-          this.$message.warning('未检测到本地下载器，请确认 Motrix/Gopeed/Aria2 正在运行')
+          try {
+            await ElMessageBox.confirm(
+              '未检测到本地下载器，是否切换为迅雷下载？',
+              '下载器未检测到',
+              {
+                confirmButtonText: '使用迅雷',
+                cancelButtonText: '取消',
+                type: 'warning'
+              }
+            )
+            this.aria2ConfigForm.downloaderType = 'thunder'
+            this.aria2ConfigForm.rpcUrl = ''
+            saveConfig(this.aria2ConfigForm)
+            this.$message.success('已切换并保存为迅雷下载器配置')
+            this.aria2DialogVisible = true
+            await this.testAria2Connection(true)
+          } catch {
+            this.$message.warning('未检测到本地下载器，请确认 Motrix/Gopeed/Aria2 正在运行')
+          }
         }
       } catch (e) {
         this.$message.error('自动检测失败：' + e.message)
@@ -1675,6 +1776,9 @@ export default {
 
     // 初始化下载器配置
     this.getAria2Config()
+
+    // 拉取后端网盘支持列表（用于 type:key@pwd 短格式）
+    this.getPanList()
 
     // 自动读取剪切板
     if (this.autoReadClipboard) {
@@ -2093,5 +2197,27 @@ hr {
 
 #app.dark-theme .el-form-item__label {
   color: #ccc;
+}
+
+/* 解析按钮专用配色：亮色浅绿，暗色深绿 */
+.parse-action-btn.el-button--success {
+  --el-button-bg-color: #7fcb96;
+  --el-button-border-color: #7fcb96;
+  --el-button-text-color: #f7fff9;
+  --el-button-hover-bg-color: #93d8a8;
+  --el-button-hover-border-color: #93d8a8;
+  --el-button-active-bg-color: #69b884;
+  --el-button-active-border-color: #69b884;
+}
+
+#app.dark-theme .parse-action-btn.el-button--success,
+body.dark-theme .parse-action-btn.el-button--success {
+  --el-button-bg-color: #1f6b3a;
+  --el-button-border-color: #1f6b3a;
+  --el-button-text-color: #ecf9f0;
+  --el-button-hover-bg-color: #2b7d49;
+  --el-button-hover-border-color: #2b7d49;
+  --el-button-active-bg-color: #185731;
+  --el-button-active-border-color: #185731;
 }
 </style>
