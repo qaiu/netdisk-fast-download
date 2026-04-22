@@ -16,7 +16,7 @@ import java.time.format.DateTimeFormatter;
 
 /**
  * @author <a href="https://qaiu.top">QAIU</a>
- * Create at 2023/10/14 9:07
+ * @date 2023/10/14 9:07
  */
 public class JacksonConfig {
 

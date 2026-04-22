@@ -29,20 +29,23 @@ public class ServiceVerticle extends AbstractVerticle {
         Reflections reflections = ReflectionUtil.getReflections();
         handlers = reflections.getTypesAnnotatedWith(Service.class);
     }
-
     @Override
     public void start(Promise<Void> startPromise) {
         ServiceBinder binder = new ServiceBinder(vertx);
         if (null != handlers && handlers.size() > 0) {
+            // handlers转为拼接类列表，xxx,yyy,zzz
+            StringBuilder serviceNames = new StringBuilder();
             handlers.forEach(asyncService -> {
                 try {
+                    serviceNames.append(asyncService.getName()).append("|");
                     BaseAsyncService asInstance = (BaseAsyncService) ReflectionUtil.newWithNoParam(asyncService);
                     binder.setAddress(asInstance.getAddress()).register(asInstance.getAsyncInterfaceClass(), asInstance);
                 } catch (Exception e) {
-                    LOGGER.error(e.getMessage());
+                    LOGGER.error("Failed to register service: {}", asyncService.getName(), e);
                 }
             });
-            LOGGER.info("registered async services -> id: {}", ID.getAndIncrement());
+
+            LOGGER.info("registered async services -> id: {}, name: {}", ID.getAndIncrement(), serviceNames.toString());
         }
         startPromise.complete();
     }

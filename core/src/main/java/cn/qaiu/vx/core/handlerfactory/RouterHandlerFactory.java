@@ -23,8 +23,6 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.*;
 import io.vertx.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.ext.web.handler.sockjs.SockJSHandlerOptions;
-import io.vertx.ext.web.sstore.LocalSessionStore;
-import io.vertx.ext.web.sstore.SessionStore;
 import javassist.CtClass;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -76,15 +74,15 @@ public class RouterHandlerFactory implements BaseHttpApi {
         // 主路由
         Router mainRouter = Router.router(VertxHolder.getVertxInstance());
         mainRouter.route().handler(ctx -> {
-            String realPath = ctx.request().uri();;
+            String realPath = ctx.request().uri();
             if (realPath.startsWith(REROUTE_PATH_PREFIX)) {
                 // vertx web proxy暂不支持rewrite, 所以这里进行手动替换, 请求地址中的请求path前缀替换为originPath
-                String rePath = realPath.substring(REROUTE_PATH_PREFIX.length());
+                String rePath = realPath.replace(REROUTE_PATH_PREFIX, "");
                 ctx.reroute(rePath);
                 return;
             }
 
-            LOGGER.debug("The HTTP service request address information ===>path:{}, uri:{}, method:{}",
+            LOGGER.debug("New request:{}, {}, {}",
                     ctx.request().path(), ctx.request().absoluteURI(), ctx.request().method());
             ctx.response().headers().add(ACCESS_CONTROL_ALLOW_ORIGIN, "*");
             ctx.response().headers().add(DATE, LocalDateTime.now().format(ISO_LOCAL_DATE_TIME));
@@ -99,16 +97,6 @@ public class RouterHandlerFactory implements BaseHttpApi {
 
         // 配置文件上传路径
         mainRouter.route().handler(BodyHandler.create().setUploadsDirectory("uploads"));
-
-        // 配置Session管理 - 用于演练场登录状态持久化
-        // 30天过期时间（毫秒）
-        SessionStore sessionStore = LocalSessionStore.create(VertxHolder.getVertxInstance());
-        SessionHandler sessionHandler = SessionHandler.create(sessionStore)
-                .setSessionTimeout(30L * 24 * 60 * 60 * 1000) // 30天
-                .setSessionCookieName("SESSIONID") // Cookie名称
-                .setCookieHttpOnlyFlag(true) // 防止XSS攻击
-                .setCookieSecureFlag(false); // 非HTTPS环境设置为false
-        mainRouter.route().handler(sessionHandler);
 
         // 拦截器
         Set<Handler<RoutingContext>> interceptorSet = getInterceptorSet();
@@ -189,10 +177,10 @@ public class RouterHandlerFactory implements BaseHttpApi {
                     if (ctx.response().ended()) return;
                     // 超时处理器状态码503
                     if (ctx.statusCode() == 503 || ctx.failure() == null) {
-                        doFireJsonResultResponse(ctx, JsonResult.error("未知异常, 请联系管理员", 500));
+                        doFireJsonResultResponse(ctx, JsonResult.error("未知异常, 请联系管理员"), 503);
                     } else {
                         ctx.failure().printStackTrace();
-                        doFireJsonResultResponse(ctx, JsonResult.error(ctx.failure().getMessage(), 500));
+                        doFireJsonResultResponse(ctx, JsonResult.error(ctx.failure().getMessage()), 500);
                     }
                 });
             } else if (method.isAnnotationPresent(SockRouteMapper.class)) {
@@ -246,7 +234,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
      */
     private Set<Handler<RoutingContext>> getInterceptorSet() {
         // 配置拦截
-        return getBeforeInterceptor().stream().map(BeforeInterceptor::doHandle).collect(Collectors.toSet());
+        return getBeforeInterceptor().stream().map(BeforeInterceptor::doHandle).collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     /**
@@ -315,19 +303,19 @@ public class RouterHandlerFactory implements BaseHttpApi {
 
         final MultiMap queryParams = ctx.queryParams();
         // 解析body-json参数
-        // 只处理POST/PUT/PATCH等有body的请求方法，避免GET请求读取body导致"Request has already been read"错误
-        String httpMethod = ctx.request().method().name();
-        if (("POST".equals(httpMethod) || "PUT".equals(httpMethod) || "PATCH".equals(httpMethod))
-                && ctx.parsedHeaders() != null && ctx.parsedHeaders().contentType() != null
-                && HttpHeaderValues.APPLICATION_JSON.toString().equals(ctx.parsedHeaders().contentType().value())
-                && ctx.body() != null && ctx.body().asJsonObject() != null) {
+        if (HttpHeaderValues.APPLICATION_JSON.toString().equals(ctx.parsedHeaders().contentType().value())) {
             JsonObject body = ctx.body().asJsonObject();
             if (body != null) {
                 methodParametersTemp.forEach((k, v) -> {
+                    String typeName = v.getRight().getName();
+                    // 直接绑定 JsonObject 类型参数
+                    if (JsonObject.class.getName().equals(typeName)) {
+                        parameterValueList.put(k, body);
+                    }
                     // 只解析已配置包名前缀的实体类
-                    if (CommonUtil.matchRegList(entityPackagesReg.getList(), v.getRight().getName())) {
+                    else if (CommonUtil.matchRegList(entityPackagesReg.getList(), typeName)) {
                         try {
-                            Class<?> aClass = Class.forName(v.getRight().getName());
+                            Class<?> aClass = Class.forName(typeName);
                             JsonObject data = CommonUtil.getSubJsonForEntity(body, aClass);
                             if (!data.isEmpty()) {
                                 Object entity = data.mapTo(aClass);
@@ -336,17 +324,21 @@ public class RouterHandlerFactory implements BaseHttpApi {
                         } catch (ClassNotFoundException e) {
                             e.printStackTrace();
                         }
-
                     }
                 });
+            } else {
+                // body 可能是 JsonArray
+                JsonArray bodyArray = ctx.body().asJsonArray();
+                if (bodyArray != null) {
+                    methodParametersTemp.forEach((k, v) -> {
+                        if (JsonArray.class.getName().equals(v.getRight().getName())) {
+                            parameterValueList.put(k, bodyArray);
+                        }
+                    });
+                }
             }
-        } else if (("POST".equals(httpMethod) || "PUT".equals(httpMethod) || "PATCH".equals(httpMethod))
-                && ctx.body() != null && ctx.body().length() > 0) {
-            try {
-                queryParams.addAll(ParamUtil.paramsToMap(ctx.body().asString()));
-            } catch (Exception e) {
-                LOGGER.debug("Failed to parse body as params: {}", e.getMessage());
-            }
+        } else if (ctx.body() != null) {
+            queryParams.addAll(ParamUtil.paramsToMap(ctx.body().asString()));
         }
 
         // 解析其他参数
@@ -365,12 +357,6 @@ public class RouterHandlerFactory implements BaseHttpApi {
                 parameterValueList.put(k, ctx.request());
             } else if (HttpServerResponse.class.getName().equals(v.getRight().getName())) {
                 parameterValueList.put(k, ctx.response());
-            } else if (JsonObject.class.getName().equals(v.getRight().getName())) {
-                if (ctx.body() != null && ctx.body().asJsonObject() != null) {
-                    parameterValueList.put(k, ctx.body().asJsonObject());
-                } else {
-                    parameterValueList.put(k, new JsonObject());
-                }
             } else if (parameterValueList.get(k) == null
                     && CommonUtil.matchRegList(entityPackagesReg.getList(), v.getRight().getName())) {
                 // 绑定实体类
@@ -381,45 +367,48 @@ public class RouterHandlerFactory implements BaseHttpApi {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+            } else if (parameterValueList.get(k) == null
+                    && JsonObject.class.getName().equals(v.getRight().getName())) {
+                // 兜底: content-type 非 application/json 时尝试从 body 解析 JsonObject
+                if (ctx.body() != null) {
+                    JsonObject jo = ctx.body().asJsonObject();
+                    if (jo != null) parameterValueList.put(k, jo);
+                }
+            } else if (parameterValueList.get(k) == null
+                    && JsonArray.class.getName().equals(v.getRight().getName())) {
+                // 兜底: content-type 非 application/json 时尝试从 body 解析 JsonArray
+                if (ctx.body() != null) {
+                    JsonArray ja = ctx.body().asJsonArray();
+                    if (ja != null) parameterValueList.put(k, ja);
+                }
             }
         });
         // 调用handle 获取响应对象
         Object[] parameterValueArray = parameterValueList.values().toArray(new Object[0]);
-        
-        // 打印调试信息，确认参数注入的情况
-        if (LOGGER.isDebugEnabled() && method.getName().equals("donateAccount")) {
-            LOGGER.debug("donateAccount parameter list:");
-            int i = 0;
-            for (Map.Entry<String, Object> entry : parameterValueList.entrySet()) {
-                LOGGER.debug("Param [{}]: {} = {}", i++, entry.getKey(),
-                        entry.getValue() != null ? entry.getValue().toString() : "null");
-            }
-        }
-        
         try {
             // 反射调用
             Object data = ReflectionUtil.invokeWithArguments(method, instance, parameterValueArray);
             if (data != null) {
 
-                if (data instanceof JsonResult) {
-                    doFireJsonResultResponse(ctx, (JsonResult<?>) data);
+                if (data instanceof JsonResult jsonResult) {
+                    doFireJsonResultResponse(ctx, (JsonResult<?>) data, jsonResult.getCode());
                 }
                 if (data instanceof JsonObject) {
                     doFireJsonObjectResponse(ctx, ((JsonObject) data));
                 } else if (data instanceof Future) { // 处理异步响应
                     ((Future<?>) data).onSuccess(res -> {
-                        if (res instanceof JsonResult) {
-                            doFireJsonResultResponse(ctx, (JsonResult<?>) res);
+                        if (res instanceof JsonResult jsonResult) {
+                            doFireJsonResultResponse(ctx, jsonResult, jsonResult.getCode());
                         }
                         if (res instanceof JsonObject) {
                             doFireJsonObjectResponse(ctx, ((JsonObject) res));
                         } else if (res != null) {
                             doFireJsonResultResponse(ctx, JsonResult.data(res));
                         } else {
-                            handleAfterInterceptor(ctx, null);
+                            doFireJsonResultResponse(ctx, JsonResult.data(null));
                         }
 
-                    }).onFailure(e -> doFireJsonResultResponse(ctx, JsonResult.error(e.getMessage())));
+                    }).onFailure(e -> doFireJsonResultResponse(ctx, JsonResult.error(e.getMessage()), 500));
                 } else {
                     doFireJsonResultResponse(ctx, JsonResult.data(data));
                 }
@@ -434,7 +423,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
                     err = e.getCause().getMessage();
                 }
             }
-            doFireJsonResultResponse(ctx, JsonResult.error(err));
+            doFireJsonResultResponse(ctx, JsonResult.error(err), 500);
         }
     }
 

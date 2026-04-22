@@ -36,6 +36,8 @@ import static cn.qaiu.vx.core.util.ConfigConstant.BASE_LOCATIONS;
  */
 public final class ReflectionUtil {
 
+    // 缓存Reflections实例，避免重复扫描（每次扫描约35K+值，耗时1-3秒，占用大量内存）
+    private static final Map<String, Reflections> REFLECTIONS_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
 
     /**
      * 以默认配置的基础包路径获取反射器
@@ -47,52 +49,48 @@ public final class ReflectionUtil {
     }
 
     /**
-     * 获取反射器
+     * 获取反射器（带缓存）
      *
      * @param packageAddress Package address String
      * @return Reflections object
      */
     public static Reflections getReflections(String packageAddress) {
-        List<String> packageAddressList;
-        if (packageAddress.contains(",")) {
-            packageAddressList = Arrays.asList(packageAddress.split(","));
-        } else if (packageAddress.contains(";")) {
-            packageAddressList = Arrays.asList(packageAddress.split(";"));
-        } else {
-            packageAddressList = Collections.singletonList(packageAddress);
-        }
-
-        return getReflections(packageAddressList);
+        return REFLECTIONS_CACHE.computeIfAbsent(packageAddress, key -> {
+            List<String> packageAddressList;
+            if (key.contains(",")) {
+                packageAddressList = Arrays.asList(key.split(","));
+            } else if (key.contains(";")) {
+                packageAddressList = Arrays.asList(key.split(";"));
+            } else {
+                packageAddressList = Collections.singletonList(key);
+            }
+            return createReflections(packageAddressList);
+        });
     }
 
     /**
-     * 获取反射器
+     * 获取反射器（带缓存）
      *
      * @param packageAddresses Package address List
      * @return Reflections object
      */
     public static Reflections getReflections(List<String> packageAddresses) {
-        ConfigurationBuilder configurationBuilder = new ConfigurationBuilder();
-        FilterBuilder filterBuilder = new FilterBuilder();
-        packageAddresses.forEach(str -> {
-            Collection<URL> urls = ClasspathHelper.forPackage(str.trim());
-            configurationBuilder.addUrls(urls);
-            filterBuilder.includePackage(str.trim());
-        });
+        String cacheKey = String.join(",", packageAddresses);
+        return REFLECTIONS_CACHE.computeIfAbsent(cacheKey, key -> createReflections(packageAddresses));
+    }
 
-        // 采坑记录 2021-05-08
-        // 发现注解api层 没有继承父类时 这里反射一直有问题(Scanner SubTypesScanner was not configured)
-        // 因此这里需要手动配置各种Scanner扫描器 -- https://blog.csdn.net/qq_29499107/article/details/106889781
-        configurationBuilder.setScanners(
-                Scanners.SubTypes.filterResultsBy(s -> true), //允许getAllTypes获取所有Object的子类, 不设置为false则 getAllTypes
-                // 会报错.默认为true.
-                new MethodParameterNamesScanner(), //设置方法参数名称 扫描器,否则调用getConstructorParamNames 会报错
-                Scanners.MethodsAnnotated, //设置方法注解 扫描器, 否则getConstructorsAnnotatedWith,getMethodsAnnotatedWith 会报错
-                new MemberUsageScanner(),  //设置 member 扫描器,否则 getMethodUsage 会报错
-                Scanners.TypesAnnotated //设置类注解 扫描器 ,否则 getTypesAnnotatedWith 会报错
-        );
-
-        configurationBuilder.filterInputsBy(filterBuilder);
+    private static Reflections createReflections(List<String> packageAddresses) {
+        ConfigurationBuilder configurationBuilder = new ConfigurationBuilder()
+                .addClassLoaders(Thread.currentThread().getContextClassLoader())
+                .forPackages(packageAddresses.toArray(new String[0]))
+                .setScanners(
+                        Scanners.SubTypes.filterResultsBy(s -> true), //允许getAllTypes获取所有Object的子类, 不设置为false则 getAllTypes
+                        // 会报错.默认为true.
+                        new MethodParameterNamesScanner(), //设置方法参数名称 扫描器,否则调用getConstructorParamNames 会报错
+                        Scanners.MethodsAnnotated, //设置方法注解 扫描器, 否则getConstructorsAnnotatedWith,getMethodsAnnotatedWith 会报错
+                        new MemberUsageScanner(),  //设置 member 扫描器,否则 getMethodUsage 会报错
+                        Scanners.TypesAnnotated //设置类注解 扫描器 ,否则 getTypesAnnotatedWith 会报错
+                );
         return new Reflections(configurationBuilder);
     }
 

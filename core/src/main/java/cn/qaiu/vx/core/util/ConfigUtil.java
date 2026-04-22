@@ -4,8 +4,12 @@ import io.vertx.config.ConfigRetriever;
 import io.vertx.config.ConfigRetrieverOptions;
 import io.vertx.config.ConfigStoreOptions;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
+
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 /**
  * 异步读取配置工具类
@@ -24,7 +28,29 @@ public class ConfigUtil {
      * @return JsonObject的Future
      */
     public static Future<JsonObject> readConfig(String format, String path, Vertx vertx) {
-        // 读取yml配置
+        // 支持 classpath: 前缀从类路径读取，否则从文件系统读取
+        if (path != null && path.startsWith("classpath:")) {
+            String resource = path.substring("classpath:".length());
+            // 使用 executeBlocking(Callable) 直接返回 Future<JsonObject>
+            return vertx.executeBlocking(() -> {
+                InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(resource);
+                if (is == null) {
+                    throw new RuntimeException("classpath resource not found: " + resource);
+                }
+                try (InputStream in = is) {
+                    byte[] bytes = in.readAllBytes();
+                    String content = new String(bytes, StandardCharsets.UTF_8);
+                    if ("json".equalsIgnoreCase(format)) {
+                        return new JsonObject(content);
+                    } else {
+                        throw new RuntimeException("unsupported classpath format: " + format);
+                    }
+                }
+            });
+        }
+
+        Promise<JsonObject> promise = Promise.promise();
+
         ConfigStoreOptions store = new ConfigStoreOptions()
                 .setType("file")
                 .setFormat(format)
@@ -33,8 +59,20 @@ public class ConfigUtil {
         ConfigRetriever retriever = ConfigRetriever
                 .create(vertx, new ConfigRetrieverOptions().addStore(store));
 
-        return retriever.getConfig();
+        // 异步获取配置
+        // 成功直接完成 promise
+        retriever.getConfig()
+                .onSuccess(promise::complete)
+                .onFailure(err -> {
+                    // 配置读取失败，直接返回失败 Future
+                    promise.fail(new RuntimeException(
+                            "读取配置文件失败: " + path, err));
+                    retriever.close();
+                });
+
+        return promise.future();
     }
+
 
 
     /**

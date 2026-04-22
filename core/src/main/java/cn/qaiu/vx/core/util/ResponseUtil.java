@@ -13,6 +13,7 @@ public class ResponseUtil {
 
     public static void redirect(HttpServerResponse response, String url) {
         response.putHeader(CONTENT_TYPE, "text/html; charset=utf-8")
+                .putHeader("Referrer-Policy", "no-referrer")
                 .putHeader(HttpHeaders.LOCATION, url).setStatusCode(302).end();
     }
 
@@ -22,19 +23,31 @@ public class ResponseUtil {
     }
 
     public static void fireJsonObjectResponse(RoutingContext ctx, JsonObject jsonObject) {
-        ctx.response().putHeader(CONTENT_TYPE, "application/json; charset=utf-8")
-                .setStatusCode(200)
-                .end(jsonObject.encode());
+        fireJsonObjectResponse(ctx, jsonObject, 200);
     }
 
     public static void fireJsonObjectResponse(HttpServerResponse ctx, JsonObject jsonObject) {
+        fireJsonObjectResponse(ctx, jsonObject, 200);
+    }
+
+    public static void fireJsonObjectResponse(RoutingContext ctx, JsonObject jsonObject, int statusCode) {
+        ctx.response().putHeader(CONTENT_TYPE, "application/json; charset=utf-8")
+                .setStatusCode(statusCode)
+                .end(jsonObject.encode());
+    }
+
+    public static void fireJsonObjectResponse(HttpServerResponse ctx, JsonObject jsonObject, int statusCode) {
         ctx.putHeader(CONTENT_TYPE, "application/json; charset=utf-8")
-                .setStatusCode(200)
+                .setStatusCode(statusCode)
                 .end(jsonObject.encode());
     }
 
     public static <T> void fireJsonResultResponse(RoutingContext ctx, JsonResult<T> jsonResult) {
         fireJsonObjectResponse(ctx, jsonResult.toJsonObject());
+    }
+
+    public static <T> void fireJsonResultResponse(RoutingContext ctx, JsonResult<T> jsonResult, int statusCode) {
+        fireJsonObjectResponse(ctx, jsonResult.toJsonObject(), statusCode);
     }
 
     public static <T> void fireJsonResultResponse(HttpServerResponse ctx, JsonResult<T> jsonResult) {

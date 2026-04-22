@@ -13,6 +13,7 @@ import java.net.Socket;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -117,7 +118,7 @@ public class CommonUtil {
         return set.stream().filter(c1 -> {
             HandleSortFilter s1 = c1.getAnnotation(HandleSortFilter.class);
             if (s1 != null) {
-                return s1.value() > 0;
+                return s1.value() >= 0;
             } else {
                 return true;
             }
@@ -138,7 +139,7 @@ public class CommonUtil {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-        }).collect(Collectors.toSet());
+        }).collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     private static String appVersion;

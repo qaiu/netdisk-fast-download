@@ -38,6 +38,20 @@ public interface BaseHttpApi {
         handleAfterInterceptor(ctx, jsonResult.toJsonObject());
     }
 
+    default void doFireJsonObjectResponse(RoutingContext ctx, JsonObject jsonObject, int statusCode) {
+        if (!ctx.response().ended()) {
+            fireJsonObjectResponse(ctx, jsonObject, statusCode);
+        }
+        handleAfterInterceptor(ctx, jsonObject);
+    }
+
+
+    default <T> void doFireJsonResultResponse(RoutingContext ctx, JsonResult<T> jsonResult, int statusCode) {
+        if (!ctx.response().ended()) {
+            fireJsonResultResponse(ctx, jsonResult, statusCode);
+        }
+        handleAfterInterceptor(ctx, jsonResult.toJsonObject());
+    }
 
     default Set<AfterInterceptor> getAfterInterceptor() {
 

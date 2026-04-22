@@ -30,7 +30,7 @@ public class JsonResult<T> implements Serializable {
 
     private int code = SUCCESS_CODE;//状态码
 
-    private String msg = SUCCESS_MESSAGE; //消息
+    private String msg = SUCCESS_MESSAGE;//消息
 
     private boolean success = true; //是否成功
 

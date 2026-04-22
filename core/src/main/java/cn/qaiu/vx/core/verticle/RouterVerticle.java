@@ -48,10 +48,19 @@ public class RouterVerticle extends AbstractVerticle {
         } else {
             options = new HttpServerOptions();
         }
-        
-        // 绑定到 0.0.0.0 以允许外部访问
-        options.setHost("0.0.0.0");
         options.setPort(port);
+        
+        // 【优化】高并发服务器配置
+        options.setTcpKeepAlive(true)                     // TCP Keep-Alive
+               .setTcpNoDelay(true)                       // 禁用Nagle算法，降低延迟
+               .setCompressionSupported(true)             // 启用压缩
+               .setAcceptBacklog(50000)                   // 增加积压队列到50000，防止高并发时连接被拒绝
+               .setIdleTimeout(120)                       // 空闲超时120秒
+               .setTcpFastOpen(true)                      // 启用TCP Fast Open
+               .setTcpQuickAck(true)                      // 启用TCP Quick ACK
+               .setReuseAddress(true)                     // 允许地址重用
+               .setReusePort(true);                       // 允许端口重用
+        
         server = vertx.createHttpServer(options);
 
         server.requestHandler(router).webSocketHandler(s->{}).listen()
