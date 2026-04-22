@@ -85,7 +85,8 @@ module.exports = {
               { 
                 source: './node_modules/monaco-editor/min/vs', 
                 destination: './nfd-front/js/vs' 
-              }
+              },
+              { source: './nfd-front', destination: '../webroot/nfd-front' }
             ],
             archive: [ //然后我们选择dist文件夹将之打包成dist.zip并放在根目录
               {
