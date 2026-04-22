@@ -1,4 +1,4 @@
 # 要激活的配置: app-配置名称.yml
-active: local
+active: dev
 # 控制台输出的版权文字
 copyright: QAIU
