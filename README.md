@@ -3,9 +3,10 @@ QQ交流群：1017480890
 <p align="center">
 <a href="https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml"><img src="https://img.shields.io/github/actions/workflow/status/qaiu/netdisk-fast-download/maven.yml?branch=v0.1.9b8a&style=flat"></a>
 <a href="https://www.oracle.com/cn/java/technologies/downloads"><img src="https://img.shields.io/badge/jdk-%3E%3D17-blue"></a>
-<a href="https://vertx-china.github.io"><img src="https://img.shields.io/badge/vert.x-4.5.22-blue?style=flat"></a>
+<a href="https://vertx-china.github.io"><img src="https://img.shields.io/badge/vert.x-4.5.24-blue?style=flat"></a>
 <a href="https://raw.githubusercontent.com/qaiu/netdisk-fast-download/master/LICENSE"><img src="https://img.shields.io/github/license/qaiu/netdisk-fast-download?style=flat"></a>
 <a href="https://github.com/qaiu/netdisk-fast-download/releases/"><img src="https://img.shields.io/github/v/release/qaiu/netdisk-fast-download?style=flat"></a>
+<a href="https://oosmetrics.com/repo/qaiu/netdisk-fast-download"><img src="https://api.oosmetrics.com/api/v1/badge/achievement/826aa27a-6e59-4de5-b7fa-cd189f484035.svg"></a>
 <p align="center">
   <a href="https://trendshift.io/repositories/12101" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12101" alt="qaiu%2Fnetdisk-fast-download | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 </p>
