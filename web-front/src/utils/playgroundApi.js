@@ -5,6 +5,15 @@ const axiosInstance = axios.create({
   withCredentials: true  // 重要：允许跨域请求携带cookie
 });
 
+// 请求拦截器：将存储的Token添加到Authorization请求头
+axiosInstance.interceptors.request.use(config => {
+  const token = localStorage.getItem('playground_token');
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+});
+
 /**
  * 演练场API服务
  */
@@ -30,7 +39,12 @@ export const playgroundApi = {
   async login(password) {
     try {
       const response = await axiosInstance.post('/v2/playground/login', { password });
-      return response.data;
+      const data = response.data;
+      // 登录成功时从响应中提取并保存Token
+      if ((data.code === 200 || data.success) && data.data?.token) {
+        localStorage.setItem('playground_token', data.data.token);
+      }
+      return data;
     } catch (error) {
       throw new Error(error.response?.data?.error || error.message || '登录失败');
     }

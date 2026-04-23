@@ -21,7 +21,6 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.Session;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -47,7 +46,6 @@ public class PlaygroundApi {
 
     private static final int MAX_PARSER_COUNT = 100;
     private static final int MAX_CODE_LENGTH = 128 * 1024; // 128KB 代码长度限制
-    private static final String SESSION_AUTH_KEY = "playgroundAuthed";
     private final DbService dbService = AsyncServiceUtil.getAsyncServiceInstance(DbService.class);
     
     /**
@@ -74,14 +72,14 @@ public class PlaygroundApi {
             return true;
         }
         
-        // 否则检查Session中的认证状态
-        Session session = ctx.session();
-        if (session == null) {
-            return false;
+        // 检查 Authorization: Bearer <token> 请求头
+        String authHeader = ctx.request().getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ") && authHeader.length() > 7) {
+            String token = authHeader.substring(7).trim();
+            return config.validateToken(token);
         }
         
-        Boolean authed = session.get(SESSION_AUTH_KEY);
-        return authed != null && authed;
+        return false;
     }
     
     /**
@@ -116,12 +114,8 @@ public class PlaygroundApi {
         try {
             PlaygroundConfig config = PlaygroundConfig.getInstance();
             
-            // 如果是公开模式，直接成功
+            // 如果是公开模式，直接成功（不需要token）
             if (config.isPublic()) {
-                Session session = ctx.session();
-                if (session != null) {
-                    session.put(SESSION_AUTH_KEY, true);
-                }
                 promise.complete(JsonResult.success("公开模式，无需密码").toJsonObject());
                 return promise.future();
             }
@@ -137,11 +131,9 @@ public class PlaygroundApi {
             
             // 验证密码
             if (config.getPassword().equals(password)) {
-                Session session = ctx.session();
-                if (session != null) {
-                    session.put(SESSION_AUTH_KEY, true);
-                }
-                promise.complete(JsonResult.success("登录成功").toJsonObject());
+                String token = config.generateToken();
+                JsonObject tokenData = new JsonObject().put("token", token);
+                promise.complete(JsonResult.data(tokenData).toJsonObject());
             } else {
                 promise.complete(JsonResult.error("密码错误").toJsonObject());
             }
