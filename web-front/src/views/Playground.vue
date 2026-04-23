@@ -1146,10 +1146,11 @@ function parseById(shareLinkInfo, http, logger) {
           const isAuthed = res.data.authed || res.data.public;
           authed.value = isAuthed;
           
-          // 如果后端session已失效，清除localStorage
+          // 如果后端认证已失效，清除localStorage中的认证信息
           if (!isAuthed && savedAuth === 'true') {
             localStorage.removeItem('playground_authed');
             localStorage.removeItem('playground_auth_time');
+            localStorage.removeItem('playground_token');
           }
           
           return isAuthed;

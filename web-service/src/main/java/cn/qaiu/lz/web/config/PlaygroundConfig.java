@@ -4,6 +4,10 @@ import io.vertx.core.json.JsonObject;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
+import java.security.SecureRandom;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * JS演练场配置
  *
@@ -12,11 +16,21 @@ import lombok.extern.slf4j.Slf4j;
 @Data
 @Slf4j
 public class PlaygroundConfig {
-    
+
+    /** Token有效期：24小时 */
+    private static final long TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000L;
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
     /**
      * 单例实例
      */
     private static PlaygroundConfig instance;
+
+    /**
+     * 已颁发的认证Token及其创建时间
+     */
+    private final Map<String, Long> validTokens = new ConcurrentHashMap<>();
     
     /**
      * 是否启用演练场
@@ -40,6 +54,39 @@ public class PlaygroundConfig {
      * 私有构造函数
      */
     private PlaygroundConfig() {
+    }
+
+    /**
+     * 生成并存储一个新的认证Token，同时清理过期Token
+     */
+    public String generateToken() {
+        // 清理过期Token，防止Map无限增长
+        long now = System.currentTimeMillis();
+        validTokens.entrySet().removeIf(e -> now - e.getValue() > TOKEN_EXPIRY_MS);
+        // 使用SecureRandom生成32字节的密码学安全Token
+        byte[] bytes = new byte[32];
+        SECURE_RANDOM.nextBytes(bytes);
+        StringBuilder sb = new StringBuilder(64);
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b));
+        }
+        String token = sb.toString();
+        validTokens.put(token, now);
+        return token;
+    }
+
+    /**
+     * 校验Token是否合法且未过期
+     */
+    public boolean validateToken(String token) {
+        if (token == null || token.isEmpty()) return false;
+        Long createdAt = validTokens.get(token);
+        if (createdAt == null) return false;
+        if (System.currentTimeMillis() - createdAt > TOKEN_EXPIRY_MS) {
+            validTokens.remove(token);
+            return false;
+        }
+        return true;
     }
     
     /**
