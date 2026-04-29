@@ -68,7 +68,7 @@
         </div>
         <div class="demo-basic--circle">
           <div class="block" style="text-align: center;">
-            <img :height="150" src="../../public/images/lanzou111.png" alt="lz">
+            <img :height="150" src="../../public/images/logo01.png" alt="lz">
           </div>
         </div>
         <!-- 项目简介移到卡片内 -->

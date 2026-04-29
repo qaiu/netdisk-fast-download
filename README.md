@@ -6,6 +6,7 @@ QQ交流群：1017480890
 <a href="https://vertx-china.github.io"><img src="https://img.shields.io/badge/vert.x-4.5.24-blue?style=flat"></a>
 <a href="https://raw.githubusercontent.com/qaiu/netdisk-fast-download/master/LICENSE"><img src="https://img.shields.io/github/license/qaiu/netdisk-fast-download?style=flat"></a>
 <a href="https://github.com/qaiu/netdisk-fast-download/releases/"><img src="https://img.shields.io/github/v/release/qaiu/netdisk-fast-download?style=flat"></a>
+<a href="https://atomgit.com/QAIU/netdisk-fast-download"><img src="https://atomgit.com/QAIU/netdisk-fast-download/star/badge.svg" alt="AtomGit"></a>
 <a href="https://oosmetrics.com/repo/qaiu/netdisk-fast-download"><img src="https://api.oosmetrics.com/api/v1/badge/achievement/826aa27a-6e59-4de5-b7fa-cd189f484035.svg"></a>
 <p align="center">
   <a href="https://trendshift.io/repositories/12101" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12101" alt="qaiu%2Fnetdisk-fast-download | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
@@ -24,14 +25,10 @@ QQ交流群：1017480890
   >
 </div>
 
-## 🪞 国内镜像
+## 国内镜像
 
-本项目同步托管于 **AtomGit**，国内访问更流畅：
+本项目同步托管于 **AtomGit**，国内访问更流畅：👉 [https://atomgit.com/QAIU/netdisk-fast-download](https://atomgit.com/QAIU/netdisk-fast-download)
 
-[![AtomGit](https://atomgit.com/QAIU/netdisk-fast-download/star/badge.svg)](https://atomgit.com/QAIU/netdisk-fast-download)
-👉 [https://atomgit.com/QAIU/netdisk-fast-download](https://atomgit.com/QAIU/netdisk-fast-download)
-
-> 如遇 GitHub 访问缓慢，可前往 AtomGit 下载 Release 或提交 Issue。
 
 ## 介绍
 > netdisk-fast-download网盘直链解析可以把云盘分享链接转为直链，可广泛应用于各类下载站，资源站，个人博客，图床，APP下载更新，视频点播等领域。支持市面各大主流云盘的文件分享以及文件夹分享链接，已支持蓝奏云/蓝奏云优享/移动云云空间/小飞机盘/亿方云/123云盘/Cloudreve等，支持加密分享，以及部分网盘文件夹分享。  
