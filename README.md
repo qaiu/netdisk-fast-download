@@ -12,18 +12,9 @@ QQ交流群：1017480890
   <a href="https://trendshift.io/repositories/12101" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12101" alt="qaiu%2Fnetdisk-fast-download | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 </p>
 
-<div align="center" style="display:flex; justify-content:center; gap:10px; align-items:flex-start;">
-  <img
-    src="https://github.com/user-attachments/assets/bf266d0a-aaf8-4772-9231-e38a4b7bb6cb"
-    alt="image1"
-    style="width:300px; max-width:300px; flex:none;"
-  >
-  <img
-    src="https://github.com/user-attachments/assets/bb7a85f0-c256-4b4a-a11b-3ceb55afc302"
-    alt="image2"
-    style="width:300px; max-width:300px; flex:none;"
-  >
-</div>
+
+![alt text](web-front/img/image.png)
+
 
 ## 国内镜像
 
