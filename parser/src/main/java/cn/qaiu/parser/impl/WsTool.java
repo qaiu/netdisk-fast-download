@@ -108,6 +108,7 @@ public class WsTool extends PanBase {
                                                         httpClient.postAbs(SHARE_URL_API + "dl/sign").putHeaders(headers)
                                                             .sendJsonObject(JsonObject.of(
                                                                 "ufileid", filefid,
+                                                                // 新版接口不再需要consumeCode
                                                                 "type", 1
                                                             )).onSuccess(res4 -> {
 
