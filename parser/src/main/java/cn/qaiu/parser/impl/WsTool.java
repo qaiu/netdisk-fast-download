@@ -95,12 +95,10 @@ public class WsTool extends PanBase {
                                                 if (res3.statusCode() == 200) {
                                                     try {
                                                         // 获取文件信息
-                                                        String filename = asJson(res3).getJsonObject("data")
-                                                            .getJsonArray("fileList").getJsonObject(0).getString("fname");          // 文件名称
-                                                        String filefid  = asJson(res3).getJsonObject("data")
-                                                            .getJsonArray("fileList").getJsonObject(0)
-                                                            .getString("ufileid", asJson(res3).getJsonObject("data")
-                                                                .getJsonArray("fileList").getJsonObject(0).getString("fid"));        // 文件fid
+                                                        JsonObject fileInfo = asJson(res3).getJsonObject("data")
+                                                            .getJsonArray("fileList").getJsonObject(0);
+                                                        String filename = fileInfo.getString("fname");                               // 文件名称
+                                                        String filefid  = fileInfo.getString("ufileid", fileInfo.getString("fid"));  // 文件ufileid
 
                                                         // 调试输出文件信息
                                                         System.out.println("文件名称: " + filename);
