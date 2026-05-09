@@ -71,10 +71,10 @@ public class WsTool extends PanBase {
                                         String filebid  = asJson(res2).getJsonObject("data").getString("boxid");           // 文件夹bid
 
                                         // 调试输出文件夹信息
-                                        System.out.println("文件夹期限: " + filetime);
-                                        System.out.println("文件夹大小: " + filesize);
-                                        System.out.println("文件夹pid: " + filepid);
-                                        System.out.println("文件夹bid: " + filebid);
+                                        log.debug("文件夹期限: {}", filetime);
+                                        log.debug("文件夹大小: {}", filesize);
+                                        log.debug("文件夹pid: {}", filepid);
+                                        log.debug("文件夹bid: {}", filebid);
 
                                         // 获取文件信息
                                         httpClient.postAbs(SHARE_URL_API + "ufile/list").putHeaders(headers)
@@ -98,16 +98,16 @@ public class WsTool extends PanBase {
                                                         JsonObject fileInfo = asJson(res3).getJsonObject("data")
                                                             .getJsonArray("fileList").getJsonObject(0);
                                                         String filename = fileInfo.getString("fname");                               // 文件名称
-                                                        String filefid  = fileInfo.getString("ufileid", fileInfo.getString("fid"));  // 文件ufileid
+                                                        String fileUfileid = fileInfo.getString("ufileid", fileInfo.getString("fid")); // 文件ufileid
 
                                                         // 调试输出文件信息
-                                                        System.out.println("文件名称: " + filename);
-                                                        System.out.println("文件ufileid: " + filefid);
+                                                        log.debug("文件名称: {}", filename);
+                                                        log.debug("文件ufileid: {}", fileUfileid);
 
                                                         // 检查文件是否失效
                                                         httpClient.postAbs(SHARE_URL_API + "dl/sign").putHeaders(headers)
                                                             .sendJsonObject(JsonObject.of(
-                                                                "ufileid", filefid,
+                                                                "ufileid", fileUfileid,
                                                                 // 新版接口不再需要consumeCode
                                                                 "type", 1
                                                             )).onSuccess(res4 -> {
@@ -118,7 +118,7 @@ public class WsTool extends PanBase {
                                                                         String fileurl = asJson(res4).getJsonObject("data").getString("url");
 
                                                                         // 调试输出文件直链
-                                                                        System.out.println("文件直链: " + fileurl);
+                                                                        log.debug("文件直链: {}", fileurl);
 
                                                                         if (!fileurl.equals("")) {
                                                                             promise.complete(URLDecoder.decode(fileurl, StandardCharsets.UTF_8));
