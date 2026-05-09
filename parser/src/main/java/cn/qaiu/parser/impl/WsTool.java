@@ -37,6 +37,9 @@ public class WsTool extends PanBase {
 
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         headers.set("User-Agent", userAgent2);
+        headers.set("Accept", "application/json, text/plain, */*");
+        headers.set("Content-Type", "application/json;charset=utf-8");
+        headers.set("Prod", "com.wenshushu.web.pc");
         headers.set("sec-ch-ua-platform", "Android");
         headers.set("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
         headers.set("sec-ch-ua-mobile", "sec-ch-ua-mobile");
@@ -50,7 +53,7 @@ public class WsTool extends PanBase {
                     try {
                         // 设置匿名登录token
                         String token = asJson(res).getJsonObject("data").getString("token");
-                        headers.set("X-Token", token);
+                        headers.set("X-TOKEN", token);
 
                         // 获取文件夹信息
                         httpClient.postAbs(SHARE_URL_API + "task/mgrtask").putHeaders(headers)
@@ -95,18 +98,19 @@ public class WsTool extends PanBase {
                                                         String filename = asJson(res3).getJsonObject("data")
                                                             .getJsonArray("fileList").getJsonObject(0).getString("fname");          // 文件名称
                                                         String filefid  = asJson(res3).getJsonObject("data")
-                                                            .getJsonArray("fileList").getJsonObject(0).getString("fid");            // 文件fid
+                                                            .getJsonArray("fileList").getJsonObject(0)
+                                                            .getString("ufileid", asJson(res3).getJsonObject("data")
+                                                                .getJsonArray("fileList").getJsonObject(0).getString("fid"));        // 文件fid
 
                                                         // 调试输出文件信息
                                                         System.out.println("文件名称: " + filename);
-                                                        System.out.println("文件fid: " + filefid);
+                                                        System.out.println("文件ufileid: " + filefid);
 
                                                         // 检查文件是否失效
                                                         httpClient.postAbs(SHARE_URL_API + "dl/sign").putHeaders(headers)
                                                             .sendJsonObject(JsonObject.of(
-                                                                "consumeCode", 0,
-                                                                "type", 1,
-                                                                "ufileid", filefid
+                                                                "ufileid", filefid,
+                                                                "type", 1
                                                             )).onSuccess(res4 -> {
 
                                                                 if (res4.statusCode() == 200) {
