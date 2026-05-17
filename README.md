@@ -94,7 +94,7 @@ https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.
 - Dropbox-pdp
 - iCloud-pic
 ### 专业版提供
-- 迅雷网盘
+- 迅雷网盘-xl
 - [夸克云盘-qk](https://pan.quark.cn/)
 - [UC云盘-uc](https://fast.uc.cn/)
 - [移动云盘-p139](https://yun.139.com/)
