@@ -177,6 +177,7 @@ GET /json/getFileList?url={分享链接}&pwd={密码}
 |------|---------|------|
 | 夸克网盘(QK) | **必须** | 必须配置 Cookie 才能解析 |
 | UC网盘(UC) | **必须** | 必须配置 Cookie 才能解析 |
+| 123云盘(YE) | 可选 | 大文件（>100MB）需要认证 |
 | 小飞机网盘(FJ) | 可选 | 大文件（>100MB）需要认证 |
 | 蓝奏优享(IZ) | 可选 | 大文件需要认证 |
 
@@ -517,7 +518,6 @@ Core模块集成Vert.x实现类似spring的注解式路由API
 <img src="https://www.dkdun.cn/themes/web/www/upload/local68c2dbb2ab148.png" width="200">
 </a>
 </p>
-
 
 
 
