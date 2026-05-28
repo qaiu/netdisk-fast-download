@@ -157,7 +157,10 @@ public class ParserApi {
         Promise<Void> promise = Promise.promise();
 
         getFileDownUrl(type, param)
-                .onSuccess(res -> ResponseUtil.redirect(response, res))
+                .onSuccess(res -> {
+                    ResponseUtil.redirect(response, res);
+                    promise.complete();
+                })
                 .onFailure(t -> promise.fail(t.fillInStackTrace()));
         return promise.future();
     }
@@ -237,6 +240,7 @@ public class ParserApi {
                 .onSuccess(res -> {
                     String url = viewPrefix + URLEncoder.encode(res, StandardCharsets.UTF_8);
                     ResponseUtil.redirect(response, url);
+                    promise.complete();
                 })
                 .onFailure(t -> promise.fail(t.fillInStackTrace()));
         return promise.future();
