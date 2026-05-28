@@ -351,7 +351,7 @@ public class ReverseProxyVerticle extends AbstractVerticle {
                 String host = url.getHost();
                 int port = url.getPort();
                 if (port == -1) {
-                    port = 80;
+                    port = 443;
                 }
                 String originPath = url.getPath();
                 LOGGER.info("path {}, originPath {}, to {}:{}", path, originPath, host, port);
