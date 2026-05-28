@@ -10,6 +10,8 @@ import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -24,6 +26,7 @@ public class ServiceVerticle extends AbstractVerticle {
     Logger LOGGER = LoggerFactory.getLogger(ServiceVerticle.class);
     private static final AtomicInteger ID = new AtomicInteger(1);
     private static final Set<Class<?>> handlers;
+    private final List<String> registeredAddresses = new ArrayList<>();
 
     static {
         Reflections reflections = ReflectionUtil.getReflections();
@@ -39,7 +42,9 @@ public class ServiceVerticle extends AbstractVerticle {
                 try {
                     serviceNames.append(asyncService.getName()).append("|");
                     BaseAsyncService asInstance = (BaseAsyncService) ReflectionUtil.newWithNoParam(asyncService);
-                    binder.setAddress(asInstance.getAddress()).register(asInstance.getAsyncInterfaceClass(), asInstance);
+                    String address = asInstance.getAddress();
+                    binder.setAddress(address).register(asInstance.getAsyncInterfaceClass(), asInstance);
+                    registeredAddresses.add(address);
                 } catch (Exception e) {
                     LOGGER.error("Failed to register service: {}", asyncService.getName(), e);
                 }
@@ -48,5 +53,20 @@ public class ServiceVerticle extends AbstractVerticle {
             LOGGER.info("registered async services -> id: {}, name: {}", ID.getAndIncrement(), serviceNames.toString());
         }
         startPromise.complete();
+    }
+
+    @Override
+    public void stop(Promise<Void> stopPromise) {
+        ServiceBinder binder = new ServiceBinder(vertx);
+        registeredAddresses.forEach(address -> {
+            try {
+                binder.setAddress(address).unregister(address);
+            } catch (Exception e) {
+                LOGGER.debug("Failed to unregister service at address: {}", address, e);
+            }
+        });
+        registeredAddresses.clear();
+        LOGGER.info("ServiceVerticle stopped, unregistered {} services", registeredAddresses.size());
+        stopPromise.complete();
     }
 }
