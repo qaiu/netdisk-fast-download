@@ -60,6 +60,7 @@ jobs:
     - name: Update dependency graph
       uses: advanced-security/maven-dependency-submission-action@v3
       if: github.event_name != 'pull_request'
+      continue-on-error: true
       with:
         ignore-maven-wrapper: true
 
