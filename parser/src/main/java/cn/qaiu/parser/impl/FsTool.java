@@ -448,7 +448,7 @@ public class FsTool extends PanBase {
         if (m1.find()) {
             try {
                 return URLDecoder.decode(m1.group(1).trim(), StandardCharsets.UTF_8);
-            } catch (Exception ignored) {
+            } catch (IllegalArgumentException ignored) {
             }
         }
 
@@ -457,7 +457,7 @@ public class FsTool extends PanBase {
         if (m2.find()) {
             try {
                 return URLDecoder.decode(m2.group(1).trim(), StandardCharsets.UTF_8);
-            } catch (Exception ignored) {
+            } catch (IllegalArgumentException ignored) {
             }
         }
 
