@@ -38,7 +38,13 @@ public class RateLimiter {
 
         String ip = request.remoteAddress().host();
 
-        ipRequestMap.compute(ip, (key, requestInfo) -> {
+        // 定期清理过期条目，防止 Map 无限增长
+        if (ipRequestMap.size() > 1000) {
+            long now = System.currentTimeMillis();
+            ipRequestMap.entrySet().removeIf(entry -> now - entry.getValue().timestamp > TIME_WINDOW);
+        }
+
+        RequestInfo info = ipRequestMap.compute(ip, (key, requestInfo) -> {
             long currentTime = System.currentTimeMillis();
             if (requestInfo == null || currentTime - requestInfo.timestamp > TIME_WINDOW) {
                 // 初始化或重置计数器
@@ -50,7 +56,6 @@ public class RateLimiter {
             }
         });
 
-        RequestInfo info = ipRequestMap.get(ip);
         if (info.count > MAX_REQUESTS) {
             // 超过限制
             // 计算剩余时间
