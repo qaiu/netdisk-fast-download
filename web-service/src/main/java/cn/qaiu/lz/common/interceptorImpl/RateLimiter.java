@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 public class RateLimiter {
@@ -51,12 +52,12 @@ public class RateLimiter {
                 return new RequestInfo(1, currentTime);
             } else {
                 // 增加计数器
-                requestInfo.count++;
+                requestInfo.count.incrementAndGet();
                 return requestInfo;
             }
         });
 
-        if (info.count > MAX_REQUESTS) {
+        if (info.count.get() > MAX_REQUESTS) {
             // 超过限制
             // 计算剩余时间
             long remainingTime = TIME_WINDOW - (System.currentTimeMillis() - info.timestamp);
@@ -71,11 +72,11 @@ public class RateLimiter {
     }
 
     private static class RequestInfo {
-        volatile int count;
+        final AtomicInteger count;
         volatile long timestamp;
 
         RequestInfo(int count, long time) {
-            this.count = count;
+            this.count = new AtomicInteger(count);
             this.timestamp = time;
         }
     }
