@@ -465,7 +465,10 @@ public class IzTool extends PanBase {
         // 如果参数里的目录ID不为空，则直接解析目录
         String dirId = (String) shareLinkInfo.getOtherParam().get("dirId");
         if (dirId != null && !dirId.isEmpty()) {
-            uuid = shareLinkInfo.getOtherParam().get("uuid").toString();
+            Object uuidObj = shareLinkInfo.getOtherParam().get("uuid");
+            if (uuidObj != null) {
+                uuid = uuidObj.toString();
+            }
             parserDir(dirId, shareId, promise);
             return promise.future();
         }
