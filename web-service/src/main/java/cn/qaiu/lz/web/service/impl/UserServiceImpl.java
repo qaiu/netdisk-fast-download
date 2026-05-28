@@ -125,18 +125,18 @@ public class UserServiceImpl implements UserService {
                     if (rows.size() == 0) {
                         promise.complete(new JsonObject()
                                 .put("success", false)
-                                .put("message", "用户不存在"));
+                                .put("message", "用户名或密码错误"));
                         return;
                     }
-                    
+
                     Row row = rows.iterator().next();
                     SysUser existUser = rowToUser(row);
-                    
+
                     // 验证密码
                     if (!PasswordUtil.checkPassword(user.getPassword(), existUser.getPassword())) {
                         promise.complete(new JsonObject()
                                 .put("success", false)
-                                .put("message", "密码错误"));
+                                .put("message", "用户名或密码错误"));
                         return;
                     }
                     
@@ -169,7 +169,7 @@ public class UserServiceImpl implements UserService {
                     log.error("登录查询失败", err);
                     promise.complete(new JsonObject()
                             .put("success", false)
-                            .put("message", "登录失败: " + err.getMessage()));
+                            .put("message", "登录失败，请稍后重试"));
                 });
         
         return promise.future();
