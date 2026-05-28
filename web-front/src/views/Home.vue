@@ -1309,7 +1309,7 @@ export default {
     // 文件点击处理
     handleFileClick(file) {
       if (file.parserUrl) {
-        window.open(file.parserUrl, '_blank')
+        window.open(file.parserUrl, '_blank', 'noopener,noreferrer')
       } else {
         this.$message.warning('该文件暂无下载链接')
       }
@@ -1439,7 +1439,7 @@ export default {
 错误信息：${JSON.stringify(this.errorDetail, null, 2)}`;
       navigator.clipboard.writeText(text).then(() => {
         this.$message.success('已复制分享信息和错误详情');
-        window.open('https://github.com/qaiu/netdisk-fast-download/issues/new', '_blank');
+        window.open('https://github.com/qaiu/netdisk-fast-download/issues/new', '_blank', 'noopener,noreferrer');
       }).catch(() => {
         this.$message.error('复制失败');
       });

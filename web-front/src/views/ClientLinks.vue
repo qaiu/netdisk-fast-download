@@ -369,7 +369,7 @@ export default {
               copyToClipboard(link)
               return
             }
-            window.open(link, '_blank')
+            window.open(link, '_blank', 'noopener,noreferrer')
             ElMessage.success('正在唤起迅雷下载')
             break
             
@@ -386,7 +386,7 @@ export default {
     // 下载客户端
     const downloadClient = (type) => {
       const url = getClientDownloadUrl(type)
-      window.open(url, '_blank')
+      window.open(url, '_blank', 'noopener,noreferrer')
       ElMessage.success(`正在跳转到 ${getClientDisplayName(type)} 下载页面`)
     }
 

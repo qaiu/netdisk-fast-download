@@ -1178,7 +1178,7 @@ function parseById(shareLinkInfo, http, logger) {
     
     // 新窗口打开首页
     const goHomeInNewWindow = () => {
-      window.open('/', '_blank');
+      window.open('/', '_blank', 'noopener,noreferrer');
     };
     
     // 检查是否有未保存的文件
