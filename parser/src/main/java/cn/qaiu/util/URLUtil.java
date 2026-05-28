@@ -24,14 +24,17 @@ public class URLUtil {
             if (query != null) {
                 String[] pairs = query.split("&");
                 for (String pair : pairs) {
-                    String[] keyValue = pair.split("=");
+                    if (pair == null || pair.isEmpty()) {
+                        continue;
+                    }
+                    String[] keyValue = pair.split("=", 2);
                     String key = URLDecoder.decode(keyValue[0], StandardCharsets.UTF_8);
                     String value = keyValue.length > 1 ? URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8) : "";
                     queryParams.put(key, value);
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new IllegalArgumentException("URL解析失败: " + url, e);
         }
     }
 
