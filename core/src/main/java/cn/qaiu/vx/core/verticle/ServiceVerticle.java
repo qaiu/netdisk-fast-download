@@ -5,6 +5,8 @@ import cn.qaiu.vx.core.base.BaseAsyncService;
 import cn.qaiu.vx.core.util.ReflectionUtil;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
+import io.vertx.core.eventbus.MessageConsumer;
+import io.vertx.core.json.JsonObject;
 import io.vertx.serviceproxy.ServiceBinder;
 import org.reflections.Reflections;
 import org.slf4j.Logger;
@@ -26,7 +28,7 @@ public class ServiceVerticle extends AbstractVerticle {
     Logger LOGGER = LoggerFactory.getLogger(ServiceVerticle.class);
     private static final AtomicInteger ID = new AtomicInteger(1);
     private static final Set<Class<?>> handlers;
-    private final List<String> registeredAddresses = new ArrayList<>();
+    private final List<MessageConsumer<JsonObject>> consumers = new ArrayList<>();
 
     static {
         Reflections reflections = ReflectionUtil.getReflections();
@@ -43,8 +45,9 @@ public class ServiceVerticle extends AbstractVerticle {
                     serviceNames.append(asyncService.getName()).append("|");
                     BaseAsyncService asInstance = (BaseAsyncService) ReflectionUtil.newWithNoParam(asyncService);
                     String address = asInstance.getAddress();
-                    binder.setAddress(address).register(asInstance.getAsyncInterfaceClass(), asInstance);
-                    registeredAddresses.add(address);
+                    MessageConsumer<JsonObject> consumer = binder.setAddress(address)
+                            .register(asInstance.getAsyncInterfaceClass(), asInstance);
+                    consumers.add(consumer);
                 } catch (Exception e) {
                     LOGGER.error("Failed to register service: {}", asyncService.getName(), e);
                 }
@@ -57,16 +60,16 @@ public class ServiceVerticle extends AbstractVerticle {
 
     @Override
     public void stop(Promise<Void> stopPromise) {
-        ServiceBinder binder = new ServiceBinder(vertx);
-        registeredAddresses.forEach(address -> {
+        int count = consumers.size();
+        consumers.forEach(consumer -> {
             try {
-                binder.setAddress(address).unregister(address);
+                consumer.unregister();
             } catch (Exception e) {
-                LOGGER.debug("Failed to unregister service at address: {}", address, e);
+                LOGGER.warn("Failed to unregister service consumer at address: {}", consumer.address(), e);
             }
         });
-        registeredAddresses.clear();
-        LOGGER.info("ServiceVerticle stopped, unregistered {} services", registeredAddresses.size());
+        consumers.clear();
+        LOGGER.info("ServiceVerticle stopped, unregistered {} services", count);
         stopPromise.complete();
     }
 }
