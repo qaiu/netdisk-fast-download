@@ -81,8 +81,8 @@ public class LzTool extends PanBase {
     }
 
     private void doParser(String html, String pwd, String sUrl) {
-        // 检测是否为目录分享链接 (含 /s/、/b/ 路径段或 b0 开头的路径段)
-        if (sUrl.matches(".*/(s|b)/[^/]+.*") || sUrl.matches(".*/b0[^/]+.*")) {
+        // 检测是否为目录分享链接 (含 /s/、/b/ 路径段或 b 开头的路径段)
+        if (sUrl.matches(".*/(s|b)/[^/]+.*") || sUrl.matches(".*/b[^/]+.*")) {
             fail("该链接为蓝奏云目录分享，请使用目录解析接口");
             return;
         }
