@@ -34,7 +34,7 @@
         <commons-beanutils2.version>2.0.0</commons-beanutils2.version>
         <jackson.version>2.18.6</jackson.version>
         <!-- Logback 最新稳定版 -->
-        <logback.version>1.5.18</logback.version>
+        <logback.version>1.5.32</logback.version>
         <junit.version>4.13.2</junit.version>
     </properties>
 
