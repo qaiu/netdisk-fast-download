@@ -43,7 +43,6 @@ public final class Deploy {
     private Handler<JsonObject> handle;
 
     private Thread mainThread;
-    private Vertx mainVertx;
 
     public static Deploy instance() {
         return INSTANCE;
@@ -138,13 +137,16 @@ public final class Deploy {
                 vertxOptions.getWorkerPoolSize());
         var vertx = Vertx.vertx(vertxOptions);
         VertxHolder.init(vertx);
-        this.mainVertx = vertx;
 
         // 注册 ShutdownHook，确保进程退出时优雅关闭资源
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             LOGGER.info("JVM shutting down, closing Vert.x...");
-            vertx.close().onComplete(ar ->
-                    LOGGER.info("Vert.x closed: {}", ar.succeeded() ? "success" : ar.cause().getMessage()));
+            try {
+                vertx.close().toCompletionStage().toCompletableFuture().get(10, java.util.concurrent.TimeUnit.SECONDS);
+                LOGGER.info("Vert.x closed successfully");
+            } catch (Exception e) {
+                LOGGER.warn("Vert.x close error or timeout", e);
+            }
         }));
         //配置保存在共享数据中
         var sharedData = vertx.sharedData();

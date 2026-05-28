@@ -62,7 +62,7 @@ public class JsExecUtils {
 
 
     /**
-     * 调用执行js文件（复用已缓存的引擎实例，避免每次创建）
+     * 调用执行js文件（使用缓存的 ScriptEngineManager 创建新引擎实例）
      */
     public static Object executeOtherJs(String jsText, String funName, Object ... args) throws ScriptException,
             NoSuchMethodException {
