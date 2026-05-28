@@ -147,19 +147,6 @@ public final class Deploy {
             } catch (Exception e) {
                 LOGGER.warn("Vert.x close error or timeout", e);
             }
-            // 显式关闭 JDBC 连接池（vertx.close 不保证关闭 JDBCPoolInit 管理的 pool）
-            try {
-                var poolInit = cn.qaiu.db.pool.JDBCPoolInit.instance();
-                if (poolInit != null) poolInit.close();
-            } catch (Exception e) {
-                LOGGER.warn("JDBC pool close error", e);
-            }
-            // 显式关闭 JS 解析器 WorkerExecutor 线程池
-            try {
-                cn.qaiu.parser.customjs.JsParserExecutor.shutdownExecutor();
-            } catch (Exception e) {
-                LOGGER.warn("JsParserExecutor shutdown error", e);
-            }
         }));
         //配置保存在共享数据中
         var sharedData = vertx.sharedData();
