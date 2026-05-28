@@ -1,5 +1,6 @@
 package cn.qaiu.util;
 
+import cn.qaiu.WebClientVertxInit;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
@@ -43,11 +44,11 @@ public class ReqIpUtil {
 
     }
 
-
-    Vertx vertx = Vertx.vertx();
-    WebClient webClient = WebClient.create(vertx);
+    // 使用统一的 Vertx 单例，避免重复创建实例
+    private final Vertx vertx = WebClientVertxInit.get();
+    private final WebClient webClient = WebClient.create(vertx);
     // 发送GET请求
-    WebClientSession webClientSession = WebClientSession.create(webClient);
+    private final WebClientSession webClientSession = WebClientSession.create(webClient);
 
 
     public void exec() {
