@@ -46,7 +46,7 @@ public class PostExecVerticle extends AbstractVerticle {
             return;
         }
         LOGGER.info("PostExecVerticle 开始执行...");
-        
+
         if (appRunImplementations != null && !appRunImplementations.isEmpty()) {
             appRunImplementations.forEach(appRun -> {
                 try {
@@ -61,7 +61,17 @@ public class PostExecVerticle extends AbstractVerticle {
         } else {
             LOGGER.info("未找到 AppRun 接口的实现类");
         }
-        
+
+        // 注册定时清理过期缓存任务（每小时执行一次）
+        vertx.setPeriodic(3600_000, 3600_000, id -> {
+            try {
+                cn.qaiu.lz.common.cache.CacheManager cacheManager = new cn.qaiu.lz.common.cache.CacheManager();
+                cacheManager.cleanupExpiredCache();
+            } catch (Exception e) {
+                LOGGER.debug("定时清理缓存任务跳过（数据库可能未就绪）", e);
+            }
+        });
+
         LOGGER.info("PostExecVerticle 执行完成");
         startPromise.complete();
     }
