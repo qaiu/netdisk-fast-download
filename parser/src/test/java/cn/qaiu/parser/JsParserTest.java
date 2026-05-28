@@ -7,6 +7,8 @@ import cn.qaiu.parser.custom.CustomParserRegistry;
 import cn.qaiu.parser.customjs.JsParserExecutor;
 import cn.qaiu.WebClientVertxInit;
 import io.vertx.core.Vertx;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -21,15 +23,26 @@ import java.util.Map;
  */
 public class JsParserTest {
 
+    private Vertx vertx;
+
+    @Before
+    public void setUp() {
+        vertx = Vertx.vertx();
+        WebClientVertxInit.init(vertx);
+    }
+
+    @After
+    public void tearDown() {
+        if (vertx != null) {
+            vertx.close();
+        }
+    }
+
     @Test
     public void testJsParserRegistration() {
         // 清理注册表
         CustomParserRegistry.clear();
-        
-        // 初始化Vertx
-        Vertx vertx = Vertx.vertx();
-        WebClientVertxInit.init(vertx);
-        
+
         // 检查是否加载了JavaScript解析器
         CustomParserConfig config = CustomParserRegistry.get("demo_js");
         assert config != null : "JavaScript解析器未加载";
@@ -43,11 +56,7 @@ public class JsParserTest {
     public void testJsParserExecution() {
         // 清理注册表
         CustomParserRegistry.clear();
-        
-        // 初始化Vertx
-        Vertx vertx = Vertx.vertx();
-        WebClientVertxInit.init(vertx);
-        
+
         try {
             // 创建解析器
             IPanTool tool = ParserCreate.fromType("demo_js")
@@ -74,11 +83,7 @@ public class JsParserTest {
     public void testJsParserFileList() {
         // 清理注册表
         CustomParserRegistry.clear();
-        
-        // 初始化Vertx
-        Vertx vertx = Vertx.vertx();
-        WebClientVertxInit.init(vertx);
-        
+
         try {
             // 创建解析器
             IPanTool tool = ParserCreate.fromType("demo_js")
@@ -114,11 +119,7 @@ public class JsParserTest {
     public void testJsParserById() {
         // 清理注册表
         CustomParserRegistry.clear();
-        
-        // 初始化Vertx
-        Vertx vertx = Vertx.vertx();
-        WebClientVertxInit.init(vertx);
-        
+
         try {
             // 创建ShareLinkInfo
             Map<String, Object> otherParam = new HashMap<>();
