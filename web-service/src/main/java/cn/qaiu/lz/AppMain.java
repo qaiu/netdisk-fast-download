@@ -38,6 +38,19 @@ public class AppMain {
     public static void main(String[] args) {
         // start
         Deploy.instance().start(args, AppMain::exec);
+        // 注册补充 ShutdownHook，关闭 core 模块无法直接依赖的资源
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                JDBCPoolInit.instance().close();
+            } catch (Exception e) {
+                // ignore
+            }
+            try {
+                cn.qaiu.parser.customjs.JsParserExecutor.shutdownExecutor();
+            } catch (Exception e) {
+                // ignore
+            }
+        }));
     }
 
     /**
