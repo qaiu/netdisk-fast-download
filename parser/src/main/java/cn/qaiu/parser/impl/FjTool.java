@@ -581,6 +581,10 @@ public class FjTool extends PanBase {
 
         // 第二次请求
         JsonObject paramJson = (JsonObject)shareLinkInfo.getOtherParam().get("paramJson");
+        if (paramJson == null) {
+            promise.fail("缺少 paramJson 参数");
+            return promise.future();
+        }
         clientNoRedirects.getAbs(UriTemplate.of(SECOND_REQUEST_URL_VIP))
                 .setTemplateParam("fidEncode", paramJson.getString("fidEncode"))
                 .setTemplateParam("uuid", paramJson.getString("uuid"))
