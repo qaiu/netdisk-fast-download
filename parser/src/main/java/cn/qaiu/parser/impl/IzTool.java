@@ -311,10 +311,7 @@ public class IzTool extends PanBase {
                     JsonObject json = asJson(res2);
                     if (json.getInteger("code") == 200) {
                         token = json.getJsonObject("data").getString("appToken");
-                        MultiMap h = MultiMap.caseInsensitiveMultiMap();
-                        h.addAll(header);
-                        h.set("appToken", token);
-                        log.info("登录成功 token: {}...", token.substring(0, Math.min(8, token.length())));
+                        log.info("登录成功 token: {}...", token != null ? token.substring(0, Math.min(8, token.length())) : "null");
                         promise1.complete();
                     } else {
                         // 检查是否为临时认证
