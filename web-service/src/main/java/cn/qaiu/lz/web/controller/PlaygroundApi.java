@@ -28,6 +28,8 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -129,8 +131,11 @@ public class PlaygroundApi {
                 return promise.future();
             }
             
-            // 验证密码
-            if (config.getPassword().equals(password)) {
+            // 验证密码（使用常量时间比较防止时序攻击）
+            String storedPassword = config.getPassword();
+            if (storedPassword != null && MessageDigest.isEqual(
+                    storedPassword.getBytes(StandardCharsets.UTF_8),
+                    password.getBytes(StandardCharsets.UTF_8))) {
                 String token = config.generateToken();
                 JsonObject tokenData = new JsonObject().put("token", token);
                 promise.complete(JsonResult.data(tokenData).toJsonObject());
@@ -299,7 +304,6 @@ public class PlaygroundApi {
                 }).onFailure(e -> {
                     long executionTime = System.currentTimeMillis() - startTime;
                     String errorMessage = e.getMessage();
-                    String stackTrace = getStackTrace(e);
 
                     log.error("演练场执行失败", e);
 
@@ -317,7 +321,6 @@ public class PlaygroundApi {
                     PlaygroundTestResp response = PlaygroundTestResp.builder()
                             .success(false)
                             .error(errorMessage)
-                            .stackTrace(stackTrace)
                             .executionTime(executionTime)
                             .logs(respLogs)
                             .build();
@@ -328,14 +331,12 @@ public class PlaygroundApi {
             } catch (Exception e) {
                 long executionTime = System.currentTimeMillis() - startTime;
                 String errorMessage = e.getMessage();
-                String stackTrace = getStackTrace(e);
 
                 log.error("演练场初始化失败", e);
 
                 PlaygroundTestResp response = PlaygroundTestResp.builder()
                         .success(false)
                         .error(errorMessage)
-                        .stackTrace(stackTrace)
                         .executionTime(executionTime)
                         .logs(new ArrayList<>())
                         .build();
@@ -346,8 +347,7 @@ public class PlaygroundApi {
             log.error("解析请求参数失败", e);
             promise.complete(JsonObject.mapFrom(PlaygroundTestResp.builder()
                     .success(false)
-                    .error("解析请求参数失败: " + e.getMessage())
-                    .stackTrace(getStackTrace(e))
+                    .error("解析请求参数失败")
                     .build()));
         }
 
