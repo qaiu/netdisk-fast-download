@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * 演练场日志收集器
  * 收集JavaScript执行过程中的日志信息
@@ -12,7 +15,9 @@ import java.util.List;
  * @author <a href="https://qaiu.top">QAIU</a>
  */
 public class JsPlaygroundLogger {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(JsPlaygroundLogger.class);
+
     // 使用线程安全的列表
     private static final int MAX_LOG_SIZE = 1000;
     private final List<LogEntry> logs = Collections.synchronizedList(new ArrayList<>());
@@ -81,7 +86,7 @@ public class JsPlaygroundLogger {
     private void log(String level, Object message, String source) {
         String msg = toString(message);
         addLog(new LogEntry(level, msg, source));
-        System.out.println("[" + source + "PlaygroundLogger] " + level + ": " + msg);
+        log.debug("[{}PlaygroundLogger] {}: {}", source, level, msg);
     }
     
     /**
@@ -125,7 +130,7 @@ public class JsPlaygroundLogger {
             msg = msg + ": " + throwable.getMessage();
         }
         addLog(new LogEntry("ERROR", msg, "JS"));
-        System.out.println("[JSPlaygroundLogger] ERROR: " + msg);
+        log.debug("[JSPlaygroundLogger] ERROR: {}", msg);
     }
     
     // ===== 以下是供Java层调用的内部方法 =====
@@ -167,7 +172,7 @@ public class JsPlaygroundLogger {
             msg = msg + ": " + throwable.getMessage();
         }
         addLog(new LogEntry("ERROR", msg, "JAVA"));
-        System.out.println("[JAVAPlaygroundLogger] ERROR: " + msg);
+        log.debug("[JAVAPlaygroundLogger] ERROR: {}", msg);
     }
     
     /**

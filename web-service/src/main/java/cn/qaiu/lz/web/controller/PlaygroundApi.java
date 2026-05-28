@@ -704,6 +704,7 @@ public class PlaygroundApi {
         if (throwable == null) {
             return "";
         }
+        log.error("获取异常堆栈信息", throwable);
         java.io.StringWriter sw = new java.io.StringWriter();
         java.io.PrintWriter pw = new java.io.PrintWriter(sw);
         throwable.printStackTrace(pw);

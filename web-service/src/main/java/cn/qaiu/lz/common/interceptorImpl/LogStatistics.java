@@ -48,6 +48,6 @@ public class LogStatistics implements AfterInterceptor {
                 .execute(info)
                 .onSuccess(res -> {
                     log.info("inserted log: id={}, path={}, code={}", info.getId(), info.getPath(), info.getCode());
-                }).onFailure(Throwable::printStackTrace);
+                }).onFailure(e -> log.error("插入解析日志失败: id={}", info.getId(), e));
     }
 }
