@@ -232,9 +232,17 @@ public class CacheManager {
      * 注册定时清理过期缓存任务（每小时执行一次）
      * 应在应用启动后调用
      */
+    private static volatile boolean cleanupRegistered = false;
+
     public static void registerPeriodicCleanup() {
+        if (cleanupRegistered) return;
         try {
             io.vertx.core.Vertx vertx = cn.qaiu.vx.core.util.VertxHolder.getVertxInstance();
+            if (vertx == null) {
+                LOGGER.warn("Vertx 未就绪，缓存定时清理任务延迟注册");
+                return;
+            }
+            cleanupRegistered = true;
             vertx.setPeriodic(3600_000, 3600_000, id -> {
                 try {
                     new CacheManager().cleanupExpiredCache();
