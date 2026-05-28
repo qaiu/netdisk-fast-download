@@ -65,7 +65,11 @@ public final class Deploy {
         // 读取yml配置
         ConfigUtil.readYamlConfig(path.toString(), tempVertx)
                 .onSuccess(this::readConf)
-                .onFailure(Throwable::printStackTrace);
+                .onFailure(err -> {
+                    LOGGER.error("读取配置文件失败: {}", err.getMessage(), err);
+                    LockSupport.unpark(mainThread);
+                    System.exit(-1);
+                });
         LockSupport.park();
         deployVerticle();
     }
