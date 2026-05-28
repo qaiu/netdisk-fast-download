@@ -89,8 +89,8 @@ public class IzTool extends PanBase {
 
     String uuid = UUID.randomUUID().toString().toLowerCase(); // 也可以使用 UUID.randomUUID().toString()
 
-    public static String token = null;
-    public static boolean authFlag = true;
+    public static volatile String token = null;
+    public static volatile boolean authFlag = true;
 
     public Future<String> parse() {
 
@@ -247,7 +247,7 @@ public class IzTool extends PanBase {
                         log.warn("登录失败: {}", failRes.getMessage());
                         fail(failRes.getMessage());
                     }).onSuccess(r-> {
-                        httpRequest.setTemplateParam("appToken", header.get("appToken"))
+                        httpRequest.setTemplateParam("appToken", token)
                                 .putHeaders(header);
                         httpRequest.send().onSuccess(this::down).onFailure(handleFail("请求2"));
                     });
@@ -263,12 +263,12 @@ public class IzTool extends PanBase {
                                         log.warn("重新登录失败: {}", failRes.getMessage());
                                         fail(failRes.getMessage());
                                     }).onSuccess(r-> {
-                                        httpRequest.setTemplateParam("appToken", header.get("appToken"))
+                                        httpRequest.setTemplateParam("appToken", token)
                                                 .putHeaders(header);
                                         httpRequest.send().onSuccess(this::down).onFailure(handleFail("请求2"));
                                     });
                                 } else {
-                                    httpRequest.setTemplateParam("appToken", header.get("appToken"))
+                                    httpRequest.setTemplateParam("appToken", token)
                                             .putHeaders(header);
                                     httpRequest.send().onSuccess(this::down).onFailure(handleFail("请求2"));
                                 }
@@ -311,7 +311,9 @@ public class IzTool extends PanBase {
                     JsonObject json = asJson(res2);
                     if (json.getInteger("code") == 200) {
                         token = json.getJsonObject("data").getString("appToken");
-                        header.set("appToken", token);
+                        MultiMap h = MultiMap.caseInsensitiveMultiMap();
+                        h.addAll(header);
+                        h.set("appToken", token);
                         log.info("登录成功 token: {}...", token.substring(0, Math.min(8, token.length())));
                         promise1.complete();
                     } else {
