@@ -109,9 +109,9 @@ public class FjTool extends PanBase {
 
     // String uuid = UUID.randomUUID().toString().toLowerCase(); // 也可以使用 UUID.randomUUID().toString()
 
-    static String token = null;
-    static String userId = null;
-    public static boolean authFlag = true;
+    static volatile String token = null;
+    static volatile String userId = null;
+    public static volatile boolean authFlag = true;
 
     public FjTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
@@ -289,12 +289,14 @@ public class FjTool extends PanBase {
                     JsonObject json = asJson(res2);
                     if (json.getInteger("code") == 200) {
                         token = json.getJsonObject("data").getString("appToken");
-                        header0.set("appToken", token);
+                        MultiMap h0 = MultiMap.caseInsensitiveMultiMap();
+                        h0.addAll(header0);
+                        h0.set("appToken", token);
                         log.info("登录成功 token: {}...", token.substring(0, Math.min(8, token.length())));
                         client.postAbs(UriTemplate.of(TOKEN_VERIFY_URL))
                                 .setTemplateParam("uuid", uuid)
                                 .setTemplateParam("ts", tsEncode2)
-                                .putHeaders(header0).send().onSuccess(res -> {
+                                .putHeaders(h0).send().onSuccess(res -> {
                                     if (asJson(res).getInteger("code") == 200) {
                                         if (FjTool.userId == null) {
                                             FjTool.userId = asJson(res).getJsonObject("map").getString("userId");
