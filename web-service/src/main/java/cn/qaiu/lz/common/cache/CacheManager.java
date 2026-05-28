@@ -153,13 +153,13 @@ public class CacheManager {
 
         getShareKeyTotal(shareKey, fieldLower).onSuccess(total -> {
             Integer newTotal = (total == null ? 0 : total) + 1;
+            Map<String, Object> updateParams = new HashMap<>();
+            updateParams.put("panType", getShareType(shareKey));
+            updateParams.put("shareKey", shareKey);
+            updateParams.put("total", newTotal);
+            updateParams.put("ts", System.currentTimeMillis());
             SqlTemplate.forUpdate(jdbcPool, sql)
-                    .execute(new HashMap<>() {{
-                        put("panType", getShareType(shareKey));
-                        put("shareKey", shareKey);
-                        put("total", newTotal);
-                        put("ts", System.currentTimeMillis());
-                    }})
+                    .execute(updateParams)
                     .onSuccess(res -> promise.complete(res.rowCount()))
                     .onFailure(e->{
                         promise.fail(e);
@@ -265,10 +265,9 @@ public class CacheManager {
                 .onSuccess(res -> {
                     if(res.iterator().hasNext()) {
                         JsonObject next = res.iterator().next();
-                        Map<String, Integer> resp = new HashMap<>(){{
-                            put("hit_total" ,next.getInteger("hit_total"));
-                            put("parser_total" ,next.getInteger("parser_total"));
-                        }};
+                        Map<String, Integer> resp = new HashMap<>();
+                        resp.put("hit_total", next.getInteger("hit_total"));
+                        resp.put("parser_total", next.getInteger("parser_total"));
                         promise.complete(resp);
                     } else {
                         promise.complete();
