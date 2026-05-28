@@ -14,4 +14,8 @@ RUN unzip netdisk-fast-download-bin.zip && \
 
 EXPOSE 6400 6401
 
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser && \
+    chown -R appuser:appgroup /app
+USER appuser
+
 ENTRYPOINT ["sh", "run.sh"]
