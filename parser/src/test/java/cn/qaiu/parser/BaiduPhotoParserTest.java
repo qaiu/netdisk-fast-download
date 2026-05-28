@@ -8,6 +8,8 @@ import cn.qaiu.parser.customjs.JsParserExecutor;
 import cn.qaiu.WebClientVertxInit;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -22,15 +24,26 @@ import java.util.Map;
  */
 public class BaiduPhotoParserTest {
 
+    private Vertx vertx;
+
+    @Before
+    public void setUp() {
+        vertx = Vertx.vertx();
+        WebClientVertxInit.init(vertx);
+    }
+
+    @After
+    public void tearDown() {
+        if (vertx != null) {
+            vertx.close();
+        }
+    }
+
     @Test
     public void testBaiduPhotoParserRegistration() {
         // 清理注册表
         CustomParserRegistry.clear();
-        
-        // 初始化Vertx
-        Vertx vertx = Vertx.vertx();
-        WebClientVertxInit.init(vertx);
-        
+
         // 检查是否加载了百度相册解析器
         CustomParserConfig config = CustomParserRegistry.get("baidu_photo");
         assert config != null : "百度相册解析器未加载";
@@ -44,11 +57,7 @@ public class BaiduPhotoParserTest {
     public void testBaiduPhotoFileShareExecution() {
         // 清理注册表
         CustomParserRegistry.clear();
-        
-        // 初始化Vertx
-        Vertx vertx = Vertx.vertx();
-        WebClientVertxInit.init(vertx);
-        
+
         try {
             // 创建解析器 - 测试文件分享链接
             IPanTool tool = ParserCreate.fromType("baidu_photo")
@@ -76,11 +85,7 @@ public class BaiduPhotoParserTest {
     public void testBaiduPhotoFolderShareExecution() {
         // 清理注册表
         CustomParserRegistry.clear();
-        
-        // 初始化Vertx
-        Vertx vertx = Vertx.vertx();
-        WebClientVertxInit.init(vertx);
-        
+
         try {
             // 创建解析器 - 测试文件夹分享链接
             IPanTool tool = ParserCreate.fromType("baidu_photo")
@@ -108,11 +113,7 @@ public class BaiduPhotoParserTest {
     public void testBaiduPhotoParserFileList() {
         // 清理注册表
         CustomParserRegistry.clear();
-        
-        // 初始化Vertx
-        Vertx vertx = Vertx.vertx();
-        WebClientVertxInit.init(vertx);
-        
+
         try {
             IPanTool tool = ParserCreate.fromType("baidu_photo")
                     // 分享key PPgOEodBVE
@@ -166,11 +167,7 @@ public class BaiduPhotoParserTest {
     public void testBaiduPhotoParserById() {
         // 清理注册表
         CustomParserRegistry.clear();
-        
-        // 初始化Vertx
-        Vertx vertx = Vertx.vertx();
-        WebClientVertxInit.init(vertx);
-        
+
         try {
             // 创建ShareLinkInfo
             Map<String, Object> otherParam = new HashMap<>();
