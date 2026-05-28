@@ -149,7 +149,8 @@ public final class Deploy {
             }
             // 显式关闭 JDBC 连接池（vertx.close 不保证关闭 JDBCPoolInit 管理的 pool）
             try {
-                cn.qaiu.db.pool.JDBCPoolInit.instance().close();
+                var poolInit = cn.qaiu.db.pool.JDBCPoolInit.instance();
+                if (poolInit != null) poolInit.close();
             } catch (Exception e) {
                 LOGGER.warn("JDBC pool close error", e);
             }
