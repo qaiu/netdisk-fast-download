@@ -49,8 +49,8 @@ public class ParserApi {
         return dbService.getStatisticsInfo();
     }
 
-    private final CacheManager cacheManager = new CacheManager();
-    private final ServerApi serverApi = new ServerApi();
+    private static final CacheManager cacheManager = new CacheManager();
+    private static final ServerApi serverApi = new ServerApi();
 
     @RouteMapping(value = "/linkInfo", method = RouteMethod.GET)
     public Future<LinkInfoResp> parse(HttpServerRequest request, String pwd, String auth) {
@@ -220,7 +220,7 @@ public class ParserApi {
         }
         
         String previewURL = SharedDataUtil.getJsonStringForServerConfig("previewURL");
-        new ServerApi().parseJson(request, pwd, null).onSuccess(res -> {
+        serverApi.parseJson(request, pwd, null).onSuccess(res -> {
             redirect(response, previewURL, res);
         }).onFailure(e -> {
             ResponseUtil.fireJsonResultResponse(response, JsonResult.error(e.toString()));
