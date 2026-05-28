@@ -78,41 +78,76 @@ public class SecurityClassFilter implements ClassFilter {
         "jdk.nashorn.internal",
         "jdk.internal",
     };
-    
+
+    // 白名单：明确允许 JS 解析器使用的类
+    private static final String[] ALLOWED_CLASSES = {
+        // Nashorn 脚本对象
+        "org.openjdk.nashorn.api.scripting",
+        "jdk.nashorn.api.scripting",
+        // 基础集合类
+        "java.util",
+        // 基础类型
+        "java.lang.String",
+        "java.lang.Integer",
+        "java.lang.Long",
+        "java.lang.Double",
+        "java.lang.Boolean",
+        "java.lang.Math",
+        "java.lang.Number",
+        "java.lang.Object",
+        "java.lang.StringBuilder",
+        "java.lang.StringBuffer",
+        "java.lang.Character",
+        "java.lang.Byte",
+        "java.lang.Short",
+        "java.lang.Float",
+        "java.lang.Enum",
+        "java.lang.Iterable",
+        "java.lang.Comparable",
+        // 时间类
+        "java.time",
+        // 文本处理
+        "java.text",
+    };
+
+    // 白名单包前缀
+    private static final String[] ALLOWED_PACKAGES = {
+        "java.util.",
+        "java.time.",
+        "java.text.",
+        "org.openjdk.nashorn.api.scripting.",
+        "jdk.nashorn.api.scripting.",
+    };
+
     @Override
     public boolean exposeToScripts(String className) {
-        // 检查是否在黑名单中
+        // 1. 先检查黑名单（快速拒绝已知危险类）
         for (String dangerous : DANGEROUS_CLASSES) {
             if (className.equals(dangerous) || className.startsWith(dangerous + ".")) {
                 log.warn("🔒 安全拦截: JavaScript尝试访问危险类 - {}", className);
                 return false;
             }
         }
-        
-        // 额外的包级别限制
-        String[] dangerousPackages = {
-            "java.lang.reflect.",
-            "java.io.",
-            "java.nio.",
-            "java.net.",
-            "java.sql.",
-            "javax.script.",
-            "sun.",
-            "jdk.internal.",
-            "jdk.nashorn.internal."
-        };
-        
-        for (String pkg : dangerousPackages) {
-            if (className.startsWith(pkg)) {
-                log.warn("🔒 安全拦截: JavaScript尝试访问危险包 - {}", className);
-                return false;
+
+        // 2. 检查白名单（只允许明确安全的类）
+        for (String allowed : ALLOWED_CLASSES) {
+            if (className.equals(allowed) || className.startsWith(allowed + ".")) {
+                log.debug("✅ 白名单允许: {}", className);
+                return true;
             }
         }
-        
-        // 默认也拒绝（白名单策略更安全，但这里为了兼容性使用黑名单）
-        // 如果要更严格，可以改为 return false
-        log.debug("允许访问类: {}", className);
-        return true;
+
+        // 3. 检查白名单包前缀
+        for (String pkg : ALLOWED_PACKAGES) {
+            if (className.startsWith(pkg)) {
+                log.debug("✅ 白名单包允许: {}", className);
+                return true;
+            }
+        }
+
+        // 4. 默认拒绝（白名单策略）
+        log.warn("🔒 安全拦截: JavaScript尝试访问未授权类 - {}", className);
+        return false;
     }
 }
 
