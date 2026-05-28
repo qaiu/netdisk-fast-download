@@ -1758,7 +1758,6 @@ function parseFileList(shareLinkInfo, http, logger) {
           testParams.value.method
         );
         
-        console.log('测试结果:', result);
         testResult.value = result;
         
         // 将日志添加到控制台
@@ -1820,10 +1819,8 @@ function parseFileList(shareLinkInfo, http, logger) {
       loadingList.value = true;
       try {
         const result = await playgroundApi.getParserList();
-        console.log('获取解析器列表响应:', result);
         // 检查响应格式
         if (result.code === 200 || result.success) {
-          console.log('列表数据:', result.data);
           parserList.value = result.data || [];
         } else if (result.data && Array.isArray(result.data)) {
           // 如果data直接是数组
@@ -1857,7 +1854,6 @@ function parseFileList(shareLinkInfo, http, logger) {
       try {
         const codeToPublish = currentCode.value;
         const result = await playgroundApi.saveParser(codeToPublish);
-        console.log('保存解析器响应:', result);
         // 检查响应格式
         if (result.code === 200 || result.success) {
           // 从响应或代码中提取type信息

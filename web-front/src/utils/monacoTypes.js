@@ -313,7 +313,6 @@ export async function loadTypesFromApi(monaco) {
           cachedContent,
           'file:///types.js'
         );
-        console.log('从缓存加载types.js成功');
         // 异步更新缓存
         updateTypesJsCache();
         return;
@@ -334,7 +333,6 @@ export async function loadTypesFromApi(monaco) {
         typesJsContent,
         'file:///types.js'
       );
-      console.log('加载types.js成功并已缓存');
     }
   } catch (error) {
     console.warn('加载types.js失败，使用内置类型定义:', error);
@@ -350,7 +348,6 @@ async function updateTypesJsCache() {
     if (response.ok) {
       const typesJsContent = await response.text();
       localStorage.setItem('playground_types_js', typesJsContent);
-      console.log('types.js缓存已更新');
     }
   } catch (error) {
     console.warn('更新types.js缓存失败:', error);

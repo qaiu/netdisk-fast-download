@@ -491,7 +491,6 @@ export default {
     },
     // 处理文件点击
     handleFileClick(file) {
-      console.log('点击文件', file, this.viewMode)
       if (file.fileType === 'folder') {
         this.enterFolder(file)
       } else if (this.viewMode === 'pane') {

@@ -959,18 +959,16 @@ export default {
       // 优先使用个人配置
       if (this.allAuthConfigs[panType]) {
         config = this.allAuthConfigs[panType]
-        console.log(`[认证] 使用个人配置: ${this.getPanDisplayName(panType)}`)
       } else {
         // 从后端随机获取捐赠账号（后端已加密，直接使用 encryptedAuth）
         try {
           const response = await axios.get(`${this.baseAPI}/v2/randomAuth`, { params: { panType } })
           const encryptedAuth = response.data?.data?.encryptedAuth
           if (encryptedAuth) {
-            console.log(`[认证] 使用捐赠账号: ${this.getPanDisplayName(panType)}`)
             return encryptedAuth
           }
         } catch (e) {
-          console.log(`[认证] 无可用捐赠账号: ${this.getPanDisplayName(panType)}`)
+          // no available donated account
         }
         return ''
       }
@@ -1319,7 +1317,6 @@ export default {
     async getPaste(isManual = false) {
       try {
         const text = await navigator.clipboard.readText()
-        console.log('获取到的文本内容是：', text)
 
         const shortInfo = this.expandShortFormat(text)
         if (shortInfo) {
