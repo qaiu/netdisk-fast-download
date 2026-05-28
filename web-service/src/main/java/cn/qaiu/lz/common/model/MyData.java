@@ -24,7 +24,6 @@ public class MyData implements Serializable {
 
 
     public MyData(JsonObject jsonObject) {
-        this.id = jsonObject.getString("id");
-        this.maxSize = jsonObject.getString("maxSize");
+        // TODO
     }
 }
