@@ -181,7 +181,8 @@ public class RouterHandlerFactory implements BaseHttpApi {
                         doFireJsonResultResponse(ctx, JsonResult.error("未知异常, 请联系管理员"), 503);
                     } else {
                         LOGGER.error("路由处理失败", ctx.failure());
-                        doFireJsonResultResponse(ctx, JsonResult.error("服务器内部错误"), 500);
+                        String msg = ctx.failure() != null ? ctx.failure().getMessage() : "未知异常";
+                        doFireJsonResultResponse(ctx, JsonResult.error(msg), 500);
                     }
                 });
             } else if (method.isAnnotationPresent(SockRouteMapper.class)) {
