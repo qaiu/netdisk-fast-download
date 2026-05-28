@@ -86,7 +86,10 @@ public class ShareLinkInfo {
         // 将type和shareKey组合成一个字符串作为缓存key
         String key = type + ":" + shareKey;
         if (type.equals("p115")) {
-            key += ("_" + otherParam.get("UA").toString().hashCode());
+            Object ua = otherParam != null ? otherParam.get("UA") : null;
+            if (ua != null) {
+                key += ("_" + ua.toString().hashCode());
+            }
         }
         return key;
     }
