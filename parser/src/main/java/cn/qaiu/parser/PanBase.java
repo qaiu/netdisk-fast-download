@@ -40,28 +40,34 @@ public abstract class PanBase implements IPanTool {
     protected Promise<String> promise = Promise.promise();
 
     /**
-     * Http client
+     * 共享的 WebClient 实例（线程安全，避免每请求创建导致资源泄漏）
      */
-    protected WebClient client = WebClient.create(WebClientVertxInit.get(),
+    private static final WebClient SHARED_CLIENT = WebClient.create(WebClientVertxInit.get(),
             new WebClientOptions());
+    private static final WebClient SHARED_CLIENT_NO_REDIRECTS = WebClient.create(WebClientVertxInit.get(),
+            new WebClientOptions().setFollowRedirects(false));
+    private static final WebClient SHARED_CLIENT_DISABLE_UA = WebClient.create(WebClientVertxInit.get(),
+            new WebClientOptions().setUserAgentEnabled(false));
 
     /**
-     * Http client session (会话管理, 带cookie请求)
+     * Http client (默认使用共享实例，代理模式下使用独立实例)
+     */
+    protected WebClient client = SHARED_CLIENT;
+
+    /**
+     * Http client session (会话管理, 带cookie请求, 每实例独立)
      */
     protected WebClientSession clientSession = WebClientSession.create(client);
 
     /**
      * Http client 不自动跳转
      */
-    protected WebClient clientNoRedirects = WebClient.create(WebClientVertxInit.get(),
-            new WebClientOptions().setFollowRedirects(false));
+    protected WebClient clientNoRedirects = SHARED_CLIENT_NO_REDIRECTS;
 
     /**
      * Http client disable UserAgent
      */
-    protected WebClient clientDisableUA = WebClient.create(WebClientVertxInit.get()
-            , new WebClientOptions().setUserAgentEnabled(false)
-    );
+    protected WebClient clientDisableUA = SHARED_CLIENT_DISABLE_UA;
 
     protected ShareLinkInfo shareLinkInfo;
     
