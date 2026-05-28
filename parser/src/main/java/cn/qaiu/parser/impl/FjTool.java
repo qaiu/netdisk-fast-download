@@ -290,7 +290,7 @@ public class FjTool extends PanBase {
                     if (json.getInteger("code") == 200) {
                         token = json.getJsonObject("data").getString("appToken");
                         header0.set("appToken", token);
-                        log.info("登录成功 token: {}", token);
+                        log.info("登录成功 token: {}...", token.substring(0, Math.min(8, token.length())));
                         client.postAbs(UriTemplate.of(TOKEN_VERIFY_URL))
                                 .setTemplateParam("uuid", uuid)
                                 .setTemplateParam("ts", tsEncode2)

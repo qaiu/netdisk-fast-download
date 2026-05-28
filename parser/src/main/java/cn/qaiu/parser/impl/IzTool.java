@@ -101,8 +101,8 @@ public class IzTool extends PanBase {
         // 检查并输出认证状态
         if (shareLinkInfo.getOtherParam().containsKey("auths")) {
             boolean isTempAuth = shareLinkInfo.getOtherParam().containsKey("__TEMP_AUTH_ADDED");
-            log.info("文件解析检测到认证信息: isTempAuth={}, authFlag={}, token={}", 
-                    isTempAuth, authFlag, token != null ? "已登录(" + token.substring(0, Math.min(10, token.length())) + "...)" : "未登录");
+            log.info("文件解析检测到认证信息: isTempAuth={}, authFlag={}, token={}",
+                    isTempAuth, authFlag, token != null ? "已登录(" + token.substring(0, Math.min(8, token.length())) + "...)" : "未登录");
             
             // 如果需要认证但还没有token，先执行登录
             if ((isTempAuth || authFlag) && token == null) {
@@ -118,7 +118,7 @@ public class IzTool extends PanBase {
                             // 登录失败，继续使用免登录模式
                         });
             } else if (token != null) {
-                log.info("文件解析使用已有token: {}...", token.substring(0, Math.min(10, token.length())));
+                log.info("文件解析使用已有token: {}...", token.substring(0, Math.min(8, token.length())));
             }
         } else {
             log.debug("文件解析无认证信息，使用免登录模式");
@@ -312,7 +312,7 @@ public class IzTool extends PanBase {
                     if (json.getInteger("code") == 200) {
                         token = json.getJsonObject("data").getString("appToken");
                         header.set("appToken", token);
-                        log.info("登录成功 token: {}", token);
+                        log.info("登录成功 token: {}...", token.substring(0, Math.min(8, token.length())));
                         promise1.complete();
                     } else {
                         // 检查是否为临时认证

@@ -281,7 +281,7 @@ public class IzToolWithAuth extends PanBase {
                     if (json.getInteger("code") == 200) {
                         token = json.getJsonObject("data").getString("appToken");
                         header.set("appToken", token);
-                        log.info("登录成功 token: {}", token);
+                        log.info("登录成功 token: {}...", token.substring(0, Math.min(8, token.length())));
                         promise1.complete();
                     } else {
                         // 检查是否为临时认证
@@ -480,7 +480,7 @@ public class IzToolWithAuth extends PanBase {
                             requestDirList(id, shareId, tsEncode, promise);
                         })
                         .onSuccess(r -> {
-                            log.info("目录解析登录成功，token={}, 使用 VIP 模式", token != null ? token.substring(0, 10) + "..." : "null");
+                            log.info("目录解析登录成功，token={}, 使用 VIP 模式", token != null ? token.substring(0, Math.min(8, token.length())) + "..." : "null");
                             requestDirList(id, shareId, tsEncode, promise);
                         });
                 return;
@@ -627,7 +627,7 @@ public class IzToolWithAuth extends PanBase {
         
         // 如果有 token，使用 VIP 接口
         if (StringUtils.isNotBlank(appToken)) {
-            log.debug("parseById 使用 VIP 接口, appToken={}", appToken.substring(0, Math.min(10, appToken.length())) + "...");
+            log.debug("parseById 使用 VIP 接口, appToken={}", appToken.substring(0, Math.min(8, appToken.length())) + "...");
             webClientSession.getAbs(UriTemplate.of(SECOND_REQUEST_URL_VIP))
                     .putHeaders(header)
                     .setTemplateParam("fidEncode", paramJson.getString("fidEncode"))
