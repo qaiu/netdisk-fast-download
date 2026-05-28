@@ -28,7 +28,6 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
@@ -695,20 +694,6 @@ public class PlaygroundApi {
             ip = request.remoteAddress().host();
         }
         return ip;
-    }
-
-    /**
-     * 获取异常堆栈信息
-     */
-    private String getStackTrace(Throwable throwable) {
-        if (throwable == null) {
-            return "";
-        }
-        log.error("获取异常堆栈信息", throwable);
-        java.io.StringWriter sw = new java.io.StringWriter();
-        java.io.PrintWriter pw = new java.io.PrintWriter(sw);
-        throwable.printStackTrace(pw);
-        return sw.toString();
     }
 }
 
