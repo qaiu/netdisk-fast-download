@@ -100,18 +100,21 @@ public class CommonUtil {
     }
 
     /**
-     * 处理其他配置
+     * 处理其他配置（异步非阻塞方式）
      *
      * @param configName configName
      */
     public static void initConfig(String configName, Class<?> tClass) {
         URL resource = tClass.getResource("/conf/" + configName);
         if (resource == null) throw new RuntimeException("路径不存在");
-        Buffer buffer = VertxHolder.getVertxInstance().fileSystem().readFileBlocking(resource.getPath());
-        JsonObject entries = new JsonObject(buffer);
-        Map<String, Object> map = entries.getMap();
-        LocalConstant.put(configName, map);
-        LOGGER.info("读取配置{}成功", configName);
+        VertxHolder.getVertxInstance().fileSystem().readFile(resource.getPath())
+                .onSuccess(buffer -> {
+                    JsonObject entries = new JsonObject(buffer);
+                    Map<String, Object> map = entries.getMap();
+                    LocalConstant.put(configName, map);
+                    LOGGER.info("读取配置{}成功", configName);
+                })
+                .onFailure(err -> LOGGER.error("读取配置{}失败", configName, err));
     }
 
     public static <T> Set<T> sortClassSet(Set<Class<? extends T>> set) {
