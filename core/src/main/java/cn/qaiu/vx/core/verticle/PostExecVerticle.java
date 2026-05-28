@@ -68,7 +68,7 @@ public class PostExecVerticle extends AbstractVerticle {
                 cn.qaiu.lz.common.cache.CacheManager cacheManager = new cn.qaiu.lz.common.cache.CacheManager();
                 cacheManager.cleanupExpiredCache();
             } catch (Exception e) {
-                LOGGER.debug("定时清理缓存任务跳过（数据库可能未就绪）", e);
+                LOGGER.warn("定时清理缓存任务跳过（数据库可能未就绪）", e);
             }
         });
 
