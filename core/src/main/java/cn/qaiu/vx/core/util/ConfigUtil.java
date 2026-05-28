@@ -62,7 +62,10 @@ public class ConfigUtil {
         // 异步获取配置
         // 成功直接完成 promise
         retriever.getConfig()
-                .onSuccess(promise::complete)
+                .onSuccess(config -> {
+                    promise.complete(config);
+                    retriever.close();
+                })
                 .onFailure(err -> {
                     // 配置读取失败，直接返回失败 Future
                     promise.fail(new RuntimeException(
