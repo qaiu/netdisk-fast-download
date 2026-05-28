@@ -14,6 +14,7 @@ import java.util.List;
 public class JsPlaygroundLogger {
     
     // 使用线程安全的列表
+    private static final int MAX_LOG_SIZE = 1000;
     private final List<LogEntry> logs = Collections.synchronizedList(new ArrayList<>());
     
     /**
@@ -60,6 +61,18 @@ public class JsPlaygroundLogger {
     }
     
     /**
+     * 添加日志条目，超过最大容量时移除最早的条目
+     */
+    private void addLog(LogEntry entry) {
+        synchronized (logs) {
+            if (logs.size() >= MAX_LOG_SIZE) {
+                logs.remove(0);
+            }
+            logs.add(entry);
+        }
+    }
+
+    /**
      * 记录日志（内部方法）
      * @param level 日志级别
      * @param message 日志消息
@@ -67,7 +80,7 @@ public class JsPlaygroundLogger {
      */
     private void log(String level, Object message, String source) {
         String msg = toString(message);
-        logs.add(new LogEntry(level, msg, source));
+        addLog(new LogEntry(level, msg, source));
         System.out.println("[" + source + "PlaygroundLogger] " + level + ": " + msg);
     }
     
@@ -111,7 +124,7 @@ public class JsPlaygroundLogger {
         if (throwable != null) {
             msg = msg + ": " + throwable.getMessage();
         }
-        logs.add(new LogEntry("ERROR", msg, "JS"));
+        addLog(new LogEntry("ERROR", msg, "JS"));
         System.out.println("[JSPlaygroundLogger] ERROR: " + msg);
     }
     
@@ -153,7 +166,7 @@ public class JsPlaygroundLogger {
         if (throwable != null) {
             msg = msg + ": " + throwable.getMessage();
         }
-        logs.add(new LogEntry("ERROR", msg, "JAVA"));
+        addLog(new LogEntry("ERROR", msg, "JAVA"));
         System.out.println("[JAVAPlaygroundLogger] ERROR: " + msg);
     }
     
