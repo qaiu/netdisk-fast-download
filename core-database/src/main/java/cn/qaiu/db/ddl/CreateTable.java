@@ -24,35 +24,39 @@ import java.util.*;
  * @author <a href="https://qaiu.top">QAIU</a>
  */
 public class CreateTable {
-    public static Map<Class<?>, String> javaProperty2SqlColumnMap = new HashMap<>() {{
+    public static final Map<Class<?>, String> javaProperty2SqlColumnMap;
+    static {
+        Map<Class<?>, String> map = new HashMap<>();
         // Java类型到SQL类型的映射
-        put(Integer.class, "INT");
-        put(Short.class, "SMALLINT");
-        put(Byte.class, "TINYINT");
-        put(Long.class, "BIGINT");
-        put(java.math.BigDecimal.class, "DECIMAL");
-        put(Double.class, "DOUBLE");
-        put(Float.class, "REAL");
-        put(Boolean.class, "BOOLEAN");
-        put(String.class, "VARCHAR");
-        put(Date.class, "TIMESTAMP");
-        put(java.time.LocalDateTime.class, "TIMESTAMP");
-        put(java.sql.Timestamp.class, "TIMESTAMP");
-        put(java.sql.Date.class, "DATE");
-        put(java.sql.Time.class, "TIME");
+        map.put(Integer.class, "INT");
+        map.put(Short.class, "SMALLINT");
+        map.put(Byte.class, "TINYINT");
+        map.put(Long.class, "BIGINT");
+        map.put(java.math.BigDecimal.class, "DECIMAL");
+        map.put(Double.class, "DOUBLE");
+        map.put(Float.class, "REAL");
+        map.put(Boolean.class, "BOOLEAN");
+        map.put(String.class, "VARCHAR");
+        map.put(Date.class, "TIMESTAMP");
+        map.put(java.time.LocalDateTime.class, "TIMESTAMP");
+        map.put(java.sql.Timestamp.class, "TIMESTAMP");
+        map.put(java.sql.Date.class, "DATE");
+        map.put(java.sql.Time.class, "TIME");
 
         // 基本数据类型
-        put(int.class, "INT");
-        put(short.class, "SMALLINT");
-        put(byte.class, "TINYINT");
-        put(long.class, "BIGINT");
-        put(double.class, "DOUBLE");
-        put(float.class, "REAL");
-        put(boolean.class, "BOOLEAN");
-    }};
+        map.put(int.class, "INT");
+        map.put(short.class, "SMALLINT");
+        map.put(byte.class, "TINYINT");
+        map.put(long.class, "BIGINT");
+        map.put(double.class, "DOUBLE");
+        map.put(float.class, "REAL");
+        map.put(boolean.class, "BOOLEAN");
+
+        javaProperty2SqlColumnMap = Collections.unmodifiableMap(map);
+    }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CreateTable.class);
-    public static String UNIQUE_PREFIX = "idx_";
+    public static final String UNIQUE_PREFIX = "idx_";
 
     private static Case getCase(Class<?> clz) {
         return switch (clz.getName()) {
