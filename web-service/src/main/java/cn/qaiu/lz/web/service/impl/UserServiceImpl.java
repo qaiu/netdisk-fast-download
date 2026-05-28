@@ -189,10 +189,10 @@ public class UserServiceImpl implements UserService {
                 .execute(Tuple.of(username))
                 .onSuccess(rows -> {
                     if (rows.size() == 0) {
-                        promise.fail("用户不存在");
+                        promise.fail("用户名或密码错误");
                         return;
                     }
-                    
+
                     Row row = rows.iterator().next();
                     SysUser user = rowToUser(row);
                     promise.complete(filterSensitiveInfo(user));
@@ -296,10 +296,10 @@ public class UserServiceImpl implements UserService {
                 .execute(Tuple.of(user.getUsername()))
                 .onSuccess(rows -> {
                     if (rows.size() == 0) {
-                        promise.fail("用户不存在");
+                        promise.fail("用户名或密码错误");
                         return;
                     }
-                    
+
                     Row row = rows.iterator().next();
                     SysUser existUser = rowToUser(row);
                     
@@ -406,7 +406,7 @@ public class UserServiceImpl implements UserService {
                 .onFailure(err -> {
                     promise.complete(new JsonObject()
                             .put("success", false)
-                            .put("message", "用户不存在"));
+                            .put("message", "认证失败，请重新登录"));
                 });
         
         return promise.future();
