@@ -18,14 +18,12 @@ import org.reflections.util.FilterBuilder;
 
 import java.lang.annotation.Annotation;
 import java.lang.invoke.MethodHandles;
-import java.lang.ref.SoftReference;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.text.ParseException;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 import static cn.qaiu.vx.core.util.ConfigConstant.BASE_LOCATIONS;
 
@@ -39,26 +37,7 @@ import static cn.qaiu.vx.core.util.ConfigConstant.BASE_LOCATIONS;
 public final class ReflectionUtil {
 
     // 缓存Reflections实例，避免重复扫描（每次扫描约35K+值，耗时1-3秒，占用大量内存）
-    // 使用 SoftReference 允许 GC 在内存不足时回收，同时添加 TTL 防止长期占用
-    private static final Map<String, SoftReference<Reflections>> REFLECTIONS_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
-    private static final long CACHE_TTL_MS = TimeUnit.HOURS.toMillis(1); // 1小时 TTL
-    private static final Map<String, Long> CACHE_TIMESTAMP = new java.util.concurrent.ConcurrentHashMap<>();
-
-    /**
-     * 清理过期的缓存条目
-     */
-    private static void cleanExpiredCache() {
-        long now = System.currentTimeMillis();
-        Iterator<Map.Entry<String, Long>> iterator = CACHE_TIMESTAMP.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, Long> entry = iterator.next();
-            if (now - entry.getValue() > CACHE_TTL_MS) {
-                String key = entry.getKey();
-                REFLECTIONS_CACHE.remove(key);
-                iterator.remove();
-            }
-        }
-    }
+    private static final Map<String, Reflections> REFLECTIONS_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
 
     /**
      * 以默认配置的基础包路径获取反射器
@@ -70,50 +49,34 @@ public final class ReflectionUtil {
     }
 
     /**
-     * 获取反射器（带缓存，支持 TTL 和 SoftReference）
+     * 获取反射器（带缓存）
      *
      * @param packageAddress Package address String
      * @return Reflections object
      */
     public static Reflections getReflections(String packageAddress) {
-        cleanExpiredCache();
-        SoftReference<Reflections> ref = REFLECTIONS_CACHE.get(packageAddress);
-        Reflections reflections = ref != null ? ref.get() : null;
-        if (reflections != null) {
-            return reflections;
-        }
-        List<String> packageAddressList;
-        if (packageAddress.contains(",")) {
-            packageAddressList = Arrays.asList(packageAddress.split(","));
-        } else if (packageAddress.contains(";")) {
-            packageAddressList = Arrays.asList(packageAddress.split(";"));
-        } else {
-            packageAddressList = Collections.singletonList(packageAddress);
-        }
-        reflections = createReflections(packageAddressList);
-        REFLECTIONS_CACHE.put(packageAddress, new SoftReference<>(reflections));
-        CACHE_TIMESTAMP.put(packageAddress, System.currentTimeMillis());
-        return reflections;
+        return REFLECTIONS_CACHE.computeIfAbsent(packageAddress, key -> {
+            List<String> packageAddressList;
+            if (key.contains(",")) {
+                packageAddressList = Arrays.asList(key.split(","));
+            } else if (key.contains(";")) {
+                packageAddressList = Arrays.asList(key.split(";"));
+            } else {
+                packageAddressList = Collections.singletonList(key);
+            }
+            return createReflections(packageAddressList);
+        });
     }
 
     /**
-     * 获取反射器（带缓存，支持 TTL 和 SoftReference）
+     * 获取反射器（带缓存）
      *
      * @param packageAddresses Package address List
      * @return Reflections object
      */
     public static Reflections getReflections(List<String> packageAddresses) {
-        cleanExpiredCache();
         String cacheKey = String.join(",", packageAddresses);
-        SoftReference<Reflections> ref = REFLECTIONS_CACHE.get(cacheKey);
-        Reflections reflections = ref != null ? ref.get() : null;
-        if (reflections != null) {
-            return reflections;
-        }
-        reflections = createReflections(packageAddresses);
-        REFLECTIONS_CACHE.put(cacheKey, new SoftReference<>(reflections));
-        CACHE_TIMESTAMP.put(cacheKey, System.currentTimeMillis());
-        return reflections;
+        return REFLECTIONS_CACHE.computeIfAbsent(cacheKey, key -> createReflections(packageAddresses));
     }
 
     private static Reflections createReflections(List<String> packageAddresses) {
