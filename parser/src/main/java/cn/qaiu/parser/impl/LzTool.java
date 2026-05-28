@@ -290,12 +290,12 @@ public class LzTool extends PanBase {
                                             if (location0 == null) {
                                                 fail(downUrl + " -> 直链获取失败2, 可能分享已失效");
                                             } else {
-                                                setDateAndComplate(location0);
+                                                setDateAndComplete(location0);
                                             }
                                         }).onFailure(handleFail(downUrl));
                                 return;
                             }
-                            setDateAndComplate(location);
+                            setDateAndComplete(location);
                         })
                         .onFailure(handleFail(downUrl));
             } catch (Exception e) {
@@ -304,7 +304,7 @@ public class LzTool extends PanBase {
         }).onFailure(handleFail(url));
     }
 
-    private void setDateAndComplate(String location0) {
+    private void setDateAndComplete(String location0) {
         // 分享时间 提取url中的时间戳格式：lanzoui.com/abc/abc/yyyy/mm/dd/
         String regex = "(\\d{4}/\\d{1,2}/\\d{1,2})";
         Matcher matcher = Pattern.compile(regex).matcher(location0);

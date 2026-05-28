@@ -1,7 +1,7 @@
 package cn.qaiu.vx.core.util;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * vertx 上下文外的本地容器 为不在vertx线程的方法传递数据
@@ -10,11 +10,10 @@ import java.util.Map;
  * @author <a href="https://qaiu.top">QAIU</a>
  */
 public class LocalConstant {
-    private static final Map<String, Object> LOCAL_CONST = new HashMap<>();
+    private static final Map<String, Object> LOCAL_CONST = new ConcurrentHashMap<>();
 
     public static Map<String, Object> put(String k, Object v) {
-        if (LOCAL_CONST.containsKey(k)) return LOCAL_CONST;
-        LOCAL_CONST.put(k, v);
+        LOCAL_CONST.putIfAbsent(k, v);
         return LOCAL_CONST;
     }
 
