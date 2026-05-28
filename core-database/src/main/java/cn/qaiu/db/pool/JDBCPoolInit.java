@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author <a href="https://qaiu.top">QAIU</a>
  */
-public class JDBCPoolInit {
+public class JDBCPoolInit implements AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JDBCPoolInit.class);
 
@@ -100,5 +100,17 @@ public class JDBCPoolInit {
      */
     synchronized public JDBCPool getPool() {
         return pool;
+    }
+
+    /**
+     * 关闭连接池，释放数据库资源
+     */
+    @Override
+    public synchronized void close() {
+        if (pool != null) {
+            pool.close();
+            LOGGER.info("数据库连接池已关闭: URL={}", url);
+            pool = null;
+        }
     }
 }
