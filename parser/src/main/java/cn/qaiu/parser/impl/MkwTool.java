@@ -29,7 +29,7 @@ public class MkwTool extends PanBase {
         clientSession.getAbs(shareUrl).send().onSuccess(result -> {
             String cookie = result.headers().get("set-cookie");
 
-            if (!cookie.isEmpty()) {
+            if (cookie != null && !cookie.isEmpty()) {
 
                 String regex = "([A-Za-z0-9_]+)=([A-Za-z0-9]+)";
                 Pattern pattern = Pattern.compile(regex);
