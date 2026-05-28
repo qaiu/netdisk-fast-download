@@ -146,6 +146,22 @@ public class JsParserExecutor implements IPanTool {
         }
     }
     
+    /**
+     * 释放资源（ScriptEngine 和 HttpClient），避免内存泄漏
+     */
+    public void close() {
+        if (httpClient != null) {
+            httpClient.close();
+        }
+        // 清除 ScriptEngine 持有的 Java 对象引用，帮助 GC 回收
+        if (engine != null) {
+            engine.put("http", null);
+            engine.put("logger", null);
+            engine.put("shareLinkInfo", null);
+            engine.put("JavaFetch", null);
+        }
+    }
+
     @Override
     public Future<String> parse() {
         jsLogger.info("开始执行JavaScript解析器: {}", config.getType());
@@ -173,7 +189,7 @@ public class JsParserExecutor implements IPanTool {
             } else {
                 throw new RuntimeException("parse函数类型错误");
             }
-        });
+        }).onComplete(ar -> close());
     }
     
     @Override
@@ -206,7 +222,7 @@ public class JsParserExecutor implements IPanTool {
             } else {
                 throw new RuntimeException("parseFileList函数类型错误");
             }
-        });
+        }).onComplete(ar -> close());
     }
     
     @Override
@@ -237,7 +253,7 @@ public class JsParserExecutor implements IPanTool {
             } else {
                 throw new RuntimeException("parseById函数类型错误");
             }
-        });
+        }).onComplete(ar -> close());
     }
     
     /**
