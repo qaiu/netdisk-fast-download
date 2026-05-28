@@ -389,6 +389,10 @@ public class FsTool extends PanBase {
 
         try {
             JsonObject paramJson = (JsonObject) shareLinkInfo.getOtherParam().get("paramJson");
+            if (paramJson == null) {
+                parsePromise.fail("缺少 paramJson 参数");
+                return parsePromise.future();
+            }
             String shareUrl = paramJson.getString("shareUrl");
             String objToken = paramJson.getString("objToken");
             String tenant = extractTenant(shareUrl);
