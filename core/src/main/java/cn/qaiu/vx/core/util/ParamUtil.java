@@ -36,16 +36,20 @@ public final class ParamUtil {
 
     public static MultiMap paramsToMap(String paramString) {
         MultiMap entries = MultiMap.caseInsensitiveMultiMap();
-        if (paramString == null) return entries;
+        if (paramString == null || paramString.isEmpty()) return entries;
         String[] params = paramString.split("&");
         if (params.length == 0) return entries;
         for (String param : params) {
-            String[] kv = param.split("=");
+            if (param == null || param.isEmpty()) {
+                continue;
+            }
+            String[] kv = param.split("=", 2);
             if (kv.length == 2) {
                 entries.set(kv[0], kv[1]);
-            } else {
+            } else if (kv.length == 1) {
                 entries.set(kv[0], "");
             }
+            // kv.length == 0 时（空字符串），跳过
         }
         return entries;
     }
