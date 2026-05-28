@@ -89,7 +89,7 @@ public class CacheManager {
                     } else {
                         LOGGER.warn("No rows affected when updating cache link info for shareKey: {}", cacheLinkInfo.getShareKey());
                     }
-                }).onFailure(Throwable::printStackTrace);
+                }).onFailure(e -> LOGGER.error("缓存链接更新失败", e));
 
         if (cacheLinkInfo.getFileInfo() != null) {
             String sql2 = """
@@ -123,7 +123,7 @@ public class CacheManager {
                                         } else {
                                             LOGGER.warn("No rows affected when inserting pan file info for shareKey: {}", cacheLinkInfo.getShareKey());
                                         }
-                                    }).onFailure(Throwable::printStackTrace);
+                                    }).onFailure(e -> LOGGER.error("文件信息插入失败", e));
                         }
                     });
         }

@@ -76,7 +76,7 @@ public class ParserApi {
             }
             promise.complete(build);
         }).onFailure(t->{
-            t.printStackTrace();
+            log.error("获取统计信息失败", t);
             promise.complete(build);
         });
         return promise.future();

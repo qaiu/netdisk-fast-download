@@ -107,7 +107,7 @@ public class LzTool extends PanBase {
         try {
             setFileInfo(html, shareLinkInfo);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("文件信息解析异常", e);
         }
         // 匹配iframe
         Pattern compile = Pattern.compile("src=\"(/fn\\?[a-zA-Z\\d_+/=]{16,})\"");

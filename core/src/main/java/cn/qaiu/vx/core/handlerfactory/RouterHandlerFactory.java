@@ -180,7 +180,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
                     if (ctx.statusCode() == 503 || ctx.failure() == null) {
                         doFireJsonResultResponse(ctx, JsonResult.error("未知异常, 请联系管理员"), 503);
                     } else {
-                        ctx.failure().printStackTrace();
+                        LOGGER.error("路由处理失败", ctx.failure());
                         doFireJsonResultResponse(ctx, JsonResult.error(ctx.failure().getMessage()), 500);
                     }
                 });
@@ -199,7 +199,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
                     try {
                         ReflectionUtil.invokeWithArguments(method, instance, sock);
                     } catch (Throwable e) {
-                        e.printStackTrace();
+                        LOGGER.error("WebSocket处理异常", e);
                     }
                 });
                 if (url.endsWith("*")) {
@@ -323,7 +323,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
                                 parameterValueList.put(k, entity);
                             }
                         } catch (ClassNotFoundException e) {
-                            e.printStackTrace();
+                            LOGGER.error("实体类绑定异常: {}", typeName, e);
                         }
                     }
                 });
@@ -366,7 +366,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
                     Object entity = ParamUtil.multiMapToEntity(queryParams, aClass);
                     parameterValueList.put(k, entity);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    LOGGER.error("参数绑定异常: {}", v.getRight().getName(), e);
                 }
             } else if (parameterValueList.get(k) == null
                     && JsonObject.class.getName().equals(v.getRight().getName())) {
@@ -418,7 +418,6 @@ public class RouterHandlerFactory implements BaseHttpApi {
                 }
             }
         } catch (Throwable e) {
-            e.printStackTrace();
             LOGGER.error("请求处理异常", e);
             doFireJsonResultResponse(ctx, JsonResult.error("服务器内部错误"), 500);
         }

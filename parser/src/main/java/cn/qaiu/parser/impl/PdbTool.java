@@ -85,7 +85,7 @@ public class PdbTool extends PanBase implements IPanTool {
                                 })
                                 .onFailure(handleFail());
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        log.error("URL编码异常", e);
                     }
 
                     })

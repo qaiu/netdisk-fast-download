@@ -497,7 +497,7 @@ public class FjTool extends PanBase {
                     JsonArray list;
                     try {
                         JsonObject jsonObject = asJson(res);
-                        System.out.println(jsonObject.encodePrettily());
+                        log.debug("目录列表: {}", jsonObject.encodePrettily());
                         list = jsonObject.getJsonArray("list");
                     } catch (Exception e) {
                         log.error("解析目录失败: {}", res.bodyAsString());
