@@ -81,16 +81,16 @@ public class ParserCreate {
                     if (shareKey != null) {
                         shareLinkInfo.setShareKey(shareKey);
                     }
-                } catch (Exception ignored) {}
-                
+                } catch (IllegalStateException ignored) {}
+
                 // 提取密码
                 try {
                     String pwd = matcher.group("PWD");
                     if (StringUtils.isNotEmpty(pwd)) {
                         shareLinkInfo.setSharePassword(pwd);
                     }
-                } catch (Exception ignored) {}
-                
+                } catch (IllegalStateException ignored) {}
+
                 // 设置标准URL
                 if (customParserConfig.getStandardUrlTemplate() != null) {
                     String standardUrl = customParserConfig.getStandardUrlTemplate()
@@ -133,7 +133,7 @@ public class ParserCreate {
                     shareLinkInfo.setSharePassword(pwd);
                 }
                 standardUrl = standardUrl.replace("{pwd}", pwd);
-            } catch (Exception ignored) {}
+            } catch (IllegalStateException ignored) {}
 
             shareLinkInfo.setShareUrl(shareUrl);
             shareLinkInfo.setShareKey(shareKey);
@@ -266,15 +266,15 @@ public class ParserCreate {
                         if (shareKey != null) {
                             shareLinkInfo.setShareKey(shareKey);
                         }
-                    } catch (Exception ignored) {}
-                    
+                    } catch (IllegalStateException ignored) {}
+
                     try {
                         String password = matcher.group("PWD");
                         if (password != null) {
                             shareLinkInfo.setSharePassword(password);
                         }
-                    } catch (Exception ignored) {}
-                    
+                    } catch (IllegalStateException ignored) {}
+
                     // 设置标准URL（如果有模板）
                     if (customConfig.getStandardUrlTemplate() != null) {
                         String standardUrl = customConfig.getStandardUrlTemplate()
