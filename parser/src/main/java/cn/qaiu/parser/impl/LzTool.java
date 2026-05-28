@@ -218,7 +218,7 @@ public class LzTool extends PanBase {
             return;
         }
         Map<?, ?> signMap = (Map<?, ?>)obj.get("data");
-        String url0 = obj.get("url").toString();
+        String url0 = String.valueOf(obj.get("url"));
         MultiMap map = MultiMap.caseInsensitiveMultiMap();
         signMap.forEach((k, v) -> {
             map.add((String) k, v.toString());
