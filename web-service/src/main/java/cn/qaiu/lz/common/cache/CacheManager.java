@@ -165,6 +165,9 @@ public class CacheManager {
                         promise.fail(e);
                         LOGGER.error("updateTotalByField: ", e);
                     });
+        }).onFailure(e -> {
+            promise.fail(e);
+            LOGGER.error("getShareKeyTotal in updateTotalByField: ", e);
         });
         return promise.future();
     }
