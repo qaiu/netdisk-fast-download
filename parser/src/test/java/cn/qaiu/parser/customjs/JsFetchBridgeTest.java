@@ -7,6 +7,8 @@ import cn.qaiu.parser.ParserCreate;
 import cn.qaiu.parser.custom.CustomParserConfig;
 import cn.qaiu.parser.custom.CustomParserRegistry;
 import io.vertx.core.Vertx;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,18 +18,29 @@ import org.slf4j.LoggerFactory;
  * 测试fetch API和Promise polyfill功能
  */
 public class JsFetchBridgeTest {
-    
+
     private static final Logger log = LoggerFactory.getLogger(JsFetchBridgeTest.class);
-    
+
+    private Vertx vertx;
+
+    @Before
+    public void setUp() {
+        vertx = Vertx.vertx();
+        WebClientVertxInit.init(vertx);
+    }
+
+    @After
+    public void tearDown() {
+        if (vertx != null) {
+            vertx.close();
+        }
+    }
+
     @Test
     public void testFetchPolyfillLoaded() {
-        // 初始化Vertx
-        Vertx vertx = Vertx.vertx();
-        WebClientVertxInit.init(vertx);
-        
         // 清理注册表
         CustomParserRegistry.clear();
-        
+
         // 创建一个简单的解析器配置
         String jsCode = """
             // 测试Promise是否可用
@@ -83,13 +96,9 @@ public class JsFetchBridgeTest {
     
     @Test
     public void testPromiseBasicUsage() {
-        // 初始化Vertx
-        Vertx vertx = Vertx.vertx();
-        WebClientVertxInit.init(vertx);
-        
         // 清理注册表
         CustomParserRegistry.clear();
-        
+
         String jsCode = """
             function parse(shareLinkInfo, http, logger) {
                 logger.info("测试Promise基本用法");
