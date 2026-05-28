@@ -14,6 +14,7 @@ import io.vertx.ext.web.client.WebClientSession;
 import org.openjdk.nashorn.api.scripting.ScriptObjectMirror;
 
 import javax.script.ScriptException;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -175,7 +176,7 @@ public class LzTool extends PanBase {
             if (firstDot >= 0) {
                 domain = host.substring(firstDot); // e.g. ".lanzoum.com"
             }
-        } catch (Exception ignored) {}
+        } catch (MalformedURLException ignored) {}
         // 创建一个 Cookie 并放入 CookieStore
         DefaultCookie nettyCookie = new DefaultCookie("acw_sc__v2", acw_sc__v2);
         nettyCookie.setDomain(domain);
@@ -275,7 +276,7 @@ public class LzTool extends PanBase {
                                     String h = du.getHost();
                                     int dot = h.indexOf('.');
                                     if (dot >= 0) downDomain = h.substring(dot);
-                                } catch (Exception ignored) {}
+                                } catch (MalformedURLException ignored) {}
                                 // 创建一个 Cookie 并放入 CookieStore
                                 DefaultCookie nettyCookie = new DefaultCookie("acw_sc__v2", acw_sc__v2);
                                 nettyCookie.setDomain(downDomain);
