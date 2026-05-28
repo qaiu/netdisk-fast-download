@@ -28,7 +28,7 @@ public class RateLimiter {
                 MAX_REQUESTS, TIME_WINDOW, PATH_REG);
     }
 
-    synchronized public static Future<Void> checkRateLimit(HttpServerRequest request) {
+    public static Future<Void> checkRateLimit(HttpServerRequest request) {
         Promise<Void> promise = Promise.promise();
         if (!request.path().matches(PATH_REG)) {
             // 如果请求路径不匹配正则，则不进行限流
@@ -71,8 +71,8 @@ public class RateLimiter {
     }
 
     private static class RequestInfo {
-        int count;
-        long timestamp;
+        volatile int count;
+        volatile long timestamp;
 
         RequestInfo(int count, long time) {
             this.count = count;
