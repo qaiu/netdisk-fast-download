@@ -60,6 +60,7 @@ jobs:
     - name: Update dependency graph
       uses: advanced-security/maven-dependency-submission-action@v3
       if: github.event_name != 'pull_request'
+      continue-on-error: true
       with:
         ignore-maven-wrapper: true
 
@@ -97,5 +98,5 @@ jobs:
         push: true
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         tags: |
-          ghcr.io/qaiu/netdisk-fast-download:${{ steps.tag.outputs.tag }}
-          ghcr.io/qaiu/netdisk-fast-download:latest
+          ghcr.io/${{ github.repository }}:${{ steps.tag.outputs.tag }}
+          ghcr.io/${{ github.repository }}:latest

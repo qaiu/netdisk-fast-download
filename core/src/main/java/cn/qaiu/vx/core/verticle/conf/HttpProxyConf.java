@@ -32,7 +32,7 @@ public class HttpProxyConf {
     public HttpProxyConf() {
         this.username = DEFAULT_USERNAME;
         this.password = DEFAULT_PASSWORD;
-        this.timeout = DEFAULT_PORT;
+        this.port = DEFAULT_PORT;
         this.timeout = DEFAULT_TIMEOUT;
         this.preProxyOptions = new ProxyOptions();
     }

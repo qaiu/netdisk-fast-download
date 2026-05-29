@@ -21,11 +21,11 @@ import static cn.qaiu.util.AESUtils.encrypt;
  */
 public class JsExecUtils {
     private static final Invocable inv;
+    private static final ScriptEngineManager ENGINE_MANAGER = new ScriptEngineManager();
 
     // 初始化脚本引擎
     static {
-        ScriptEngineManager engineManager = new ScriptEngineManager();
-        ScriptEngine engine = engineManager.getEngineByName("JavaScript"); // 得到脚本引擎
+        ScriptEngine engine = ENGINE_MANAGER.getEngineByName("JavaScript"); // 得到脚本引擎
 
         try {
             engine.eval(JsContent.ye123);
@@ -45,12 +45,11 @@ public class JsExecUtils {
     }
 
     /**
-     * 调用执行蓝奏云js文件
+     * 调用执行蓝奏云js文件（每次动态JS代码，无法复用引擎）
      */
     public static ScriptObjectMirror executeDynamicJs(String jsText, String funName) throws ScriptException,
             NoSuchMethodException {
-        ScriptEngineManager engineManager = new ScriptEngineManager();
-        ScriptEngine engine = engineManager.getEngineByName("JavaScript"); // 得到脚本引擎
+        ScriptEngine engine = ENGINE_MANAGER.getEngineByName("JavaScript"); // 得到脚本引擎
         engine.eval(JsContent.lz + "\n" + jsText);
         Invocable inv = (Invocable) engine;
         //调用js中的函数
@@ -63,12 +62,11 @@ public class JsExecUtils {
 
 
     /**
-     * 调用执行蓝奏云js文件
+     * 调用执行js文件（使用缓存的 ScriptEngineManager 创建新引擎实例）
      */
     public static Object executeOtherJs(String jsText, String funName, Object ... args) throws ScriptException,
             NoSuchMethodException {
-        ScriptEngineManager engineManager = new ScriptEngineManager();
-        ScriptEngine engine = engineManager.getEngineByName("JavaScript"); // 得到脚本引擎
+        ScriptEngine engine = ENGINE_MANAGER.getEngineByName("JavaScript"); // 得到脚本引擎
         engine.eval(jsText);
         Invocable inv = (Invocable) engine;
         //调用js中的函数

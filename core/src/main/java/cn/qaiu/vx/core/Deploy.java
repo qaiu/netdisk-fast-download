@@ -65,7 +65,11 @@ public final class Deploy {
         // 读取yml配置
         ConfigUtil.readYamlConfig(path.toString(), tempVertx)
                 .onSuccess(this::readConf)
-                .onFailure(Throwable::printStackTrace);
+                .onFailure(err -> {
+                    LOGGER.error("读取配置文件失败: {}", err.getMessage(), err);
+                    LockSupport.unpark(mainThread);
+                    System.exit(-1);
+                });
         LockSupport.park();
         deployVerticle();
     }
@@ -137,6 +141,17 @@ public final class Deploy {
                 vertxOptions.getWorkerPoolSize());
         var vertx = Vertx.vertx(vertxOptions);
         VertxHolder.init(vertx);
+
+        // 注册 ShutdownHook，确保进程退出时优雅关闭资源
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            LOGGER.info("JVM shutting down, closing Vert.x...");
+            try {
+                vertx.close().toCompletionStage().toCompletableFuture().get(10, java.util.concurrent.TimeUnit.SECONDS);
+                LOGGER.info("Vert.x closed successfully");
+            } catch (Exception e) {
+                LOGGER.warn("Vert.x close error or timeout", e);
+            }
+        }));
         //配置保存在共享数据中
         var sharedData = vertx.sharedData();
         LocalMap<String, Object> localMap = sharedData.getLocalMap(LOCAL);

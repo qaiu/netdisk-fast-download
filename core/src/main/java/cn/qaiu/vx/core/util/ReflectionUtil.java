@@ -241,7 +241,7 @@ public final class ReflectionUtil {
     public static boolean isBasicTypeArray(CtClass ctClass) {
         if (!ctClass.isArray()) {
             return false;
-        } else return (ctClass.getName().matches("^(boolen|char|byte|short|int|long|float|double|String)\\[]$"));
+        } else return (ctClass.getName().matches("^(boolean|char|byte|short|int|long|float|double|String)\\[]$"));
     }
 
     /**

@@ -28,7 +28,7 @@ public class RateLimiter {
                 MAX_REQUESTS, TIME_WINDOW, PATH_REG);
     }
 
-    synchronized public static Future<Void> checkRateLimit(HttpServerRequest request) {
+    public static Future<Void> checkRateLimit(HttpServerRequest request) {
         Promise<Void> promise = Promise.promise();
         if (!request.path().matches(PATH_REG)) {
             // 如果请求路径不匹配正则，则不进行限流
@@ -38,7 +38,13 @@ public class RateLimiter {
 
         String ip = request.remoteAddress().host();
 
-        ipRequestMap.compute(ip, (key, requestInfo) -> {
+        // 定期清理过期条目，防止 Map 无限增长
+        if (ipRequestMap.size() > 1000) {
+            long now = System.currentTimeMillis();
+            ipRequestMap.entrySet().removeIf(entry -> now - entry.getValue().timestamp > TIME_WINDOW);
+        }
+
+        RequestInfo info = ipRequestMap.compute(ip, (key, requestInfo) -> {
             long currentTime = System.currentTimeMillis();
             if (requestInfo == null || currentTime - requestInfo.timestamp > TIME_WINDOW) {
                 // 初始化或重置计数器
@@ -50,7 +56,6 @@ public class RateLimiter {
             }
         });
 
-        RequestInfo info = ipRequestMap.get(ip);
         if (info.count > MAX_REQUESTS) {
             // 超过限制
             // 计算剩余时间
@@ -66,8 +71,8 @@ public class RateLimiter {
     }
 
     private static class RequestInfo {
-        int count;
-        long timestamp;
+        volatile int count;
+        volatile long timestamp;
 
         RequestInfo(int count, long time) {
             this.count = count;

@@ -200,6 +200,51 @@ public class CacheManager {
         return promise.future();
     }
 
+    /**
+     * 清理过期缓存记录，防止数据库无限增长
+     * @return 删除的行数
+     */
+    public Future<Integer> cleanupExpiredCache() {
+        String sql = "DELETE FROM cache_link_info WHERE expiration > 0 AND expiration < #{now}";
+        Map<String, Object> params = new HashMap<>();
+        params.put("now", System.currentTimeMillis());
+        Promise<Integer> promise = Promise.promise();
+        SqlTemplate.forUpdate(jdbcPool, sql)
+                .execute(params)
+                .onSuccess(res -> {
+                    int deleted = res.rowCount();
+                    if (deleted > 0) {
+                        LOGGER.info("清理过期缓存记录 {} 条", deleted);
+                    }
+                    promise.complete(deleted);
+                })
+                .onFailure(e -> {
+                    LOGGER.error("清理过期缓存失败", e);
+                    promise.fail(e);
+                });
+        return promise.future();
+    }
+
+    /**
+     * 注册定时清理过期缓存任务（每小时执行一次）
+     * 应在应用启动后调用
+     */
+    public static void registerPeriodicCleanup() {
+        try {
+            io.vertx.core.Vertx vertx = cn.qaiu.vx.core.util.VertxHolder.getVertxInstance();
+            vertx.setPeriodic(3600_000, 3600_000, id -> {
+                try {
+                    new CacheManager().cleanupExpiredCache();
+                } catch (Exception e) {
+                    LOGGER.warn("定时清理缓存任务跳过（数据库可能未就绪）", e);
+                }
+            });
+            LOGGER.info("缓存定时清理任务已注册（每小时执行）");
+        } catch (Exception e) {
+            LOGGER.warn("注册缓存定时清理任务失败", e);
+        }
+    }
+
     public Future<Map<String, Integer>> getShareKeyTotal(String shareKey) {
         String sql = """
                 SELECT `share_key`, SUM(cache_hit_total) AS hit_total, SUM(api_parser_total) AS parser_total

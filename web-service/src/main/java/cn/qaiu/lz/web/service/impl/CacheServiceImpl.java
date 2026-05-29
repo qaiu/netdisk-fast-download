@@ -29,6 +29,11 @@ public class CacheServiceImpl implements CacheService {
 
     private final CacheManager cacheManager = new CacheManager();
 
+    static {
+        // 服务类加载时注册缓存定时清理任务
+        CacheManager.registerPeriodicCleanup();
+    }
+
     private Future<CacheLinkInfo> getAndSaveCachedShareLink(ParserCreate parserCreate) {
 
         // 认证、域名相关（检查是否已经添加过参数，避免重复调用）

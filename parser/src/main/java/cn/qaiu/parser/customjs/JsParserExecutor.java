@@ -29,12 +29,13 @@ import java.util.stream.Collectors;
  * @author <a href="https://qaiu.top">QAIU</a>
  * Create at 2025/10/17
  */
-public class JsParserExecutor implements IPanTool {
-    
+public class JsParserExecutor implements IPanTool, AutoCloseable {
+
     private static final Logger log = LoggerFactory.getLogger(JsParserExecutor.class);
-    
-    private static final WorkerExecutor EXECUTOR = WebClientVertxInit.get().createSharedWorkerExecutor("parser-executor", 32);
-    
+
+    private static WorkerExecutor EXECUTOR;
+    private static final Object EXECUTOR_LOCK = new Object();
+
     private static String FETCH_RUNTIME_JS = null;
     
     private final CustomParserConfig config;
@@ -146,12 +147,57 @@ public class JsParserExecutor implements IPanTool {
         }
     }
     
+    /**
+     * 释放资源（ScriptEngine 和 HttpClient），避免内存泄漏
+     */
+    @Override
+    public void close() {
+        if (httpClient != null) {
+            httpClient.close();
+        }
+        // 清除 ScriptEngine 持有的 Java 对象引用，帮助 GC 回收
+        if (engine != null) {
+            engine.put("http", null);
+            engine.put("logger", null);
+            engine.put("shareLinkInfo", null);
+            engine.put("JavaFetch", null);
+        }
+    }
+
+    /**
+     * 关闭全局 WorkerExecutor（应在应用关闭时调用）
+     */
+    public static void shutdownExecutor() {
+        synchronized (EXECUTOR_LOCK) {
+            if (EXECUTOR != null) {
+                EXECUTOR.close();
+                EXECUTOR = null;
+                log.info("JsParserExecutor WorkerExecutor 已关闭");
+            }
+        }
+    }
+
+    /**
+     * 获取或创建 WorkerExecutor（懒加载）
+     */
+    private static WorkerExecutor getExecutor() {
+        if (EXECUTOR != null) {
+            return EXECUTOR;
+        }
+        synchronized (EXECUTOR_LOCK) {
+            if (EXECUTOR == null) {
+                EXECUTOR = WebClientVertxInit.get().createSharedWorkerExecutor("parser-executor", 32);
+            }
+            return EXECUTOR;
+        }
+    }
+
     @Override
     public Future<String> parse() {
         jsLogger.info("开始执行JavaScript解析器: {}", config.getType());
         
         // 使用executeBlocking在工作线程上执行，避免阻塞EventLoop线程
-        return EXECUTOR.executeBlocking(() -> {
+        return getExecutor().executeBlocking(() -> {
             // 直接调用全局parse函数
             Object parseFunction = engine.get("parse");
             if (parseFunction == null) {
@@ -173,7 +219,7 @@ public class JsParserExecutor implements IPanTool {
             } else {
                 throw new RuntimeException("parse函数类型错误");
             }
-        });
+        }).onComplete(ar -> close());
     }
     
     @Override
@@ -181,7 +227,7 @@ public class JsParserExecutor implements IPanTool {
         jsLogger.info("开始执行JavaScript文件列表解析: {}", config.getType());
         
         // 使用executeBlocking在工作线程上执行，避免阻塞EventLoop线程
-        return EXECUTOR.executeBlocking(() -> {
+        return getExecutor().executeBlocking(() -> {
             // 直接调用全局parseFileList函数
             Object parseFileListFunction = engine.get("parseFileList");
             if (parseFileListFunction == null) {
@@ -206,7 +252,7 @@ public class JsParserExecutor implements IPanTool {
             } else {
                 throw new RuntimeException("parseFileList函数类型错误");
             }
-        });
+        }).onComplete(ar -> close());
     }
     
     @Override
@@ -214,7 +260,7 @@ public class JsParserExecutor implements IPanTool {
         jsLogger.info("开始执行JavaScript按ID解析: {}", config.getType());
         
         // 使用executeBlocking在工作线程上执行，避免阻塞EventLoop线程
-        return EXECUTOR.executeBlocking(() -> {
+        return getExecutor().executeBlocking(() -> {
             // 直接调用全局parseById函数
             Object parseByIdFunction = engine.get("parseById");
             if (parseByIdFunction == null) {
@@ -237,7 +283,7 @@ public class JsParserExecutor implements IPanTool {
             } else {
                 throw new RuntimeException("parseById函数类型错误");
             }
-        });
+        }).onComplete(ar -> close());
     }
     
     /**

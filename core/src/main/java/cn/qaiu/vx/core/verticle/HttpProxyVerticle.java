@@ -129,16 +129,25 @@ public class HttpProxyVerticle extends AbstractVerticle {
                 clientRequest.response().setStatusCode(403).end();
                 return;
             }
-            String[] split = new String(Base64.getDecoder().decode(s.replace("Basic ", ""))).split(":");
-            if (split.length > 1) {
-                // TODO
-                String username = proxyServerConf.getString("username");
-                String password = proxyServerConf.getString("password");
-                if (!split[0].equals(username) || !split[1].equals(password)) {
-                    LOGGER.info("-----auth failed------\nusername: {}\npassword: {}", username, password);
-                    clientRequest.response().setStatusCode(403).end();
-                    return;
-                }
+            String[] split;
+            try {
+                split = new String(Base64.getDecoder().decode(s.replace("Basic ", ""))).split(":");
+            } catch (IllegalArgumentException e) {
+                LOGGER.warn("Proxy-Authorization header is not valid Base64");
+                clientRequest.response().setStatusCode(403).end();
+                return;
+            }
+            if (split.length <= 1) {
+                LOGGER.warn("Proxy-Authorization header format invalid: missing username:password separator");
+                clientRequest.response().setStatusCode(403).end();
+                return;
+            }
+            String username = proxyServerConf.getString("username");
+            String password = proxyServerConf.getString("password");
+            if (!split[0].equals(username) || !split[1].equals(password)) {
+                LOGGER.info("-----auth failed------\nusername: {}", split[0]);
+                clientRequest.response().setStatusCode(403).end();
+                return;
             }
         }
 

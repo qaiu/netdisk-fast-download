@@ -46,7 +46,7 @@ public class PostExecVerticle extends AbstractVerticle {
             return;
         }
         LOGGER.info("PostExecVerticle 开始执行...");
-        
+
         if (appRunImplementations != null && !appRunImplementations.isEmpty()) {
             appRunImplementations.forEach(appRun -> {
                 try {
@@ -61,7 +61,7 @@ public class PostExecVerticle extends AbstractVerticle {
         } else {
             LOGGER.info("未找到 AppRun 接口的实现类");
         }
-        
+
         LOGGER.info("PostExecVerticle 执行完成");
         startPromise.complete();
     }

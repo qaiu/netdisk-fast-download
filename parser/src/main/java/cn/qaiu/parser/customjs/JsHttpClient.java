@@ -61,7 +61,7 @@ public class JsHttpClient {
     };
     
     public JsHttpClient() {
-        this.client = WebClient.create(WebClientVertxInit.get(), new WebClientOptions());;
+        this.client = WebClient.create(WebClientVertxInit.get(), new WebClientOptions());
         this.clientSession = WebClientSession.create(client);
         this.headers = MultiMap.caseInsensitiveMultiMap();
         // 设置默认的Accept-Encoding头以支持压缩响应
@@ -675,6 +675,15 @@ public class JsHttpClient {
                 return 0;
             }
             return buffer.length();
+        }
+    }
+
+    /**
+     * 关闭 WebClient 释放连接池资源
+     */
+    public void close() {
+        if (client != null) {
+            client.close();
         }
     }
 }
