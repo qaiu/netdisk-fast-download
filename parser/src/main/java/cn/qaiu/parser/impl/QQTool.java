@@ -74,9 +74,9 @@ public class QQTool extends PanBase {
                     });
 
                     // 调试匹配的情况
-                    System.out.println("文件名称: " + filename);
-                    System.out.println("文件大小: " + filesize);
-                    System.out.println("文件直链: " + fileurl);
+                    log.debug("文件名称: {}", filename);
+                    log.debug("文件大小: {}", filesize);
+                    log.debug("文件直链: {}", fileurl);
 
                     // 提交
                     promise.complete(fileurl.replace("\\x26", "&"));

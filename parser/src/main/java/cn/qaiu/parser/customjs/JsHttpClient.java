@@ -534,8 +534,8 @@ public class JsHttpClient {
                 } else {
                     promise.fail(result.cause());
                 }
-            }).onFailure(Throwable::printStackTrace);
-            
+            }).onFailure(e -> log.error("HTTP请求失败", e));
+
             // 等待响应完成（使用配置的超时时间）
             HttpResponse<Buffer> response = promise.future().toCompletionStage()
                     .toCompletableFuture()

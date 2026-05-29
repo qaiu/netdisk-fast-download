@@ -21,6 +21,8 @@ public class P115Tool extends PanBase {
     private static final String SECOND_REQUEST_URL = API_URL_PREFIX + "share/skip_login_downurl";
 
 
+    private static final String DEFAULT_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+
     private static final MultiMap header;
 
     static {
@@ -49,9 +51,11 @@ public class P115Tool extends PanBase {
 
     public Future<String> parse() {
         // 第一次请求 获取文件信息
+        Object uaObj = shareLinkInfo.getOtherParam().get("UA");
+        String ua = uaObj != null ? uaObj.toString() : DEFAULT_UA;
         client.getAbs(UriTemplate.of(FIRST_REQUEST_URL))
                 .putHeaders(header)
-                .putHeader("User-Agent", shareLinkInfo.getOtherParam().get("UA").toString())
+                .putHeader("User-Agent", ua)
                 .setTemplateParam("dataKey", shareLinkInfo.getShareKey())
                 .setTemplateParam("dataPwd", shareLinkInfo.getSharePassword())
                 .send().onSuccess(res -> {
@@ -68,7 +72,7 @@ public class P115Tool extends PanBase {
                     // share_code={dataKey}&receive_code={dataPwd}&file_id={file_id}
                     client.postAbs(SECOND_REQUEST_URL)
                             .putHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-                            .putHeader("User-Agent", shareLinkInfo.getOtherParam().get("UA").toString())
+                            .putHeader("User-Agent", ua)
                             .sendForm(MultiMap.caseInsensitiveMultiMap()
                                     .set("share_code", shareLinkInfo.getShareKey())
                                     .set("receive_code", shareLinkInfo.getSharePassword())

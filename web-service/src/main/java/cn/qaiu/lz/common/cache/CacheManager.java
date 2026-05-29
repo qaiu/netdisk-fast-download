@@ -89,7 +89,7 @@ public class CacheManager {
                     } else {
                         LOGGER.warn("No rows affected when updating cache link info for shareKey: {}", cacheLinkInfo.getShareKey());
                     }
-                }).onFailure(Throwable::printStackTrace);
+                }).onFailure(e -> LOGGER.error("缓存链接更新失败", e));
 
         if (cacheLinkInfo.getFileInfo() != null) {
             String sql2 = """
@@ -123,7 +123,7 @@ public class CacheManager {
                                         } else {
                                             LOGGER.warn("No rows affected when inserting pan file info for shareKey: {}", cacheLinkInfo.getShareKey());
                                         }
-                                    }).onFailure(Throwable::printStackTrace);
+                                    }).onFailure(e -> LOGGER.error("文件信息插入失败", e));
                         }
                     });
         }
@@ -153,18 +153,21 @@ public class CacheManager {
 
         getShareKeyTotal(shareKey, fieldLower).onSuccess(total -> {
             Integer newTotal = (total == null ? 0 : total) + 1;
+            Map<String, Object> updateParams = new HashMap<>();
+            updateParams.put("panType", getShareType(shareKey));
+            updateParams.put("shareKey", shareKey);
+            updateParams.put("total", newTotal);
+            updateParams.put("ts", System.currentTimeMillis());
             SqlTemplate.forUpdate(jdbcPool, sql)
-                    .execute(new HashMap<>() {{
-                        put("panType", getShareType(shareKey));
-                        put("shareKey", shareKey);
-                        put("total", newTotal);
-                        put("ts", System.currentTimeMillis());
-                    }})
+                    .execute(updateParams)
                     .onSuccess(res -> promise.complete(res.rowCount()))
                     .onFailure(e->{
                         promise.fail(e);
                         LOGGER.error("updateTotalByField: ", e);
                     });
+        }).onFailure(e -> {
+            promise.fail(e);
+            LOGGER.error("getShareKeyTotal in updateTotalByField: ", e);
         });
         return promise.future();
     }
@@ -229,9 +232,17 @@ public class CacheManager {
      * 注册定时清理过期缓存任务（每小时执行一次）
      * 应在应用启动后调用
      */
+    private static volatile boolean cleanupRegistered = false;
+
     public static void registerPeriodicCleanup() {
+        if (cleanupRegistered) return;
         try {
             io.vertx.core.Vertx vertx = cn.qaiu.vx.core.util.VertxHolder.getVertxInstance();
+            if (vertx == null) {
+                LOGGER.warn("Vertx 未就绪，缓存定时清理任务延迟注册");
+                return;
+            }
+            cleanupRegistered = true;
             vertx.setPeriodic(3600_000, 3600_000, id -> {
                 try {
                     new CacheManager().cleanupExpiredCache();
@@ -262,10 +273,9 @@ public class CacheManager {
                 .onSuccess(res -> {
                     if(res.iterator().hasNext()) {
                         JsonObject next = res.iterator().next();
-                        Map<String, Integer> resp = new HashMap<>(){{
-                            put("hit_total" ,next.getInteger("hit_total"));
-                            put("parser_total" ,next.getInteger("parser_total"));
-                        }};
+                        Map<String, Integer> resp = new HashMap<>();
+                        resp.put("hit_total", next.getInteger("hit_total"));
+                        resp.put("parser_total", next.getInteger("parser_total"));
                         promise.complete(resp);
                     } else {
                         promise.complete();

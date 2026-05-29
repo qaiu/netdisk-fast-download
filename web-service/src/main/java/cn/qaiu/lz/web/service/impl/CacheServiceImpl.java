@@ -104,7 +104,7 @@ public class CacheServiceImpl implements CacheService {
                     promise.complete(result);
                     // 更新缓存
                     cacheManager.cacheShareLink(cacheLinkInfo);
-                    cacheManager.updateTotalByField(cacheKey, CacheTotalField.API_PARSER_TOTAL).onFailure(Throwable::printStackTrace);
+                    cacheManager.updateTotalByField(cacheKey, CacheTotalField.API_PARSER_TOTAL).onFailure(e -> log.error("更新API解析计数失败: cacheKey={}", cacheKey, e));
                 }).onFailure(promise::fail);
             } else {
                 // 缓存命中，生成过期时间并生成下载命令
@@ -120,7 +120,7 @@ public class CacheServiceImpl implements CacheService {
                 
                 promise.complete(result);
                 cacheManager.updateTotalByField(cacheKey, CacheTotalField.CACHE_HIT_TOTAL)
-                        .onFailure(Throwable::printStackTrace);
+                        .onFailure(e -> log.error("更新缓存命中计数失败: cacheKey={}", cacheKey, e));
             }
         }).onFailure(t -> promise.fail(t.fillInStackTrace()));
 

@@ -36,6 +36,20 @@ import static cn.qaiu.vx.core.util.ConfigConstant.LOCAL;
 public class AppMain {
 
     public static void main(String[] args) {
+        // 先注册 ShutdownHook（JVM 逆序执行，先注册的后执行）
+        // 确保关闭顺序：Vert.x -> JDBCPoolInit -> JsParserExecutor
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                JDBCPoolInit.instance().close();
+            } catch (Exception e) {
+                // ignore
+            }
+            try {
+                cn.qaiu.parser.customjs.JsParserExecutor.shutdownExecutor();
+            } catch (Exception e) {
+                // ignore
+            }
+        }));
         // start
         Deploy.instance().start(args, AppMain::exec);
     }
@@ -67,6 +81,9 @@ public class AppMain {
                             loadPlaygroundParsers();
                             
                             String addr = jsonObject.getJsonObject(ConfigConstant.SERVER).getString("domainName");
+                            if (addr == null || addr.isBlank()) {
+                                addr = "http://127.0.0.1:" + jsonObject.getJsonObject(ConfigConstant.SERVER).getInteger("port", 6400);
+                            }
                             System.out.println("启动成功: \n本地服务地址: " + addr);
                         });
                     });
