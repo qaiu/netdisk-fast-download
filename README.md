@@ -1,7 +1,7 @@
 # 一款网盘分享链接云解析快速下载服务  
 QQ交流群：1017480890
 <p align="center">
-<a href="https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml"><img src="https://img.shields.io/github/actions/workflow/status/qaiu/netdisk-fast-download/maven.yml?branch=main&style=flat"></a>
+<a href="https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml"><img src="https://img.shields.io/github/actions/workflow/status/qaiu/netdisk-fast-download/maven.yml?style=flat"></a>
 <a href="https://www.oracle.com/cn/java/technologies/downloads"><img src="https://img.shields.io/badge/jdk-%3E%3D17-blue"></a>
 <a href="https://vertx-china.github.io"><img src="https://img.shields.io/badge/vert.x-4.5.27-blue?style=flat"></a>
 <a href="https://raw.githubusercontent.com/qaiu/netdisk-fast-download/master/LICENSE"><img src="https://img.shields.io/github/license/qaiu/netdisk-fast-download?style=flat"></a>
@@ -514,7 +514,6 @@ Core模块集成Vert.x实现类似spring的注解式路由API
 <img src="https://www.dkdun.cn/themes/web/www/upload/local68c2dbb2ab148.png" width="200">
 </a>
 </p>
-
 
 
 
