@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * 演练场日志收集器
  * 收集JavaScript执行过程中的日志信息
@@ -12,8 +15,11 @@ import java.util.List;
  * @author <a href="https://qaiu.top">QAIU</a>
  */
 public class JsPlaygroundLogger {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(JsPlaygroundLogger.class);
+
     // 使用线程安全的列表
+    private static final int MAX_LOG_SIZE = 1000;
     private final List<LogEntry> logs = Collections.synchronizedList(new ArrayList<>());
     
     /**
@@ -60,6 +66,18 @@ public class JsPlaygroundLogger {
     }
     
     /**
+     * 添加日志条目，超过最大容量时移除最早的条目
+     */
+    private void addLog(LogEntry entry) {
+        synchronized (logs) {
+            if (logs.size() >= MAX_LOG_SIZE) {
+                logs.remove(0);
+            }
+            logs.add(entry);
+        }
+    }
+
+    /**
      * 记录日志（内部方法）
      * @param level 日志级别
      * @param message 日志消息
@@ -67,8 +85,8 @@ public class JsPlaygroundLogger {
      */
     private void log(String level, Object message, String source) {
         String msg = toString(message);
-        logs.add(new LogEntry(level, msg, source));
-        System.out.println("[" + source + "PlaygroundLogger] " + level + ": " + msg);
+        addLog(new LogEntry(level, msg, source));
+        log.debug("[{}PlaygroundLogger] {}: {}", source, level, msg);
     }
     
     /**
@@ -111,8 +129,8 @@ public class JsPlaygroundLogger {
         if (throwable != null) {
             msg = msg + ": " + throwable.getMessage();
         }
-        logs.add(new LogEntry("ERROR", msg, "JS"));
-        System.out.println("[JSPlaygroundLogger] ERROR: " + msg);
+        addLog(new LogEntry("ERROR", msg, "JS"));
+        log.debug("[JSPlaygroundLogger] ERROR: {}", msg);
     }
     
     // ===== 以下是供Java层调用的内部方法 =====
@@ -153,8 +171,8 @@ public class JsPlaygroundLogger {
         if (throwable != null) {
             msg = msg + ": " + throwable.getMessage();
         }
-        logs.add(new LogEntry("ERROR", msg, "JAVA"));
-        System.out.println("[JAVAPlaygroundLogger] ERROR: " + msg);
+        addLog(new LogEntry("ERROR", msg, "JAVA"));
+        log.debug("[JAVAPlaygroundLogger] ERROR: {}", msg);
     }
     
     /**

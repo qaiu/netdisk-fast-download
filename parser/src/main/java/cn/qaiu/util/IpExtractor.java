@@ -5,6 +5,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.impl.headers.HeadersMultiMap;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -15,6 +17,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class IpExtractor {
+    private static final Logger log = LoggerFactory.getLogger(IpExtractor.class);
+
     public static void main(String[] args) throws InterruptedException {
 
 
@@ -42,9 +46,9 @@ public class IpExtractor {
         WebClient client = WebClient.create(Vertx.vertx());
         WebClientSession webClientSession = WebClientSession.create(client);
         webClientSession.getAbs("https://ip.ihuan.me").putHeaders(headers).send().onSuccess(res->{
-            System.out.println(res.toString());
+            log.debug("response: {}", res.toString());
             webClientSession.getAbs("https://ip.ihuan.me").putHeaders(headers).send().onSuccess(res2->{
-                System.out.println(res2.toString());
+                log.debug("response2: {}", res2.toString());
 
             });
         });

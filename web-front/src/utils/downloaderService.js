@@ -410,7 +410,6 @@ function addThunderDownload(tasks, config) {
   if (userAgent) taskParam.userAgent = userAgent
   taskParam.threadCount = '1'
 
-  console.log('[Thunder SDK] newTask params:', JSON.stringify(taskParam))
   window.thunderLink.newTask(taskParam)
   return Promise.resolve('thunder-ok')
 }

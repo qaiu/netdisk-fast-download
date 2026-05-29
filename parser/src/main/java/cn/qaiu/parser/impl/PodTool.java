@@ -129,7 +129,7 @@ public class PodTool extends PanBase {
 
         if (urlMatcher.find()) {
             String url = urlMatcher.group("url");
-            System.out.println("URL: " + url);
+            log.debug("URL: {}", url);
             return url;
         }
         throw new RuntimeException("URL匹配失败");
@@ -172,7 +172,7 @@ public class PodTool extends PanBase {
 
         if (tokenMatcher.find()) {
             String token = tokenMatcher.group(1);
-            System.out.println("Token: " + token);
+            log.debug("Token: {}***", token.length() > 4 ? token.substring(0, 4) : "***");
             return token;
         }
         throw new RuntimeException("token匹配失败");
@@ -198,8 +198,8 @@ public class PodTool extends PanBase {
         // 发送请求并处理响应
         client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
-                    System.out.println("Response Status Code: " + response.statusCode());
-                    System.out.println("Response Body: " + response.body());
+                    log.debug("Response Status Code: {}", response.statusCode());
+                    log.debug("Response Body: {}", response.body());
                     promise.complete(response.body());
                     return null;
                 });
