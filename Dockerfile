@@ -10,7 +10,8 @@ COPY ./web-service/target/netdisk-fast-download-bin.zip .
 RUN unzip netdisk-fast-download-bin.zip && \
     mv netdisk-fast-download/* ./ && \
     rm netdisk-fast-download-bin.zip && \
-    chmod +x run.sh
+    chmod +x run.sh && \
+    mkdir -p db logs
 
 EXPOSE 6400 6401
 
