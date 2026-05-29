@@ -257,28 +257,44 @@
             </el-descriptions>
           </div>
 
-          <!-- 错误时显示小按钮 -->
-          <div v-if="errorButtonVisible" style="text-align: center; margin-top: 10px;">
-            <el-button type="text" @click="errorDialogVisible = true"> 反馈错误详情>> </el-button>
-          </div>
+          <!-- 错误徽章，解析失败时显示，可手动关闭，解析成功自动关闭 -->
+          <transition name="el-fade-in">
+            <div v-if="errorBadgeVisible"
+              style="position:fixed;z-index:9999;top:80px;right:24px;display:flex;align-items:center;background:#fff1f0;border:1px solid #ffccc7;border-radius:16px;padding:6px 8px 6px 14px;box-shadow:0 2px 10px rgba(217,48,38,.12);cursor:pointer;"
+              @click.self="errorDialogVisible=true">
+              <i class="fas fa-exclamation-circle" style="color:#d93026;font-size:15px;margin-right:7px;pointer-events:none;"></i>
+              <span style="font-size:14px;color:#d93026;margin-right:8px;pointer-events:none;" @click="errorDialogVisible=true">解析出错</span>
+              <el-button
+                size="small" circle
+                style="width:20px;height:20px;min-height:20px;padding:0;background:transparent;border:none;color:#d93026;"
+                @click.stop="errorBadgeVisible=false">
+                <i class="el-icon-close" style="font-size:12px;"></i>
+              </el-button>
+            </div>
+          </transition>
 
-          <!-- 错误 JSON 弹窗 -->
-          <el-dialog
-              v-model="errorDialogVisible"
-              width="60%">
+          <!-- 错误弹窗 -->
+          <el-dialog v-model="errorDialogVisible" width="500px" :show-close="true" @close="errorMsgExpanded=false">
             <template #title>
-              错误详情
-              <el-link
-                  @click.prevent="copyErrorDetails"
-                  target="_blank"
-                  style="margin-left:8px"
-                  type="primary">
-                复制当前错误信息，提交Issue
-              </el-link>
+              <i class="fas fa-exclamation-circle" style="color:#d93026;margin-right:8px;"></i>
+              <span style="color:#d93026;font-weight:600;">解析出错</span>
             </template>
-            <json-viewer :value="errorDetail" :expand-depth="5" copyable boxed sort />
+            <div style="font-size:13px;color:#606266;margin-bottom:12px;word-break:break-all;line-height:1.6;">
+              <template v-if="errorDetail">
+                <span>{{ errorMsgExpanded ? (errorDetail.msg || errorDetail.message) : truncateMsg(errorDetail.msg || errorDetail.message) }}</span>
+                <a v-if="!errorMsgExpanded && (errorDetail.msg || errorDetail.message || '').length > 150"
+                   href="#" style="color:#1677ff;margin-left:4px;"
+                   @click.prevent="errorMsgExpanded=true">展开</a>
+                <a v-if="errorMsgExpanded"
+                   href="#" style="color:#1677ff;margin-left:4px;"
+                   @click.prevent="errorMsgExpanded=false">收起</a>
+              </template>
+            </div>
             <template #footer>
               <el-button @click="errorDialogVisible = false">关闭</el-button>
+              <el-button type="danger" plain @click="copyErrorDetails">
+                <i class="fab fa-github" style="margin-right:6px;"></i>复制信息并前往 GitHub Issues
+              </el-button>
             </template>
           </el-dialog>
 
@@ -607,7 +623,9 @@ export default {
       autoReadClipboard: true,
       isDarkMode: false,
       isLoading: false,
-      
+      errorBadgeVisible: false,
+      errorMsgExpanded: false,
+
       // 输入数据
       link: "",
       password: "",
@@ -1149,6 +1167,7 @@ export default {
     // 统一API调用（自动添加认证参数）
     async callAPI(endpoint, params = {}) {
       this.errorButtonVisible = false
+      this.errorBadgeVisible = false
       try {
         this.isLoading = true
         // 添加认证参数（异步获取）
@@ -1160,11 +1179,14 @@ export default {
 
         if (response.data.code === 200) {
           // this.$message.success(response.data.msg || '操作成功')
+          this.errorBadgeVisible = false
           return response.data
         } else {
-          // 在页面右下角显示一个”查看详情”按钮 可以查看原json
+          // 解析失败，显示徽章和弹窗
           this.errorDetail = response?.data
           this.errorButtonVisible = true
+          this.errorBadgeVisible = true
+          this.errorDialogVisible = true
           throw new Error(response.data.msg || '操作失败')
         }
       } catch (error) {
@@ -1172,9 +1194,13 @@ export default {
         if (error.response?.data?.msg) {
           this.errorDetail = error.response.data
           this.errorButtonVisible = true
+          this.errorBadgeVisible = true
+          this.errorDialogVisible = true
           this.$message.error(error.response.data.msg)
           throw new Error(error.response.data.msg)
         }
+        this.errorBadgeVisible = true
+        this.errorDialogVisible = true
         this.$message.error(error.message || '网络错误')
         throw error
       } finally {
@@ -1470,6 +1496,11 @@ export default {
       navigator.clipboard.writeText(url).then(() => {
         ElMessage.success('目录分享链接已复制！')
       })
+    },
+
+    truncateMsg(msg) {
+      if (!msg) return ''
+      return msg.length > 150 ? msg.slice(0, 150) + '...' : msg
     },
 
     copyErrorDetails() {

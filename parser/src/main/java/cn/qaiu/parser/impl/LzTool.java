@@ -355,8 +355,8 @@ public class LzTool extends PanBase {
     }
 
     private void handleFileListParse(String html, String pwd, String sUrl, Promise<List<FileInfo>> promise) {
-        // 检测是否为文件分享链接 (不含 /s/、/b/ 路径段且不含 b0 开头的路径段)
-        if (!sUrl.matches(".*/(s|b)/[^/]+.*") && !sUrl.matches(".*/b0[^/]+.*")) {
+        // 检测是否为文件分享链接 (不含 /s/、/b/ 路径段且不含 b 开头的路径段)
+        if (!sUrl.matches(".*/(s|b)/[^/]+.*") && !sUrl.matches(".*/b[^/]+.*")) {
             promise.fail(baseMsg() + "该链接为蓝奏云文件分享，请使用文件解析接口");
             return;
         }
