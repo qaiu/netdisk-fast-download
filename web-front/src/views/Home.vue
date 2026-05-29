@@ -90,7 +90,7 @@
             <!-- 开关按钮，控制是否自动读取剪切板 -->
             <el-switch v-model="autoReadClipboard" active-text="自动识别剪切板"></el-switch>
 
-            <el-input placeholder="请粘贴分享链接(http://或https://)" v-model="link" id="url">
+            <el-input placeholder="请粘贴分享链接(http://或https://)" v-model="link" id="url" @paste="onPaste">
               <template #prepend>分享链接</template>
               <template #append v-if="!autoReadClipboard">
                 <el-button @click="getPaste(true)">读取剪切板</el-button>
@@ -1094,17 +1094,45 @@ export default {
       }
     },
 
-    // 识别并转换短链输入（如 lz:shareKey@pwd）
+    // 识别并转换短链输入（如 lz:shareKey@pwd），或从文本中提取链接
     normalizeShortcutInput() {
-      const shortInfo = this.expandShortFormat(this.link)
-      if (!shortInfo) return
+      if (!this.link) return
+      const trimmed = this.link.trim()
+      if (!trimmed) return
 
-      this.link = shortInfo.link
-      if (!this.password && shortInfo.pwd) {
-        this.password = shortInfo.pwd
+      // 已经是直接链接，跳过
+      if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return
+
+      // 尝试短格式
+      const shortInfo = this.expandShortFormat(trimmed)
+      if (shortInfo) {
+        this.link = shortInfo.link
+        if (!this.password && shortInfo.pwd) {
+          this.password = shortInfo.pwd
+        }
+        this.$message.success(`已识别短格式并自动转换，网盘类型: ${shortInfo.name}`)
+        this.updateDirectLink()
+        return
       }
-      this.$message.success(`已识别短格式并自动转换，网盘类型: ${shortInfo.name}`)
-      this.updateDirectLink()
+
+      // 从文本中自动提取链接
+      const linkInfo = parserUrl.parseLink(trimmed)
+      if (linkInfo.link) {
+        this.link = linkInfo.link
+        const pwd = parserUrl.parsePwd(trimmed)
+        if (!this.password && pwd) {
+          this.password = pwd
+        }
+        this.$message.success(`已从文本中识别到 ${linkInfo.name} 分享链接`)
+        this.updateDirectLink()
+      }
+    },
+
+    // 粘贴事件：从粘贴的文本中自动提取链接
+    onPaste(e) {
+      this.$nextTick(() => {
+        this.normalizeShortcutInput()
+      })
     },
 
     // 清除结果
