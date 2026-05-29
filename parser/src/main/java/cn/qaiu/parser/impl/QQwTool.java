@@ -3,7 +3,7 @@ package cn.qaiu.parser.impl;
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import io.vertx.core.Future;
-import io.vertx.core.http.HttpMethod;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 
 import java.net.URLEncoder;
@@ -20,13 +20,13 @@ public class QQwTool extends QQTool {
         String k = shareLinkInfo.getShareKey();
         String postBody = "f=json&k=" + URLEncoder.encode(k, StandardCharsets.UTF_8);
 
-        client.request(HttpMethod.POST, 443, "wx.mail.qq.com", "/s")
+        client.postAbs("https://wx.mail.qq.com/s")
                 .putHeader("Content-Type", "application/x-www-form-urlencoded")
                 .putHeader("Accept", "application/json, text/plain, */*")
                 .putHeader("Referer", shareLinkInfo.getShareUrl())
                 .putHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                         + "(KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0")
-                .sendBuffer(io.vertx.core.buffer.Buffer.buffer(postBody))
+                .sendBuffer(Buffer.buffer(postBody))
                 .onSuccess(res -> {
                     try {
                         JsonObject data = asJson(res);
