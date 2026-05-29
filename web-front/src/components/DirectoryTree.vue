@@ -190,6 +190,14 @@
                     >
                       <i class="fas fa-paper-plane"></i> 发送到下载器
                     </el-button>
+                    <el-button
+                      v-if="selectedNode.parserUrl"
+                      size="small"
+                      @click="copyDirectLink(selectedNode)"
+                      :loading="copyLinkLoading"
+                    >
+                      <i class="fas fa-link"></i> 复制直链
+                    </el-button>
                   </div>
                 </div>
                 <div v-else class="file-detail-empty">
@@ -258,6 +266,14 @@
                   >
                     <i class="fas fa-paper-plane"></i> 发送到下载器
                   </el-button>
+                  <el-button
+                    v-if="selectedNode.parserUrl"
+                    size="small"
+                    @click="copyDirectLink(selectedNode)"
+                    :loading="copyLinkLoading"
+                  >
+                    <i class="fas fa-link"></i> 复制直链
+                  </el-button>
                 </div>
               </div>
               <div v-else class="file-detail-empty">
@@ -323,6 +339,14 @@
             :loading="singleSendLoading"
           >
             发送到下载器
+          </el-button>
+          <el-button
+            v-if="selectedFile && selectedFile.parserUrl"
+            @click="copyDirectLink(selectedFile)"
+            style="margin-left: 8px;"
+            :loading="copyLinkLoading"
+          >
+            复制直链
           </el-button>
         </span>
       </el-dialog>
@@ -391,6 +415,7 @@ export default {
       downloadInfo: null,
       downloadLoading: false,
       singleSendLoading: false,
+      copyLinkLoading: false,
       treeProps: {
         label: 'fileName',
         children: 'children',
@@ -742,6 +767,32 @@ export default {
     closeFileDialog() {
       this.fileDialogVisible = false
       this.selectedFile = null
+    },
+    async copyDirectLink(file) {
+      if (!file?.parserUrl) {
+        this.$message.warning('该文件暂无直链')
+        return
+      }
+      const rawUrl = file.parserUrl.startsWith('http') ? file.parserUrl : (window.location.origin + file.parserUrl)
+      const url = this.appendToken(rawUrl)
+      this.copyLinkLoading = true
+      try {
+        await navigator.clipboard.writeText(url)
+        this.$message.success('直链已复制到剪贴板')
+      } catch {
+        // fallback
+        const ta = document.createElement('textarea')
+        ta.value = url
+        ta.style.position = 'fixed'
+        ta.style.opacity = '0'
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+        this.$message.success('直链已复制到剪贴板')
+      } finally {
+        this.copyLinkLoading = false
+      }
     },
     closePreview() {
       this.isPreviewing = false
