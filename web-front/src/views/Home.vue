@@ -73,7 +73,7 @@
         </div>
         <!-- 项目简介移到卡片内 -->
         <div class="project-intro">
-          <div class="intro-title">NFD网盘直链解析0.3.0</div>
+          <div class="intro-title">NFD网盘直链解析 {{ projectVersion }}</div>
           <div class="intro-desc">
             <div>支持网盘：蓝奏云、蓝奏云优享、小飞机盘、123云盘、iCloud、移动云空间、联想乐云、QQ闪传等 <el-link style="color:#606cf5" :href="githubRepoUrl + '?tab=readme-ov-file#%E7%BD%91%E7%9B%98%E6%94%AF%E6%8C%81%E6%83%85%E5%86%B5'" target="_blank"> &gt;&gt; </el-link></div>
             <div>文件夹解析支持：蓝奏云、蓝奏云优享、小飞机盘、123云盘</div>
@@ -716,6 +716,9 @@ export default {
   computed: {
     githubRepoUrl() {
       return process.env.VUE_APP_GITHUB_REPO_URL
+    },
+    projectVersion() {
+      return process.env.VUE_APP_VERSION || '0.0.0'
     },
     // 检查是否配置了认证信息（针对当前链接的网盘类型）
     hasAuthConfig() {

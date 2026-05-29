@@ -1,9 +1,9 @@
 # 一款网盘分享链接云解析快速下载服务  
 QQ交流群：1017480890
 <p align="center">
-<a href="https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml"><img src="https://img.shields.io/github/actions/workflow/status/qaiu/netdisk-fast-download/maven.yml?branch=v0.1.9b8a&style=flat"></a>
+<a href="https://github.com/qaiu/netdisk-fast-download/actions/workflows/maven.yml"><img src="https://img.shields.io/github/actions/workflow/status/qaiu/netdisk-fast-download/maven.yml?branch=main&style=flat"></a>
 <a href="https://www.oracle.com/cn/java/technologies/downloads"><img src="https://img.shields.io/badge/jdk-%3E%3D17-blue"></a>
-<a href="https://vertx-china.github.io"><img src="https://img.shields.io/badge/vert.x-4.5.24-blue?style=flat"></a>
+<a href="https://vertx-china.github.io"><img src="https://img.shields.io/badge/vert.x-4.5.27-blue?style=flat"></a>
 <a href="https://raw.githubusercontent.com/qaiu/netdisk-fast-download/master/LICENSE"><img src="https://img.shields.io/github/license/qaiu/netdisk-fast-download?style=flat"></a>
 <a href="https://github.com/qaiu/netdisk-fast-download/releases/"><img src="https://img.shields.io/github/v/release/qaiu/netdisk-fast-download?style=flat"></a>
 <a href="https://atomgit.com/QAIU/netdisk-fast-download"><img src="https://atomgit.com/QAIU/netdisk-fast-download/star/badge.svg" alt="AtomGit"></a>
@@ -419,7 +419,7 @@ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock containrrr/watchtow
 > 注意: netdisk-fast-download.service中的ExecStart的路径改为实际路径
 ```shell
 cd ~
-wget -O netdisk-fast-download.zip https://github.com/qaiu/netdisk-fast-download/releases/download/v0.1.9b7/netdisk-fast-download-bin.zip
+wget -O netdisk-fast-download.zip https://github.com/qaiu/netdisk-fast-download/releases/download/v3.0.2/netdisk-fast-download-bin.zip
 unzip netdisk-fast-download-bin.zip
 cd netdisk-fast-download
 bash service-install.sh

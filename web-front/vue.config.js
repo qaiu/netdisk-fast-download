@@ -16,6 +16,17 @@ function getGitHubRepoUrl() {
   } catch (e) {}
   return 'https://github.com/qaiu/netdisk-fast-download';
 }
+// 从根 pom.xml 读取项目版本号（单一版本来源）
+function getProjectVersion() {
+  try {
+    const pomContent = require('fs').readFileSync(path.resolve(__dirname, '../pom.xml'), 'utf-8');
+    const match = pomContent.match(/<revision>([^<]+)<\/revision>/);
+    if (match) return match[1];
+  } catch (e) {}
+  return require('./package.json').version;
+}
+const PROJECT_VERSION = getProjectVersion();
+
 const GITHUB_REPO_URL = getGitHubRepoUrl();
 
 const CompressionPlugin = require('compression-webpack-plugin');
@@ -69,7 +80,8 @@ module.exports = {
     },
     plugins: [
       new webpack.DefinePlugin({
-        'process.env.VUE_APP_GITHUB_REPO_URL': JSON.stringify(GITHUB_REPO_URL)
+        'process.env.VUE_APP_GITHUB_REPO_URL': JSON.stringify(GITHUB_REPO_URL),
+        'process.env.VUE_APP_VERSION': JSON.stringify(PROJECT_VERSION)
       }),
       new MonacoEditorPlugin({
         languages: ['javascript', 'typescript', 'json'],
