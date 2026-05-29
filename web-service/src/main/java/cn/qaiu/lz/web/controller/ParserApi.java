@@ -110,7 +110,7 @@ public class ParserApi {
     private static String getDownLink(ParserCreate create, boolean isJson, HttpServerRequest request) {
         String linkPrefix = getLinkPrefix(request);
         if (StringUtils.isBlank(linkPrefix)) {
-            linkPrefix = "http://127.0.0.1";
+            linkPrefix = "http://127.0.0.1:" + SharedDataUtil.getJsonConfig("server").getInteger("port", 6400);
         }
         // 下载短链前缀 /d
         return linkPrefix + (isJson ? "/json/" : "/d/") + create.genPathSuffix();
@@ -144,6 +144,7 @@ public class ParserApi {
         ParserCreate parserCreate = ParserCreate.fromShareUrl(url).setShareLinkInfoPwd(pwd);
         String linkPrefix = getLinkPrefix(request);
         parserCreate.getShareLinkInfo().getOtherParam().put("domainName", linkPrefix);
+        parserCreate.getShareLinkInfo().getOtherParam().put("_requestOrigin", linkPrefix);
         if (StringUtils.isNotBlank(dirId)) {
             parserCreate.getShareLinkInfo().getOtherParam().put("dirId", dirId);
         }
@@ -172,6 +173,7 @@ public class ParserApi {
         // domainName
         String linkPrefix = getLinkPrefix(request);
         shareLinkInfo.getOtherParam().put("domainName", linkPrefix);
+        shareLinkInfo.getOtherParam().put("_requestOrigin", linkPrefix);
         return parserCreate.createTool().parseById();
     }
 
@@ -296,7 +298,8 @@ public class ParserApi {
             String shareUrl = URLParamUtil.parserParams(request);
             ParserCreate parserCreate = ParserCreate.fromShareUrl(shareUrl).setShareLinkInfoPwd(pwd);
             ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();
-            
+            shareLinkInfo.getOtherParam().put("_requestOrigin", getLinkPrefix(request));
+
             // 处理认证参数
             if (auth != null && !auth.isEmpty()) {
                 AuthParam authParam = AuthParamCodec.decode(auth);
@@ -312,6 +315,8 @@ public class ParserApi {
                         authParam.getExt5());
                     log.debug("客户端链接API: 已解码认证参数 authType={}", authParam.getAuthType());
                 }
+            } else {
+                URLParamUtil.addParam(parserCreate);
             }
             
             // 使用默认方法解析并生成客户端链接
@@ -353,7 +358,9 @@ public class ParserApi {
         try {
             String shareUrl = URLParamUtil.parserParams(request);
             ParserCreate parserCreate = ParserCreate.fromShareUrl(shareUrl).setShareLinkInfoPwd(pwd);
-            
+            parserCreate.getShareLinkInfo().getOtherParam().put("_requestOrigin", getLinkPrefix(request));
+            URLParamUtil.addParam(parserCreate);
+
             // 使用默认方法解析并生成客户端链接
             parserCreate.createTool().parseWithClientLinks()
                 .onSuccess(clientLinks -> {
