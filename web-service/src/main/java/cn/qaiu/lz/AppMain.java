@@ -36,9 +36,8 @@ import static cn.qaiu.vx.core.util.ConfigConstant.LOCAL;
 public class AppMain {
 
     public static void main(String[] args) {
-        // start
-        Deploy.instance().start(args, AppMain::exec);
-        // 注册补充 ShutdownHook，关闭 core 模块无法直接依赖的资源
+        // 先注册 ShutdownHook（JVM 逆序执行，先注册的后执行）
+        // 确保关闭顺序：Vert.x -> JDBCPoolInit -> JsParserExecutor
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
                 JDBCPoolInit.instance().close();
@@ -51,6 +50,8 @@ public class AppMain {
                 // ignore
             }
         }));
+        // start
+        Deploy.instance().start(args, AppMain::exec);
     }
 
     /**
