@@ -81,7 +81,7 @@ public class ParserCreate {
                     if (shareKey != null) {
                         shareLinkInfo.setShareKey(shareKey);
                     }
-                } catch (IllegalStateException ignored) {}
+                } catch (IllegalStateException | IllegalArgumentException ignored) {}
 
                 // 提取密码
                 try {
@@ -89,7 +89,7 @@ public class ParserCreate {
                     if (StringUtils.isNotEmpty(pwd)) {
                         shareLinkInfo.setSharePassword(pwd);
                     }
-                } catch (IllegalStateException ignored) {}
+                } catch (IllegalStateException | IllegalArgumentException ignored) {}
 
                 // 设置标准URL
                 if (customParserConfig.getStandardUrlTemplate() != null) {
@@ -133,7 +133,7 @@ public class ParserCreate {
                     shareLinkInfo.setSharePassword(pwd);
                 }
                 standardUrl = standardUrl.replace("{pwd}", pwd);
-            } catch (IllegalStateException ignored) {}
+            } catch (IllegalStateException | IllegalArgumentException ignored) {}
 
             shareLinkInfo.setShareUrl(shareUrl);
             shareLinkInfo.setShareKey(shareKey);
@@ -266,14 +266,14 @@ public class ParserCreate {
                         if (shareKey != null) {
                             shareLinkInfo.setShareKey(shareKey);
                         }
-                    } catch (IllegalStateException ignored) {}
+                    } catch (IllegalStateException | IllegalArgumentException ignored) {}
 
                     try {
                         String password = matcher.group("PWD");
                         if (password != null) {
                             shareLinkInfo.setSharePassword(password);
                         }
-                    } catch (IllegalStateException ignored) {}
+                    } catch (IllegalStateException | IllegalArgumentException ignored) {}
 
                     // 设置标准URL（如果有模板）
                     if (customConfig.getStandardUrlTemplate() != null) {
