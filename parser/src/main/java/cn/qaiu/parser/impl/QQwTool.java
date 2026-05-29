@@ -3,10 +3,8 @@ package cn.qaiu.parser.impl;
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import io.vertx.core.Future;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.JsonObject;
 
 public class QQwTool extends QQTool {
 
@@ -16,54 +14,49 @@ public class QQwTool extends QQTool {
 
     @Override
     public Future<String> parse() {
-        client.getAbs(shareLinkInfo.getShareUrl()).send().onSuccess(res -> {
-            String html = res.bodyAsString();
-            Map<String, String> stringStringMap = extractVariables(html);
-            String url = stringStringMap.get("url");
-            String fn = stringStringMap.get("filename");
-            String size = stringStringMap.get("filesize");
-            String createBy = stringStringMap.get("nick");
-            FileInfo fileInfo = new FileInfo().setFileName(fn).setSize(Long.parseLong(size)).setCreateBy(createBy);
-            shareLinkInfo.getOtherParam().put("fileInfo", fileInfo);
-            if (url != null) {
-                String url302 = url.replace("\\x26", "&");
-                promise.complete(url302);
+        String k = shareLinkInfo.getShareKey();
+        String postBody = "f=json&k=" + k;
 
-                /*
-                clientNoRedirects.getAbs(url302).send().onSuccess(res2 -> {
-                    MultiMap headers = res2.headers();
-                    if (headers.contains("Location")) {
-                        promise.complete(headers.get("Location"));
-                    } else {
-                        fail("找不到重定向URL");
+        client.request(HttpMethod.POST, 443, "wx.mail.qq.com", "/s")
+                .putHeader("Content-Type", "application/x-www-form-urlencoded")
+                .putHeader("Accept", "application/json, text/plain, */*")
+                .putHeader("Referer", shareLinkInfo.getShareUrl())
+                .sendBuffer(io.vertx.core.buffer.Buffer.buffer(postBody))
+                .onSuccess(res -> {
+                    try {
+                        JsonObject data = res.bodyAsJsonObject();
+                        JsonObject head = data.getJsonObject("head");
+                        if (head == null || head.getInteger("ret", -1) != 0) {
+                            String msg = head != null ? head.getString("msg", "未知错误") : "未知错误";
+                            fail("API错误: " + msg);
+                            return;
+                        }
+
+                        JsonObject body = data.getJsonObject("body");
+                        if (body == null) {
+                            fail("文件信息为空");
+                            return;
+                        }
+
+                        String url = body.getString("url");
+                        String fn = body.getString("name", "");
+                        long size = body.getLong("size", 0L);
+
+                        if (url == null || url.isEmpty()) {
+                            fail("分享链接解析失败, 可能是链接失效");
+                            return;
+                        }
+
+                        FileInfo fileInfo = new FileInfo().setFileName(fn).setSize(size);
+                        shareLinkInfo.getOtherParam().put("fileInfo", fileInfo);
+
+                        String url302 = url.replace("\\x26", "&");
+                        promise.complete(url302);
+                    } catch (Exception e) {
+                        fail("解析响应失败: " + e.getMessage());
                     }
-
                 }).onFailure(handleFail());
-                */
-            } else {
-                fail("分享链接解析失败, 可能是链接失效");
-            }
-        }).onFailure(handleFail());
 
         return promise.future();
-    }
-
-
-    private Map<String, String> extractVariables(String jsCode) {
-        Map<String, String> variables = new HashMap<>();
-        // 正则表达式匹配 var 变量定义
-        String regex = "\\s+var\\s+(\\w+)\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)'|([^;\\r\\n]*))";
-        Pattern p = Pattern.compile(regex);
-        Matcher m = p.matcher(jsCode);
-
-        while (m.find()) {
-            String name = m.group(1);
-            String value = m.group(2) != null ? m.group(2)
-                    : m.group(3) != null ? m.group(3)
-                    : m.group(4);
-            variables.put(name, value);
-        }
-
-        return variables;
     }
 }
