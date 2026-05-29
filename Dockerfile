@@ -13,10 +13,10 @@ RUN unzip netdisk-fast-download-bin.zip && \
     chmod +x run.sh && \
     mkdir -p db logs
 
+COPY ./docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 EXPOSE 6400 6401
 
-RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser && \
-    chown -R appuser:appgroup /app
-USER appuser
-
-ENTRYPOINT ["sh", "run.sh"]
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+ENTRYPOINT ["/docker-entrypoint.sh"]
