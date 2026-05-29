@@ -16,7 +16,7 @@ RUN unzip netdisk-fast-download-bin.zip && \
 COPY ./docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
-EXPOSE 6400 6401
+EXPOSE 6401
 
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 ENTRYPOINT ["/docker-entrypoint.sh"]
