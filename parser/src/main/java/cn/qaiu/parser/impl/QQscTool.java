@@ -99,6 +99,11 @@ public class QQscTool extends PanBase {
                                     JsonArray downloadRsp = body.getJsonObject("data").getJsonArray("download_rsp");
                                     if (downloadRsp != null && !downloadRsp.isEmpty()) {
                                         String url = downloadRsp.getJsonObject(0).getString("url");
+                                        // 检测文件是否被和谐
+                                        if (url != null && url.startsWith("&filename=")) {
+                                            promise.fail("该文件已被和谐");
+                                            return;
+                                        }
                                         if (fileName != null) {
                                             url = url + "&filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8);
                                         }
