@@ -412,7 +412,8 @@ public class RouterHandlerFactory implements BaseHttpApi {
 
                     }).onFailure(e -> {
                         LOGGER.error("请求处理失败", e);
-                        doFireJsonResultResponse(ctx, JsonResult.error("服务器内部错误"), 500);
+                        String msg = e.getMessage() != null ? e.getMessage() : "服务器内部错误";
+                        doFireJsonResultResponse(ctx, JsonResult.error(msg), 500);
                     });
                 } else {
                     doFireJsonResultResponse(ctx, JsonResult.data(data));
@@ -420,7 +421,8 @@ public class RouterHandlerFactory implements BaseHttpApi {
             }
         } catch (Throwable e) {
             LOGGER.error("请求处理异常", e);
-            doFireJsonResultResponse(ctx, JsonResult.error("服务器内部错误"), 500);
+            String msg = e.getMessage() != null ? e.getMessage() : "服务器内部错误";
+            doFireJsonResultResponse(ctx, JsonResult.error(msg), 500);
         }
     }
 
