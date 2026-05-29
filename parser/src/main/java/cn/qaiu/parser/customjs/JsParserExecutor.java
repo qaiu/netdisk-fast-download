@@ -33,7 +33,7 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(JsParserExecutor.class);
 
-    private static WorkerExecutor EXECUTOR;
+    private static volatile WorkerExecutor EXECUTOR;
     private static final Object EXECUTOR_LOCK = new Object();
 
     private static String FETCH_RUNTIME_JS = null;

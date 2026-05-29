@@ -1,6 +1,5 @@
 #!/bin/bash
 # set -x
 LAUNCH_JAR="netdisk-fast-download.jar"
-nohup java -Xmx512M -jar "$LAUNCH_JAR" "$@" >startup.log 2>&1 &
-tail -f startup.log
+exec java -Xmx${JVM_XMX:-512M} ${JVM_OPTS} -jar "$LAUNCH_JAR" "$@"
 

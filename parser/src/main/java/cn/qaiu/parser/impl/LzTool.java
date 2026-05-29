@@ -14,6 +14,7 @@ import io.vertx.ext.web.client.WebClientSession;
 import org.openjdk.nashorn.api.scripting.ScriptObjectMirror;
 
 import javax.script.ScriptException;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -107,7 +108,7 @@ public class LzTool extends PanBase {
         try {
             setFileInfo(html, shareLinkInfo);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("文件信息解析异常", e);
         }
         // 匹配iframe
         Pattern compile = Pattern.compile("src=\"(/fn\\?[a-zA-Z\\d_+/=]{16,})\"");
@@ -175,7 +176,7 @@ public class LzTool extends PanBase {
             if (firstDot >= 0) {
                 domain = host.substring(firstDot); // e.g. ".lanzoum.com"
             }
-        } catch (Exception ignored) {}
+        } catch (MalformedURLException ignored) {}
         // 创建一个 Cookie 并放入 CookieStore
         DefaultCookie nettyCookie = new DefaultCookie("acw_sc__v2", acw_sc__v2);
         nettyCookie.setDomain(domain);
@@ -217,7 +218,7 @@ public class LzTool extends PanBase {
             return;
         }
         Map<?, ?> signMap = (Map<?, ?>)obj.get("data");
-        String url0 = obj.get("url").toString();
+        String url0 = String.valueOf(obj.get("url"));
         MultiMap map = MultiMap.caseInsensitiveMultiMap();
         signMap.forEach((k, v) -> {
             map.add((String) k, v.toString());
@@ -275,7 +276,7 @@ public class LzTool extends PanBase {
                                     String h = du.getHost();
                                     int dot = h.indexOf('.');
                                     if (dot >= 0) downDomain = h.substring(dot);
-                                } catch (Exception ignored) {}
+                                } catch (MalformedURLException ignored) {}
                                 // 创建一个 Cookie 并放入 CookieStore
                                 DefaultCookie nettyCookie = new DefaultCookie("acw_sc__v2", acw_sc__v2);
                                 nettyCookie.setDomain(downDomain);
@@ -290,12 +291,12 @@ public class LzTool extends PanBase {
                                             if (location0 == null) {
                                                 fail(downUrl + " -> 直链获取失败2, 可能分享已失效");
                                             } else {
-                                                setDateAndComplate(location0);
+                                                setDateAndComplete(location0);
                                             }
                                         }).onFailure(handleFail(downUrl));
                                 return;
                             }
-                            setDateAndComplate(location);
+                            setDateAndComplete(location);
                         })
                         .onFailure(handleFail(downUrl));
             } catch (Exception e) {
@@ -304,7 +305,7 @@ public class LzTool extends PanBase {
         }).onFailure(handleFail(url));
     }
 
-    private void setDateAndComplate(String location0) {
+    private void setDateAndComplete(String location0) {
         // 分享时间 提取url中的时间戳格式：lanzoui.com/abc/abc/yyyy/mm/dd/
         String regex = "(\\d{4}/\\d{1,2}/\\d{1,2})";
         Matcher matcher = Pattern.compile(regex).matcher(location0);

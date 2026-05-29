@@ -190,6 +190,14 @@
                     >
                       <i class="fas fa-paper-plane"></i> 发送到下载器
                     </el-button>
+                    <el-button
+                      v-if="selectedNode.parserUrl"
+                      size="small"
+                      @click="copyDirectLink(selectedNode)"
+                      :loading="copyLinkLoading"
+                    >
+                      <i class="fas fa-link"></i> 复制直链
+                    </el-button>
                   </div>
                 </div>
                 <div v-else class="file-detail-empty">
@@ -258,6 +266,14 @@
                   >
                     <i class="fas fa-paper-plane"></i> 发送到下载器
                   </el-button>
+                  <el-button
+                    v-if="selectedNode.parserUrl"
+                    size="small"
+                    @click="copyDirectLink(selectedNode)"
+                    :loading="copyLinkLoading"
+                  >
+                    <i class="fas fa-link"></i> 复制直链
+                  </el-button>
                 </div>
               </div>
               <div v-else class="file-detail-empty">
@@ -323,6 +339,14 @@
             :loading="singleSendLoading"
           >
             发送到下载器
+          </el-button>
+          <el-button
+            v-if="selectedFile && selectedFile.parserUrl"
+            @click="copyDirectLink(selectedFile)"
+            style="margin-left: 8px;"
+            :loading="copyLinkLoading"
+          >
+            复制直链
           </el-button>
         </span>
       </el-dialog>
@@ -391,6 +415,7 @@ export default {
       downloadInfo: null,
       downloadLoading: false,
       singleSendLoading: false,
+      copyLinkLoading: false,
       treeProps: {
         label: 'fileName',
         children: 'children',
@@ -462,10 +487,6 @@ export default {
       }
       return `${baseUrl}?${params.toString()}`
     },
-    // 文件树与窗格同源：直接返回当前目录数据
-    buildTree(list) {
-      return list || []
-    },
     // 懒加载子节点
     loadNode(node, resolve) {
       if (node.level === 0) {
@@ -479,9 +500,14 @@ export default {
             }))
             resolve(children)
           } else {
+            this.$message.error(res.data.msg || '获取子节点失败')
             resolve([])
           }
-        }).catch(() => resolve([]))
+        }).catch(err => {
+          const msg = err.response?.data?.msg || err.message
+          if (msg) this.$message.error(msg)
+          resolve([])
+        })
       } else {
         resolve([])
       }
@@ -491,7 +517,6 @@ export default {
     },
     // 处理文件点击
     handleFileClick(file) {
-      console.log('点击文件', file, this.viewMode)
       if (file.fileType === 'folder') {
         this.enterFolder(file)
       } else if (this.viewMode === 'pane') {
@@ -520,7 +545,8 @@ export default {
         }
       } catch (error) {
         console.error('进入文件夹失败:', error)
-        this.$message.error('进入文件夹失败')
+        const msg = error.response?.data?.msg || error.message || '进入文件夹失败'
+        this.$message.error(msg)
       } finally {
         this.loading = false
       }
@@ -551,7 +577,8 @@ export default {
         }
       } catch (error) {
         console.error('加载目录失败:', error)
-        this.$message.error('加载目录失败')
+        const msg = error.response?.data?.msg || error.message || '加载目录失败'
+        this.$message.error(msg)
       } finally {
         this.loading = false
       }
@@ -649,7 +676,8 @@ export default {
         }
       } catch (error) {
         console.error('获取下载信息失败:', error)
-        this.$message.error('获取下载信息失败，尝试直接下载')
+        const msg = error.response?.data?.msg || '获取下载信息失败，尝试直接下载'
+        this.$message.error(msg)
         this.downloadFile(file)
       } finally {
         this.downloadLoading = false
@@ -735,7 +763,8 @@ export default {
         }
       } catch (error) {
         console.error('发送到下载器失败:', error)
-        this.$message.error('发送到下载器失败: ' + error.message)
+        const msg = error.response?.data?.msg || error.message || '发送到下载器失败'
+        this.$message.error(msg)
       } finally {
         this.singleSendLoading = false
       }
@@ -743,6 +772,32 @@ export default {
     closeFileDialog() {
       this.fileDialogVisible = false
       this.selectedFile = null
+    },
+    async copyDirectLink(file) {
+      if (!file?.parserUrl) {
+        this.$message.warning('该文件暂无直链')
+        return
+      }
+      const rawUrl = file.parserUrl.startsWith('http') ? file.parserUrl : (window.location.origin + file.parserUrl)
+      const url = this.appendToken(rawUrl)
+      this.copyLinkLoading = true
+      try {
+        await navigator.clipboard.writeText(url)
+        this.$message.success('直链已复制到剪贴板')
+      } catch {
+        // fallback
+        const ta = document.createElement('textarea')
+        ta.value = url
+        ta.style.position = 'fixed'
+        ta.style.opacity = '0'
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+        this.$message.success('直链已复制到剪贴板')
+      } finally {
+        this.copyLinkLoading = false
+      }
     },
     closePreview() {
       this.isPreviewing = false
@@ -802,7 +857,7 @@ export default {
       this.toggleFileSelect(file)
     },
     selectAll() {
-      this.selectedFiles = this.currentFileList.filter(f => f.fileType !== 'folder')
+      this.selectedFiles = this.currentFileList.filter(f => f.fileType !== 'folder' && f.parserUrl)
     },
     deselectAll() {
       this.selectedFiles = []

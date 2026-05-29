@@ -80,8 +80,10 @@ public class PasswordUtil {
             byte[] calculatedHash = md.digest(plainPassword.getBytes(StandardCharsets.UTF_8));
             String calculatedHashBase64 = Base64.getEncoder().encodeToString(calculatedHash);
 
-            // 比较计算出的哈希值和存储的哈希值
-            return hashBase64.equals(calculatedHashBase64);
+            // 比较计算出的哈希值和存储的哈希值（使用常量时间比较防止时序攻击）
+            return MessageDigest.isEqual(
+                    hashBase64.getBytes(StandardCharsets.UTF_8),
+                    calculatedHashBase64.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             // 如果发生异常（例如格式不正确），返回false
             return false;

@@ -16,6 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.management.ManagementFactory;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.UUID;
@@ -62,7 +64,12 @@ public final class Deploy {
             path.append("-").append(args[0].replace("app-",""));
         }
 
-        // 读取yml配置
+        // 读取yml配置，优先当前目录，其次 resources/ 子目录
+        String configFile = path + ".yml";
+        if (!Files.exists(Path.of(configFile)) && Files.exists(Path.of("resources", configFile))) {
+            path.insert(0, "resources/");
+            LOGGER.info("从 resources/ 目录加载配置: {}", path + ".yml");
+        }
         ConfigUtil.readYamlConfig(path.toString(), tempVertx)
                 .onSuccess(this::readConf)
                 .onFailure(err -> {

@@ -86,10 +86,10 @@ public class MkgsTool extends PanBase {
             // 查找并输出 hash 字段的值
             if (matcher.find()) {
                 String hashValue = matcher.group(1);  // 获取第一个捕获组
-                System.out.println(hashValue);
+                log.debug("hash: {}", hashValue);
                 client.getAbs(UriTemplate.of(API_URL)).setTemplateParam("hash", hashValue).send().onSuccess(res3 -> {
                     JsonObject jsonObject = asJson(res3);
-                    System.out.println(jsonObject.encodePrettily());
+                    log.debug("API response: {}", jsonObject.encodePrettily());
                     if (jsonObject.containsKey("url")) {
                         promise.complete(jsonObject.getString("url"));
                     } else {

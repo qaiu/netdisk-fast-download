@@ -139,21 +139,20 @@ public class JsScriptLoader {
         
         try {
             String jarPath = jarUrl.getPath().substring(5, jarUrl.getPath().indexOf("!"));
-            JarFile jarFile = new JarFile(jarPath);
-            
-            Enumeration<JarEntry> entries = jarFile.entries();
-            while (entries.hasMoreElements()) {
-                JarEntry entry = entries.nextElement();
-                String entryName = entry.getName();
-                
-                if (entryName.startsWith(RESOURCE_PATH + "/") && 
-                    entryName.endsWith(".js") && 
-                    !isExcludedFile(entryName.substring(entryName.lastIndexOf('/') + 1))) {
-                    resourceFiles.add(entryName);
+
+            try (JarFile jarFile = new JarFile(jarPath)) {
+                Enumeration<JarEntry> entries = jarFile.entries();
+                while (entries.hasMoreElements()) {
+                    JarEntry entry = entries.nextElement();
+                    String entryName = entry.getName();
+
+                    if (entryName.startsWith(RESOURCE_PATH + "/") &&
+                        entryName.endsWith(".js") &&
+                        !isExcludedFile(entryName.substring(entryName.lastIndexOf('/') + 1))) {
+                        resourceFiles.add(entryName);
+                    }
                 }
             }
-            
-            jarFile.close();
         } catch (Exception e) {
             log.debug("解析JAR包资源文件失败", e);
         }

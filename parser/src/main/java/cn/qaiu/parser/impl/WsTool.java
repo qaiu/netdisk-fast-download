@@ -67,11 +67,7 @@ public class WsTool extends PanBase {
                                         String filepid  = asJson(res2).getJsonObject("data").getString("ufileid");         // 文件夹pid
                                         String filebid  = asJson(res2).getJsonObject("data").getString("boxid");           // 文件夹bid
 
-                                        // 调试输出文件夹信息
-                                        System.out.println("文件夹期限: " + filetime);
-                                        System.out.println("文件夹大小: " + filesize);
-                                        System.out.println("文件夹pid: " + filepid);
-                                        System.out.println("文件夹bid: " + filebid);
+                                        log.debug("文件夹期限: {}, 大小: {}, pid: {}, bid: {}", filetime, filesize, filepid, filebid);
 
                                         // 获取文件信息
                                         httpClient.postAbs(SHARE_URL_API + "ufile/list").putHeaders(headers)
@@ -97,9 +93,7 @@ public class WsTool extends PanBase {
                                                         String filefid  = asJson(res3).getJsonObject("data")
                                                             .getJsonArray("fileList").getJsonObject(0).getString("fid");            // 文件fid
 
-                                                        // 调试输出文件信息
-                                                        System.out.println("文件名称: " + filename);
-                                                        System.out.println("文件fid: " + filefid);
+                                                        log.debug("文件名称: {}, fid: {}", filename, filefid);
 
                                                         // 检查文件是否失效
                                                         httpClient.postAbs(SHARE_URL_API + "dl/sign").putHeaders(headers)
@@ -114,8 +108,7 @@ public class WsTool extends PanBase {
                                                                         // 获取直链
                                                                         String fileurl = asJson(res4).getJsonObject("data").getString("url");
 
-                                                                        // 调试输出文件直链
-                                                                        System.out.println("文件直链: " + fileurl);
+                                                                        log.debug("文件直链: {}", fileurl);
 
                                                                         if (!fileurl.equals("")) {
                                                                             promise.complete(URLDecoder.decode(fileurl, StandardCharsets.UTF_8));

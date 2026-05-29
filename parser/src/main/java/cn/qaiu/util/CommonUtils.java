@@ -33,6 +33,9 @@ public class CommonUtils {
     public static Map<String, String> getURLParams(String url) throws MalformedURLException {
         URL fullUrl = new URL(url);
         String query = fullUrl.getQuery();
+        if (query == null || query.isEmpty()) {
+            return new HashMap<>();
+        }
         String[] params = query.split("&");
         Map<String, String> map = new HashMap<>();
         for (String param : params) {

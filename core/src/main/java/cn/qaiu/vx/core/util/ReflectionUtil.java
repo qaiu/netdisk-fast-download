@@ -25,6 +25,9 @@ import java.net.URL;
 import java.text.ParseException;
 import java.util.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import static cn.qaiu.vx.core.util.ConfigConstant.BASE_LOCATIONS;
 
 /**
@@ -35,6 +38,8 @@ import static cn.qaiu.vx.core.util.ConfigConstant.BASE_LOCATIONS;
  * @author <a href="https://qaiu.top">QAIU</a>
  */
 public final class ReflectionUtil {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ReflectionUtil.class);
 
     // 缓存Reflections实例，避免重复扫描（每次扫描约35K+值，耗时1-3秒，占用大量内存）
     private static final Map<String, Reflections> REFLECTIONS_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
@@ -128,7 +133,7 @@ public final class ReflectionUtil {
                         parameterTypes[j - k]));
             }
         } catch (NotFoundException e) {
-            e.printStackTrace();
+            LOGGER.error("获取方法参数失败", e);
         }
         return paramMap;
     }
@@ -183,7 +188,7 @@ public final class ReflectionUtil {
                 try {
                     return DateUtils.parseDate(value, fmt);
                 } catch (ParseException e) {
-                    e.printStackTrace();
+                    LOGGER.error("日期解析失败: {}", value, e);
                     throw new RuntimeException("无法将格式化日期");
                 }
             default:
@@ -215,7 +220,7 @@ public final class ReflectionUtil {
             }
             return arr;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("数组类型转换失败: {}", value, e);
         }
         return null;
     }

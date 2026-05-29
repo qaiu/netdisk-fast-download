@@ -2,6 +2,9 @@ package cn.qaiu.util;
 
 import org.apache.commons.lang3.StringUtils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -9,6 +12,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class URLUtil {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(URLUtil.class);
 
     private final Map<String, String> queryParams = new HashMap<>();
 
@@ -31,7 +36,7 @@ public class URLUtil {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("URL解析失败: {}", url, e);
         }
     }
 

@@ -389,6 +389,10 @@ public class FsTool extends PanBase {
 
         try {
             JsonObject paramJson = (JsonObject) shareLinkInfo.getOtherParam().get("paramJson");
+            if (paramJson == null) {
+                parsePromise.fail("缺少 paramJson 参数");
+                return parsePromise.future();
+            }
             String shareUrl = paramJson.getString("shareUrl");
             String objToken = paramJson.getString("objToken");
             String tenant = extractTenant(shareUrl);
@@ -444,7 +448,7 @@ public class FsTool extends PanBase {
         if (m1.find()) {
             try {
                 return URLDecoder.decode(m1.group(1).trim(), StandardCharsets.UTF_8);
-            } catch (Exception ignored) {
+            } catch (IllegalArgumentException ignored) {
             }
         }
 
@@ -453,7 +457,7 @@ public class FsTool extends PanBase {
         if (m2.find()) {
             try {
                 return URLDecoder.decode(m2.group(1).trim(), StandardCharsets.UTF_8);
-            } catch (Exception ignored) {
+            } catch (IllegalArgumentException ignored) {
             }
         }
 

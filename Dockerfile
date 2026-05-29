@@ -10,8 +10,13 @@ COPY ./web-service/target/netdisk-fast-download-bin.zip .
 RUN unzip netdisk-fast-download-bin.zip && \
     mv netdisk-fast-download/* ./ && \
     rm netdisk-fast-download-bin.zip && \
-    chmod +x run.sh
+    chmod +x run.sh && \
+    mkdir -p db logs
 
-EXPOSE 6400 6401
+COPY ./docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
-ENTRYPOINT ["sh", "run.sh"]
+EXPOSE 6401
+
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+ENTRYPOINT ["/docker-entrypoint.sh"]

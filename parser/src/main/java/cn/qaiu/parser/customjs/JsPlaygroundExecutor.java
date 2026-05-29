@@ -355,7 +355,7 @@ public class JsPlaygroundExecutor {
      */
     public List<JsPlaygroundLogger.LogEntry> getLogs() {
         List<JsPlaygroundLogger.LogEntry> logs = playgroundLogger.getLogs();
-        System.out.println("[JsPlaygroundExecutor] 获取日志，数量: " + logs.size());
+        log.debug("获取日志，数量: {}", logs.size());
         return logs;
     }
     

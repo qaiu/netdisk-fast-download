@@ -8,15 +8,19 @@ import io.vertx.core.http.impl.headers.HeadersMultiMap;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ReqIpUtil {
-    public static String BASE_URL = "https://ip.ihuan.me";
-    public static String BASE_URL_TEMPLATE = BASE_URL + "/{path}";
+    private static final Logger log = LoggerFactory.getLogger(ReqIpUtil.class);
+
+    public static final String BASE_URL = "https://ip.ihuan.me";
+    public static final String BASE_URL_TEMPLATE = BASE_URL + "/{path}";
 
     // GET https://ip.ihuan.me/mouse.do -> $("input[name='key']").val("30b4975b5547fed806bd2b9caa18485a");
-    public static String PATH1 = "mouse.do";
+    public static final String PATH1 = "mouse.do";
 
-    public static String PATH2 = "tqdl.html";
+    public static final String PATH2 = "tqdl.html";
 
     // 创建请求头Map
     static MultiMap headers = new HeadersMultiMap();
@@ -58,15 +62,15 @@ public class ReqIpUtil {
 
     void next(AsyncResult<HttpResponse<Buffer>> response) {
         if (response.failed()) {
-            response.cause().printStackTrace();
+            log.error("请求失败", response.cause());
         } else {
             HttpResponse<Buffer> res = response.result();
-            System.out.println("Received response with status code " + res.statusCode());
-            System.out.println("Body: " + res.body());
+            log.debug("Received response with status code {}", res.statusCode());
+            log.debug("Body: {}", res.body());
             webClientSession.getAbs(BASE_URL_TEMPLATE).setTemplateParam("path", PATH1)
                     .putHeaders(headers) // 将请求头Map添加到请求中
                     .send(response2 -> {
-                        System.out.println(response2.result().bodyAsString());
+                        log.debug("response2: {}", response2.result().bodyAsString());
                     });
         }
 

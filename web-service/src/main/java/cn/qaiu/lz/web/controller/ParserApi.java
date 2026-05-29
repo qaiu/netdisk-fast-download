@@ -43,14 +43,38 @@ public class ParserApi {
 
     private final DbService dbService = AsyncServiceUtil.getAsyncServiceInstance(DbService.class);
 
+    /**
+     * 获取链接前缀：优先用配置的 domainName，未配置则从请求头推断
+     * 支持反向代理：优先读 X-Forwarded-Host/X-Forwarded-Proto，再回退到 Host 头
+     */
+    private static String getLinkPrefix(HttpServerRequest request) {
+        String domainName = SharedDataUtil.getJsonConfig("server").getString("domainName");
+        if (StringUtils.isNotBlank(domainName)) {
+            return domainName;
+        }
+        if (request != null) {
+            // 反向代理场景：优先从转发头获取原始域名
+            String forwardedHost = request.getHeader("X-Forwarded-Host");
+            if (StringUtils.isNotBlank(forwardedHost)) {
+                String proto = request.getHeader("X-Forwarded-Proto");
+                if (StringUtils.isBlank(proto)) {
+                    proto = request.scheme();
+                }
+                return proto + "://" + forwardedHost;
+            }
+            return request.scheme() + "://" + request.host();
+        }
+        return "";
+    }
+
 
     @RouteMapping(value = "/statisticsInfo", method = RouteMethod.GET, order = 99)
     public Future<StatisticsInfo> statisticsInfo() {
         return dbService.getStatisticsInfo();
     }
 
-    private final CacheManager cacheManager = new CacheManager();
-    private final ServerApi serverApi = new ServerApi();
+    private static final CacheManager cacheManager = new CacheManager();
+    private static final ServerApi serverApi = new ServerApi();
 
     @RouteMapping(value = "/linkInfo", method = RouteMethod.GET)
     public Future<LinkInfoResp> parse(HttpServerRequest request, String pwd, String auth) {
@@ -61,10 +85,11 @@ public class ParserApi {
         
         // 构建链接信息响应，如果有 auth 参数则附加到链接中
         String authSuffix = (auth != null && !auth.isEmpty()) ? "&auth=" + auth : "";
+        shareLinkInfo.getOtherParam().put("_requestOrigin", getLinkPrefix(request));
         LinkInfoResp build = LinkInfoResp.builder()
-                .downLink(getDownLink(parserCreate, false) + authSuffix)
-                .apiLink(getDownLink(parserCreate, true) + authSuffix)
-                .viewLink(getViewLink(parserCreate) + authSuffix)
+                .downLink(getDownLink(parserCreate, false, request) + authSuffix)
+                .apiLink(getDownLink(parserCreate, true, request) + authSuffix)
+                .viewLink(getViewLink(parserCreate, request) + authSuffix)
                 .shareLinkInfo(shareLinkInfo).build();
         // 解析次数统计
         shareLinkInfo.getOtherParam().put("UA",request.headers().get("user-agent"));
@@ -76,25 +101,23 @@ public class ParserApi {
             }
             promise.complete(build);
         }).onFailure(t->{
-            t.printStackTrace();
+            log.error("获取统计信息失败", t);
             promise.complete(build);
         });
         return promise.future();
     }
 
-    private static String getDownLink(ParserCreate create, boolean isJson) {
-
-        String linkPrefix = SharedDataUtil.getJsonConfig("server").getString("domainName");
+    private static String getDownLink(ParserCreate create, boolean isJson, HttpServerRequest request) {
+        String linkPrefix = getLinkPrefix(request);
         if (StringUtils.isBlank(linkPrefix)) {
-            linkPrefix = "http://127.0.0.1";
+            linkPrefix = "http://127.0.0.1:" + SharedDataUtil.getJsonConfig("server").getInteger("port", 6400);
         }
         // 下载短链前缀 /d
         return linkPrefix + (isJson ? "/json/" : "/d/") + create.genPathSuffix();
     }
 
-    private static String getViewLink(ParserCreate create) {
-
-        String linkPrefix = SharedDataUtil.getJsonStringForServerConfig("domainName");
+    private static String getViewLink(ParserCreate create, HttpServerRequest request) {
+        String linkPrefix = getLinkPrefix(request);
         if (StringUtils.isBlank(linkPrefix)) {
             return "";
         }
@@ -119,8 +142,9 @@ public class ParserApi {
     public Future<List<FileInfo>> getFileList(HttpServerRequest request, String pwd, String dirId, String uuid) {
         String url = URLParamUtil.parserParams(request);
         ParserCreate parserCreate = ParserCreate.fromShareUrl(url).setShareLinkInfoPwd(pwd);
-        String linkPrefix = SharedDataUtil.getJsonConfig("server").getString("domainName");
+        String linkPrefix = getLinkPrefix(request);
         parserCreate.getShareLinkInfo().getOtherParam().put("domainName", linkPrefix);
+        parserCreate.getShareLinkInfo().getOtherParam().put("_requestOrigin", linkPrefix);
         if (StringUtils.isNotBlank(dirId)) {
             parserCreate.getShareLinkInfo().getOtherParam().put("dirId", dirId);
         }
@@ -132,7 +156,7 @@ public class ParserApi {
 
     // 目录解析下载文件
     // @RouteMapping("/getFileDownUrl/:type/:param")
-    public Future<String> getFileDownUrl(String type, String param) {
+    public Future<String> getFileDownUrl(HttpServerRequest request, String type, String param) {
         ParserCreate parserCreate = ParserCreate.fromType(type).shareKey("-") // shareKey not null
                 .setShareLinkInfoPwd("-");
 
@@ -147,17 +171,21 @@ public class ParserApi {
         shareLinkInfo.getOtherParam().put("paramJson", new JsonObject(paramStr));
 
         // domainName
-        String linkPrefix = SharedDataUtil.getJsonConfig("server").getString("domainName");
+        String linkPrefix = getLinkPrefix(request);
         shareLinkInfo.getOtherParam().put("domainName", linkPrefix);
+        shareLinkInfo.getOtherParam().put("_requestOrigin", linkPrefix);
         return parserCreate.createTool().parseById();
     }
 
     @RouteMapping("/redirectUrl/:type/:param")
-    public Future<Void> redirectUrl(HttpServerResponse response, String type, String param) {
+    public Future<Void> redirectUrl(HttpServerRequest request, HttpServerResponse response, String type, String param) {
         Promise<Void> promise = Promise.promise();
 
-        getFileDownUrl(type, param)
-                .onSuccess(res -> ResponseUtil.redirect(response, res))
+        getFileDownUrl(request, type, param)
+                .onSuccess(res -> {
+                    ResponseUtil.redirect(response, res);
+                    promise.complete();
+                })
                 .onFailure(t -> promise.fail(t.fillInStackTrace()));
         return promise.future();
     }
@@ -220,7 +248,7 @@ public class ParserApi {
         }
         
         String previewURL = SharedDataUtil.getJsonStringForServerConfig("previewURL");
-        new ServerApi().parseJson(request, pwd, null).onSuccess(res -> {
+        serverApi.parseJson(request, pwd, null).onSuccess(res -> {
             redirect(response, previewURL, res);
         }).onFailure(e -> {
             ResponseUtil.fireJsonResultResponse(response, JsonResult.error(e.toString()));
@@ -229,14 +257,15 @@ public class ParserApi {
 
 
     @RouteMapping("/viewUrl/:type/:param")
-    public Future<Void> viewUrl(HttpServerResponse response, String type, String param) {
+    public Future<Void> viewUrl(HttpServerRequest request, HttpServerResponse response, String type, String param) {
         Promise<Void> promise = Promise.promise();
 
         String viewPrefix = SharedDataUtil.getJsonConfig("server").getString("previewURL");
-        getFileDownUrl(type, param)
+        getFileDownUrl(request, type, param)
                 .onSuccess(res -> {
                     String url = viewPrefix + URLEncoder.encode(res, StandardCharsets.UTF_8);
                     ResponseUtil.redirect(response, url);
+                    promise.complete();
                 })
                 .onFailure(t -> promise.fail(t.fillInStackTrace()));
         return promise.future();
@@ -269,7 +298,8 @@ public class ParserApi {
             String shareUrl = URLParamUtil.parserParams(request);
             ParserCreate parserCreate = ParserCreate.fromShareUrl(shareUrl).setShareLinkInfoPwd(pwd);
             ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();
-            
+            shareLinkInfo.getOtherParam().put("_requestOrigin", getLinkPrefix(request));
+
             // 处理认证参数
             if (auth != null && !auth.isEmpty()) {
                 AuthParam authParam = AuthParamCodec.decode(auth);
@@ -285,6 +315,8 @@ public class ParserApi {
                         authParam.getExt5());
                     log.debug("客户端链接API: 已解码认证参数 authType={}", authParam.getAuthType());
                 }
+            } else {
+                URLParamUtil.addParam(parserCreate);
             }
             
             // 使用默认方法解析并生成客户端链接
@@ -326,7 +358,9 @@ public class ParserApi {
         try {
             String shareUrl = URLParamUtil.parserParams(request);
             ParserCreate parserCreate = ParserCreate.fromShareUrl(shareUrl).setShareLinkInfoPwd(pwd);
-            
+            parserCreate.getShareLinkInfo().getOtherParam().put("_requestOrigin", getLinkPrefix(request));
+            URLParamUtil.addParam(parserCreate);
+
             // 使用默认方法解析并生成客户端链接
             parserCreate.createTool().parseWithClientLinks()
                 .onSuccess(clientLinks -> {

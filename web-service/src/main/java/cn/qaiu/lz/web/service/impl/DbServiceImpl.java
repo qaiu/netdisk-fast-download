@@ -42,12 +42,11 @@ public class DbServiceImpl implements DbService {
     @Override
     public Future<JsonObject> sayOk(String data) {
         log.info("say ok1 -> wait...");
-        try {
-            Thread.sleep(4000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        return Future.succeededFuture(JsonObject.mapFrom(JsonResult.data("Hi: " + data)));
+        Promise<JsonObject> promise = Promise.promise();
+        cn.qaiu.vx.core.util.VertxHolder.getVertxInstance().setTimer(4000, id -> {
+            promise.complete(JsonObject.mapFrom(JsonResult.data("Hi: " + data)));
+        });
+        return promise.future();
     }
 
     @Override

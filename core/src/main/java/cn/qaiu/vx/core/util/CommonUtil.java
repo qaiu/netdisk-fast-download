@@ -153,7 +153,7 @@ public class CommonUtil {
                     appVersion = properties.getProperty("app.version") + "build" + properties.getProperty("build");
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                LOGGER.error("读取app.properties失败", e);
             }
         }
         return appVersion;

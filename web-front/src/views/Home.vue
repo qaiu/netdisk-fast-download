@@ -19,11 +19,11 @@
     </el-dialog> -->
     <!-- 顶部反馈栏（小号、灰色、无红边框） -->
     <div class="feedback-bar">
-      <a href="https://github.com/qaiu/netdisk-fast-download/issues" target="_blank" rel="noopener" class="feedback-link mini">
+      <a :href="githubRepoUrl + '/issues'" target="_blank" rel="noopener" class="feedback-link mini">
         <i class="fas fa-bug feedback-icon"></i>
         反馈
       </a>
-      <a href="https://github.com/qaiu/netdisk-fast-download" target="_blank" rel="noopener" class="feedback-link mini">
+      <a :href="githubRepoUrl" target="_blank" rel="noopener" class="feedback-link mini">
         <i class="fab fa-github feedback-icon"></i>
         源码
       </a>
@@ -73,9 +73,9 @@
         </div>
         <!-- 项目简介移到卡片内 -->
         <div class="project-intro">
-          <div class="intro-title">NFD网盘直链解析0.3.0</div>
+          <div class="intro-title">NFD网盘直链解析 {{ projectVersion }}</div>
           <div class="intro-desc">
-            <div>支持网盘：蓝奏云、蓝奏云优享、小飞机盘、123云盘、iCloud、移动云空间、联想乐云、QQ闪传等 <el-link style="color:#606cf5" href="https://github.com/qaiu/netdisk-fast-download?tab=readme-ov-file#%E7%BD%91%E7%9B%98%E6%94%AF%E6%8C%81%E6%83%85%E5%86%B5" target="_blank"> &gt;&gt; </el-link></div>
+            <div>支持网盘：蓝奏云、蓝奏云优享、小飞机盘、123云盘、iCloud、移动云空间、联想乐云、QQ闪传等 <el-link style="color:#606cf5" :href="githubRepoUrl + '?tab=readme-ov-file#%E7%BD%91%E7%9B%98%E6%94%AF%E6%8C%81%E6%83%85%E5%86%B5'" target="_blank"> &gt;&gt; </el-link></div>
             <div>文件夹解析支持：蓝奏云、蓝奏云优享、小飞机盘、123云盘</div>
           </div>
         </div>
@@ -90,7 +90,7 @@
             <!-- 开关按钮，控制是否自动读取剪切板 -->
             <el-switch v-model="autoReadClipboard" active-text="自动识别剪切板"></el-switch>
 
-            <el-input placeholder="请粘贴分享链接(http://或https://)" v-model="link" id="url">
+            <el-input placeholder="请粘贴分享链接(http://或https://)" v-model="link" id="url" @paste="onPaste">
               <template #prepend>分享链接</template>
               <template #append v-if="!autoReadClipboard">
                 <el-button @click="getPaste(true)">读取剪切板</el-button>
@@ -595,11 +595,10 @@ import fileTypeUtils from '@/utils/fileTypeUtils'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { playgroundApi } from '@/utils/playgroundApi'
 import { testConnection, autoDetect, addDownload, getConfig, saveConfig } from '@/utils/downloaderService'
-
-export const previewBaseUrl = 'https://nfd-parser.github.io/nfd-preview/preview.html?src=';
+import { PREVIEW_BASE_URL } from '@/utils/constants'
 
 export default {
-  name: 'App',
+  name: 'Home',
   components: { DarkMode, DirectoryTree, DownloadDialog },
   mixins: [fileTypeUtils],
   data() {
@@ -617,7 +616,7 @@ export default {
       parseResult: {},
       downloadUrl: null,
       directLink: '',
-      previewBaseUrl,
+      previewBaseUrl: PREVIEW_BASE_URL,
       
       // 功能结果
       markdownText: '',
@@ -714,6 +713,12 @@ export default {
     }
   },
   computed: {
+    githubRepoUrl() {
+      return process.env.VUE_APP_GITHUB_REPO_URL
+    },
+    projectVersion() {
+      return process.env.VUE_APP_VERSION || '0.0.0'
+    },
     // 检查是否配置了认证信息（针对当前链接的网盘类型）
     hasAuthConfig() {
       const panType = this.getCurrentPanType()
@@ -959,18 +964,16 @@ export default {
       // 优先使用个人配置
       if (this.allAuthConfigs[panType]) {
         config = this.allAuthConfigs[panType]
-        console.log(`[认证] 使用个人配置: ${this.getPanDisplayName(panType)}`)
       } else {
         // 从后端随机获取捐赠账号（后端已加密，直接使用 encryptedAuth）
         try {
           const response = await axios.get(`${this.baseAPI}/v2/randomAuth`, { params: { panType } })
           const encryptedAuth = response.data?.data?.encryptedAuth
           if (encryptedAuth) {
-            console.log(`[认证] 使用捐赠账号: ${this.getPanDisplayName(panType)}`)
             return encryptedAuth
           }
         } catch (e) {
-          console.log(`[认证] 无可用捐赠账号: ${this.getPanDisplayName(panType)}`)
+          // no available donated account
         }
         return ''
       }
@@ -1091,17 +1094,45 @@ export default {
       }
     },
 
-    // 识别并转换短链输入（如 lz:shareKey@pwd）
+    // 识别并转换短链输入（如 lz:shareKey@pwd），或从文本中提取链接
     normalizeShortcutInput() {
-      const shortInfo = this.expandShortFormat(this.link)
-      if (!shortInfo) return
+      if (!this.link) return
+      const trimmed = this.link.trim()
+      if (!trimmed) return
 
-      this.link = shortInfo.link
-      if (!this.password && shortInfo.pwd) {
-        this.password = shortInfo.pwd
+      // 已经是直接链接，跳过
+      if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return
+
+      // 尝试短格式
+      const shortInfo = this.expandShortFormat(trimmed)
+      if (shortInfo) {
+        this.link = shortInfo.link
+        if (!this.password && shortInfo.pwd) {
+          this.password = shortInfo.pwd
+        }
+        this.$message.success(`已识别短格式并自动转换，网盘类型: ${shortInfo.name}`)
+        this.updateDirectLink()
+        return
       }
-      this.$message.success(`已识别短格式并自动转换，网盘类型: ${shortInfo.name}`)
-      this.updateDirectLink()
+
+      // 从文本中自动提取链接
+      const linkInfo = parserUrl.parseLink(trimmed)
+      if (linkInfo.link) {
+        this.link = linkInfo.link
+        const pwd = parserUrl.parsePwd(trimmed)
+        if (!this.password && pwd) {
+          this.password = pwd
+        }
+        this.$message.success(`已从文本中识别到 ${linkInfo.name} 分享链接`)
+        this.updateDirectLink()
+      }
+    },
+
+    // 粘贴事件：从粘贴的文本中自动提取链接
+    onPaste(e) {
+      this.$nextTick(() => {
+        this.normalizeShortcutInput()
+      })
     },
 
     // 清除结果
@@ -1126,17 +1157,24 @@ export default {
           params.auth = authParam
         }
         const response = await axios.get(`${this.baseAPI}${endpoint}`, { params })
-        
+
         if (response.data.code === 200) {
           // this.$message.success(response.data.msg || '操作成功')
           return response.data
         } else {
-          // 在页面右下角显示一个“查看详情”按钮 可以查看原json
+          // 在页面右下角显示一个”查看详情”按钮 可以查看原json
           this.errorDetail = response?.data
           this.errorButtonVisible = true
           throw new Error(response.data.msg || '操作失败')
         }
       } catch (error) {
+        // HTTP 非2xx时，从响应体中提取后端返回的错误信息
+        if (error.response?.data?.msg) {
+          this.errorDetail = error.response.data
+          this.errorButtonVisible = true
+          this.$message.error(error.response.data.msg)
+          throw new Error(error.response.data.msg)
+        }
         this.$message.error(error.message || '网络错误')
         throw error
       } finally {
@@ -1309,7 +1347,7 @@ export default {
     // 文件点击处理
     handleFileClick(file) {
       if (file.parserUrl) {
-        window.open(file.parserUrl, '_blank')
+        window.open(file.parserUrl, '_blank', 'noopener,noreferrer')
       } else {
         this.$message.warning('该文件暂无下载链接')
       }
@@ -1319,7 +1357,6 @@ export default {
     async getPaste(isManual = false) {
       try {
         const text = await navigator.clipboard.readText()
-        console.log('获取到的文本内容是：', text)
 
         const shortInfo = this.expandShortFormat(text)
         if (shortInfo) {
@@ -1364,7 +1401,9 @@ export default {
         }
       } catch (error) {
         console.error('读取剪切板失败:', error)
-        this.$message.error('读取剪切板失败，请检查浏览器权限')
+        if (isManual) {
+          this.$message.warning('读取剪切板失败，请手动粘贴链接到输入框')
+        }
       }
     },
 
@@ -1439,7 +1478,7 @@ export default {
 错误信息：${JSON.stringify(this.errorDetail, null, 2)}`;
       navigator.clipboard.writeText(text).then(() => {
         this.$message.success('已复制分享信息和错误详情');
-        window.open('https://github.com/qaiu/netdisk-fast-download/issues/new', '_blank');
+        window.open(`${this.githubRepoUrl}/issues/new`, '_blank', 'noopener,noreferrer');
       }).catch(() => {
         this.$message.error('复制失败');
       });
@@ -1786,19 +1825,26 @@ export default {
     }
 
     // 监听窗口焦点事件
-    window.addEventListener('focus', () => {
+    this._onFocusHandler = () => {
       if (this.autoReadClipboard) {
         this.hasClipboardSuccessTip = false // 聚焦时重置，只提示一次
         this.getPaste()
       }
-    })
+    }
+    window.addEventListener('focus', this._onFocusHandler)
 
     // 首次打开页面弹出风险提示
     if (!window.localStorage.getItem('nfd_risk_ack')) {
       this.showRiskDialog = true
     }
   },
-  
+
+  beforeUnmount() {
+    if (this._onFocusHandler) {
+      window.removeEventListener('focus', this._onFocusHandler)
+    }
+  },
+
   watch: {
     downloadUrl(val) {
       if (!val) {

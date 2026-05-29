@@ -14,7 +14,6 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HexFormat;
-import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -299,7 +298,7 @@ public class AESUtils {
     //length用户要求产生字符串的长度
     public static String getRandomString(int length){
         String str="abcdefghijklmnopqrstuvwxyz0123456789";
-        Random random=new Random();
+        SecureRandom random=new SecureRandom();
         StringBuilder sb=new StringBuilder();
         for(int i=0;i<length;i++){
             int number=random.nextInt(36);

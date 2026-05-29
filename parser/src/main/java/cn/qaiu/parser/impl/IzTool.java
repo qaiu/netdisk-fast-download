@@ -89,8 +89,8 @@ public class IzTool extends PanBase {
 
     String uuid = UUID.randomUUID().toString().toLowerCase(); // 也可以使用 UUID.randomUUID().toString()
 
-    public static String token = null;
-    public static boolean authFlag = true;
+    public static volatile String token = null;
+    public static volatile boolean authFlag = true;
 
     public Future<String> parse() {
 
@@ -101,8 +101,8 @@ public class IzTool extends PanBase {
         // 检查并输出认证状态
         if (shareLinkInfo.getOtherParam().containsKey("auths")) {
             boolean isTempAuth = shareLinkInfo.getOtherParam().containsKey("__TEMP_AUTH_ADDED");
-            log.info("文件解析检测到认证信息: isTempAuth={}, authFlag={}, token={}", 
-                    isTempAuth, authFlag, token != null ? "已登录(" + token.substring(0, Math.min(10, token.length())) + "...)" : "未登录");
+            log.info("文件解析检测到认证信息: isTempAuth={}, authFlag={}, token={}",
+                    isTempAuth, authFlag, token != null ? "已登录(" + token.substring(0, Math.min(8, token.length())) + "...)" : "未登录");
             
             // 如果需要认证但还没有token，先执行登录
             if ((isTempAuth || authFlag) && token == null) {
@@ -118,7 +118,7 @@ public class IzTool extends PanBase {
                             // 登录失败，继续使用免登录模式
                         });
             } else if (token != null) {
-                log.info("文件解析使用已有token: {}...", token.substring(0, Math.min(10, token.length())));
+                log.info("文件解析使用已有token: {}...", token.substring(0, Math.min(8, token.length())));
             }
         } else {
             log.debug("文件解析无认证信息，使用免登录模式");
@@ -247,7 +247,7 @@ public class IzTool extends PanBase {
                         log.warn("登录失败: {}", failRes.getMessage());
                         fail(failRes.getMessage());
                     }).onSuccess(r-> {
-                        httpRequest.setTemplateParam("appToken", header.get("appToken"))
+                        httpRequest.setTemplateParam("appToken", token)
                                 .putHeaders(header);
                         httpRequest.send().onSuccess(this::down).onFailure(handleFail("请求2"));
                     });
@@ -263,12 +263,12 @@ public class IzTool extends PanBase {
                                         log.warn("重新登录失败: {}", failRes.getMessage());
                                         fail(failRes.getMessage());
                                     }).onSuccess(r-> {
-                                        httpRequest.setTemplateParam("appToken", header.get("appToken"))
+                                        httpRequest.setTemplateParam("appToken", token)
                                                 .putHeaders(header);
                                         httpRequest.send().onSuccess(this::down).onFailure(handleFail("请求2"));
                                     });
                                 } else {
-                                    httpRequest.setTemplateParam("appToken", header.get("appToken"))
+                                    httpRequest.setTemplateParam("appToken", token)
                                             .putHeaders(header);
                                     httpRequest.send().onSuccess(this::down).onFailure(handleFail("请求2"));
                                 }
@@ -311,8 +311,7 @@ public class IzTool extends PanBase {
                     JsonObject json = asJson(res2);
                     if (json.getInteger("code") == 200) {
                         token = json.getJsonObject("data").getString("appToken");
-                        header.set("appToken", token);
-                        log.info("登录成功 token: {}", token);
+                        log.info("登录成功 token: {}...", token != null ? token.substring(0, Math.min(8, token.length())) : "null");
                         promise1.complete();
                     } else {
                         // 检查是否为临时认证
@@ -463,7 +462,10 @@ public class IzTool extends PanBase {
         // 如果参数里的目录ID不为空，则直接解析目录
         String dirId = (String) shareLinkInfo.getOtherParam().get("dirId");
         if (dirId != null && !dirId.isEmpty()) {
-            uuid = shareLinkInfo.getOtherParam().get("uuid").toString();
+            Object uuidObj = shareLinkInfo.getOtherParam().get("uuid");
+            if (uuidObj != null) {
+                uuid = uuidObj.toString();
+            }
             parserDir(dirId, shareId, promise);
             return promise.future();
         }

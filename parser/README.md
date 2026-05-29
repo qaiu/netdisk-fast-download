@@ -4,26 +4,26 @@ NFD 解析器模块：聚合各类网盘/分享页解析，统一输出文件列
 
 - 语言：Java 17
 - 构建：Maven
-- 模块版本：10.1.17
+- 模块版本：10.2.5
 
 ## 依赖（Maven Central）
 ```xml
 <dependency>
   <groupId>cn.qaiu</groupId>
   <artifactId>parser</artifactId>
-  <version>10.1.17</version>
+  <version>10.2.5</version>
 </dependency>
 ```
 - Gradle Groovy DSL：
 ```groovy
 dependencies {
-  implementation 'cn.qaiu:parser:10.1.17'
+  implementation 'cn.qaiu:parser:10.2.5'
 }
 ```
 - Gradle Kotlin DSL：
 ```kotlin
 dependencies {
-  implementation("cn.qaiu:parser:10.1.17")
+  implementation("cn.qaiu:parser:10.2.5")
 }
 ```
 

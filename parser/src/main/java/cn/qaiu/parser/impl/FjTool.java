@@ -109,9 +109,9 @@ public class FjTool extends PanBase {
 
     // String uuid = UUID.randomUUID().toString().toLowerCase(); // 也可以使用 UUID.randomUUID().toString()
 
-    static String token = null;
-    static String userId = null;
-    public static boolean authFlag = true;
+    static volatile String token = null;
+    static volatile String userId = null;
+    public static volatile boolean authFlag = true;
 
     public FjTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
@@ -289,12 +289,14 @@ public class FjTool extends PanBase {
                     JsonObject json = asJson(res2);
                     if (json.getInteger("code") == 200) {
                         token = json.getJsonObject("data").getString("appToken");
-                        header0.set("appToken", token);
-                        log.info("登录成功 token: {}", token);
+                        MultiMap h0 = MultiMap.caseInsensitiveMultiMap();
+                        h0.addAll(header0);
+                        h0.set("appToken", token);
+                        log.info("登录成功 token: {}...", token != null ? token.substring(0, Math.min(8, token.length())) : "null");
                         client.postAbs(UriTemplate.of(TOKEN_VERIFY_URL))
                                 .setTemplateParam("uuid", uuid)
                                 .setTemplateParam("ts", tsEncode2)
-                                .putHeaders(header0).send().onSuccess(res -> {
+                                .putHeaders(h0).send().onSuccess(res -> {
                                     if (asJson(res).getInteger("code") == 200) {
                                         if (FjTool.userId == null) {
                                             FjTool.userId = asJson(res).getJsonObject("map").getString("userId");
@@ -454,7 +456,10 @@ public class FjTool extends PanBase {
         // 如果参数里的目录ID不为空，则直接解析目录
         String dirId = (String) shareLinkInfo.getOtherParam().get("dirId");
         if (dirId != null && !dirId.isEmpty()) {
-            uuid = shareLinkInfo.getOtherParam().get("uuid").toString();
+            Object uuidObj = shareLinkInfo.getOtherParam().get("uuid");
+            if (uuidObj != null) {
+                uuid = uuidObj.toString();
+            }
             parserDir(dirId, shareId, promise0);
             return promise0.future();
         }
@@ -495,7 +500,7 @@ public class FjTool extends PanBase {
                     JsonArray list;
                     try {
                         JsonObject jsonObject = asJson(res);
-                        System.out.println(jsonObject.encodePrettily());
+                        log.debug("目录列表: {}", jsonObject.encodePrettily());
                         list = jsonObject.getJsonArray("list");
                     } catch (Exception e) {
                         log.error("解析目录失败: {}", res.bodyAsString());
@@ -576,6 +581,10 @@ public class FjTool extends PanBase {
 
         // 第二次请求
         JsonObject paramJson = (JsonObject)shareLinkInfo.getOtherParam().get("paramJson");
+        if (paramJson == null) {
+            promise.fail("缺少 paramJson 参数");
+            return promise.future();
+        }
         clientNoRedirects.getAbs(UriTemplate.of(SECOND_REQUEST_URL_VIP))
                 .setTemplateParam("fidEncode", paramJson.getString("fidEncode"))
                 .setTemplateParam("uuid", paramJson.getString("uuid"))

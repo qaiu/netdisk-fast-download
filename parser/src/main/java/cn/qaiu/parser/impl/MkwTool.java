@@ -29,19 +29,19 @@ public class MkwTool extends PanBase {
         clientSession.getAbs(shareUrl).send().onSuccess(result -> {
             String cookie = result.headers().get("set-cookie");
 
-            if (!cookie.isEmpty()) {
+            if (cookie != null && !cookie.isEmpty()) {
 
                 String regex = "([A-Za-z0-9_]+)=([A-Za-z0-9]+)";
                 Pattern pattern = Pattern.compile(regex);
                 Matcher matcher = pattern.matcher(cookie);
                 if (matcher.find()) {
-                    System.out.println(matcher.group(1));
-                    System.out.println(matcher.group(2));
+                    log.debug("cookie key: {}", matcher.group(1));
+                    log.debug("cookie value: {}", matcher.group(2));
 
                     var key = matcher.group(1);
                     var token = matcher.group(2);
                     String sign = JsExecUtils.getKwSign(token, key);
-                    System.out.println(sign);
+                    log.debug("sign: {}", sign);
                     clientSession.getAbs(UriTemplate.of(API_URL)).setTemplateParam("mid", shareLinkInfo.getShareKey())
                             .putHeader("Secret", sign).send().onSuccess(res -> {
                                 JsonObject json = asJson(res);
@@ -54,7 +54,7 @@ public class MkwTool extends PanBase {
                                     }
 
                                 } catch (Exception e) {
-                                    e.printStackTrace();
+                                    log.error("解析失败", e);
                                     fail("解析失败");
                                 }
                             });
