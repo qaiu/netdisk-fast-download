@@ -7,6 +7,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -93,9 +94,10 @@ public class JwtUtil {
             String encodedPayload = parts[1];
             String signature = parts[2];
 
-            // 验证签名
+            // 验证签名（使用常量时间比较防止时序攻击）
             String expectedSignature = hmacSha256(encodedHeader + "." + encodedPayload, SECRET_KEY);
-            if (!expectedSignature.equals(signature)) {
+            if (!MessageDigest.isEqual(expectedSignature.getBytes(StandardCharsets.UTF_8),
+                    signature.getBytes(StandardCharsets.UTF_8))) {
                 return false;
             }
 

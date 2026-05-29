@@ -293,24 +293,6 @@ export default {
       return clientConfig[type]?.downloadUrl || '#'
     }
 
-    // 判断是否应该显示下载客户端按钮
-    const shouldShowDownloadButton = (type) => {
-      const os = getOSInfo()
-      switch (type) {
-        case 'CURL':
-          // cURL 在 Windows 上可能需要安装
-          return os === 'windows'
-        case 'ARIA2':
-          // Aria2 需要手动安装
-          return true
-        case 'THUNDER':
-          // 迅雷主要在 Windows 上使用
-          return os === 'windows'
-        default:
-          return false
-      }
-    }
-
     // 获取操作系统信息
     const getOSInfo = () => {
       const userAgent = navigator.userAgent.toLowerCase()
@@ -369,7 +351,7 @@ export default {
               copyToClipboard(link)
               return
             }
-            window.open(link, '_blank')
+            window.open(link, '_blank', 'noopener,noreferrer')
             ElMessage.success('正在唤起迅雷下载')
             break
             
@@ -381,13 +363,6 @@ export default {
         console.error('下载失败:', err)
         ElMessage.error('下载失败: ' + err.message)
       }
-    }
-
-    // 下载客户端
-    const downloadClient = (type) => {
-      const url = getClientDownloadUrl(type)
-      window.open(url, '_blank')
-      ElMessage.success(`正在跳转到 ${getClientDisplayName(type)} 下载页面`)
     }
 
     // 格式化文件大小
@@ -440,9 +415,7 @@ export default {
       getTextareaRows,
       goBack,
       getClientLogo,
-      downloadClient,
       handleImageError,
-      shouldShowDownloadButton,
       getClientSupportsCookie,
       goToAuthConfig
     }

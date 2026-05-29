@@ -127,8 +127,9 @@ public class RouterHandlerFactory implements BaseHttpApi {
         // 错误请求处理
         mainRouter.errorHandler(405, ctx -> doFireJsonResultResponse(ctx, JsonResult
                 .error("Method Not Allowed", 405)));
-        mainRouter.errorHandler(404, ctx -> ctx.response().setStatusCode(404).setChunked(true)
-                .end("Internal server error: 404 not found"));
+        mainRouter.errorHandler(404, ctx -> {
+            ctx.response().setStatusCode(404).end("404 not found");
+        });
 
         return mainRouter;
     }
@@ -179,8 +180,9 @@ public class RouterHandlerFactory implements BaseHttpApi {
                     if (ctx.statusCode() == 503 || ctx.failure() == null) {
                         doFireJsonResultResponse(ctx, JsonResult.error("未知异常, 请联系管理员"), 503);
                     } else {
-                        ctx.failure().printStackTrace();
-                        doFireJsonResultResponse(ctx, JsonResult.error(ctx.failure().getMessage()), 500);
+                        LOGGER.error("路由处理失败", ctx.failure());
+                        String msg = ctx.failure() != null ? ctx.failure().getMessage() : "未知异常";
+                        doFireJsonResultResponse(ctx, JsonResult.error(msg), 500);
                     }
                 });
             } else if (method.isAnnotationPresent(SockRouteMapper.class)) {
@@ -198,7 +200,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
                     try {
                         ReflectionUtil.invokeWithArguments(method, instance, sock);
                     } catch (Throwable e) {
-                        e.printStackTrace();
+                        LOGGER.error("WebSocket处理异常", e);
                     }
                 });
                 if (url.endsWith("*")) {
@@ -322,7 +324,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
                                 parameterValueList.put(k, entity);
                             }
                         } catch (ClassNotFoundException e) {
-                            e.printStackTrace();
+                            LOGGER.error("实体类绑定异常: {}", typeName, e);
                         }
                     }
                 });
@@ -365,7 +367,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
                     Object entity = ParamUtil.multiMapToEntity(queryParams, aClass);
                     parameterValueList.put(k, entity);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    LOGGER.error("参数绑定异常: {}", v.getRight().getName(), e);
                 }
             } else if (parameterValueList.get(k) == null
                     && JsonObject.class.getName().equals(v.getRight().getName())) {
@@ -408,22 +410,19 @@ public class RouterHandlerFactory implements BaseHttpApi {
                             doFireJsonResultResponse(ctx, JsonResult.data(null));
                         }
 
-                    }).onFailure(e -> doFireJsonResultResponse(ctx, JsonResult.error(e.getMessage()), 500));
+                    }).onFailure(e -> {
+                        LOGGER.error("请求处理失败", e);
+                        String msg = e.getMessage() != null ? e.getMessage() : "服务器内部错误";
+                        doFireJsonResultResponse(ctx, JsonResult.error(msg), 500);
+                    });
                 } else {
                     doFireJsonResultResponse(ctx, JsonResult.data(data));
                 }
             }
         } catch (Throwable e) {
-            e.printStackTrace();
-            String err = e.getMessage();
-            if (e.getCause() != null) {
-                if (e.getCause() instanceof InvocationTargetException) {
-                    err = ((InvocationTargetException) e.getCause()).getTargetException().getMessage();
-                } else {
-                    err = e.getCause().getMessage();
-                }
-            }
-            doFireJsonResultResponse(ctx, JsonResult.error(err), 500);
+            LOGGER.error("请求处理异常", e);
+            String msg = e.getMessage() != null ? e.getMessage() : "服务器内部错误";
+            doFireJsonResultResponse(ctx, JsonResult.error(msg), 500);
         }
     }
 

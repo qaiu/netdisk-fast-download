@@ -32,7 +32,7 @@
 <script>
 import axios from 'axios'
 import fileTypeUtils from '@/utils/fileTypeUtils'
-import { previewBaseUrl } from '@/views/Home.vue'
+import { PREVIEW_BASE_URL } from '@/utils/constants'
 
 export default {
   name: 'ShowFile',
@@ -44,7 +44,7 @@ export default {
       downloadUrl: '',
       shareUrl: '', // 添加原始分享链接
       fileTypeUtils,
-      previewBaseUrl
+      previewBaseUrl: PREVIEW_BASE_URL
     }
   },
   methods: {
@@ -73,7 +73,7 @@ export default {
         this.parseResult = res.data
         this.downloadUrl = res.data.data?.directLink
       } catch (e) {
-        this.error = '解析失败'
+        this.error = e.response?.data?.msg || e.response?.data?.error || '解析失败'
       } finally {
         this.loading = false
       }

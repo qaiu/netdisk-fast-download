@@ -36,7 +36,6 @@ if (item) {
 const darkMode = ref(item)
 
 watch(darkMode, (newValue) => {
-  console.log(`darkMode: ${newValue}`)
   window.localStorage.setItem("darkMode", newValue);
   
   // 发射主题变化事件

@@ -653,22 +653,22 @@
                 <p>更多详细信息，请参考 GitHub 仓库文档：</p>
                 <ul>
                   <li>
-                    <a href="https://github.com/qaiu/netdisk-fast-download/blob/main/parser/doc/JAVASCRIPT_PARSER_GUIDE.md" target="_blank" rel="noopener noreferrer">
+                    <a :href="githubRepoUrl + '/blob/main/parser/doc/JAVASCRIPT_PARSER_GUIDE.md'" target="_blank" rel="noopener noreferrer">
                       JavaScript 解析器开发指南
                     </a>
                   </li>
                   <li>
-                    <a href="https://github.com/qaiu/netdisk-fast-download/blob/main/parser/doc/CUSTOM_PARSER_GUIDE.md" target="_blank" rel="noopener noreferrer">
+                    <a :href="githubRepoUrl + '/blob/main/parser/doc/CUSTOM_PARSER_GUIDE.md'" target="_blank" rel="noopener noreferrer">
                       自定义解析器扩展指南
                     </a>
                   </li>
                   <li>
-                    <a href="https://github.com/qaiu/netdisk-fast-download/blob/main/parser/doc/CUSTOM_PARSER_QUICKSTART.md" target="_blank" rel="noopener noreferrer">
+                    <a :href="githubRepoUrl + '/blob/main/parser/doc/CUSTOM_PARSER_QUICKSTART.md'" target="_blank" rel="noopener noreferrer">
                       快速开始教程
                     </a>
                   </li>
                   <li>
-                    <a href="https://github.com/qaiu/netdisk-fast-download/blob/main/parser/README.md" target="_blank" rel="noopener noreferrer">
+                    <a :href="githubRepoUrl + '/blob/main/parser/README.md'" target="_blank" rel="noopener noreferrer">
                       解析器模块文档
                     </a>
                   </li>
@@ -858,6 +858,7 @@ export default {
   },
   setup() {
     const router = useRouter();
+    const githubRepoUrl = process.env.VUE_APP_GITHUB_REPO_URL;
     
     // 语言常量
     const LANGUAGE = {
@@ -1178,7 +1179,7 @@ function parseById(shareLinkInfo, http, logger) {
     
     // 新窗口打开首页
     const goHomeInNewWindow = () => {
-      window.open('/', '_blank');
+      window.open('/', '_blank', 'noopener,noreferrer');
     };
     
     // 检查是否有未保存的文件
@@ -1758,7 +1759,6 @@ function parseFileList(shareLinkInfo, http, logger) {
           testParams.value.method
         );
         
-        console.log('测试结果:', result);
         testResult.value = result;
         
         // 将日志添加到控制台
@@ -1820,10 +1820,8 @@ function parseFileList(shareLinkInfo, http, logger) {
       loadingList.value = true;
       try {
         const result = await playgroundApi.getParserList();
-        console.log('获取解析器列表响应:', result);
         // 检查响应格式
         if (result.code === 200 || result.success) {
-          console.log('列表数据:', result.data);
           parserList.value = result.data || [];
         } else if (result.data && Array.isArray(result.data)) {
           // 如果data直接是数组
@@ -1857,7 +1855,6 @@ function parseFileList(shareLinkInfo, http, logger) {
       try {
         const codeToPublish = currentCode.value;
         const result = await playgroundApi.saveParser(codeToPublish);
-        console.log('保存解析器响应:', result);
         // 检查响应格式
         if (result.code === 200 || result.success) {
           // 从响应或代码中提取type信息
@@ -2223,6 +2220,8 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       }, 100);
     };
 
+    let themeObserver = null;
+
     onMounted(async () => {
       // 初始化移动端检测
       updateIsMobile();
@@ -2249,10 +2248,10 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       const html = document.documentElement;
       if (html && html.classList) {
         try {
-          const observer = new MutationObserver(() => {
+          themeObserver = new MutationObserver(() => {
             checkDarkMode();
           });
-          observer.observe(html, {
+          themeObserver.observe(html, {
             attributes: true,
             attributeFilter: ['class', 'data-theme']
           });
@@ -2269,9 +2268,11 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       window.removeEventListener('resize', updateIsMobile);
       // 移除页面关闭/刷新前的提示
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      themeObserver?.disconnect();
     });
 
     return {
+      githubRepoUrl,
       LANGUAGE,
       editorRef,
       jsCode,
