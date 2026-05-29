@@ -81,6 +81,9 @@ public class AppMain {
                             loadPlaygroundParsers();
                             
                             String addr = jsonObject.getJsonObject(ConfigConstant.SERVER).getString("domainName");
+                            if (addr == null || addr.isBlank()) {
+                                addr = "http://127.0.0.1:" + jsonObject.getJsonObject(ConfigConstant.SERVER).getInteger("port", 6400);
+                            }
                             System.out.println("启动成功: \n本地服务地址: " + addr);
                         });
                     });

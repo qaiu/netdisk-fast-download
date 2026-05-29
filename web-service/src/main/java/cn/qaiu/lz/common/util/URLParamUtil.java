@@ -119,11 +119,17 @@ public class URLParamUtil {
         }
 
         String linkPrefix = SharedDataUtil.getJsonConfig("server").getString("domainName");
-        parserCreate.getShareLinkInfo().getOtherParam().put("domainName", linkPrefix);
+        if (StringUtils.isBlank(linkPrefix)) {
+            // 未配置 domainName 时，从请求地址推断
+            linkPrefix = parserCreate.getShareLinkInfo().getOtherParam()
+                    .getOrDefault("_requestOrigin", "").toString();
+        }
+        if (StringUtils.isNotBlank(linkPrefix)) {
+            parserCreate.getShareLinkInfo().getOtherParam().put("domainName", linkPrefix);
+        }
     }
 
     /**
-     * 添加临时认证参数（一次性，不保存到数据库或共享内存）
      * 如果提供了临时认证参数，将覆盖后台配置的认证信息
      * 
      * @param parserCreate ParserCreate对象
@@ -155,7 +161,13 @@ public class URLParamUtil {
         }
         
         String linkPrefix = SharedDataUtil.getJsonConfig("server").getString("domainName");
-        parserCreate.getShareLinkInfo().getOtherParam().put("domainName", linkPrefix);
+        if (StringUtils.isBlank(linkPrefix)) {
+            linkPrefix = parserCreate.getShareLinkInfo().getOtherParam()
+                    .getOrDefault("_requestOrigin", "").toString();
+        }
+        if (StringUtils.isNotBlank(linkPrefix)) {
+            parserCreate.getShareLinkInfo().getOtherParam().put("domainName", linkPrefix);
+        }
 
         // 构建临时认证信息
         MultiMap tempAuth = MultiMap.caseInsensitiveMultiMap();

@@ -68,7 +68,8 @@ public class ServerApi {
             key = keys[0];
             pwd = keys[1];
         }
-        return cacheService.getCachedByShareKeyAndPwd(type, key, pwd, JsonObject.of("UA",request.headers().get("user-agent")));
+        String origin = request.scheme() + "://" + request.host();
+        return cacheService.getCachedByShareKeyAndPwd(type, key, pwd, JsonObject.of("UA",request.headers().get("user-agent"), "_requestOrigin", origin));
     }
 
     @RouteMapping(value = "/:type/:key", method = RouteMethod.GET)
@@ -80,7 +81,8 @@ public class ServerApi {
             key = keys[0];
             pwd = keys[1];
         }
-        cacheService.getCachedByShareKeyAndPwd(type, key, pwd, JsonObject.of("UA",request.headers().get("user-agent")))
+        String origin = request.scheme() + "://" + request.host();
+        cacheService.getCachedByShareKeyAndPwd(type, key, pwd, JsonObject.of("UA",request.headers().get("user-agent"), "_requestOrigin", origin))
                 .onSuccess(res -> ResponseUtil.redirect(
                         response.putHeader("nfd-cache-hit", res.getCacheHit().toString())
                                 .putHeader("nfd-cache-expires", res.getExpires()),
@@ -97,7 +99,8 @@ public class ServerApi {
      * @return JsonObject
      */
     private JsonObject buildOtherParam(HttpServerRequest request, String auth) {
-        JsonObject otherParam = JsonObject.of("UA", request.headers().get("user-agent"));
+        String requestOrigin = request.scheme() + "://" + request.host();
+        JsonObject otherParam = JsonObject.of("UA", request.headers().get("user-agent"), "_requestOrigin", requestOrigin);
 
         // 解码认证参数
         if (auth != null && !auth.isEmpty()) {
