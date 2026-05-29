@@ -144,7 +144,7 @@
                             <scripts>
                                 <script>
                                     def url = 'git remote get-url origin'.execute().text.trim()
-                                    def m = url =~ /github\.com[:/]([^/]+)\/([^/.]+?)(?:\.git)?$/
+                                    def m = (url =~ 'github\\.com[:/]([^/]+)/([^/.]+?)(?:\\.git)?$')
                                     if (m.find()) {
                                         project.properties.setProperty('github.owner', m.group(1))
                                         project.properties.setProperty('github.repo', m.group(2))
