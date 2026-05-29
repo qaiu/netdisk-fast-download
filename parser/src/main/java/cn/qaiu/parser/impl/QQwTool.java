@@ -6,6 +6,9 @@ import io.vertx.core.Future;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 public class QQwTool extends QQTool {
 
     public QQwTool(ShareLinkInfo shareLinkInfo) {
@@ -15,16 +18,18 @@ public class QQwTool extends QQTool {
     @Override
     public Future<String> parse() {
         String k = shareLinkInfo.getShareKey();
-        String postBody = "f=json&k=" + k;
+        String postBody = "f=json&k=" + URLEncoder.encode(k, StandardCharsets.UTF_8);
 
         client.request(HttpMethod.POST, 443, "wx.mail.qq.com", "/s")
                 .putHeader("Content-Type", "application/x-www-form-urlencoded")
                 .putHeader("Accept", "application/json, text/plain, */*")
                 .putHeader("Referer", shareLinkInfo.getShareUrl())
+                .putHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                        + "(KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0")
                 .sendBuffer(io.vertx.core.buffer.Buffer.buffer(postBody))
                 .onSuccess(res -> {
                     try {
-                        JsonObject data = res.bodyAsJsonObject();
+                        JsonObject data = asJson(res);
                         JsonObject head = data.getJsonObject("head");
                         if (head == null || head.getInteger("ret", -1) != 0) {
                             String msg = head != null ? head.getString("msg", "未知错误") : "未知错误";
@@ -51,7 +56,7 @@ public class QQwTool extends QQTool {
                         shareLinkInfo.getOtherParam().put("fileInfo", fileInfo);
 
                         String url302 = url.replace("\\x26", "&");
-                        promise.complete(url302);
+                        complete(url302);
                     } catch (Exception e) {
                         fail("解析响应失败: " + e.getMessage());
                     }
