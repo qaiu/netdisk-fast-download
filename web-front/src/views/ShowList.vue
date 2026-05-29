@@ -55,7 +55,7 @@ export default {
         const res = await axios.get('/v2/getFileList', { params: { url: this.url } })
         this.directoryData = res.data.data || []
       } catch (e) {
-        this.error = '目录解析失败'
+        this.error = e.response?.data?.msg || e.response?.data?.error || '目录解析失败'
       } finally {
         this.loading = false
       }

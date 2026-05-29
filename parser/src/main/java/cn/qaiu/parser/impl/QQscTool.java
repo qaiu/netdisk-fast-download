@@ -281,9 +281,11 @@ public class QQscTool extends PanBase {
      * 从 HTML 的 __NUXT_DATA__ 中提取 fileset_id
      */
     String extractFilesetId(String html) {
-        // 匹配 UUID 格式的 fileset_id（出现在 Nuxt 数据的 fileset_id 字段值位置）
+        // Nuxt __NUXT_DATA__ 中 fileset_id 出现在缓存 key 的嵌套转义 JSON 中:
+        //   {\"fileset_id\":\"0500417e-5431-433f-a9f3-d5ccf9412da3\"}
+        // 匹配 \"fileset_id\" 后面最近的 UUID
         Pattern pattern = Pattern.compile(
-                "\"fileset_id\"[:\\s]*\"([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\"");
+                "\\\\\"fileset_id\\\\\"[^a-f0-9]*([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})");
         Matcher matcher = pattern.matcher(html);
         if (matcher.find()) {
             return matcher.group(1);

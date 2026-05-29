@@ -73,7 +73,7 @@ export default {
         this.parseResult = res.data
         this.downloadUrl = res.data.data?.directLink
       } catch (e) {
-        this.error = '解析失败'
+        this.error = e.response?.data?.msg || e.response?.data?.error || '解析失败'
       } finally {
         this.loading = false
       }

@@ -1157,17 +1157,24 @@ export default {
           params.auth = authParam
         }
         const response = await axios.get(`${this.baseAPI}${endpoint}`, { params })
-        
+
         if (response.data.code === 200) {
           // this.$message.success(response.data.msg || '操作成功')
           return response.data
         } else {
-          // 在页面右下角显示一个“查看详情”按钮 可以查看原json
+          // 在页面右下角显示一个”查看详情”按钮 可以查看原json
           this.errorDetail = response?.data
           this.errorButtonVisible = true
           throw new Error(response.data.msg || '操作失败')
         }
       } catch (error) {
+        // HTTP 非2xx时，从响应体中提取后端返回的错误信息
+        if (error.response?.data?.msg) {
+          this.errorDetail = error.response.data
+          this.errorButtonVisible = true
+          this.$message.error(error.response.data.msg)
+          throw new Error(error.response.data.msg)
+        }
         this.$message.error(error.message || '网络错误')
         throw error
       } finally {

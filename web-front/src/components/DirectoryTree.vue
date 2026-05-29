@@ -500,9 +500,14 @@ export default {
             }))
             resolve(children)
           } else {
+            this.$message.error(res.data.msg || '获取子节点失败')
             resolve([])
           }
-        }).catch(() => resolve([]))
+        }).catch(err => {
+          const msg = err.response?.data?.msg || err.message
+          if (msg) this.$message.error(msg)
+          resolve([])
+        })
       } else {
         resolve([])
       }
@@ -540,7 +545,8 @@ export default {
         }
       } catch (error) {
         console.error('进入文件夹失败:', error)
-        this.$message.error('进入文件夹失败')
+        const msg = error.response?.data?.msg || error.message || '进入文件夹失败'
+        this.$message.error(msg)
       } finally {
         this.loading = false
       }
@@ -571,7 +577,8 @@ export default {
         }
       } catch (error) {
         console.error('加载目录失败:', error)
-        this.$message.error('加载目录失败')
+        const msg = error.response?.data?.msg || error.message || '加载目录失败'
+        this.$message.error(msg)
       } finally {
         this.loading = false
       }
@@ -669,7 +676,8 @@ export default {
         }
       } catch (error) {
         console.error('获取下载信息失败:', error)
-        this.$message.error('获取下载信息失败，尝试直接下载')
+        const msg = error.response?.data?.msg || '获取下载信息失败，尝试直接下载'
+        this.$message.error(msg)
         this.downloadFile(file)
       } finally {
         this.downloadLoading = false
@@ -755,7 +763,8 @@ export default {
         }
       } catch (error) {
         console.error('发送到下载器失败:', error)
-        this.$message.error('发送到下载器失败: ' + error.message)
+        const msg = error.response?.data?.msg || error.message || '发送到下载器失败'
+        this.$message.error(msg)
       } finally {
         this.singleSendLoading = false
       }
