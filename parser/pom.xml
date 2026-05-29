@@ -35,9 +35,9 @@
     </developers>
 
     <scm>
-        <connection>scm:git:https://github.com/yukaidi1220/netdisk-fast-download.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com:yukaidi1220/netdisk-fast-download.git</developerConnection>
-        <url>https://github.com/yukaidi1220/netdisk-fast-download</url>
+        <connection>scm:git:https://github.com/${github.owner}/${github.repo}.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com:${github.owner}/${github.repo}.git</developerConnection>
+        <url>https://github.com/${github.owner}/${github.repo}</url>
     </scm>
 
     <distributionManagement>
@@ -123,6 +123,34 @@
 
     <build>
         <plugins>
+
+            <!-- 从 git remote origin 自动识别 GitHub 仓库地址 -->
+            <plugin>
+                <groupId>org.codehaus.gmavenplus</groupId>
+                <artifactId>gmavenplus-plugin</artifactId>
+                <version>4.1.1</version>
+                <executions>
+                    <execution>
+                        <phase>initialize</phase>
+                        <goals><goal>execute</goal></goals>
+                        <configuration>
+                            <scripts>
+                                <script>
+                                    def url = 'git remote get-url origin'.execute().text.trim()
+                                    def m = url =~ /github\.com[:/]([^/]+)\/([^/.]+?)(?:\.git)?$/
+                                    if (m.find()) {
+                                        project.properties.setProperty('github.owner', m.group(1))
+                                        project.properties.setProperty('github.repo', m.group(2))
+                                    } else {
+                                        project.properties.setProperty('github.owner', 'qaiu')
+                                        project.properties.setProperty('github.repo', 'netdisk-fast-download')
+                                    }
+                                </script>
+                            </scripts>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
 
             <!-- 编译 -->
             <plugin>

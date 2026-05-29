@@ -1,9 +1,22 @@
 
 const path = require("path");
+const { execSync } = require("child_process");
+const webpack = require("webpack");
 
 function resolve(dir) {
   return path.join(__dirname, dir)
 }
+
+// 从 git remote origin 自动识别 GitHub 仓库地址
+function getGitHubRepoUrl() {
+  try {
+    const remoteUrl = execSync('git remote get-url origin', { encoding: 'utf-8', cwd: path.resolve(__dirname, '..') }).trim();
+    const match = remoteUrl.match(/github\.com[:/]([^/]+\/[^/.]+?)(?:\.git)?$/);
+    if (match) return `https://github.com/${match[1]}`;
+  } catch (e) {}
+  return 'https://github.com/qaiu/netdisk-fast-download';
+}
+const GITHUB_REPO_URL = getGitHubRepoUrl();
 
 const CompressionPlugin = require('compression-webpack-plugin');
 const FileManagerPlugin = require('filemanager-webpack-plugin');
@@ -55,6 +68,9 @@ module.exports = {
       ]
     },
     plugins: [
+      new webpack.DefinePlugin({
+        'process.env.VUE_APP_GITHUB_REPO_URL': JSON.stringify(GITHUB_REPO_URL)
+      }),
       new MonacoEditorPlugin({
         languages: ['javascript', 'typescript', 'json'],
         features: ['coreCommands', 'find', 'format', 'suggest', 'quickCommand'],
