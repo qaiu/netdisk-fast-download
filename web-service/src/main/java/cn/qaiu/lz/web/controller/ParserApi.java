@@ -85,6 +85,7 @@ public class ParserApi {
         
         // 构建链接信息响应，如果有 auth 参数则附加到链接中
         String authSuffix = (auth != null && !auth.isEmpty()) ? "&auth=" + auth : "";
+        shareLinkInfo.getOtherParam().put("_requestOrigin", getLinkPrefix(request));
         LinkInfoResp build = LinkInfoResp.builder()
                 .downLink(getDownLink(parserCreate, false, request) + authSuffix)
                 .apiLink(getDownLink(parserCreate, true, request) + authSuffix)
