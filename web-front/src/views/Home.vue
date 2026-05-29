@@ -19,11 +19,11 @@
     </el-dialog> -->
     <!-- 顶部反馈栏（小号、灰色、无红边框） -->
     <div class="feedback-bar">
-      <a href="https://github.com/qaiu/netdisk-fast-download/issues" target="_blank" rel="noopener" class="feedback-link mini">
+      <a href="https://github.com/yukaidi1220/netdisk-fast-download/issues" target="_blank" rel="noopener" class="feedback-link mini">
         <i class="fas fa-bug feedback-icon"></i>
         反馈
       </a>
-      <a href="https://github.com/qaiu/netdisk-fast-download" target="_blank" rel="noopener" class="feedback-link mini">
+      <a href="https://github.com/yukaidi1220/netdisk-fast-download" target="_blank" rel="noopener" class="feedback-link mini">
         <i class="fab fa-github feedback-icon"></i>
         源码
       </a>
@@ -75,7 +75,7 @@
         <div class="project-intro">
           <div class="intro-title">NFD网盘直链解析0.3.0</div>
           <div class="intro-desc">
-            <div>支持网盘：蓝奏云、蓝奏云优享、小飞机盘、123云盘、iCloud、移动云空间、联想乐云、QQ闪传等 <el-link style="color:#606cf5" href="https://github.com/qaiu/netdisk-fast-download?tab=readme-ov-file#%E7%BD%91%E7%9B%98%E6%94%AF%E6%8C%81%E6%83%85%E5%86%B5" target="_blank"> &gt;&gt; </el-link></div>
+            <div>支持网盘：蓝奏云、蓝奏云优享、小飞机盘、123云盘、iCloud、移动云空间、联想乐云、QQ闪传等 <el-link style="color:#606cf5" href="https://github.com/yukaidi1220/netdisk-fast-download?tab=readme-ov-file#%E7%BD%91%E7%9B%98%E6%94%AF%E6%8C%81%E6%83%85%E5%86%B5" target="_blank"> &gt;&gt; </el-link></div>
             <div>文件夹解析支持：蓝奏云、蓝奏云优享、小飞机盘、123云盘</div>
           </div>
         </div>
@@ -1436,7 +1436,7 @@ export default {
 错误信息：${JSON.stringify(this.errorDetail, null, 2)}`;
       navigator.clipboard.writeText(text).then(() => {
         this.$message.success('已复制分享信息和错误详情');
-        window.open('https://github.com/qaiu/netdisk-fast-download/issues/new', '_blank', 'noopener,noreferrer');
+        window.open('https://github.com/yukaidi1220/netdisk-fast-download/issues/new', '_blank', 'noopener,noreferrer');
       }).catch(() => {
         this.$message.error('复制失败');
       });

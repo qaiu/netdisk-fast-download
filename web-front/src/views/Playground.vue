@@ -653,22 +653,22 @@
                 <p>更多详细信息，请参考 GitHub 仓库文档：</p>
                 <ul>
                   <li>
-                    <a href="https://github.com/qaiu/netdisk-fast-download/blob/main/parser/doc/JAVASCRIPT_PARSER_GUIDE.md" target="_blank" rel="noopener noreferrer">
+                    <a href="https://github.com/yukaidi1220/netdisk-fast-download/blob/main/parser/doc/JAVASCRIPT_PARSER_GUIDE.md" target="_blank" rel="noopener noreferrer">
                       JavaScript 解析器开发指南
                     </a>
                   </li>
                   <li>
-                    <a href="https://github.com/qaiu/netdisk-fast-download/blob/main/parser/doc/CUSTOM_PARSER_GUIDE.md" target="_blank" rel="noopener noreferrer">
+                    <a href="https://github.com/yukaidi1220/netdisk-fast-download/blob/main/parser/doc/CUSTOM_PARSER_GUIDE.md" target="_blank" rel="noopener noreferrer">
                       自定义解析器扩展指南
                     </a>
                   </li>
                   <li>
-                    <a href="https://github.com/qaiu/netdisk-fast-download/blob/main/parser/doc/CUSTOM_PARSER_QUICKSTART.md" target="_blank" rel="noopener noreferrer">
+                    <a href="https://github.com/yukaidi1220/netdisk-fast-download/blob/main/parser/doc/CUSTOM_PARSER_QUICKSTART.md" target="_blank" rel="noopener noreferrer">
                       快速开始教程
                     </a>
                   </li>
                   <li>
-                    <a href="https://github.com/qaiu/netdisk-fast-download/blob/main/parser/README.md" target="_blank" rel="noopener noreferrer">
+                    <a href="https://github.com/yukaidi1220/netdisk-fast-download/blob/main/parser/README.md" target="_blank" rel="noopener noreferrer">
                       解析器模块文档
                     </a>
                   </li>

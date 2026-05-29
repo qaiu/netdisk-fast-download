@@ -35,9 +35,9 @@
     </developers>
 
     <scm>
-        <connection>scm:git:https://github.com/qaiu/netdisk-fast-download.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com:qaiu/netdisk-fast-download.git</developerConnection>
-        <url>https://github.com/qaiu/netdisk-fast-download</url>
+        <connection>scm:git:https://github.com/yukaidi1220/netdisk-fast-download.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com:yukaidi1220/netdisk-fast-download.git</developerConnection>
+        <url>https://github.com/yukaidi1220/netdisk-fast-download</url>
     </scm>
 
     <distributionManagement>
