@@ -1367,7 +1367,9 @@ export default {
         }
       } catch (error) {
         console.error('读取剪切板失败:', error)
-        this.$message.error('读取剪切板失败，请检查浏览器权限')
+        if (isManual) {
+          this.$message.warning('读取剪切板失败，请手动粘贴链接到输入框')
+        }
       }
     },
 
