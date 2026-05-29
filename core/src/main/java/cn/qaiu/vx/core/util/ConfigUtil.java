@@ -10,6 +10,8 @@ import io.vertx.core.json.JsonObject;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * 异步读取配置工具类
@@ -62,12 +64,35 @@ public class ConfigUtil {
         // 异步获取配置
         // 成功直接完成 promise
         retriever.getConfig()
-                .onSuccess(promise::complete)
-                .onFailure(err -> {
-                    // 配置读取失败，直接返回失败 Future
-                    promise.fail(new RuntimeException(
-                            "读取配置文件失败: " + path, err));
+                .onSuccess(config -> {
+                    promise.complete(config);
                     retriever.close();
+                })
+                .onFailure(err -> {
+                    retriever.close();
+                    // 读取失败时，尝试从 resources/ 子目录读取（兼容 Docker 卷挂载场景）
+                    String resourcesPath = "resources/" + path;
+                    if (!path.startsWith("resources/") && Files.exists(Path.of(resourcesPath))) {
+                        ConfigStoreOptions fallbackStore = new ConfigStoreOptions()
+                                .setType("file")
+                                .setFormat(format)
+                                .setConfig(new JsonObject().put("path", resourcesPath));
+                        ConfigRetriever fallbackRetriever = ConfigRetriever
+                                .create(vertx, new ConfigRetrieverOptions().addStore(fallbackStore));
+                        fallbackRetriever.getConfig()
+                                .onSuccess(config -> {
+                                    promise.complete(config);
+                                    fallbackRetriever.close();
+                                })
+                                .onFailure(e2 -> {
+                                    promise.fail(new RuntimeException(
+                                            "读取配置文件失败: " + path + " (也尝试了 " + resourcesPath + ")", e2));
+                                    fallbackRetriever.close();
+                                });
+                    } else {
+                        promise.fail(new RuntimeException(
+                                "读取配置文件失败: " + path, err));
+                    }
                 });
 
         return promise.future();

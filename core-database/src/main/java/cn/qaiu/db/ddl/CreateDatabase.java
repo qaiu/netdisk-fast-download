@@ -53,7 +53,7 @@ public class CreateDatabase {
             stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS " + dbName + " CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
             LOGGER.info(">>>>>>>>>>> 数据库'{}'创建成功 <<<<<<<<<<<<", dbName);
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.error("创建数据库失败", e);
         }
     }
 

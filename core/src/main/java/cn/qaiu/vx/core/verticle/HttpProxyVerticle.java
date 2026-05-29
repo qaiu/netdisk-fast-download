@@ -196,7 +196,7 @@ public class HttpProxyVerticle extends AbstractVerticle {
                     );
                 })
                 .onFailure(err -> {
-                    err.printStackTrace();
+                    LOGGER.error("HTTP请求失败", err);
                     clientRequest.response().setStatusCode(502).end("Bad Gateway: Request failed");
                 });
     }
@@ -222,7 +222,7 @@ public class HttpProxyVerticle extends AbstractVerticle {
             }
             return port;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("提取端口失败: {}", urlString, e);
             // 出现异常时返回 -1，表示提取失败
             return -1;
         }

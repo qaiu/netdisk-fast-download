@@ -68,7 +68,8 @@ public class ServerApi {
             key = keys[0];
             pwd = keys[1];
         }
-        return cacheService.getCachedByShareKeyAndPwd(type, key, pwd, JsonObject.of("UA",request.headers().get("user-agent")));
+        String origin = resolveOrigin(request);
+        return cacheService.getCachedByShareKeyAndPwd(type, key, pwd, JsonObject.of("UA",request.headers().get("user-agent"), "_requestOrigin", origin));
     }
 
     @RouteMapping(value = "/:type/:key", method = RouteMethod.GET)
@@ -80,13 +81,29 @@ public class ServerApi {
             key = keys[0];
             pwd = keys[1];
         }
-        cacheService.getCachedByShareKeyAndPwd(type, key, pwd, JsonObject.of("UA",request.headers().get("user-agent")))
+        String origin = resolveOrigin(request);
+        cacheService.getCachedByShareKeyAndPwd(type, key, pwd, JsonObject.of("UA",request.headers().get("user-agent"), "_requestOrigin", origin))
                 .onSuccess(res -> ResponseUtil.redirect(
                         response.putHeader("nfd-cache-hit", res.getCacheHit().toString())
                                 .putHeader("nfd-cache-expires", res.getExpires()),
                         res.getDirectLink(), promise))
                 .onFailure(t -> promise.fail(t.fillInStackTrace()));
         return promise.future();
+    }
+
+    /**
+     * 解析请求来源地址，支持反向代理
+     */
+    private static String resolveOrigin(HttpServerRequest request) {
+        String forwardedHost = request.getHeader("X-Forwarded-Host");
+        if (forwardedHost != null && !forwardedHost.isBlank()) {
+            String proto = request.getHeader("X-Forwarded-Proto");
+            if (proto == null || proto.isBlank()) {
+                proto = request.scheme();
+            }
+            return proto + "://" + forwardedHost;
+        }
+        return request.scheme() + "://" + request.host();
     }
 
     /**
@@ -97,7 +114,7 @@ public class ServerApi {
      * @return JsonObject
      */
     private JsonObject buildOtherParam(HttpServerRequest request, String auth) {
-        JsonObject otherParam = JsonObject.of("UA", request.headers().get("user-agent"));
+        JsonObject otherParam = JsonObject.of("UA", request.headers().get("user-agent"), "_requestOrigin", resolveOrigin(request));
 
         // 解码认证参数
         if (auth != null && !auth.isEmpty()) {
