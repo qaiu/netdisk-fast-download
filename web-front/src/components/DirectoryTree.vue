@@ -487,10 +487,6 @@ export default {
       }
       return `${baseUrl}?${params.toString()}`
     },
-    // 文件树与窗格同源：直接返回当前目录数据
-    buildTree(list) {
-      return list || []
-    },
     // 懒加载子节点
     loadNode(node, resolve) {
       if (node.level === 0) {
@@ -852,7 +848,7 @@ export default {
       this.toggleFileSelect(file)
     },
     selectAll() {
-      this.selectedFiles = this.currentFileList.filter(f => f.fileType !== 'folder')
+      this.selectedFiles = this.currentFileList.filter(f => f.fileType !== 'folder' && f.parserUrl)
     },
     deselectAll() {
       this.selectedFiles = []

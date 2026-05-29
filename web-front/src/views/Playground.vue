@@ -2220,6 +2220,8 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       }, 100);
     };
 
+    let themeObserver = null;
+
     onMounted(async () => {
       // 初始化移动端检测
       updateIsMobile();
@@ -2246,10 +2248,10 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       const html = document.documentElement;
       if (html && html.classList) {
         try {
-          const observer = new MutationObserver(() => {
+          themeObserver = new MutationObserver(() => {
             checkDarkMode();
           });
-          observer.observe(html, {
+          themeObserver.observe(html, {
             attributes: true,
             attributeFilter: ['class', 'data-theme']
           });
@@ -2266,6 +2268,7 @@ curl "${baseUrl}/json/parser?url=${encodeURIComponent(exampleUrl)}"</pre>
       window.removeEventListener('resize', updateIsMobile);
       // 移除页面关闭/刷新前的提示
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      themeObserver?.disconnect();
     });
 
     return {

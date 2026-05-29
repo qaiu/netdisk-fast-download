@@ -595,11 +595,10 @@ import fileTypeUtils from '@/utils/fileTypeUtils'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { playgroundApi } from '@/utils/playgroundApi'
 import { testConnection, autoDetect, addDownload, getConfig, saveConfig } from '@/utils/downloaderService'
-
-export const previewBaseUrl = 'https://nfd-parser.github.io/nfd-preview/preview.html?src=';
+import { PREVIEW_BASE_URL } from '@/utils/constants'
 
 export default {
-  name: 'App',
+  name: 'Home',
   components: { DarkMode, DirectoryTree, DownloadDialog },
   mixins: [fileTypeUtils],
   data() {
@@ -617,7 +616,7 @@ export default {
       parseResult: {},
       downloadUrl: null,
       directLink: '',
-      previewBaseUrl,
+      previewBaseUrl: PREVIEW_BASE_URL,
       
       // 功能结果
       markdownText: '',
@@ -1791,19 +1790,26 @@ export default {
     }
 
     // 监听窗口焦点事件
-    window.addEventListener('focus', () => {
+    this._onFocusHandler = () => {
       if (this.autoReadClipboard) {
         this.hasClipboardSuccessTip = false // 聚焦时重置，只提示一次
         this.getPaste()
       }
-    })
+    }
+    window.addEventListener('focus', this._onFocusHandler)
 
     // 首次打开页面弹出风险提示
     if (!window.localStorage.getItem('nfd_risk_ack')) {
       this.showRiskDialog = true
     }
   },
-  
+
+  beforeUnmount() {
+    if (this._onFocusHandler) {
+      window.removeEventListener('focus', this._onFocusHandler)
+    }
+  },
+
   watch: {
     downloadUrl(val) {
       if (!val) {
