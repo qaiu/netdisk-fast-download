@@ -58,7 +58,7 @@ public class QQwTool extends QQTool {
                         String url302 = url.replace("\\x26", "&");
                         complete(url302);
                     } catch (Exception e) {
-                        fail("解析响应失败: " + e.getMessage());
+                        fail(e, "解析响应失败");
                     }
                 }).onFailure(handleFail());
 
