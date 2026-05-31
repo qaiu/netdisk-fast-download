@@ -163,7 +163,6 @@ jobs:
           --class-path "$CP" "$MAIN_JAR" 2>/dev/null | head -n 1 | tr -d '\r\n' || true)
 
         if [ -z "$RAW_MODULES" ] || [[ "$RAW_MODULES" == *"Missing"* ]] || [[ "$RAW_MODULES" == *"Error"* ]]; then
-          # ⚠️ 回退列表：若项目新增了需要 java.* / jdk.* 模块的依赖，需同步更新此处
           RAW_MODULES="java.base,java.logging,java.sql,java.naming,java.management,java.xml,jdk.unsupported,java.net.http,java.instrument,java.security.jgss,java.security.sasl,java.desktop,jdk.crypto.ec"
           echo "jdeps 分析失败，使用回退模块列表"
         else
@@ -253,7 +252,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        Compress-Archive -Path native-package/netdisk-fast-download -DestinationPath "${{ matrix.artifact-name }}.zip"
+        Compress-Archive -Path native-package/netdisk-fast-download/* -DestinationPath "${{ matrix.artifact-name }}.zip"
 
     # ============================================================
     # 上传产物

@@ -84,19 +84,17 @@ public class AppMain {
                             if (addr == null || addr.isBlank()) {
                                 addr = "http://127.0.0.1:" + jsonObject.getJsonObject(ConfigConstant.SERVER).getInteger("port", 6400);
                             }
-                            // 读取代理配置获取前端页面端口（同步读取小文件，仅启动时执行一次）
+                            // 读取代理配置获取前端页面端口（同步读文件，避免阻塞 event loop）
                             String proxyConfName = jsonObject.getString("proxyConf", "server-proxy");
                             String pageAddr = addr;
                             try {
                                 String configFile = proxyConfName + ".yml";
-                                // 与 Deploy 保持一致：优先当前目录，其次 resources/
-                                Path configPath = Path.of(configFile);
+                                Path configPath = Path.of("resources", configFile);
                                 if (!Files.exists(configPath)) {
-                                    configPath = Path.of("resources", configFile);
+                                    configPath = Path.of(configFile);
                                 }
                                 if (Files.exists(configPath)) {
                                     String yamlContent = Files.readString(configPath);
-                                    // 匹配项目约定的 YAML 格式: "- listen: 8080"
                                     java.util.regex.Matcher m = java.util.regex.Pattern
                                             .compile("^\\s*-\\s+listen:\\s*(\\d+)", java.util.regex.Pattern.MULTILINE)
                                             .matcher(yamlContent);
@@ -188,10 +186,9 @@ public class AppMain {
             } else {
                 log.info("未找到已发布的演练场解析器");
             }
+            log.info("服务已启动，可通过 {} 访问页面", accessAddr);
         }).onFailure(e -> {
             log.error("加载演练场解析器列表失败", e);
-        }).onComplete(ar -> {
-            log.info("服务已启动，可通过 {} 访问页面", accessAddr);
         });
     }
 }
