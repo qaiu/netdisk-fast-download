@@ -78,12 +78,12 @@ public class AppMain {
                             System.out.println("数据库连接成功");
                             
                             // 加载演练场解析器
-                            loadPlaygroundParsers();
-                            
                             String addr = jsonObject.getJsonObject(ConfigConstant.SERVER).getString("domainName");
                             if (addr == null || addr.isBlank()) {
-                                addr = "http://127.0.0.1:" + jsonObject.getJsonObject(ConfigConstant.SERVER).getInteger("port", 6400);
+                                int port = jsonObject.getJsonObject(ConfigConstant.SERVER).getInteger("port", 6400);
+                                addr = "http://127.0.0.1:" + port;
                             }
+                            loadPlaygroundParsers(addr);
                             System.out.println("启动成功: \n本地服务地址: " + addr);
                         });
                     });
@@ -125,7 +125,7 @@ public class AppMain {
     /**
      * 在启动时加载所有已发布的演练场解析器
      */
-    private static void loadPlaygroundParsers() {
+    private static void loadPlaygroundParsers(String accessAddr) {
         DbService dbService = AsyncServiceUtil.getAsyncServiceInstance(DbService.class);
         
         dbService.getPlaygroundParserList().onSuccess(result -> {
@@ -160,17 +160,7 @@ public class AppMain {
                     }
                 }
                 log.info("演练场解析器加载完成，共加载 {} 个解析器", loadedCount);
-                // 输出访问地址提示
-                try {
-                    JsonObject serverConf = (JsonObject) VertxHolder.getVertxInstance()
-                            .sharedData().getLocalMap(LOCAL).get(ConfigConstant.SERVER);
-                    if (serverConf != null) {
-                        int port = serverConf.getInteger("port", 6400);
-                        log.info("================================================");
-                        log.info("  服务已启动，可通过 http://127.0.0.1:{} 访问页面", port);
-                        log.info("================================================");
-                    }
-                } catch (Exception ignored) {}
+                log.info("服务已启动，可通过 {} 访问页面", accessAddr);
             } else {
                 log.info("未找到已发布的演练场解析器");
             }
