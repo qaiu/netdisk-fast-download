@@ -1,14 +1,5 @@
-# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
 name: Java CI（Maven 构建 + Docker 镜像 + 原生环境打包）
 
-# The API requires write permission on the repository to submit dependencies
 permissions:
   contents: write
   packages: write
@@ -16,9 +7,9 @@ permissions:
 on:
   push:
     tags:
-      - '*'  # 只有推送tag时才会触发构建
+      - '*'
     branches-ignore:
-      - '*'  # 排除所有分支的提交
+      - '*'
     paths-ignore:
       - 'bin/**'
       - '.github/**'
@@ -32,10 +23,12 @@ on:
       - "main"
 
 jobs:
+  # ================================================================
+  # 阶段一：构建前端 + Maven 打包（只执行一次，产物共享）
+  # ================================================================
   build:
-    name: 构建 + Docker 镜像
+    name: 编译构建
     runs-on: ubuntu-latest
-
     steps:
     - name: 检出代码
       uses: actions/checkout@v3
@@ -58,7 +51,6 @@ jobs:
     - name: Maven 编译打包
       run: mvn -B package -DskipTests --file pom.xml
 
-    # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
     - name: 更新依赖图谱
       uses: advanced-security/maven-dependency-submission-action@v3
       if: github.event_name != 'pull_request'
@@ -66,17 +58,39 @@ jobs:
       with:
         ignore-maven-wrapper: true
 
-#    - uses: release-drafter/release-drafter@v5
-#      env:
-#        GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
-
-    - name: 上传构建产物
+    - name: 分享应用打包目录（供原生包和 Docker 复用）
+      if: github.event_name != 'pull_request'
       uses: actions/upload-artifact@v4
       with:
+        name: app-package
+        path: web-service/target/package/
+
+    - name: 分享 bin-zip（供 Docker 复用）
+      if: github.event_name != 'pull_request'
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-bin-zip
         path: web-service/target/netdisk-fast-download-bin.zip
 
+  # ================================================================
+  # 阶段二-A：Docker 镜像构建（并行）
+  # ================================================================
+  docker:
+    name: Docker 镜像
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v3
+
+    - name: 下载 bin-zip 产物
+      uses: actions/download-artifact@v4
+      with:
+        name: app-bin-zip
+        path: web-service/target/
+
     - name: 登录 GitHub 容器仓库
-      if: github.event_name != 'pull_request'
       uses: docker/login-action@v3
       with:
         registry: ghcr.io
@@ -86,33 +100,27 @@ jobs:
     - name: 设置 Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: 提取 Git 标签
-      id: tag
-      run: |
-        GIT_TAG=$(git tag --points-at HEAD | head -n 1)
-        echo "tag=$GIT_TAG" >> $GITHUB_OUTPUT
-
     - name: 构建并推送 Docker 镜像
-      if: github.event_name != 'pull_request'
       uses: docker/build-push-action@v5
       with:
         context: .
         push: true
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         tags: |
-          ghcr.io/${{ github.repository }}:${{ steps.tag.outputs.tag }}
+          ghcr.io/${{ github.repository }}:${{ github.ref_name }}
           ghcr.io/${{ github.repository }}:latest
 
-    - name: 上传到 Release
-      if: github.event_name != 'pull_request'
+    - name: 上传 -bin.zip 到 Release
       uses: softprops/action-gh-release@v2
       with:
         files: web-service/target/netdisk-fast-download-bin.zip
-        tag_name: ${{ steps.tag.outputs.tag }}
+        tag_name: ${{ github.ref_name }}
         prerelease: true
         generate_release_notes: true
 
-  # 原生环境打包 (Linux / Windows)，内置精简 JRE，解压即用
+  # ================================================================
+  # 阶段二-B：原生环境打包 Linux + Windows（并行）
+  # ================================================================
   native-package:
     name: 原生环境打包 → ${{ matrix.artifact-name }}
     needs: build
@@ -133,46 +141,34 @@ jobs:
     - name: 检出代码
       uses: actions/checkout@v3
 
-    - name: 设置 Node.js 18
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-
     - name: 设置 JDK 17
       uses: actions/setup-java@v3
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: maven
+
+    - name: 下载 Maven 构建产物
+      uses: actions/download-artifact@v4
+      with:
+        name: app-package
+        path: web-service/target/package
 
     # ============================================================
-    # Step 1: 构建项目
-    # ============================================================
-    - name: 构建前端
-      run: cd web-front && yarn install && yarn run build
-
-    - name: Maven 编译打包
-      run: mvn -B package -DskipTests --file pom.xml
-
-    # ============================================================
-    # Step 2: jdeps 分析 → 确定所需 JDK 模块
+    # jdeps 分析 → 确定所需 JDK 模块
     # ============================================================
     - name: 分析所需 JDK 模块（jdeps）
       run: |
         MAIN_JAR="web-service/target/package/netdisk-fast-download.jar"
         LIB_DIR="web-service/target/package/lib"
 
-        # 拼接 classpath
         CP=""
         for jar in "$LIB_DIR"/*.jar; do
           CP="$CP${CP:+:}$jar"
         done
 
-        # 用 jdeps 分析模块依赖（忽略缺失依赖，只取 stdout 第一行）
         RAW_MODULES=$(jdeps --print-module-deps --ignore-missing-deps --multi-release 17 \
           --class-path "$CP" "$MAIN_JAR" 2>/dev/null | head -n 1 | tr -d '\r\n' || true)
 
-        # 如果 jdeps 分析失败或结果异常，使用安全回退集合
         if [ -z "$RAW_MODULES" ] || [[ "$RAW_MODULES" == *"Missing"* ]] || [[ "$RAW_MODULES" == *"Error"* ]]; then
           RAW_MODULES="java.base,java.logging,java.sql,java.naming,java.management,java.xml,jdk.unsupported,java.net.http,java.instrument,java.security.jgss,java.security.sasl"
           echo "jdeps 分析失败，使用回退模块列表"
@@ -182,17 +178,13 @@ jobs:
         RAW_MODULES="$RAW_MODULES,java.desktop"
 
         echo "detected modules: $RAW_MODULES"
-        # 确保只有一行写入 GITHUB_ENV
         printf 'JDK_MODULES=%s\n' "$RAW_MODULES" >> $GITHUB_ENV
 
     # ============================================================
-    # Step 3: jlink 生成精简 JRE
+    # jlink 生成精简 JRE
     # ============================================================
     - name: 生成精简 JRE（jlink）
       run: |
-        echo "JAVA_HOME=$JAVA_HOME"
-        echo "modules=$JDK_MODULES"
-
         jlink \
           --module-path "$JAVA_HOME/jmods" \
           --add-modules "$JDK_MODULES" \
@@ -202,11 +194,10 @@ jobs:
           --no-header-files \
           --no-man-pages
 
-        # 打印 JRE 大小
         echo "JRE size:"
         du -sh native-package/netdisk-fast-download/jre || true
 
-        # Windows: 确保 MSVC 运行时 DLL 到位（否则 java.exe 无法启动）
+        # Windows: 确保 MSVC 运行时 DLL 到位
         if [[ "$RUNNER_OS" == "Windows" ]]; then
           JRE_BIN="native-package/netdisk-fast-download/jre/bin"
           for dll in vcruntime140.dll msvcp140.dll vcruntime140_1.dll; do
@@ -220,25 +211,23 @@ jobs:
         fi
 
     # ============================================================
-    # Step 4: 组装包目录（和现有 zip 同结构，仅多一个 jre/）
+    # 组装包目录
     # ============================================================
     - name: 组装包目录
       run: |
         PKG="native-package/netdisk-fast-download"
         SRC="web-service/target/package"
 
-        # 拷贝应用文件
         cp "$SRC/netdisk-fast-download.jar" "$PKG/"
         cp -r "$SRC/lib"         "$PKG/"
         cp -r "$SRC/resources"   "$PKG/"
         cp -r "$SRC/webroot"     "$PKG/"
 
-        # 创建运行时目录
         mkdir -p "$PKG/db"
         mkdir -p "$PKG/logs"
 
     # ============================================================
-    # Step 5: 生成启动脚本
+    # 生成启动脚本
     # ============================================================
     - name: 生成启动脚本（Linux）
       run: |
@@ -265,7 +254,7 @@ jobs:
         SCRIPT
 
     # ============================================================
-    # Step 6: 打包为 zip
+    # 打包为 zip
     # ============================================================
     - name: 打包 ZIP（Linux）
       if: runner.os == 'Linux'
@@ -280,7 +269,7 @@ jobs:
         Compress-Archive -Path native-package/netdisk-fast-download/* -DestinationPath "${{ matrix.artifact-name }}.zip"
 
     # ============================================================
-    # Step 7: 上传产物
+    # 上传产物
     # ============================================================
     - name: 上传原生安装包
       uses: actions/upload-artifact@v4
