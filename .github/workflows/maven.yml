@@ -194,6 +194,19 @@ jobs:
         echo "JRE size:"
         du -sh native-package/netdisk-fast-download/jre || true
 
+        # Windows: 确保 MSVC 运行时 DLL 到位（否则 java.exe 无法启动）
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          JRE_BIN="native-package/netdisk-fast-download/jre/bin"
+          for dll in vcruntime140.dll msvcp140.dll vcruntime140_1.dll; do
+            if [ ! -f "$JRE_BIN/$dll" ] && [ -f "$JAVA_HOME/bin/$dll" ]; then
+              echo "jlink 未包含 $dll，从 JDK 补拷"
+              cp "$JAVA_HOME/bin/$dll" "$JRE_BIN/"
+            fi
+          done
+          echo "=== JRE bin 目录 DLL 清单 ==="
+          ls -la "$JRE_BIN"/*.dll 2>/dev/null || echo "(无 .dll 文件)"
+        fi
+
     # ============================================================
     # Step 4: 组装包目录（和现有 zip 同结构，仅多一个 jre/）
     # ============================================================
