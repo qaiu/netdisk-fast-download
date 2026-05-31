@@ -21,6 +21,8 @@ import io.vertx.core.shareddata.LocalMap;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.time.DateFormatUtils;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Date;
 
 import static cn.qaiu.vx.core.util.ConfigConstant.LOCAL;
@@ -78,12 +80,35 @@ public class AppMain {
                             System.out.println("数据库连接成功");
                             
                             // 加载演练场解析器
-                            loadPlaygroundParsers();
-                            
                             String addr = jsonObject.getJsonObject(ConfigConstant.SERVER).getString("domainName");
                             if (addr == null || addr.isBlank()) {
                                 addr = "http://127.0.0.1:" + jsonObject.getJsonObject(ConfigConstant.SERVER).getInteger("port", 6400);
                             }
+                            // 读取代理配置获取前端页面端口（同步读取小文件，仅启动时执行一次）
+                            String proxyConfName = jsonObject.getString("proxyConf", "server-proxy");
+                            String pageAddr = addr;
+                            try {
+                                String configFile = proxyConfName + ".yml";
+                                // 与 Deploy 保持一致：优先当前目录，其次 resources/
+                                Path configPath = Path.of(configFile);
+                                if (!Files.exists(configPath)) {
+                                    configPath = Path.of("resources", configFile);
+                                }
+                                if (Files.exists(configPath)) {
+                                    String yamlContent = Files.readString(configPath);
+                                    // 匹配项目约定的 YAML 格式: "- listen: 8080"
+                                    java.util.regex.Matcher m = java.util.regex.Pattern
+                                            .compile("^\\s*-\\s+listen:\\s*(\\d+)", java.util.regex.Pattern.MULTILINE)
+                                            .matcher(yamlContent);
+                                    if (m.find()) {
+                                        int pagePort = Integer.parseInt(m.group(1));
+                                        pageAddr = "http://127.0.0.1:" + pagePort;
+                                    }
+                                }
+                            } catch (Exception e) {
+                                log.warn("读取代理配置失败，使用默认页面地址: {}", e.getMessage());
+                            }
+                            loadPlaygroundParsers(pageAddr);
                             System.out.println("启动成功: \n本地服务地址: " + addr);
                         });
                     });
@@ -125,7 +150,7 @@ public class AppMain {
     /**
      * 在启动时加载所有已发布的演练场解析器
      */
-    private static void loadPlaygroundParsers() {
+    private static void loadPlaygroundParsers(String accessAddr) {
         DbService dbService = AsyncServiceUtil.getAsyncServiceInstance(DbService.class);
         
         dbService.getPlaygroundParserList().onSuccess(result -> {
@@ -165,6 +190,8 @@ public class AppMain {
             }
         }).onFailure(e -> {
             log.error("加载演练场解析器列表失败", e);
+        }).onComplete(ar -> {
+            log.info("服务已启动，可通过 {} 访问页面", accessAddr);
         });
     }
 }

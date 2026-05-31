@@ -1,14 +1,5 @@
-# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
+name: Java CI（Maven 构建 + Docker 镜像 + 原生环境打包）
 
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-name: Java CI with Maven
-
-# The API requires write permission on the repository to submit dependencies
 permissions:
   contents: write
   packages: write
@@ -16,9 +7,9 @@ permissions:
 on:
   push:
     tags:
-      - '*'  # 只有推送tag时才会触发构建
+      - '*'
     branches-ignore:
-      - '*'  # 排除所有分支的提交
+      - '*'
     paths-ignore:
       - 'bin/**'
       - '.github/**'
@@ -32,71 +23,250 @@ on:
       - "main"
 
 jobs:
+  # ================================================================
+  # 阶段一：构建前端 + Maven 打包（只执行一次，产物共享）
+  # ================================================================
   build:
-
+    name: 编译构建
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v3
+    - name: 检出代码
+      uses: actions/checkout@v3
 
-    - uses: actions/setup-node@v4
+    - name: 设置 Node.js 18
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
 
-    - name: Set up JDK 17
+    - name: 设置 JDK 17
       uses: actions/setup-java@v3
       with:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
 
-    - name: Build Frontend
+    - name: 构建前端
       run: cd web-front && yarn install && yarn run build
 
-    - name: Build with Maven
+    - name: Maven 编译打包
       run: mvn -B package -DskipTests --file pom.xml
 
-    # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
-    - name: Update dependency graph
+    - name: 更新依赖图谱
       uses: advanced-security/maven-dependency-submission-action@v3
       if: github.event_name != 'pull_request'
       continue-on-error: true
       with:
         ignore-maven-wrapper: true
 
-#    - uses: release-drafter/release-drafter@v5
-#      env:
-#        GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
-
-    - name: Upload Artifact
+    - name: 分享应用打包目录（供原生包和 Docker 复用）
+      if: github.event_name != 'pull_request'
       uses: actions/upload-artifact@v4
       with:
+        name: app-package
+        path: web-service/target/package/
+
+    - name: 分享 bin-zip（供 Docker 复用）
+      if: github.event_name != 'pull_request'
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-bin-zip
         path: web-service/target/netdisk-fast-download-bin.zip
 
-    - name: Login to GitHub Container Registry
-      if: github.event_name != 'pull_request'
+  # ================================================================
+  # 阶段二-A：Docker 镜像构建（并行）
+  # ================================================================
+  docker:
+    name: Docker 镜像
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v3
+
+    - name: 下载 bin-zip 产物
+      uses: actions/download-artifact@v4
+      with:
+        name: app-bin-zip
+        path: web-service/target/
+
+    - name: 登录 GitHub 容器仓库
       uses: docker/login-action@v3
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Set up Docker Buildx
+    - name: 设置 QEMU（多平台构建支持）
+      uses: docker/setup-qemu-action@v3
+
+    - name: 设置 Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Extract git tag
-      id: tag
-      run: |
-        GIT_TAG=$(git tag --points-at HEAD | head -n 1)
-        echo "tag=$GIT_TAG" >> $GITHUB_OUTPUT
-
-    - name: Build and push Docker image
-      if: github.event_name != 'pull_request'
+    - name: 构建并推送 Docker 镜像
       uses: docker/build-push-action@v5
       with:
         context: .
         push: true
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         tags: |
-          ghcr.io/${{ github.repository }}:${{ steps.tag.outputs.tag }}
+          ghcr.io/${{ github.repository }}:${{ github.ref_name }}
           ghcr.io/${{ github.repository }}:latest
+
+
+  # ================================================================
+  # 阶段二-B：原生环境打包 Linux + Windows（并行）
+  # ================================================================
+  native-package:
+    name: 原生环境打包 → ${{ matrix.artifact-name }}
+    needs: build
+    if: github.event_name != 'pull_request'
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact-name: netdisk-fast-download-linux-amd64
+          - os: windows-latest
+            artifact-name: netdisk-fast-download-windows-amd64
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    - name: 设置 JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: 下载 Maven 构建产物
+      uses: actions/download-artifact@v4
+      with:
+        name: app-package
+        path: web-service/target/package
+
+    # ============================================================
+    # jdeps 分析 → 确定所需 JDK 模块
+    # ============================================================
+    - name: 分析所需 JDK 模块（jdeps）
+      run: |
+        MAIN_JAR="web-service/target/package/netdisk-fast-download.jar"
+        LIB_DIR="web-service/target/package/lib"
+
+        CP=""
+        for jar in "$LIB_DIR"/*.jar; do
+          CP="$CP${CP:+:}$jar"
+        done
+
+        RAW_MODULES=$(jdeps --print-module-deps --ignore-missing-deps --multi-release 17 \
+          --class-path "$CP" "$MAIN_JAR" 2>/dev/null | head -n 1 | tr -d '\r\n' || true)
+
+        if [ -z "$RAW_MODULES" ] || [[ "$RAW_MODULES" == *"Missing"* ]] || [[ "$RAW_MODULES" == *"Error"* ]]; then
+          # ⚠️ 回退列表：若项目新增了需要 java.* / jdk.* 模块的依赖，需同步更新此处
+          RAW_MODULES="java.base,java.logging,java.sql,java.naming,java.management,java.xml,jdk.unsupported,java.net.http,java.instrument,java.security.jgss,java.security.sasl,java.desktop,jdk.crypto.ec"
+          echo "jdeps 分析失败，使用回退模块列表"
+        else
+          # 补上 jdeps 无法检测的反射/SPI依赖
+          RAW_MODULES="$RAW_MODULES,java.desktop,jdk.crypto.ec"
+        fi
+
+        echo "detected modules: $RAW_MODULES"
+        printf 'JDK_MODULES=%s\n' "$RAW_MODULES" >> $GITHUB_ENV
+
+    # ============================================================
+    # jlink 生成精简 JRE
+    # ============================================================
+    - name: 生成精简 JRE（jlink）
+      run: |
+        jlink \
+          --module-path "$JAVA_HOME/jmods" \
+          --add-modules "$JDK_MODULES" \
+          --output "native-package/netdisk-fast-download/jre" \
+          --strip-debug \
+          --compress=2 \
+          --no-header-files \
+          --no-man-pages
+
+        echo "JRE size:"
+        du -sh native-package/netdisk-fast-download/jre || true
+
+        # Windows: 确保 MSVC 运行时 DLL 到位
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          JRE_BIN="native-package/netdisk-fast-download/jre/bin"
+          for dll in vcruntime140.dll msvcp140.dll vcruntime140_1.dll; do
+            if [ ! -f "$JRE_BIN/$dll" ] && [ -f "$JAVA_HOME/bin/$dll" ]; then
+              echo "jlink 未包含 $dll，从 JDK 补拷"
+              cp "$JAVA_HOME/bin/$dll" "$JRE_BIN/"
+            fi
+          done
+          echo "=== JRE bin 目录 DLL 清单 ==="
+          ls -la "$JRE_BIN"/*.dll 2>/dev/null || echo "(无 .dll 文件)"
+        fi
+
+    # ============================================================
+    # 组装包目录
+    # ============================================================
+    - name: 组装包目录
+      run: |
+        PKG="native-package/netdisk-fast-download"
+        SRC="web-service/target/package"
+
+        cp "$SRC/netdisk-fast-download.jar" "$PKG/"
+        cp -r "$SRC/lib"         "$PKG/"
+        cp -r "$SRC/resources"   "$PKG/"
+        cp -r "$SRC/webroot"     "$PKG/"
+
+        mkdir -p "$PKG/db"
+        mkdir -p "$PKG/logs"
+
+    # ============================================================
+    # 生成启动脚本
+    # ============================================================
+    - name: 生成启动脚本（Linux）
+      run: |
+        PKG="native-package/netdisk-fast-download"
+        echo '#!/bin/bash' > "$PKG/run.sh"
+        echo 'DIR="$(cd "$(dirname "$0")" && pwd)"' >> "$PKG/run.sh"
+        echo 'cd "$DIR" || exit 1' >> "$PKG/run.sh"
+        echo 'exec "$DIR/jre/bin/java" -Xmx512M -Dfile.encoding=utf-8 -jar "$DIR/netdisk-fast-download.jar" "$@"' >> "$PKG/run.sh"
+        chmod +x "$PKG/run.sh"
+
+    - name: 生成启动脚本（Windows）
+      run: |
+        PKG="native-package/netdisk-fast-download"
+        echo '@echo off' > "$PKG/run.bat"
+        echo 'chcp 65001 > nul' >> "$PKG/run.bat"
+        echo 'pushd %~dp0' >> "$PKG/run.bat"
+        echo '"%~dp0jre\bin\java.exe" -Xmx512M -Dfile.encoding=utf-8 -jar "%~dp0netdisk-fast-download.jar" %*' >> "$PKG/run.bat"
+
+    # ============================================================
+    # 打包为 zip
+    # ============================================================
+    - name: 打包 ZIP（Linux）
+      if: runner.os == 'Linux'
+      run: |
+        cd native-package
+        zip -r "../${{ matrix.artifact-name }}.zip" netdisk-fast-download/
+
+    - name: 打包 ZIP（Windows）
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        Compress-Archive -Path native-package/netdisk-fast-download -DestinationPath "${{ matrix.artifact-name }}.zip"
+
+    # ============================================================
+    # 上传产物
+    # ============================================================
+    - name: 上传原生安装包
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact-name }}
+        path: ${{ matrix.artifact-name }}.zip
+
+    - name: 上传到 Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: ${{ matrix.artifact-name }}.zip
+        tag_name: ${{ github.ref_name }}
+        generate_release_notes: true
