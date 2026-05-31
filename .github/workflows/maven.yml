@@ -225,26 +225,19 @@ jobs:
     - name: 生成启动脚本（Linux）
       run: |
         PKG="native-package/netdisk-fast-download"
-
-        cat > "$PKG/run.sh" << 'SCRIPT'
-        #!/bin/bash
-        DIR="$(cd "$(dirname "$0")" && pwd)"
-        cd "$DIR" || exit 1
-        exec "$DIR/jre/bin/java" -Xmx512M -Dfile.encoding=utf-8 -jar "$DIR/netdisk-fast-download.jar" "$@"
-        SCRIPT
-
+        echo '#!/bin/bash' > "$PKG/run.sh"
+        echo 'DIR="$(cd "$(dirname "$0")" && pwd)"' >> "$PKG/run.sh"
+        echo 'cd "$DIR" || exit 1' >> "$PKG/run.sh"
+        echo 'exec "$DIR/jre/bin/java" -Xmx512M -Dfile.encoding=utf-8 -jar "$DIR/netdisk-fast-download.jar" "$@"' >> "$PKG/run.sh"
         chmod +x "$PKG/run.sh"
 
     - name: 生成启动脚本（Windows）
       run: |
         PKG="native-package/netdisk-fast-download"
-
-        cat > "$PKG/run.bat" << 'SCRIPT'
-        @echo off
-        chcp 65001 > nul
-        pushd %~dp0
-        "%~dp0jre\bin\java.exe" -Xmx512M -Dfile.encoding=utf-8 -jar "%~dp0netdisk-fast-download.jar" %*
-        SCRIPT
+        echo '@echo off' > "$PKG/run.bat"
+        echo 'chcp 65001 > nul' >> "$PKG/run.bat"
+        echo 'pushd %~dp0' >> "$PKG/run.bat"
+        echo '"%~dp0jre\bin\java.exe" -Xmx512M -Dfile.encoding=utf-8 -jar "%~dp0netdisk-fast-download.jar" %*' >> "$PKG/run.bat"
 
     # ============================================================
     # 打包为 zip

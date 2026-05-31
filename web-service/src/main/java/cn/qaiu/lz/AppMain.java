@@ -95,11 +95,11 @@ public class AppMain {
                                 }
                                 if (Files.exists(configPath)) {
                                     String yamlContent = Files.readString(configPath);
-                                    int listenIdx = yamlContent.indexOf("listen:");
-                                    if (listenIdx > 0) {
-                                        int endIdx = yamlContent.indexOf('\n', listenIdx);
-                                        String portStr = yamlContent.substring(listenIdx + 7, endIdx).trim();
-                                        int pagePort = Integer.parseInt(portStr);
+                                    java.util.regex.Matcher m = java.util.regex.Pattern
+                                            .compile("^\\s*-\\s+listen:\\s*(\\d+)", java.util.regex.Pattern.MULTILINE)
+                                            .matcher(yamlContent);
+                                    if (m.find()) {
+                                        int pagePort = Integer.parseInt(m.group(1));
                                         pageAddr = "http://127.0.0.1:" + pagePort;
                                     }
                                 }
