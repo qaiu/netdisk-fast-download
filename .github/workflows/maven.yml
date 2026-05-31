@@ -97,6 +97,9 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: 设置 QEMU（多平台构建支持）
+      uses: docker/setup-qemu-action@v3
+
     - name: 设置 Docker Buildx
       uses: docker/setup-buildx-action@v3
 
@@ -131,9 +134,6 @@ jobs:
         shell: bash
 
     steps:
-    - name: 检出代码
-      uses: actions/checkout@v3
-
     - name: 设置 JDK 17
       uses: actions/setup-java@v3
       with:
