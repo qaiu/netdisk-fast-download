@@ -110,11 +110,6 @@ jobs:
           ghcr.io/${{ github.repository }}:${{ github.ref_name }}
           ghcr.io/${{ github.repository }}:latest
 
-    - name: 上传 -bin.zip 到 Release
-      uses: softprops/action-gh-release@v2
-      with:
-        files: web-service/target/netdisk-fast-download-bin.zip
-        tag_name: ${{ github.ref_name }}
 
   # ================================================================
   # 阶段二-B：原生环境打包 Linux + Windows（并行）
