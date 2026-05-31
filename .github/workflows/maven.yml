@@ -159,18 +159,19 @@ jobs:
           CP="$CP${CP:+:}$jar"
         done
 
-        # 用 jdeps 分析模块依赖
-        RAW_MODULES=$(jdeps --print-module-deps --multi-release 17 \
-          --class-path "$CP" "$MAIN_JAR" 2>/dev/null || true)
+        # 用 jdeps 分析模块依赖（忽略缺失依赖，只取 stdout 第一行）
+        RAW_MODULES=$(jdeps --print-module-deps --ignore-missing-deps --multi-release 17 \
+          --class-path "$CP" "$MAIN_JAR" 2>/dev/null | head -n 1 | tr -d '\r\n' || true)
 
-        # 如果 jdeps 分析失败，使用安全回退集合
-        if [ -z "$RAW_MODULES" ]; then
+        # 如果 jdeps 分析失败或结果异常，使用安全回退集合
+        if [ -z "$RAW_MODULES" ] || [[ "$RAW_MODULES" == *"Missing"* ]] || [[ "$RAW_MODULES" == *"Error"* ]]; then
           RAW_MODULES="java.base,java.logging,java.sql,java.naming,java.management,java.xml,jdk.unsupported,java.net.http,java.instrument,java.security.jgss,java.security.sasl"
           echo "jdeps 分析失败，使用回退模块列表"
         fi
 
         echo "detected modules: $RAW_MODULES"
-        echo "JDK_MODULES=$RAW_MODULES" >> $GITHUB_ENV
+        # 确保只有一行写入 GITHUB_ENV
+        printf 'JDK_MODULES=%s\n' "$RAW_MODULES" >> $GITHUB_ENV
 
     # ============================================================
     # Step 3: jlink 生成精简 JRE
