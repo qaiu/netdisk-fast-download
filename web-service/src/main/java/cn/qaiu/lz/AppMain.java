@@ -12,6 +12,7 @@ import cn.qaiu.parser.customjs.JsScriptMetadataParser;
 import cn.qaiu.vx.core.Deploy;
 import cn.qaiu.vx.core.util.AsyncServiceUtil;
 import cn.qaiu.vx.core.util.ConfigConstant;
+import cn.qaiu.vx.core.util.ConfigUtil;
 import cn.qaiu.vx.core.util.VertxHolder;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.vertx.core.json.JsonArray;
@@ -22,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.time.DateFormatUtils;
 
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 import static cn.qaiu.vx.core.util.ConfigConstant.LOCAL;
 
@@ -80,10 +82,23 @@ public class AppMain {
                             // 加载演练场解析器
                             String addr = jsonObject.getJsonObject(ConfigConstant.SERVER).getString("domainName");
                             if (addr == null || addr.isBlank()) {
-                                int port = jsonObject.getJsonObject(ConfigConstant.SERVER).getInteger("port", 6400);
-                                addr = "http://127.0.0.1:" + port;
+                                addr = "http://127.0.0.1:" + jsonObject.getJsonObject(ConfigConstant.SERVER).getInteger("port", 6400);
                             }
-                            loadPlaygroundParsers(addr);
+                            // 读取代理配置获取前端页面端口
+                            String proxyConfName = jsonObject.getString("proxyConf", "server-proxy");
+                            String pageAddr = addr;
+                            try {
+                                JsonObject proxyConf = ConfigUtil.readYamlConfig(proxyConfName, VertxHolder.getVertxInstance())
+                                        .toCompletionStage().toCompletableFuture().get(10, TimeUnit.SECONDS);
+                                JsonArray proxyList = proxyConf.getJsonArray("proxy");
+                                if (proxyList != null && !proxyList.isEmpty()) {
+                                    int pagePort = proxyList.getJsonObject(0).getInteger("listen", 6401);
+                                    pageAddr = "http://127.0.0.1:" + pagePort;
+                                }
+                            } catch (Exception e) {
+                                log.warn("读取代理配置失败，使用默认页面地址: {}", e.getMessage());
+                            }
+                            loadPlaygroundParsers(pageAddr);
                             System.out.println("启动成功: \n本地服务地址: " + addr);
                         });
                     });
