@@ -183,10 +183,10 @@ public class AppMain {
                     }
                 }
                 log.info("演练场解析器加载完成，共加载 {} 个解析器", loadedCount);
-                log.info("服务已启动，可通过 {} 访问页面", accessAddr);
             } else {
                 log.info("未找到已发布的演练场解析器");
             }
+            log.info("服务已启动，可通过 {} 访问页面", accessAddr);
         }).onFailure(e -> {
             log.error("加载演练场解析器列表失败", e);
         });

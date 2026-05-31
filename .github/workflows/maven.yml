@@ -165,10 +165,10 @@ jobs:
         if [ -z "$RAW_MODULES" ] || [[ "$RAW_MODULES" == *"Missing"* ]] || [[ "$RAW_MODULES" == *"Error"* ]]; then
           RAW_MODULES="java.base,java.logging,java.sql,java.naming,java.management,java.xml,jdk.unsupported,java.net.http,java.instrument,java.security.jgss,java.security.sasl,java.desktop,jdk.crypto.ec"
           echo "jdeps 分析失败，使用回退模块列表"
+        else
+          # 补上 jdeps 无法检测的反射/SPI依赖
+          RAW_MODULES="$RAW_MODULES,java.desktop,jdk.crypto.ec"
         fi
-
-        # 补上 jdeps 无法检测的反射/SPI依赖
-        RAW_MODULES="$RAW_MODULES,java.desktop,jdk.crypto.ec"
 
         echo "detected modules: $RAW_MODULES"
         printf 'JDK_MODULES=%s\n' "$RAW_MODULES" >> $GITHUB_ENV
