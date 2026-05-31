@@ -103,6 +103,15 @@ jobs:
           ghcr.io/${{ github.repository }}:${{ steps.tag.outputs.tag }}
           ghcr.io/${{ github.repository }}:latest
 
+    - name: 上传到 Release
+      if: github.event_name != 'pull_request'
+      uses: softprops/action-gh-release@v2
+      with:
+        files: web-service/target/netdisk-fast-download-bin.zip
+        tag_name: ${{ steps.tag.outputs.tag }}
+        prerelease: true
+        generate_release_notes: true
+
   # 原生环境打包 (Linux / Windows)，内置精简 JRE，解压即用
   native-package:
     name: 原生环境打包 → ${{ matrix.artifact-name }}
@@ -168,6 +177,9 @@ jobs:
           RAW_MODULES="java.base,java.logging,java.sql,java.naming,java.management,java.xml,jdk.unsupported,java.net.http,java.instrument,java.security.jgss,java.security.sasl"
           echo "jdeps 分析失败，使用回退模块列表"
         fi
+
+        # 补上 jdeps 无法检测的反射依赖（SnakeYAML 需 java.beans → java.desktop）
+        RAW_MODULES="$RAW_MODULES,java.desktop"
 
         echo "detected modules: $RAW_MODULES"
         # 确保只有一行写入 GITHUB_ENV
@@ -275,3 +287,9 @@ jobs:
       with:
         name: ${{ matrix.artifact-name }}
         path: ${{ matrix.artifact-name }}.zip
+
+    - name: 上传到 Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: ${{ matrix.artifact-name }}.zip
+        tag_name: ${{ github.ref_name }}
