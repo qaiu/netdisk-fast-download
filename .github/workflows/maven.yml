@@ -6,7 +6,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Java CI with Maven
+name: Java CI（Maven 构建 + Docker 镜像 + 原生环境打包）
 
 # The API requires write permission on the repository to submit dependencies
 permissions:
@@ -33,31 +33,33 @@ on:
 
 jobs:
   build:
-
+    name: 构建 + Docker 镜像
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - name: 检出代码
+      uses: actions/checkout@v3
 
-    - uses: actions/setup-node@v4
+    - name: 设置 Node.js 18
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
 
-    - name: Set up JDK 17
+    - name: 设置 JDK 17
       uses: actions/setup-java@v3
       with:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
 
-    - name: Build Frontend
+    - name: 构建前端
       run: cd web-front && yarn install && yarn run build
 
-    - name: Build with Maven
+    - name: Maven 编译打包
       run: mvn -B package -DskipTests --file pom.xml
 
     # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
-    - name: Update dependency graph
+    - name: 更新依赖图谱
       uses: advanced-security/maven-dependency-submission-action@v3
       if: github.event_name != 'pull_request'
       continue-on-error: true
@@ -68,12 +70,12 @@ jobs:
 #      env:
 #        GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
 
-    - name: Upload Artifact
+    - name: 上传构建产物
       uses: actions/upload-artifact@v4
       with:
         path: web-service/target/netdisk-fast-download-bin.zip
 
-    - name: Login to GitHub Container Registry
+    - name: 登录 GitHub 容器仓库
       if: github.event_name != 'pull_request'
       uses: docker/login-action@v3
       with:
@@ -81,16 +83,16 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Set up Docker Buildx
+    - name: 设置 Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Extract git tag
+    - name: 提取 Git 标签
       id: tag
       run: |
         GIT_TAG=$(git tag --points-at HEAD | head -n 1)
         echo "tag=$GIT_TAG" >> $GITHUB_OUTPUT
 
-    - name: Build and push Docker image
+    - name: 构建并推送 Docker 镜像
       if: github.event_name != 'pull_request'
       uses: docker/build-push-action@v5
       with:
@@ -103,6 +105,7 @@ jobs:
 
   # 原生环境打包 (Linux / Windows)，内置精简 JRE，解压即用
   native-package:
+    name: 原生环境打包 → ${{ matrix.artifact-name }}
     needs: build
     if: github.event_name != 'pull_request'
     strategy:
@@ -118,13 +121,15 @@ jobs:
         shell: bash
 
     steps:
-    - uses: actions/checkout@v3
+    - name: 检出代码
+      uses: actions/checkout@v3
 
-    - uses: actions/setup-node@v4
+    - name: 设置 Node.js 18
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
 
-    - name: Set up JDK 17
+    - name: 设置 JDK 17
       uses: actions/setup-java@v3
       with:
         java-version: '17'
@@ -134,16 +139,16 @@ jobs:
     # ============================================================
     # Step 1: 构建项目
     # ============================================================
-    - name: Build Frontend
+    - name: 构建前端
       run: cd web-front && yarn install && yarn run build
 
-    - name: Build with Maven
+    - name: Maven 编译打包
       run: mvn -B package -DskipTests --file pom.xml
 
     # ============================================================
     # Step 2: jdeps 分析 → 确定所需 JDK 模块
     # ============================================================
-    - name: Detect required JDK modules
+    - name: 分析所需 JDK 模块（jdeps）
       run: |
         MAIN_JAR="web-service/target/package/netdisk-fast-download.jar"
         LIB_DIR="web-service/target/package/lib"
@@ -170,7 +175,7 @@ jobs:
     # ============================================================
     # Step 3: jlink 生成精简 JRE
     # ============================================================
-    - name: Create minimal JRE (jlink)
+    - name: 生成精简 JRE（jlink）
       run: |
         echo "JAVA_HOME=$JAVA_HOME"
         echo "modules=$JDK_MODULES"
@@ -191,7 +196,7 @@ jobs:
     # ============================================================
     # Step 4: 组装包目录（和现有 zip 同结构，仅多一个 jre/）
     # ============================================================
-    - name: Assemble package directory
+    - name: 组装包目录
       run: |
         PKG="native-package/netdisk-fast-download"
         SRC="web-service/target/package"
@@ -209,7 +214,7 @@ jobs:
     # ============================================================
     # Step 5: 生成启动脚本
     # ============================================================
-    - name: Create launch scripts (Linux)
+    - name: 生成启动脚本（Linux）
       run: |
         PKG="native-package/netdisk-fast-download"
 
@@ -221,7 +226,7 @@ jobs:
 
         chmod +x "$PKG/run.sh"
 
-    - name: Create launch scripts (Windows)
+    - name: 生成启动脚本（Windows）
       run: |
         PKG="native-package/netdisk-fast-download"
 
@@ -235,13 +240,13 @@ jobs:
     # ============================================================
     # Step 6: 打包为 zip
     # ============================================================
-    - name: Zip package (Linux)
+    - name: 打包 ZIP（Linux）
       if: runner.os == 'Linux'
       run: |
         cd native-package
         zip -r "../${{ matrix.artifact-name }}.zip" netdisk-fast-download/
 
-    - name: Zip package (Windows)
+    - name: 打包 ZIP（Windows）
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
@@ -250,7 +255,7 @@ jobs:
     # ============================================================
     # Step 7: 上传产物
     # ============================================================
-    - name: Upload native package
+    - name: 上传原生安装包
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact-name }}
