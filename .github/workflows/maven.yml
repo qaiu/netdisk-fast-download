@@ -115,8 +115,6 @@ jobs:
       with:
         files: web-service/target/netdisk-fast-download-bin.zip
         tag_name: ${{ github.ref_name }}
-        prerelease: true
-        generate_release_notes: true
 
   # ================================================================
   # 阶段二-B：原生环境打包 Linux + Windows（并行）
@@ -282,3 +280,19 @@ jobs:
       with:
         files: ${{ matrix.artifact-name }}.zip
         tag_name: ${{ github.ref_name }}
+
+  # ================================================================
+  # 阶段三：生成 Release Notes（只运行一次，避免重复）
+  # ================================================================
+  release-finalize:
+    name: 生成 Release Notes
+    needs: [docker, native-package]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+    - name: 生成 Release Notes
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ github.ref_name }}
+        prerelease: true
+        generate_release_notes: true

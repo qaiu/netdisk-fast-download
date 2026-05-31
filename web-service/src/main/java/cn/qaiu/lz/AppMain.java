@@ -160,6 +160,17 @@ public class AppMain {
                     }
                 }
                 log.info("演练场解析器加载完成，共加载 {} 个解析器", loadedCount);
+                // 输出访问地址提示
+                try {
+                    JsonObject serverConf = (JsonObject) VertxHolder.getVertxInstance()
+                            .sharedData().getLocalMap(LOCAL).get(ConfigConstant.SERVER);
+                    if (serverConf != null) {
+                        int port = serverConf.getInteger("port", 6400);
+                        log.info("================================================");
+                        log.info("  服务已启动，可通过 http://127.0.0.1:{} 访问页面", port);
+                        log.info("================================================");
+                    }
+                } catch (Exception ignored) {}
             } else {
                 log.info("未找到已发布的演练场解析器");
             }
