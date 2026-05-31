@@ -268,3 +268,4 @@ jobs:
       with:
         files: ${{ matrix.artifact-name }}.zip
         tag_name: ${{ github.ref_name }}
+        generate_release_notes: true
