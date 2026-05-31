@@ -100,3 +100,158 @@ jobs:
         tags: |
           ghcr.io/${{ github.repository }}:${{ steps.tag.outputs.tag }}
           ghcr.io/${{ github.repository }}:latest
+
+  # 原生环境打包 (Linux / Windows)，内置精简 JRE，解压即用
+  native-package:
+    needs: build
+    if: github.event_name != 'pull_request'
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact-name: netdisk-fast-download-linux-amd64
+          - os: windows-latest
+            artifact-name: netdisk-fast-download-windows-amd64
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+
+    # ============================================================
+    # Step 1: 构建项目
+    # ============================================================
+    - name: Build Frontend
+      run: cd web-front && yarn install && yarn run build
+
+    - name: Build with Maven
+      run: mvn -B package -DskipTests --file pom.xml
+
+    # ============================================================
+    # Step 2: jdeps 分析 → 确定所需 JDK 模块
+    # ============================================================
+    - name: Detect required JDK modules
+      run: |
+        MAIN_JAR="web-service/target/package/netdisk-fast-download.jar"
+        LIB_DIR="web-service/target/package/lib"
+
+        # 拼接 classpath
+        CP=""
+        for jar in "$LIB_DIR"/*.jar; do
+          CP="$CP${CP:+:}$jar"
+        done
+
+        # 用 jdeps 分析模块依赖
+        RAW_MODULES=$(jdeps --print-module-deps --multi-release 17 \
+          --class-path "$CP" "$MAIN_JAR" 2>/dev/null || true)
+
+        # 如果 jdeps 分析失败，使用安全回退集合
+        if [ -z "$RAW_MODULES" ]; then
+          RAW_MODULES="java.base,java.logging,java.sql,java.naming,java.management,java.xml,jdk.unsupported,java.net.http,java.instrument,java.security.jgss,java.security.sasl"
+          echo "jdeps 分析失败，使用回退模块列表"
+        fi
+
+        echo "detected modules: $RAW_MODULES"
+        echo "JDK_MODULES=$RAW_MODULES" >> $GITHUB_ENV
+
+    # ============================================================
+    # Step 3: jlink 生成精简 JRE
+    # ============================================================
+    - name: Create minimal JRE (jlink)
+      run: |
+        echo "JAVA_HOME=$JAVA_HOME"
+        echo "modules=$JDK_MODULES"
+
+        jlink \
+          --module-path "$JAVA_HOME/jmods" \
+          --add-modules "$JDK_MODULES" \
+          --output "native-package/netdisk-fast-download/jre" \
+          --strip-debug \
+          --compress=2 \
+          --no-header-files \
+          --no-man-pages
+
+        # 打印 JRE 大小
+        echo "JRE size:"
+        du -sh native-package/netdisk-fast-download/jre || true
+
+    # ============================================================
+    # Step 4: 组装包目录（和现有 zip 同结构，仅多一个 jre/）
+    # ============================================================
+    - name: Assemble package directory
+      run: |
+        PKG="native-package/netdisk-fast-download"
+        SRC="web-service/target/package"
+
+        # 拷贝应用文件
+        cp "$SRC/netdisk-fast-download.jar" "$PKG/"
+        cp -r "$SRC/lib"         "$PKG/"
+        cp -r "$SRC/resources"   "$PKG/"
+        cp -r "$SRC/webroot"     "$PKG/"
+
+        # 创建运行时目录
+        mkdir -p "$PKG/db"
+        mkdir -p "$PKG/logs"
+
+    # ============================================================
+    # Step 5: 生成启动脚本
+    # ============================================================
+    - name: Create launch scripts (Linux)
+      run: |
+        PKG="native-package/netdisk-fast-download"
+
+        cat > "$PKG/run.sh" << 'SCRIPT'
+        #!/bin/bash
+        DIR="$(cd "$(dirname "$0")" && pwd)"
+        exec "$DIR/jre/bin/java" -Xmx512M -Dfile.encoding=utf-8 -jar "$DIR/netdisk-fast-download.jar" "$@"
+        SCRIPT
+
+        chmod +x "$PKG/run.sh"
+
+    - name: Create launch scripts (Windows)
+      run: |
+        PKG="native-package/netdisk-fast-download"
+
+        cat > "$PKG/run.bat" << 'SCRIPT'
+        @echo off
+        chcp 65001 > nul
+        pushd %~dp0
+        "%~dp0jre\bin\java.exe" -Xmx512M -Dfile.encoding=utf-8 -jar "%~dp0netdisk-fast-download.jar" %*
+        SCRIPT
+
+    # ============================================================
+    # Step 6: 打包为 zip
+    # ============================================================
+    - name: Zip package (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        cd native-package
+        zip -r "../${{ matrix.artifact-name }}.zip" netdisk-fast-download/
+
+    - name: Zip package (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        Compress-Archive -Path native-package/netdisk-fast-download/* -DestinationPath "${{ matrix.artifact-name }}.zip"
+
+    # ============================================================
+    # Step 7: 上传产物
+    # ============================================================
+    - name: Upload native package
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact-name }}
+        path: ${{ matrix.artifact-name }}.zip
