@@ -12,7 +12,6 @@ import cn.qaiu.parser.customjs.JsScriptMetadataParser;
 import cn.qaiu.vx.core.Deploy;
 import cn.qaiu.vx.core.util.AsyncServiceUtil;
 import cn.qaiu.vx.core.util.ConfigConstant;
-import cn.qaiu.vx.core.util.ConfigUtil;
 import cn.qaiu.vx.core.util.VertxHolder;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.vertx.core.json.JsonArray;
@@ -22,8 +21,9 @@ import io.vertx.core.shareddata.LocalMap;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.time.DateFormatUtils;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Date;
-import java.util.concurrent.TimeUnit;
 
 import static cn.qaiu.vx.core.util.ConfigConstant.LOCAL;
 
@@ -84,16 +84,24 @@ public class AppMain {
                             if (addr == null || addr.isBlank()) {
                                 addr = "http://127.0.0.1:" + jsonObject.getJsonObject(ConfigConstant.SERVER).getInteger("port", 6400);
                             }
-                            // 读取代理配置获取前端页面端口
+                            // 读取代理配置获取前端页面端口（同步读文件，避免阻塞 event loop）
                             String proxyConfName = jsonObject.getString("proxyConf", "server-proxy");
                             String pageAddr = addr;
                             try {
-                                JsonObject proxyConf = ConfigUtil.readYamlConfig(proxyConfName, VertxHolder.getVertxInstance())
-                                        .toCompletionStage().toCompletableFuture().get(10, TimeUnit.SECONDS);
-                                JsonArray proxyList = proxyConf.getJsonArray("proxy");
-                                if (proxyList != null && !proxyList.isEmpty()) {
-                                    int pagePort = proxyList.getJsonObject(0).getInteger("listen", 6401);
-                                    pageAddr = "http://127.0.0.1:" + pagePort;
+                                String configFile = proxyConfName + ".yml";
+                                Path configPath = Path.of("resources", configFile);
+                                if (!Files.exists(configPath)) {
+                                    configPath = Path.of(configFile);
+                                }
+                                if (Files.exists(configPath)) {
+                                    String yamlContent = Files.readString(configPath);
+                                    int listenIdx = yamlContent.indexOf("listen:");
+                                    if (listenIdx > 0) {
+                                        int endIdx = yamlContent.indexOf('\n', listenIdx);
+                                        String portStr = yamlContent.substring(listenIdx + 7, endIdx).trim();
+                                        int pagePort = Integer.parseInt(portStr);
+                                        pageAddr = "http://127.0.0.1:" + pagePort;
+                                    }
                                 }
                             } catch (Exception e) {
                                 log.warn("读取代理配置失败，使用默认页面地址: {}", e.getMessage());
