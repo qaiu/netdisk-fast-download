@@ -67,11 +67,12 @@ public class GenShortUrl extends PanBase {
                     String shortUrl = extractShortUrl(comment);
                     if (shortUrl != null) {
                         log.info("生成的短链：{}", shortUrl);
+                        // 先完成 promise，返回短链
+                        promise.complete(shortUrl);
+                        // 异步清理评论（best-effort，不影响结果）
                         String commentId = extractCommentId(comment);
                         if (commentId != null) {
                             deleteComment(commentId);
-                        } else {
-                            promise.fail("未能提取评论ID");
                         }
                     } else {
                         promise.fail("未能生成短链");

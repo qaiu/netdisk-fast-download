@@ -239,7 +239,6 @@ public class PlaygroundApi {
             }
 
             long startTime = System.currentTimeMillis();
-            JsPlaygroundExecutor executor = null;
 
             try {
                 // 创建ShareLinkInfo
@@ -249,8 +248,8 @@ public class PlaygroundApi {
                 }
                 ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();
 
-                // 创建演练场执行器
-                executor = new JsPlaygroundExecutor(shareLinkInfo, jsCode);
+                // 创建演练场执行器（使用 final 变量以便在 lambda 中使用）
+                final JsPlaygroundExecutor executor = new JsPlaygroundExecutor(shareLinkInfo, jsCode);
 
                 // 根据方法类型选择执行，并异步处理结果
                 Future<Object> executionFuture;
@@ -265,20 +264,21 @@ public class PlaygroundApi {
                         executionFuture = executor.executeParseByIdAsync().map(r -> (Object) r);
                         break;
                     default:
+                        executor.close();
                         promise.fail(new IllegalArgumentException("未知的方法类型: " + method));
                         return promise.future();
                 }
 
                 // 异步处理执行结果
                 executionFuture.onSuccess(result -> {
-                    log.debug("执行成功，结果类型: {}, 结果值: {}", 
-                            result != null ? result.getClass().getSimpleName() : "null", 
+                    log.debug("执行成功，结果类型: {}, 结果值: {}",
+                            result != null ? result.getClass().getSimpleName() : "null",
                             result);
-                    
+
                     // 获取日志
                     List<JsPlaygroundLogger.LogEntry> logEntries = executor.getLogs();
                     log.debug("获取到 {} 条日志记录", logEntries.size());
-                    
+
                     List<PlaygroundTestResp.LogEntry> respLogs = logEntries.stream()
                             .map(entry -> PlaygroundTestResp.LogEntry.builder()
                                     .level(entry.getLevel())
@@ -335,11 +335,6 @@ public class PlaygroundApi {
                 String errorMessage = e.getMessage();
 
                 log.error("演练场初始化失败", e);
-
-                // 如果 executor 已创建，释放资源
-                if (executor != null) {
-                    executor.close();
-                }
 
                 PlaygroundTestResp response = PlaygroundTestResp.builder()
                         .success(false)

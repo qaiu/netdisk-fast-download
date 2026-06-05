@@ -136,11 +136,13 @@ public class LzTool extends PanBase {
             // 没有密码
             String iframePath = matcher.group(1);
             String absoluteURI = SHARE_URL_PREFIX + iframePath;
-            webClientSession.getAbs(absoluteURI).putHeaders(headers0).send().onSuccess(res2 -> {
+            // 创建局部副本，避免修改实例字段导致累积
+            MultiMap headersCopy = MultiMap.caseInsensitiveMultiMap().addAll(headers0);
+            headersCopy.add("Referer", absoluteURI);
+            webClientSession.getAbs(absoluteURI).putHeaders(headersCopy).send().onSuccess(res2 -> {
                 String html2 = asText(res2);
                 String jsText = getJsText(html2);
                 if (jsText == null) {
-                    headers0.add("Referer", absoluteURI);
                     setCookie(html2, absoluteURI);
                     webClientSession.getAbs(absoluteURI).send().onSuccess(res3 -> {
                         String html3 = asText(res3);
