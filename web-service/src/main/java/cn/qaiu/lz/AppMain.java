@@ -51,6 +51,11 @@ public class AppMain {
             } catch (Exception e) {
                 // ignore
             }
+            try {
+                cn.qaiu.parser.customjs.JsPlaygroundExecutor.shutdownPools();
+            } catch (Exception e) {
+                // ignore
+            }
         }));
         // start
         Deploy.instance().start(args, AppMain::exec);

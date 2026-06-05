@@ -155,12 +155,21 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
         if (httpClient != null) {
             httpClient.close();
         }
-        // 清除 ScriptEngine 持有的 Java 对象引用，帮助 GC 回收
+        // 清除 ScriptEngine 持有的所有引用和内部状态，帮助 GC 回收
         if (engine != null) {
-            engine.put("http", null);
-            engine.put("logger", null);
-            engine.put("shareLinkInfo", null);
-            engine.put("JavaFetch", null);
+            try {
+                engine.put("http", null);
+                engine.put("logger", null);
+                engine.put("shareLinkInfo", null);
+                engine.put("JavaFetch", null);
+                // 彻底清除 ENGINE_SCOPE bindings，释放 JS AST、编译函数、闭包等运行时状态
+                var bindings = engine.getBindings(javax.script.ScriptContext.ENGINE_SCOPE);
+                if (bindings != null) {
+                    bindings.clear();
+                }
+            } catch (Exception e) {
+                log.warn("清理 ScriptEngine bindings 失败: {}", e.getMessage());
+            }
         }
     }
 

@@ -43,6 +43,15 @@ public class JsPlaygroundExecutor implements AutoCloseable {
         thread.setDaemon(true);
         return thread;
     });
+
+    /**
+     * 关闭静态线程池（应在应用关闭时调用）
+     */
+    public static void shutdownPools() {
+        INDEPENDENT_EXECUTOR.shutdownNow();
+        TIMEOUT_SCHEDULER.shutdownNow();
+        log.info("JsPlaygroundExecutor 线程池已关闭");
+    }
     
     private final ShareLinkInfo shareLinkInfo;
     private final String jsCode;

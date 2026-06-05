@@ -39,11 +39,19 @@ import java.util.regex.Pattern;
  * Create at 2025/10/17
  */
 public class JsHttpClient {
-    
+
     private static final Logger log = LoggerFactory.getLogger(JsHttpClient.class);
-    
+
+    // 共享 WebClient 实例（非代理模式），避免每次请求创建新连接池
+    private static final WebClient SHARED_CLIENT = WebClient.create(WebClientVertxInit.get(),
+            new WebClientOptions()
+                    .setConnectTimeout(10000)
+                    .setIdleTimeout(30)
+                    .setIdleTimeoutUnit(TimeUnit.SECONDS));
+
     private final WebClient client;
     private final WebClientSession clientSession;
+    private final boolean ownClient; // 标记是否为自建 client（需要 close）
     private MultiMap headers;
     private int timeoutSeconds = 30; // 默认超时时间30秒
     
@@ -61,7 +69,8 @@ public class JsHttpClient {
     };
     
     public JsHttpClient() {
-        this.client = WebClient.create(WebClientVertxInit.get(), new WebClientOptions());
+        this.client = SHARED_CLIENT;
+        this.ownClient = false;
         this.clientSession = WebClientSession.create(client);
         this.headers = MultiMap.caseInsensitiveMultiMap();
         // 设置默认的Accept-Encoding头以支持压缩响应
@@ -82,21 +91,26 @@ public class JsHttpClient {
                     .setType(ProxyType.valueOf(proxyConfig.getString("type").toUpperCase()))
                     .setHost(proxyConfig.getString("host"))
                     .setPort(proxyConfig.getInteger("port"));
-            
+
             if (StringUtils.isNotEmpty(proxyConfig.getString("username"))) {
                 proxyOptions.setUsername(proxyConfig.getString("username"));
             }
             if (StringUtils.isNotEmpty(proxyConfig.getString("password"))) {
                 proxyOptions.setPassword(proxyConfig.getString("password"));
             }
-            
+
             this.client = WebClient.create(WebClientVertxInit.get(),
                     new WebClientOptions()
+                            .setConnectTimeout(10000)
+                            .setIdleTimeout(30)
+                            .setIdleTimeoutUnit(TimeUnit.SECONDS)
                             .setUserAgentEnabled(false)
                             .setProxyOptions(proxyOptions));
+            this.ownClient = true;
             this.clientSession = WebClientSession.create(client);
         } else {
-            this.client = WebClient.create(WebClientVertxInit.get());
+            this.client = SHARED_CLIENT;
+            this.ownClient = false;
             this.clientSession = WebClientSession.create(client);
         }
         this.headers = MultiMap.caseInsensitiveMultiMap();
@@ -524,10 +538,11 @@ public class JsHttpClient {
      * 执行HTTP请求（同步）
      */
     private JsHttpResponse executeRequest(RequestExecutor executor) {
+        Future<HttpResponse<Buffer>> future = null;
         try {
             Promise<HttpResponse<Buffer>> promise = Promise.promise();
-            Future<HttpResponse<Buffer>> future = executor.execute();
-            
+            future = executor.execute();
+
             future.onComplete(result -> {
                 if (result.succeeded()) {
                     promise.complete(result.result());
@@ -540,10 +555,14 @@ public class JsHttpClient {
             HttpResponse<Buffer> response = promise.future().toCompletionStage()
                     .toCompletableFuture()
                     .get(timeoutSeconds, TimeUnit.SECONDS);
-            
+
             return new JsHttpResponse(response);
-            
+
         } catch (TimeoutException e) {
+            // 超时时取消底层 Vert.x future，释放连接和 Buffer 引用
+            if (future != null) {
+                future.onComplete(ar -> {}); // 移除之前的 handler，防止泄漏
+            }
             String errorMsg = "HTTP请求超时（" + timeoutSeconds + "秒）";
             log.error(errorMsg, e);
             throw new RuntimeException(errorMsg, e);
@@ -680,9 +699,10 @@ public class JsHttpClient {
 
     /**
      * 关闭 WebClient 释放连接池资源
+     * 仅关闭自建的 client（代理模式），共享实例不关闭
      */
     public void close() {
-        if (client != null) {
+        if (ownClient && client != null) {
             client.close();
         }
     }
