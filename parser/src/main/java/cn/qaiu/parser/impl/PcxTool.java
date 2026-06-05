@@ -14,6 +14,25 @@ import java.util.regex.Pattern;
  */
 public class PcxTool extends PanBase {
 
+    private static final Pattern TITLE_PATTERN =
+            Pattern.compile("<title>([^<]+)</title>");
+    private static final Pattern FILENAME_INPUT_PATTERN =
+            Pattern.compile("<input id=\"filename\" type=\"hidden\" value=\"([^\"]+)\"");
+    private static final Pattern FILESIZE_PATTERN =
+            Pattern.compile("['\"]filesize['\"]\\s*:\\s*['\"]([^'\"]+)['\"]");
+    private static final Pattern SUFFIX_PATTERN =
+            Pattern.compile("['\"]suffix['\"]\\s*:\\s*['\"]([^'\"]+)['\"]");
+    private static final Pattern OBJECT_ID_PATTERN =
+            Pattern.compile("['\"]objectId['\"]\\s*:\\s*['\"]([^'\"]+)['\"]");
+    private static final Pattern CREATOR_PATTERN =
+            Pattern.compile("['\"]creator['\"]\\s*:\\s*['\"]([^'\"]+)['\"]");
+    private static final Pattern UPLOAD_DATE_PATTERN =
+            Pattern.compile("['\"]uploadDate['\"]\\s*:\\s*(\\d+)");
+    private static final Pattern THUMBNAIL_PATTERN =
+            Pattern.compile("['\"]thumbnail['\"]\\s*:\\s*['\"]([^'\"]+)['\"]");
+    private static final Pattern DOWNLOAD_PATTERN =
+            Pattern.compile("['\"]download['\"]\\s*:\\s*['\"]([^'\"]+)['\"]");
+
     public PcxTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
     }
@@ -44,9 +63,7 @@ public class PcxTool extends PanBase {
      * 从HTML中提取download链接
      */
     private String extractDownloadUrl(String html) {
-        // 匹配 'download': 'https://xxx' 或 "download": "https://xxx"
-        Pattern pattern = Pattern.compile("['\"]download['\"]\\s*:\\s*['\"]([^'\"]+)['\"]");
-        Matcher matcher = pattern.matcher(html);
+        Matcher matcher = DOWNLOAD_PATTERN.matcher(html);
         if (matcher.find()) {
             return matcher.group(1);
         }
@@ -61,13 +78,13 @@ public class PcxTool extends PanBase {
             FileInfo fileInfo = new FileInfo();
             
             // 提取文件名：从<title>标签或文件名input
-            String fileName = extractByRegex(html, "<title>([^<]+)</title>");
+            String fileName = extractByRegex(html, TITLE_PATTERN);
             if (fileName == null) {
-                fileName = extractByRegex(html, "<input id=\"filename\" type=\"hidden\" value=\"([^\"]+)\"");
+                fileName = extractByRegex(html, FILENAME_INPUT_PATTERN);
             }
             
             // 提取文件大小：'filesize': 'xxx' 或 "filesize": "xxx"
-            String fileSizeStr = extractByRegex(html, "['\"]filesize['\"]\\s*:\\s*['\"]([^'\"]+)['\"]");
+            String fileSizeStr = extractByRegex(html, FILESIZE_PATTERN);
             Long fileSize = null;
             if (fileSizeStr != null) {
                 try {
@@ -76,19 +93,19 @@ public class PcxTool extends PanBase {
             }
             
             // 提取文件类型/后缀：'suffix': 'xxx' 或 "suffix": "xxx"
-            String suffix = extractByRegex(html, "['\"]suffix['\"]\\s*:\\s*['\"]([^'\"]+)['\"]");
+            String suffix = extractByRegex(html, SUFFIX_PATTERN);
             
             // 提取objectId（文件ID）：'objectId': 'xxx' 或 "objectId": "xxx"
-            String objectId = extractByRegex(html, "['\"]objectId['\"]\\s*:\\s*['\"]([^'\"]+)['\"]");
+            String objectId = extractByRegex(html, OBJECT_ID_PATTERN);
             
             // 提取创建者：'creator': 'xxx' 或 "creator": "xxx"
-            String creator = extractByRegex(html, "['\"]creator['\"]\\s*:\\s*['\"]([^'\"]+)['\"]");
+            String creator = extractByRegex(html, CREATOR_PATTERN);
             
             // 提取上传时间：'uploadDate': timestamp
-            String uploadDate = extractByRegex(html, "['\"]uploadDate['\"]\\s*:\\s*(\\d+)");
+            String uploadDate = extractByRegex(html, UPLOAD_DATE_PATTERN);
             
             // 提取缩略图：'thumbnail': 'xxx' 或 "thumbnail": "xxx"
-            String thumbnail = extractByRegex(html, "['\"]thumbnail['\"]\\s*:\\s*['\"]([^'\"]+)['\"]");
+            String thumbnail = extractByRegex(html, THUMBNAIL_PATTERN);
             
             // 设置文件信息
             if (fileName != null) {
@@ -141,8 +158,7 @@ public class PcxTool extends PanBase {
     /**
      * 使用正则表达式提取内容
      */
-    private String extractByRegex(String text, String regex) {
-        Pattern pattern = Pattern.compile(regex);
+    private String extractByRegex(String text, Pattern pattern) {
         Matcher matcher = pattern.matcher(text);
         if (matcher.find()) {
             return matcher.group(1);

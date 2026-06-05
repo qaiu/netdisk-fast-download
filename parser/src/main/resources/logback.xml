@@ -37,10 +37,10 @@
 
     <!-- 将文件输出设置成异步输出 -->
     <appender name="ASYNC-FILE" class="ch.qos.logback.classic.AsyncAppender">
-        <!-- 不丢失日志.默认的,如果队列的80%已满,则会丢弃TRACT、DEBUG、INFO级别的日志 -->
-        <discardingThreshold>0</discardingThreshold>
+        <!-- 队列剩余 20% 时开始丢弃 TRACE/DEBUG/INFO 级别日志，避免阻塞调用线程 -->
+        <discardingThreshold>20</discardingThreshold>
         <!-- 更改默认的队列的深度,该值会影响性能.默认值为256 -->
-        <queueSize>256</queueSize>
+        <queueSize>512</queueSize>
         <!-- 添加附加的appender,最多只能添加一个 -->
         <appender-ref ref="FILE"/>
     </appender>

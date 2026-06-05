@@ -239,6 +239,7 @@ public class PlaygroundApi {
             }
 
             long startTime = System.currentTimeMillis();
+            JsPlaygroundExecutor executor = null;
 
             try {
                 // 创建ShareLinkInfo
@@ -249,7 +250,7 @@ public class PlaygroundApi {
                 ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();
 
                 // 创建演练场执行器
-                JsPlaygroundExecutor executor = new JsPlaygroundExecutor(shareLinkInfo, jsCode);
+                executor = new JsPlaygroundExecutor(shareLinkInfo, jsCode);
 
                 // 根据方法类型选择执行，并异步处理结果
                 Future<Object> executionFuture;
@@ -300,6 +301,7 @@ public class PlaygroundApi {
                     JsonObject jsonResponse = JsonObject.mapFrom(response);
                     log.debug("测试成功响应: {}", jsonResponse.encodePrettily());
                     promise.complete(jsonResponse);
+                    executor.close(); // 释放资源
                 }).onFailure(e -> {
                     long executionTime = System.currentTimeMillis() - startTime;
                     String errorMessage = e.getMessage();
@@ -325,6 +327,7 @@ public class PlaygroundApi {
                             .build();
 
                     promise.complete(JsonObject.mapFrom(response));
+                    executor.close(); // 释放资源
                 });
 
             } catch (Exception e) {
@@ -332,6 +335,11 @@ public class PlaygroundApi {
                 String errorMessage = e.getMessage();
 
                 log.error("演练场初始化失败", e);
+
+                // 如果 executor 已创建，释放资源
+                if (executor != null) {
+                    executor.close();
+                }
 
                 PlaygroundTestResp response = PlaygroundTestResp.builder()
                         .success(false)

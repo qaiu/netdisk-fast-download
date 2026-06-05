@@ -19,6 +19,8 @@ public class MkwTool extends PanBase {
 
     public static final String API_URL = "https://www.kuwo.cn/api/v1/www/music/playUrl?mid={mid}&type=music&httpsStatus=1&reqId=&plat=web_www&from=";
 
+    private static final Pattern COOKIE_PATTERN = Pattern.compile("([A-Za-z0-9_]+)=([A-Za-z0-9]+)");
+
 
     public MkwTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
@@ -31,9 +33,7 @@ public class MkwTool extends PanBase {
 
             if (cookie != null && !cookie.isEmpty()) {
 
-                String regex = "([A-Za-z0-9_]+)=([A-Za-z0-9]+)";
-                Pattern pattern = Pattern.compile(regex);
-                Matcher matcher = pattern.matcher(cookie);
+                Matcher matcher = COOKIE_PATTERN.matcher(cookie);
                 if (matcher.find()) {
                     log.debug("cookie key: {}", matcher.group(1));
                     log.debug("cookie value: {}", matcher.group(2));

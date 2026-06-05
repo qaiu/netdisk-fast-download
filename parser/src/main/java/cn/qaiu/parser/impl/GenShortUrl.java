@@ -31,6 +31,9 @@ public class GenShortUrl extends PanBase {
     private static final String WRAPPER_URL = "https://www.so.com/link?m=ewgUSYiFWXIoTybC3fJH8YoJy8y10iRquo6cazgINwWjTn3HvVJ92TrCJu0PmMUR0RMDfOAucP3wa4G8j64SrhNH9Z0Cr0PEyn9ASuvpkUGmAjjUEGJkO5%2BIDGWVrEkPHsL7UsoKO6%2BlT%2BD6r&ccc=";
     private static final String MID = "5095144728824883";  // 微博的mid
 
+    private static final Pattern SHORT_URL_PATTERN = Pattern.compile("(https?)://t.cn/\\w+");
+    private static final Pattern COMMENT_ID_PATTERN = Pattern.compile("comment_id=\"(\\d+)\"");
+
     private static final MultiMap HEADER = HeadersMultiMap.headers()
             .add("Content-Type", "application/x-www-form-urlencoded")
             .add("Referer", "https://www.weibo.com")
@@ -103,8 +106,7 @@ public class GenShortUrl extends PanBase {
     }
 
     private String extractShortUrl(String comment) {
-        Pattern pattern = Pattern.compile("(https?)://t.cn/\\w+");
-        Matcher matcher = pattern.matcher(comment);
+        Matcher matcher = SHORT_URL_PATTERN.matcher(comment);
         if (matcher.find()) {
             return matcher.group(0);
         }
@@ -112,8 +114,7 @@ public class GenShortUrl extends PanBase {
     }
 
     private String extractCommentId(String comment) {
-        Pattern pattern = Pattern.compile("comment_id=\"(\\d+)\"");
-        Matcher matcher = pattern.matcher(comment);
+        Matcher matcher = COMMENT_ID_PATTERN.matcher(comment);
         if (matcher.find()) {
             return matcher.group(1);
         }

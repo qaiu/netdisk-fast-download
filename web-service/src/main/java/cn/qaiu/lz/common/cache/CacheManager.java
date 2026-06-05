@@ -125,7 +125,8 @@ public class CacheManager {
                                         }
                                     }).onFailure(e -> LOGGER.error("文件信息插入失败", e));
                         }
-                    });
+                    })
+                    .onFailure(e -> LOGGER.error("查询文件信息缓存失败: shareKey={}", cacheLinkInfo.getShareKey(), e));
         }
     }
 
@@ -205,21 +206,56 @@ public class CacheManager {
 
     /**
      * 清理过期缓存记录，防止数据库无限增长
-     * @return 删除的行数
+     * 包括：
+     * 1. 清理 cache_link_info 中过期的记录
+     * 2. 清理 pan_file_info 中孤立的记录（对应的 cache_link_info 已被删除）
+     * @return 删除的总行数
      */
     public Future<Integer> cleanupExpiredCache() {
-        String sql = "DELETE FROM cache_link_info WHERE expiration > 0 AND expiration < #{now}";
-        Map<String, Object> params = new HashMap<>();
-        params.put("now", System.currentTimeMillis());
         Promise<Integer> promise = Promise.promise();
-        SqlTemplate.forUpdate(jdbcPool, sql)
+        long now = System.currentTimeMillis();
+
+        // 第一步：清理 cache_link_info 中过期的记录
+        String sqlDeleteExpired = "DELETE FROM cache_link_info WHERE expiration > 0 AND expiration < #{now}";
+        Map<String, Object> params = new HashMap<>();
+        params.put("now", now);
+
+        SqlTemplate.forUpdate(jdbcPool, sqlDeleteExpired)
                 .execute(params)
                 .onSuccess(res -> {
-                    int deleted = res.rowCount();
-                    if (deleted > 0) {
-                        LOGGER.info("清理过期缓存记录 {} 条", deleted);
+                    int deletedCache = res.rowCount();
+                    if (deletedCache > 0) {
+                        LOGGER.info("清理过期缓存记录 {} 条", deletedCache);
                     }
-                    promise.complete(deleted);
+
+                    // 第二步：清理 pan_file_info 中孤立的记录
+                    // 使用 share_key 关联，create_time 使用字符串格式比较（yyyy-MM-dd HH:mm:ss）
+                    String sqlDeleteOrphans = """
+                            DELETE FROM pan_file_info
+                            WHERE share_key NOT IN (
+                                SELECT DISTINCT share_key FROM cache_link_info WHERE share_key IS NOT NULL
+                            )
+                            AND create_time < #{thresholdTime}
+                            """;
+                    Map<String, Object> orphanParams = new HashMap<>();
+                    // 计算1天前的时间，转换为 yyyy-MM-dd HH:mm:ss 格式
+                    java.time.LocalDateTime thresholdTime = java.time.LocalDateTime.now().minusDays(1);
+                    orphanParams.put("thresholdTime", thresholdTime.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+
+                    SqlTemplate.forUpdate(jdbcPool, sqlDeleteOrphans)
+                            .execute(orphanParams)
+                            .onSuccess(res2 -> {
+                                int deletedOrphans = res2.rowCount();
+                                if (deletedOrphans > 0) {
+                                    LOGGER.info("清理孤立文件信息记录 {} 条", deletedOrphans);
+                                }
+                                promise.complete(deletedCache + deletedOrphans);
+                            })
+                            .onFailure(e -> {
+                                LOGGER.warn("清理孤立文件信息记录失败（不影响主流程）", e);
+                                // 即使孤立记录清理失败，也返回已删除的缓存记录数
+                                promise.complete(deletedCache);
+                            });
                 })
                 .onFailure(e -> {
                     LOGGER.error("清理过期缓存失败", e);
