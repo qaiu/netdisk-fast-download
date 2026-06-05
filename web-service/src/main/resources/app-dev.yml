@@ -74,28 +74,54 @@ cache:
   type: h2db
   # 默认时长: 单位分钟，大部分网盘未严格验证，建议不要太大
   defaultDuration: 5
-  # 具体网盘的缓存配置，如果不加配置则不缓存，每次请求都会请求网盘API，格式：网盘标识: 时长
+  # 具体网盘的缓存配置（单位：分钟）
+  # - 配置 key 且有值（如 le: 2879）：使用指定时长
+  # - 配置 key 但无值（如 fc:）：使用上面的 defaultDuration
+  # - 未配置的 key：不缓存，每次都请求网盘API
+  # 格式：网盘标识: 时长
   duration:
-    ce: 5
-    cow: 5
-    ec: 5
-    fc:
-    fj: 20
-    iz: 20
-    le: 2879
-    lz: 20
-    qq: 9999999
-    qqw: 30
-    ws: 10
-    ye: -1
-    mne: 30
-    mqq: 30
-    mkg: 30
-    p115: 30
-    ct: 30
-    qishui_music: 5
-    baidu_photo: 5
-    migu: 5
+    # ---- 网盘类 ----
+    ce: 5                # Cloudreve
+    cow: 5               # 奶牛快传
+    ct: 30               # 城通网盘
+    ec: 5                # 移动云空间
+    fc:                  # 亿方云
+    fj: 20               # 小飞机网盘
+    fs:                  # 飞书云盘
+    iz: 20               # 蓝奏云优享
+    kd:                  # 可道云
+    le: 2879             # 联想乐云
+    lz: 20               # 蓝奏云
+    other:               # 其他网盘
+    p115: 30             # 115网盘
+    pdb:                 # Dropbox
+    pcx:                 # 超星云盘（需要 referer 头）
+    pgd:                 # Google Drive
+    pic:                 # iCloud
+    pod:                 # OneDrive
+    pvyy:                # 微雨云存储
+    pwps:                # WPS云文档
+    qk:                  # 夸克网盘
+    qq: 9999999          # QQ邮箱中转站 (iwx.mail.qq.com/ftn/download)
+    qqsc:                # QQ闪传 (qfile.qq.com)
+    qqw: 30              # QQ邮箱云盘 (wx.mail.qq.com/s)
+    uc:                  # UC网盘
+    ws: 10               # 文叔叔
+    ye: -1               # 123网盘
+
+    # ---- 音乐类 ----
+    baidu_photo: 5       # 百度网盘相册
+    migu: 5              # 咪咕音乐
+    mkg: 30              # 酷狗音乐
+    mkgs:                # 酷狗音乐分享短链
+    mkgs2:               # 酷狗音乐分享2（share/*.html）
+    mkws:                # 酷我音乐分享
+    mmgs:                # 咪咕音乐分享短链
+    mne: 30              # 网易云音乐
+    mnes:                # 网易云音乐分享短链
+    mqq: 30              # QQ音乐
+    mqqs:                # QQ音乐分享短链
+    qishui_music: 5      # 汽水音乐
 
 # httpClient静态代理服务器配置(外网代理)
 proxy:
