@@ -248,25 +248,31 @@ public class PlaygroundApi {
                 }
                 ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();
 
-                // 创建演练场执行器（使用 final 变量以便在 lambda 中使用）
+                // 创建演练场执行器
                 final JsPlaygroundExecutor executor = new JsPlaygroundExecutor(shareLinkInfo, jsCode);
 
                 // 根据方法类型选择执行，并异步处理结果
                 Future<Object> executionFuture;
-                switch (method) {
-                    case "parse":
-                        executionFuture = executor.executeParseAsync().map(r -> (Object) r);
-                        break;
-                    case "parseFileList":
-                        executionFuture = executor.executeParseFileListAsync().map(r -> (Object) r);
-                        break;
-                    case "parseById":
-                        executionFuture = executor.executeParseByIdAsync().map(r -> (Object) r);
-                        break;
-                    default:
-                        executor.close();
-                        promise.fail(new IllegalArgumentException("未知的方法类型: " + method));
-                        return promise.future();
+                try {
+                    switch (method) {
+                        case "parse":
+                            executionFuture = executor.executeParseAsync().map(r -> (Object) r);
+                            break;
+                        case "parseFileList":
+                            executionFuture = executor.executeParseFileListAsync().map(r -> (Object) r);
+                            break;
+                        case "parseById":
+                            executionFuture = executor.executeParseByIdAsync().map(r -> (Object) r);
+                            break;
+                        default:
+                            executor.close();
+                            promise.fail(new IllegalArgumentException("未知的方法类型: " + method));
+                            return promise.future();
+                    }
+                } catch (Exception ex) {
+                    // 同步异常路径：executor 已创建但 Future 未注册，需要手动关闭
+                    executor.close();
+                    throw ex;
                 }
 
                 // 异步处理执行结果

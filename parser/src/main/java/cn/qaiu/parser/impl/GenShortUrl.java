@@ -37,7 +37,6 @@ public class GenShortUrl extends PanBase {
     private static final MultiMap HEADER = HeadersMultiMap.headers()
             .add("Content-Type", "application/x-www-form-urlencoded")
             .add("Referer", "https://www.weibo.com")
-            .add("Content-Type", "application/x-www-form-urlencoded")
             .add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36");
 
     Cookie cookie = new DefaultCookie("SUB", "_2A25KJE5vDeRhGeRJ6lsR9SjJzDuIHXVpWM-nrDV8PUJbkNAbLVPlkW1NUmJm3GjYtRHBsHdMUKafkdTL_YheMEmu");
