@@ -339,10 +339,14 @@ public class LeTool extends PanBase {
     }
 
     /**
-     * 通过 directDownload 接口获取下载链接（用于 parse）
+     * 通过 directDownload 接口获取下载链接
      * 相比 packageDownloadWithFileIds 少一次请求，直接返回302
+     *
+     * @param shareId 分享ID
+     * @param fileId 文件ID
+     * @param promise 完成时会写入此 promise
      */
-    private void getDownURLDirect(String shareId, String fileId) {
+    private void getDownURLDirect(String shareId, String fileId, Promise<String> promise) {
         String uuid = UUID.randomUUID().toString();
         String apiUrl = API_URL_PREFIX + "directDownload"
                 + "?shareId=" + shareId
@@ -357,35 +361,14 @@ public class LeTool extends PanBase {
                 if (location != null && !location.isEmpty()) {
                     promise.complete(location);
                 } else {
-                    fail("directDownload 未返回有效的 Location");
+                    log.warn("directDownload 返回非302响应: shareId={}, fileId={}, statusCode={}", shareId, fileId, res.statusCode());
+                    promise.fail("directDownload 未返回有效的 Location, statusCode=" + res.statusCode());
                 }
             })
-            .onFailure(handleFail(apiUrl));
-    }
-
-    /**
-     * 通过 directDownload 接口获取下载链接（用于 parseById）
-     * 相比 packageDownloadWithFileIds 少一次请求，直接返回302
-     */
-    private void getDownURLDirectForById(String shareId, String fileId, Promise<String> promise) {
-        String uuid = UUID.randomUUID().toString();
-        String apiUrl = API_URL_PREFIX + "directDownload"
-                + "?shareId=" + shareId
-                + "&fileId=" + fileId
-                + "&browserId=" + uuid;
-
-        clientNoRedirects.getAbs(apiUrl)
-            .putHeaders(HEADERS)
-            .send()
-            .onSuccess(res -> {
-                String location = res.headers().get("Location");
-                if (location != null && !location.isEmpty()) {
-                    promise.complete(location);
-                } else {
-                    promise.fail("directDownload 未返回有效的 Location");
-                }
-            })
-            .onFailure(err -> promise.fail(err));
+            .onFailure(err -> {
+                log.warn("directDownload 请求失败: shareId={}, fileId={}, error={}", shareId, fileId, err.getMessage());
+                promise.fail(err);
+            });
     }
 
     /**
@@ -404,12 +387,12 @@ public class LeTool extends PanBase {
             if (useDirect) {
                 getDownURL(shareId, fileId);
             } else {
-                getDownURLDirect(shareId, fileId);
+                getDownURLDirect(shareId, fileId, promise);
             }
         });
 
         if (useDirect) {
-            getDownURLDirectForById(shareId, fileId, fallbackPromise);
+            getDownURLDirect(shareId, fileId, fallbackPromise);
         } else {
             getDownURLForById(shareId, fileId, fallbackPromise);
         }
@@ -431,12 +414,12 @@ public class LeTool extends PanBase {
             if (useDirect) {
                 getDownURLForById(shareId, fileId, promise);
             } else {
-                getDownURLDirectForById(shareId, fileId, promise);
+                getDownURLDirect(shareId, fileId, promise);
             }
         });
 
         if (useDirect) {
-            getDownURLDirectForById(shareId, fileId, fallbackPromise);
+            getDownURLDirect(shareId, fileId, fallbackPromise);
         } else {
             getDownURLForById(shareId, fileId, fallbackPromise);
         }
