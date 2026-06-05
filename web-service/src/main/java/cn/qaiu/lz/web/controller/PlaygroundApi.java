@@ -249,35 +249,42 @@ public class PlaygroundApi {
                 ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();
 
                 // 创建演练场执行器
-                JsPlaygroundExecutor executor = new JsPlaygroundExecutor(shareLinkInfo, jsCode);
+                final JsPlaygroundExecutor executor = new JsPlaygroundExecutor(shareLinkInfo, jsCode);
 
                 // 根据方法类型选择执行，并异步处理结果
                 Future<Object> executionFuture;
-                switch (method) {
-                    case "parse":
-                        executionFuture = executor.executeParseAsync().map(r -> (Object) r);
-                        break;
-                    case "parseFileList":
-                        executionFuture = executor.executeParseFileListAsync().map(r -> (Object) r);
-                        break;
-                    case "parseById":
-                        executionFuture = executor.executeParseByIdAsync().map(r -> (Object) r);
-                        break;
-                    default:
-                        promise.fail(new IllegalArgumentException("未知的方法类型: " + method));
-                        return promise.future();
+                try {
+                    switch (method) {
+                        case "parse":
+                            executionFuture = executor.executeParseAsync().map(r -> (Object) r);
+                            break;
+                        case "parseFileList":
+                            executionFuture = executor.executeParseFileListAsync().map(r -> (Object) r);
+                            break;
+                        case "parseById":
+                            executionFuture = executor.executeParseByIdAsync().map(r -> (Object) r);
+                            break;
+                        default:
+                            executor.close();
+                            promise.fail(new IllegalArgumentException("未知的方法类型: " + method));
+                            return promise.future();
+                    }
+                } catch (Exception ex) {
+                    // 同步异常路径：executor 已创建但 Future 未注册，需要手动关闭
+                    executor.close();
+                    throw ex;
                 }
 
                 // 异步处理执行结果
                 executionFuture.onSuccess(result -> {
-                    log.debug("执行成功，结果类型: {}, 结果值: {}", 
-                            result != null ? result.getClass().getSimpleName() : "null", 
+                    log.debug("执行成功，结果类型: {}, 结果值: {}",
+                            result != null ? result.getClass().getSimpleName() : "null",
                             result);
-                    
+
                     // 获取日志
                     List<JsPlaygroundLogger.LogEntry> logEntries = executor.getLogs();
                     log.debug("获取到 {} 条日志记录", logEntries.size());
-                    
+
                     List<PlaygroundTestResp.LogEntry> respLogs = logEntries.stream()
                             .map(entry -> PlaygroundTestResp.LogEntry.builder()
                                     .level(entry.getLevel())
@@ -300,6 +307,7 @@ public class PlaygroundApi {
                     JsonObject jsonResponse = JsonObject.mapFrom(response);
                     log.debug("测试成功响应: {}", jsonResponse.encodePrettily());
                     promise.complete(jsonResponse);
+                    executor.close(); // 释放资源
                 }).onFailure(e -> {
                     long executionTime = System.currentTimeMillis() - startTime;
                     String errorMessage = e.getMessage();
@@ -325,6 +333,7 @@ public class PlaygroundApi {
                             .build();
 
                     promise.complete(JsonObject.mapFrom(response));
+                    executor.close(); // 释放资源
                 });
 
             } catch (Exception e) {

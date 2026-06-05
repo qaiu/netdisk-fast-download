@@ -21,7 +21,7 @@ import java.util.concurrent.*;
  *
  * @author <a href="https://qaiu.top">QAIU</a>
  */
-public class JsPlaygroundExecutor {
+public class JsPlaygroundExecutor implements AutoCloseable {
     
     private static final Logger log = LoggerFactory.getLogger(JsPlaygroundExecutor.class);
     
@@ -442,11 +442,39 @@ public class JsPlaygroundExecutor {
             }
             
             return fileInfo;
-            
+
         } catch (Exception e) {
             playgroundLogger.errorJava("转换FileInfo对象失败", e);
             return null;
         }
+    }
+
+    /**
+     * 释放资源（HttpClient 和 ScriptEngine），避免内存泄漏
+     */
+    @Override
+    public void close() {
+        if (httpClient != null) {
+            httpClient.close();
+        }
+        // 清除 ScriptEngine 的所有 bindings，彻底释放资源
+        if (engine != null) {
+            try {
+                // 清除注入的 Java 对象引用
+                engine.put("http", null);
+                engine.put("logger", null);
+                engine.put("shareLinkInfo", null);
+                engine.put("JavaFetch", null);
+                // 清除所有 ENGINE_SCOPE bindings，包括 eval 加载的 JS 函数
+                var bindings = engine.getBindings(javax.script.ScriptContext.ENGINE_SCOPE);
+                if (bindings != null) {
+                    bindings.clear();
+                }
+            } catch (Exception e) {
+                log.warn("清理 ScriptEngine bindings 失败: {}", e.getMessage());
+            }
+        }
+        log.debug("JsPlaygroundExecutor 资源已释放");
     }
 }
 
