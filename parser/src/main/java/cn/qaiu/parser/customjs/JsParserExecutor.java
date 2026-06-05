@@ -20,6 +20,10 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -36,7 +40,15 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
     private static volatile WorkerExecutor EXECUTOR;
     private static final Object EXECUTOR_LOCK = new Object();
 
-    private static String FETCH_RUNTIME_JS = null;
+    /** 安全网调度器：当 onComplete 未触发时，延迟强制释放资源 */
+    private static final ScheduledExecutorService CLEANUP_SCHEDULER =
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "js-parser-cleanup-safety");
+                t.setDaemon(true);
+                return t;
+            });
+
+    private static volatile String FETCH_RUNTIME_JS = null;
     
     private final CustomParserConfig config;
     private final ShareLinkInfo shareLinkInfo;
@@ -45,6 +57,10 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
     private final JsLogger jsLogger;
     private final JsShareLinkInfoWrapper shareLinkInfoWrapper;
     private final JsFetchBridge fetchBridge;
+    /** 标记是否已释放，防止重复关闭 */
+    private volatile boolean closed = false;
+    /** 安全网定时任务句柄，正常完成时取消 */
+    private volatile ScheduledFuture<?> safetyCleanupFuture = null;
     
     public JsParserExecutor(ShareLinkInfo shareLinkInfo, CustomParserConfig config) {
         this.config = config;
@@ -149,9 +165,17 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
     
     /**
      * 释放资源（ScriptEngine 和 HttpClient），避免内存泄漏
+     * 幂等：可安全多次调用
      */
     @Override
     public void close() {
+        if (closed) return;
+        closed = true;
+        // 取消安全网定时任务（如果正常完成则无需再触发）
+        if (safetyCleanupFuture != null) {
+            safetyCleanupFuture.cancel(false);
+            safetyCleanupFuture = null;
+        }
         if (httpClient != null) {
             httpClient.close();
         }
@@ -174,7 +198,7 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
     }
 
     /**
-     * 关闭全局 WorkerExecutor（应在应用关闭时调用）
+     * 关闭全局 WorkerExecutor 和清理调度器（应在应用关闭时调用）
      */
     public static void shutdownExecutor() {
         synchronized (EXECUTOR_LOCK) {
@@ -184,6 +208,7 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
                 log.info("JsParserExecutor WorkerExecutor 已关闭");
             }
         }
+        CLEANUP_SCHEDULER.shutdown();
     }
 
     /**
@@ -201,10 +226,23 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
         }
     }
 
+    /**
+     * 安全网：延迟释放资源，防止 onComplete 未触发时资源泄漏
+     * 超时设为300秒（5分钟），仅作为极端兜底，不应影响正常业务
+     */
+    private void scheduleSafetyCleanup() {
+        try {
+            safetyCleanupFuture = CLEANUP_SCHEDULER.schedule(this::close, 300, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.warn("安全网调度失败: {}", e.getMessage());
+        }
+    }
+
     @Override
     public Future<String> parse() {
         jsLogger.info("开始执行JavaScript解析器: {}", config.getType());
-        
+        scheduleSafetyCleanup(); // 安全网：确保资源释放
+
         // 使用executeBlocking在工作线程上执行，避免阻塞EventLoop线程
         return getExecutor().executeBlocking(() -> {
             // 直接调用全局parse函数
@@ -234,7 +272,8 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
     @Override
     public Future<List<FileInfo>> parseFileList() {
         jsLogger.info("开始执行JavaScript文件列表解析: {}", config.getType());
-        
+        scheduleSafetyCleanup(); // 安全网：确保资源释放
+
         // 使用executeBlocking在工作线程上执行，避免阻塞EventLoop线程
         return getExecutor().executeBlocking(() -> {
             // 直接调用全局parseFileList函数
@@ -267,7 +306,8 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
     @Override
     public Future<String> parseById() {
         jsLogger.info("开始执行JavaScript按ID解析: {}", config.getType());
-        
+        scheduleSafetyCleanup(); // 安全网：确保资源释放
+
         // 使用executeBlocking在工作线程上执行，避免阻塞EventLoop线程
         return getExecutor().executeBlocking(() -> {
             // 直接调用全局parseById函数

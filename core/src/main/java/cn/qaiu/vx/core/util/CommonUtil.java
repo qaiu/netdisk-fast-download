@@ -17,6 +17,8 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -29,6 +31,16 @@ public class CommonUtil {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CommonUtil.class);
 
+    /** 正则表达式缓存，避免每次调用重新编译 */
+    private static final ConcurrentHashMap<String, Pattern> PATTERN_CACHE = new ConcurrentHashMap<>();
+
+    /**
+     * 获取预编译的 Pattern（带缓存）
+     */
+    private static Pattern getCachedPattern(String regex) {
+        return PATTERN_CACHE.computeIfAbsent(regex, Pattern::compile);
+    }
+
     /**
      * 匹配正则list
      *
@@ -39,7 +51,7 @@ public class CommonUtil {
     public static boolean matchRegList(List<?> regList, String destStr) {
         // 判断是否忽略
         for (Object ignores : regList) {
-            if (destStr.matches(ignores.toString())) {
+            if (getCachedPattern(ignores.toString()).matcher(destStr).matches()) {
                 return true;
             }
         }
@@ -147,10 +159,12 @@ public class CommonUtil {
     public static String getAppVersion() {
         if (null == appVersion) {
             Properties properties = new Properties();
-            try {
-                properties.load(CommonUtil.class.getClassLoader().getResourceAsStream("app.properties"));
-                if (!properties.isEmpty()) {
-                    appVersion = properties.getProperty("app.version") + "build" + properties.getProperty("build");
+            try (var is = CommonUtil.class.getClassLoader().getResourceAsStream("app.properties")) {
+                if (is != null) {
+                    properties.load(is);
+                    if (!properties.isEmpty()) {
+                        appVersion = properties.getProperty("app.version") + "build" + properties.getProperty("build");
+                    }
                 }
             } catch (IOException e) {
                 LOGGER.error("读取app.properties失败", e);

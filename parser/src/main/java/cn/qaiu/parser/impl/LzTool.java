@@ -41,6 +41,7 @@ public class LzTool extends PanBase {
     private static final Pattern CREATE_TIME_PATTERN = Pattern.compile(">上传时间：</span>(.*?)<");
     private static final Pattern URL_DATE_PATTERN = Pattern.compile("(\\d{4}/\\d{1,2}/\\d{1,2})");
     private static final Pattern ARG1_PATTERN = Pattern.compile("var arg1='([^']+)'");
+    private static final Pattern IFRAME_SRC_PATTERN = Pattern.compile("src=\"(/fn\\?[a-zA-Z\\d_+/=]{16,})\"");
     MultiMap headers0 = HeaderUtils.parseHeaders("""
         Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
         Accept-Encoding: gzip, deflate
@@ -121,8 +122,7 @@ public class LzTool extends PanBase {
             log.error("文件信息解析异常", e);
         }
         // 匹配iframe
-        Pattern compile = Pattern.compile("src=\"(/fn\\?[a-zA-Z\\d_+/=]{16,})\"");
-        Matcher matcher = compile.matcher(html);
+        Matcher matcher = IFRAME_SRC_PATTERN.matcher(html);
         // 没有Iframe说明是加密分享, 匹配sign通过密码请求下载页面
         if (!matcher.find()) {
             try {

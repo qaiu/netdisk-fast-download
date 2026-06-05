@@ -28,13 +28,26 @@ public class JsPlaygroundExecutor implements AutoCloseable {
     // JavaScript执行超时时间（秒）
     private static final long EXECUTION_TIMEOUT_SECONDS = 30;
     
-    // 使用独立的线程池，不受Vert.x的BlockedThreadChecker监控
-    private static final ExecutorService INDEPENDENT_EXECUTOR = Executors.newCachedThreadPool(r -> {
-        Thread thread = new Thread(r);
-        thread.setName("playground-independent-" + System.currentTimeMillis());
-        thread.setDaemon(true); // 设置为守护线程，服务关闭时自动清理
-        return thread;
-    });
+    // 使用有界线程池，防止线程无限增长导致内存溢出
+    private static final int POOL_MAX_THREADS = 16;
+    private static final int POOL_QUEUE_CAPACITY = 256;
+    private static final ExecutorService INDEPENDENT_EXECUTOR = new ThreadPoolExecutor(
+            4, POOL_MAX_THREADS, 60L, TimeUnit.SECONDS,
+            new ArrayBlockingQueue<>(POOL_QUEUE_CAPACITY),
+            r -> {
+                Thread thread = new Thread(r);
+                thread.setName("playground-independent-" + thread.getId());
+                thread.setDaemon(true);
+                return thread;
+            },
+            (r, executor) -> {
+                // 拒绝策略：记录日志并抛出异常，避免阻塞 Vert.x EventLoop
+                log.warn("演练场线程池已满，拒绝任务。活跃线程: {}, 队列大小: {}",
+                        ((ThreadPoolExecutor) executor).getActiveCount(),
+                        ((ThreadPoolExecutor) executor).getQueue().size());
+                throw new java.util.concurrent.RejectedExecutionException("演练场线程池已满，请稍后重试");
+            }
+    );
     
     // 超时调度线程池，用于处理超时中断
     private static final ScheduledExecutorService TIMEOUT_SCHEDULER = Executors.newScheduledThreadPool(2, r -> {
@@ -60,6 +73,8 @@ public class JsPlaygroundExecutor implements AutoCloseable {
     private final JsPlaygroundLogger playgroundLogger;
     private final JsShareLinkInfoWrapper shareLinkInfoWrapper;
     private final JsFetchBridge fetchBridge;
+    /** 标记是否已释放，防止重复关闭 */
+    private volatile boolean closed = false;
     
     /**
      * 创建演练场执行器
@@ -142,9 +157,11 @@ public class JsPlaygroundExecutor implements AutoCloseable {
      */
     public Future<String> executeParseAsync() {
         Promise<String> promise = Promise.promise();
-        
-        // 使用独立的ExecutorService执行，避免Vert.x的BlockedThreadChecker输出警告
-        CompletableFuture<String> executionFuture = CompletableFuture.supplyAsync(() -> {
+
+        final CompletableFuture<String> executionFuture;
+        try {
+            // 使用独立的ExecutorService执行，避免Vert.x的BlockedThreadChecker输出警告
+            executionFuture = CompletableFuture.supplyAsync(() -> {
             playgroundLogger.infoJava("开始执行parse方法");
             try {
                 Object parseFunction = engine.get("parse");
@@ -177,7 +194,13 @@ public class JsPlaygroundExecutor implements AutoCloseable {
                 throw new RuntimeException(e);
             }
         }, INDEPENDENT_EXECUTOR);
-        
+        } catch (java.util.concurrent.RejectedExecutionException e) {
+            log.warn("演练场线程池已满，任务被拒绝");
+            close(); // 释放已创建的 ScriptEngine 和 HttpClient 资源
+            promise.fail(new RuntimeException("演练场线程池已满，请稍后重试", e));
+            return promise.future();
+        }
+
         // 创建超时任务，强制取消执行
         ScheduledFuture<?> timeoutTask = TIMEOUT_SCHEDULER.schedule(() -> {
             if (!executionFuture.isDone()) {
@@ -186,12 +209,12 @@ public class JsPlaygroundExecutor implements AutoCloseable {
                 log.warn("JavaScript执行超时，已强制取消");
             }
         }, EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        
+
         // 处理执行结果
         executionFuture.whenComplete((result, error) -> {
             // 取消超时任务
             timeoutTask.cancel(false);
-            
+
                 if (error != null) {
                 if (error instanceof CancellationException) {
                     String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已强制中断";
@@ -206,10 +229,10 @@ public class JsPlaygroundExecutor implements AutoCloseable {
                     promise.complete(result);
                 }
             });
-        
+
         return promise.future();
     }
-    
+
     /**
      * 执行parseFileList方法（异步，带超时控制）
      * 使用独立线程池，不受Vert.x BlockedThreadChecker监控
@@ -218,9 +241,11 @@ public class JsPlaygroundExecutor implements AutoCloseable {
      */
     public Future<List<FileInfo>> executeParseFileListAsync() {
         Promise<List<FileInfo>> promise = Promise.promise();
-        
-        // 使用独立的ExecutorService执行，避免Vert.x的BlockedThreadChecker输出警告
-        CompletableFuture<List<FileInfo>> executionFuture = CompletableFuture.supplyAsync(() -> {
+
+        final CompletableFuture<List<FileInfo>> executionFuture;
+        try {
+            // 使用独立的ExecutorService执行，避免Vert.x的BlockedThreadChecker输出警告
+            executionFuture = CompletableFuture.supplyAsync(() -> {
             playgroundLogger.infoJava("开始执行parseFileList方法");
             try {
                 Object parseFileListFunction = engine.get("parseFileList");
@@ -252,7 +277,13 @@ public class JsPlaygroundExecutor implements AutoCloseable {
                 throw new RuntimeException(e);
             }
         }, INDEPENDENT_EXECUTOR);
-        
+        } catch (java.util.concurrent.RejectedExecutionException e) {
+            log.warn("演练场线程池已满，任务被拒绝");
+            close(); // 释放已创建的 ScriptEngine 和 HttpClient 资源
+            promise.fail(new RuntimeException("演练场线程池已满，请稍后重试", e));
+            return promise.future();
+        }
+
         // 创建超时任务，强制取消执行
         ScheduledFuture<?> timeoutTask = TIMEOUT_SCHEDULER.schedule(() -> {
             if (!executionFuture.isDone()) {
@@ -261,12 +292,12 @@ public class JsPlaygroundExecutor implements AutoCloseable {
                 log.warn("JavaScript执行超时，已强制取消");
             }
         }, EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        
+
         // 处理执行结果
         executionFuture.whenComplete((result, error) -> {
             // 取消超时任务
             timeoutTask.cancel(false);
-            
+
                 if (error != null) {
                 if (error instanceof CancellationException) {
                     String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已强制中断";
@@ -281,10 +312,10 @@ public class JsPlaygroundExecutor implements AutoCloseable {
                     promise.complete(result);
                 }
             });
-        
+
         return promise.future();
     }
-    
+
     /**
      * 执行parseById方法（异步，带超时控制）
      * 使用独立线程池，不受Vert.x BlockedThreadChecker监控
@@ -293,9 +324,11 @@ public class JsPlaygroundExecutor implements AutoCloseable {
      */
     public Future<String> executeParseByIdAsync() {
         Promise<String> promise = Promise.promise();
-        
-        // 使用独立的ExecutorService执行，避免Vert.x的BlockedThreadChecker输出警告
-        CompletableFuture<String> executionFuture = CompletableFuture.supplyAsync(() -> {
+
+        final CompletableFuture<String> executionFuture;
+        try {
+            // 使用独立的ExecutorService执行，避免Vert.x的BlockedThreadChecker输出警告
+            executionFuture = CompletableFuture.supplyAsync(() -> {
             playgroundLogger.infoJava("开始执行parseById方法");
             try {
                 Object parseByIdFunction = engine.get("parseById");
@@ -326,7 +359,13 @@ public class JsPlaygroundExecutor implements AutoCloseable {
                 throw new RuntimeException(e);
             }
         }, INDEPENDENT_EXECUTOR);
-        
+        } catch (java.util.concurrent.RejectedExecutionException e) {
+            log.warn("演练场线程池已满，任务被拒绝");
+            close(); // 释放已创建的 ScriptEngine 和 HttpClient 资源
+            promise.fail(new RuntimeException("演练场线程池已满，请稍后重试", e));
+            return promise.future();
+        }
+
         // 创建超时任务，强制取消执行
         ScheduledFuture<?> timeoutTask = TIMEOUT_SCHEDULER.schedule(() -> {
             if (!executionFuture.isDone()) {
@@ -335,12 +374,12 @@ public class JsPlaygroundExecutor implements AutoCloseable {
                 log.warn("JavaScript执行超时，已强制取消");
             }
         }, EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        
+
         // 处理执行结果
         executionFuture.whenComplete((result, error) -> {
             // 取消超时任务
             timeoutTask.cancel(false);
-            
+
                 if (error != null) {
                 if (error instanceof CancellationException) {
                     String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已强制中断";
@@ -355,7 +394,7 @@ public class JsPlaygroundExecutor implements AutoCloseable {
                     promise.complete(result);
                 }
             });
-        
+
         return promise.future();
     }
     
@@ -460,9 +499,12 @@ public class JsPlaygroundExecutor implements AutoCloseable {
 
     /**
      * 释放资源（HttpClient 和 ScriptEngine），避免内存泄漏
+     * 幂等：可安全多次调用
      */
     @Override
     public void close() {
+        if (closed) return;
+        closed = true;
         if (httpClient != null) {
             httpClient.close();
         }
