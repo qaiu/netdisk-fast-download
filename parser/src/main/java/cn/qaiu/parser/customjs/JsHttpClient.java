@@ -47,7 +47,17 @@ public class JsHttpClient {
             new WebClientOptions()
                     .setConnectTimeout(10000)
                     .setIdleTimeout(30)
-                    .setIdleTimeoutUnit(TimeUnit.SECONDS));
+                    .setIdleTimeoutUnit(TimeUnit.SECONDS)
+                    .setMaxPoolSize(64));
+
+    /**
+     * 关闭共享 WebClient（应用关闭时调用）
+     */
+    public static void shutdownSharedClient() {
+        if (SHARED_CLIENT != null) {
+            SHARED_CLIENT.close();
+        }
+    }
 
     private final WebClient client;
     private final WebClientSession clientSession;
@@ -538,10 +548,9 @@ public class JsHttpClient {
      * 执行HTTP请求（同步）
      */
     private JsHttpResponse executeRequest(RequestExecutor executor) {
-        Future<HttpResponse<Buffer>> future = null;
         try {
             Promise<HttpResponse<Buffer>> promise = Promise.promise();
-            future = executor.execute();
+            Future<HttpResponse<Buffer>> future = executor.execute();
 
             future.onComplete(result -> {
                 if (result.succeeded()) {
@@ -559,10 +568,6 @@ public class JsHttpClient {
             return new JsHttpResponse(response);
 
         } catch (TimeoutException e) {
-            // 超时时取消底层 Vert.x future，释放连接和 Buffer 引用
-            if (future != null) {
-                future.onComplete(ar -> {}); // 移除之前的 handler，防止泄漏
-            }
             String errorMsg = "HTTP请求超时（" + timeoutSeconds + "秒）";
             log.error(errorMsg, e);
             throw new RuntimeException(errorMsg, e);

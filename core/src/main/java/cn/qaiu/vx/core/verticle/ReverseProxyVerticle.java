@@ -87,6 +87,7 @@ public class ReverseProxyVerticle extends AbstractVerticle {
     private static final boolean KEEP_ALIVE = true;        // 启用Keep-Alive
     private static final boolean PIPELINING = true;        // 启用HTTP管线化
     private static final long EVICT_IDLE_MILLIS = 30 * 60 * 1000L; // 30分钟未使用则驱逐
+    private Long evictTimerId;
 
 
     @Override
@@ -95,7 +96,7 @@ public class ReverseProxyVerticle extends AbstractVerticle {
             LOGGER.info("web代理配置已禁用，当前仅支持API调用");
         });
         // 每 5 分钟驱逐空闲超过 30 分钟的 HttpClient
-        vertx.setPeriodic(5 * 60 * 1000, 5 * 60 * 1000, id -> evictIdleClients());
+        evictTimerId = vertx.setPeriodic(5 * 60 * 1000, 5 * 60 * 1000, id -> evictIdleClients());
         startPromise.complete();
     }
 
@@ -104,6 +105,10 @@ public class ReverseProxyVerticle extends AbstractVerticle {
      */
     @Override
     public void stop(Promise<Void> stopPromise) {
+        // 取消驱逐定时器
+        if (evictTimerId != null) {
+            vertx.cancelTimer(evictTimerId);
+        }
         LOGGER.info("Stopping ReverseProxyVerticle, closing {} HttpClient connections...", httpClientPool.size());
         httpClientPool.values().forEach(entry -> {
             try {
@@ -122,7 +127,8 @@ public class ReverseProxyVerticle extends AbstractVerticle {
     private void evictIdleClients() {
         long now = System.currentTimeMillis();
         httpClientPool.entrySet().removeIf(entry -> {
-            if (now - entry.getValue().lastUsed > EVICT_IDLE_MILLIS) {
+            long lastUsed = entry.getValue().lastUsed;
+            if (now - lastUsed > EVICT_IDLE_MILLIS && lastUsed < now) {
                 try {
                     entry.getValue().client.close();
                     LOGGER.info("驱逐空闲 HttpClient: {}", entry.getKey());
