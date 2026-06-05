@@ -15,6 +15,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 /**
@@ -24,6 +25,7 @@ public class LeTool extends PanBase {
     private static final String API_URL_PREFIX = "https://lecloud.lenovo.com/mshare/api/clouddiskapi/share/public/v1/";
     private static final String DEFAULT_FILE_TYPE = "file";
     private static final int FILE_TYPE_DIRECTORY = 0; // 目录类型
+    private static final Random RANDOM = new Random();
 
     private static final MultiMap HEADERS;
 
@@ -100,8 +102,8 @@ public class LeTool extends PanBase {
                                 }
                                 
                                 String fileId = fileInfoJson.getString("fileId");
-                                // 根据文件ID获取跳转链接
-                                getDownURL(dataKey, fileId);
+                                // 根据文件ID获取跳转链接（随机选择方式，失败自动fallback）
+                                getDownURLWithFallback(dataKey, fileId);
                             }
                         } else {
                             fail("{}: {}", resJson.getString("errcode"), resJson.getString("errmsg"));
@@ -260,8 +262,8 @@ public class LeTool extends PanBase {
             String shareId = paramJson.getString("shareId");
             String fileId = paramJson.getString("fileId");
             
-            // 调用获取下载链接
-            getDownURLForById(shareId, fileId, parsePromise);
+            // 调用获取下载链接（随机选择方式，失败自动fallback）
+            getDownURLWithFallbackForById(shareId, fileId, parsePromise);
             
         } catch (Exception e) {
             parsePromise.fail("解析参数失败: " + e.getMessage());
@@ -334,6 +336,110 @@ public class LeTool extends PanBase {
                         fail("Result JSON数据异常: result字段不存在");
                     }
                 }).onFailure(handleFail(apiUrl2));
+    }
+
+    /**
+     * 通过 directDownload 接口获取下载链接（用于 parse）
+     * 相比 packageDownloadWithFileIds 少一次请求，直接返回302
+     */
+    private void getDownURLDirect(String shareId, String fileId) {
+        String uuid = UUID.randomUUID().toString();
+        String apiUrl = API_URL_PREFIX + "directDownload"
+                + "?shareId=" + shareId
+                + "&fileId=" + fileId
+                + "&browserId=" + uuid;
+
+        clientNoRedirects.getAbs(apiUrl)
+            .putHeaders(HEADERS)
+            .send()
+            .onSuccess(res -> {
+                String location = res.headers().get("Location");
+                if (location != null && !location.isEmpty()) {
+                    promise.complete(location);
+                } else {
+                    fail("directDownload 未返回有效的 Location");
+                }
+            })
+            .onFailure(handleFail(apiUrl));
+    }
+
+    /**
+     * 通过 directDownload 接口获取下载链接（用于 parseById）
+     * 相比 packageDownloadWithFileIds 少一次请求，直接返回302
+     */
+    private void getDownURLDirectForById(String shareId, String fileId, Promise<String> promise) {
+        String uuid = UUID.randomUUID().toString();
+        String apiUrl = API_URL_PREFIX + "directDownload"
+                + "?shareId=" + shareId
+                + "&fileId=" + fileId
+                + "&browserId=" + uuid;
+
+        clientNoRedirects.getAbs(apiUrl)
+            .putHeaders(HEADERS)
+            .send()
+            .onSuccess(res -> {
+                String location = res.headers().get("Location");
+                if (location != null && !location.isEmpty()) {
+                    promise.complete(location);
+                } else {
+                    promise.fail("directDownload 未返回有效的 Location");
+                }
+            })
+            .onFailure(err -> promise.fail(err));
+    }
+
+    /**
+     * 随机选择下载方式并带 fallback（用于 parse）
+     * 先随机选择 directDownload 或 packageDownloadWithFileIds，失败则尝试另一个
+     */
+    private void getDownURLWithFallback(String shareId, String fileId) {
+        boolean useDirect = RANDOM.nextBoolean();
+        log.info("乐云下载方式选择: shareId={}, fileId={}, method={}", shareId, fileId, useDirect ? "directDownload" : "packageDownloadWithFileIds");
+
+        Promise<String> fallbackPromise = Promise.promise();
+        fallbackPromise.future().onSuccess(url -> {
+            promise.complete(url);
+        }).onFailure(err -> {
+            log.warn("乐云第一种下载方式失败，尝试另一种: {}", err.getMessage());
+            if (useDirect) {
+                getDownURL(shareId, fileId);
+            } else {
+                getDownURLDirect(shareId, fileId);
+            }
+        });
+
+        if (useDirect) {
+            getDownURLDirectForById(shareId, fileId, fallbackPromise);
+        } else {
+            getDownURLForById(shareId, fileId, fallbackPromise);
+        }
+    }
+
+    /**
+     * 随机选择下载方式并带 fallback（用于 parseById）
+     * 先随机选择 directDownload 或 packageDownloadWithFileIds，失败则尝试另一个
+     */
+    private void getDownURLWithFallbackForById(String shareId, String fileId, Promise<String> promise) {
+        boolean useDirect = RANDOM.nextBoolean();
+        log.info("乐云下载方式选择(parseById): shareId={}, fileId={}, method={}", shareId, fileId, useDirect ? "directDownload" : "packageDownloadWithFileIds");
+
+        Promise<String> fallbackPromise = Promise.promise();
+        fallbackPromise.future().onSuccess(url -> {
+            promise.complete(url);
+        }).onFailure(err -> {
+            log.warn("乐云第一种下载方式失败，尝试另一种: {}", err.getMessage());
+            if (useDirect) {
+                getDownURLForById(shareId, fileId, promise);
+            } else {
+                getDownURLDirectForById(shareId, fileId, promise);
+            }
+        });
+
+        if (useDirect) {
+            getDownURLDirectForById(shareId, fileId, fallbackPromise);
+        } else {
+            getDownURLForById(shareId, fileId, fallbackPromise);
+        }
     }
 
     /**
