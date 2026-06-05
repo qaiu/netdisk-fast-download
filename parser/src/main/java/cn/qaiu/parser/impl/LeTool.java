@@ -306,14 +306,22 @@ public class LeTool extends PanBase {
                 }).onFailure(err -> promise.fail(err));
     }
 
-    private void getDownURL(String key, String fileId) {
+    /**
+     * 通过 packageDownloadWithFileIds 接口获取下载链接
+     * 需要两步：先获取 downloadUrl，再请求 302 跳转
+     *
+     * @param shareId 分享ID
+     * @param fileId 文件ID
+     * @param promise 完成时会写入此 promise
+     */
+    private void getDownURL(String shareId, String fileId, Promise<String> promise) {
         String uuid = UUID.randomUUID().toString();
         JsonArray fileIds = JsonArray.of(fileId);
-        String apiUrl2 = API_URL_PREFIX + "packageDownloadWithFileIds";
+        String apiUrl = API_URL_PREFIX + "packageDownloadWithFileIds";
         // {"fileIds":[123],"shareId":"xxx","browserId":"uuid"}
-        client.postAbs(apiUrl2)
+        client.postAbs(apiUrl)
             .putHeaders(HEADERS)
-            .sendJsonObject(JsonObject.of("fileIds", fileIds, "shareId", key, "browserId", uuid))
+            .sendJsonObject(JsonObject.of("fileIds", fileIds, "shareId", shareId, "browserId", uuid))
                 .onSuccess(res -> {
                     JsonObject resJson = asJson(res);
                     if (resJson.containsKey("result")) {
@@ -322,20 +330,20 @@ public class LeTool extends PanBase {
                             // 获取重定向链接跳转链接
                             String downloadUrl = dataJson.getString("downloadUrl");
                             if (downloadUrl == null) {
-                                fail("Result JSON数据异常: downloadUrl不存在");
+                                promise.fail("Result JSON数据异常: downloadUrl不存在");
                                 return;
                             }
                             // 获取重定向链接跳转链接
                             clientNoRedirects.getAbs(downloadUrl).send()
                                     .onSuccess(res2 -> promise.complete(res2.headers().get("Location")))
-                                    .onFailure(handleFail(downloadUrl));
+                                    .onFailure(err -> promise.fail(err));
                         } else {
-                            fail("{}: {}", resJson.getString("errcode"), resJson.getString("errmsg"));
+                            promise.fail(resJson.getString("errcode") + ": " + resJson.getString("errmsg"));
                         }
                     } else {
-                        fail("Result JSON数据异常: result字段不存在");
+                        promise.fail("Result JSON数据异常: result字段不存在");
                     }
-                }).onFailure(handleFail(apiUrl2));
+                }).onFailure(err -> promise.fail(err));
     }
 
     /**
@@ -385,7 +393,7 @@ public class LeTool extends PanBase {
         }).onFailure(err -> {
             log.warn("乐云第一种下载方式失败，尝试另一种: {}", err.getMessage());
             if (useDirect) {
-                getDownURL(shareId, fileId);
+                getDownURL(shareId, fileId, promise);
             } else {
                 getDownURLDirect(shareId, fileId, promise);
             }
@@ -394,7 +402,7 @@ public class LeTool extends PanBase {
         if (useDirect) {
             getDownURLDirect(shareId, fileId, fallbackPromise);
         } else {
-            getDownURLForById(shareId, fileId, fallbackPromise);
+            getDownURL(shareId, fileId, fallbackPromise);
         }
     }
 
