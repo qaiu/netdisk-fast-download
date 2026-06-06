@@ -103,6 +103,16 @@ jobs:
     - name: 设置 Docker Buildx
       uses: docker/setup-buildx-action@v3
 
+    - name: 生成 Docker 标签
+      id: docker_tag
+      shell: bash
+      run: |
+        tag="$(printf '%s' "${GITHUB_REF_NAME}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9_.-]+/-/g; s/^-+//; s/-+$//')"
+        if [ -z "$tag" ]; then
+          tag="snapshot"
+        fi
+        echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
     - name: 构建并推送 Docker 镜像
       uses: docker/build-push-action@v5
       with:
@@ -110,7 +120,7 @@ jobs:
         push: true
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         tags: |
-          ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          ghcr.io/${{ github.repository }}:${{ steps.docker_tag.outputs.tag }}
           ghcr.io/${{ github.repository }}:latest
 
 
