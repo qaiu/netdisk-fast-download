@@ -62,10 +62,14 @@ public class CacheServiceImpl implements CacheService {
                 try {
                     tool = parserCreate.createTool();
                 } catch (Exception e) {
-                    promise.fail(e.getCause().getCause());
+                    Throwable cause = e;
+                    while (cause.getCause() != null) {
+                        cause = cause.getCause();
+                    }
+                    promise.fail(cause);
                     return;
                 }
-                tool.parse().onSuccess(redirectUrl -> {
+                IPanTool.closeAfter(tool, tool::parse).onSuccess(redirectUrl -> {
                     // 使用 effectiveCacheDuration
                     long expires = System.currentTimeMillis() + effectiveCacheDuration * 60 * 1000L;
                     result.setDirectLink(redirectUrl);

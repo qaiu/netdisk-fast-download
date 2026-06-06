@@ -6,6 +6,7 @@ import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.custom.CustomParserConfig;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
 import org.openjdk.nashorn.api.scripting.NashornScriptEngineFactory;
@@ -47,6 +48,10 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
                 t.setDaemon(true);
                 return t;
             });
+    private static final long EXECUTION_TIMEOUT_SECONDS = 30;
+    private static final int MAX_RESULT_STRING_LENGTH = 1024 * 1024;
+    private static final int MAX_FILE_LIST_SIZE = 1000;
+    private static final int MAX_FILE_FIELD_LENGTH = 4096;
 
     private static volatile String FETCH_RUNTIME_JS = null;
     
@@ -76,7 +81,12 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
         this.jsLogger = new JsLogger("JsParser-" + config.getType());
         this.shareLinkInfoWrapper = new JsShareLinkInfoWrapper(shareLinkInfo);
         this.fetchBridge = new JsFetchBridge(httpClient);
-        this.engine = initEngine();
+        try {
+            this.engine = initEngine();
+        } catch (RuntimeException e) {
+            this.httpClient.close();
+            throw e;
+        }
     }
     
     /**
@@ -226,25 +236,39 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
         }
     }
 
-    /**
-     * 安全网：延迟释放资源，防止 onComplete 未触发时资源泄漏
-     * 超时设为300秒（5分钟），仅作为极端兜底，不应影响正常业务
-     */
-    private void scheduleSafetyCleanup() {
+    private <T> Future<T> withTimeout(Future<T> executionFuture, String operation) {
+        Promise<T> promise = Promise.promise();
         try {
-            safetyCleanupFuture = CLEANUP_SCHEDULER.schedule(this::close, 300, TimeUnit.SECONDS);
+            safetyCleanupFuture = CLEANUP_SCHEDULER.schedule(() -> {
+                if (promise.tryFail("JavaScript " + operation + " 执行超时（" + EXECUTION_TIMEOUT_SECONDS + "秒）")) {
+                    jsLogger.error("{} 执行超时，已释放解析器资源", operation);
+                    close();
+                }
+            }, EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (Exception e) {
             log.warn("安全网调度失败: {}", e.getMessage());
         }
+        executionFuture.onComplete(ar -> {
+            if (safetyCleanupFuture != null) {
+                safetyCleanupFuture.cancel(false);
+                safetyCleanupFuture = null;
+            }
+            if (ar.succeeded()) {
+                promise.tryComplete(ar.result());
+            } else {
+                promise.tryFail(ar.cause());
+            }
+            close();
+        });
+        return promise.future();
     }
 
     @Override
     public Future<String> parse() {
         jsLogger.info("开始执行JavaScript解析器: {}", config.getType());
-        scheduleSafetyCleanup(); // 安全网：确保资源释放
 
         // 使用executeBlocking在工作线程上执行，避免阻塞EventLoop线程
-        return getExecutor().executeBlocking(() -> {
+        Future<String> executionFuture = getExecutor().executeBlocking(() -> {
             // 直接调用全局parse函数
             Object parseFunction = engine.get("parse");
             if (parseFunction == null) {
@@ -256,8 +280,9 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
                 Object result = parseMirror.call(null, shareLinkInfoWrapper, httpClient, jsLogger);
                 
                 if (result instanceof String) {
-                    jsLogger.info("解析成功: {}", result);
-                    return (String) result;
+                    String resultText = limitResultString((String) result, "parse");
+                    jsLogger.info("解析成功，结果长度: {}", resultText.length());
+                    return resultText;
                 } else {
                     jsLogger.error("parse方法返回值类型错误，期望String，实际: {}", 
                             result != null ? result.getClass().getSimpleName() : "null");
@@ -266,16 +291,16 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
             } else {
                 throw new RuntimeException("parse函数类型错误");
             }
-        }).onComplete(ar -> close());
+        });
+        return withTimeout(executionFuture, "parse");
     }
     
     @Override
     public Future<List<FileInfo>> parseFileList() {
         jsLogger.info("开始执行JavaScript文件列表解析: {}", config.getType());
-        scheduleSafetyCleanup(); // 安全网：确保资源释放
 
         // 使用executeBlocking在工作线程上执行，避免阻塞EventLoop线程
-        return getExecutor().executeBlocking(() -> {
+        Future<List<FileInfo>> executionFuture = getExecutor().executeBlocking(() -> {
             // 直接调用全局parseFileList函数
             Object parseFileListFunction = engine.get("parseFileList");
             if (parseFileListFunction == null) {
@@ -300,16 +325,16 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
             } else {
                 throw new RuntimeException("parseFileList函数类型错误");
             }
-        }).onComplete(ar -> close());
+        });
+        return withTimeout(executionFuture, "parseFileList");
     }
     
     @Override
     public Future<String> parseById() {
         jsLogger.info("开始执行JavaScript按ID解析: {}", config.getType());
-        scheduleSafetyCleanup(); // 安全网：确保资源释放
 
         // 使用executeBlocking在工作线程上执行，避免阻塞EventLoop线程
-        return getExecutor().executeBlocking(() -> {
+        Future<String> executionFuture = getExecutor().executeBlocking(() -> {
             // 直接调用全局parseById函数
             Object parseByIdFunction = engine.get("parseById");
             if (parseByIdFunction == null) {
@@ -322,8 +347,9 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
                 Object result = parseByIdMirror.call(null, shareLinkInfoWrapper, httpClient, jsLogger);
                 
                 if (result instanceof String) {
-                    jsLogger.info("按ID解析成功: {}", result);
-                    return (String) result;
+                    String resultText = limitResultString((String) result, "parseById");
+                    jsLogger.info("按ID解析成功，结果长度: {}", resultText.length());
+                    return resultText;
                 } else {
                     jsLogger.error("parseById方法返回值类型错误，期望String，实际: {}", 
                             result != null ? result.getClass().getSimpleName() : "null");
@@ -332,7 +358,8 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
             } else {
                 throw new RuntimeException("parseById函数类型错误");
             }
-        }).onComplete(ar -> close());
+        });
+        return withTimeout(executionFuture, "parseById");
     }
     
     /**
@@ -342,6 +369,9 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
         List<FileInfo> fileList = new ArrayList<>();
         
         if (resultMirror.isArray()) {
+            if (resultMirror.size() > MAX_FILE_LIST_SIZE) {
+                throw new RuntimeException("文件列表数量超过限制: " + resultMirror.size());
+            }
             for (int i = 0; i < resultMirror.size(); i++) {
                 Object item = resultMirror.get(String.valueOf(i));
                 if (item instanceof ScriptObjectMirror) {
@@ -365,13 +395,13 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
             
             // 设置基本字段
             if (itemMirror.hasMember("fileName")) {
-                fileInfo.setFileName(itemMirror.getMember("fileName").toString());
+                fileInfo.setFileName(limitField(itemMirror.getMember("fileName")));
             }
             if (itemMirror.hasMember("fileId")) {
-                fileInfo.setFileId(itemMirror.getMember("fileId").toString());
+                fileInfo.setFileId(limitField(itemMirror.getMember("fileId")));
             }
             if (itemMirror.hasMember("fileType")) {
-                fileInfo.setFileType(itemMirror.getMember("fileType").toString());
+                fileInfo.setFileType(limitField(itemMirror.getMember("fileType")));
             }
             if (itemMirror.hasMember("size")) {
                 Object size = itemMirror.getMember("size");
@@ -380,16 +410,16 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
                 }
             }
             if (itemMirror.hasMember("sizeStr")) {
-                fileInfo.setSizeStr(itemMirror.getMember("sizeStr").toString());
+                fileInfo.setSizeStr(limitField(itemMirror.getMember("sizeStr")));
             }
             if (itemMirror.hasMember("createTime")) {
-                fileInfo.setCreateTime(itemMirror.getMember("createTime").toString());
+                fileInfo.setCreateTime(limitField(itemMirror.getMember("createTime")));
             }
             if (itemMirror.hasMember("updateTime")) {
-                fileInfo.setUpdateTime(itemMirror.getMember("updateTime").toString());
+                fileInfo.setUpdateTime(limitField(itemMirror.getMember("updateTime")));
             }
             if (itemMirror.hasMember("createBy")) {
-                fileInfo.setCreateBy(itemMirror.getMember("createBy").toString());
+                fileInfo.setCreateBy(limitField(itemMirror.getMember("createBy")));
             }
             if (itemMirror.hasMember("downloadCount")) {
                 Object downloadCount = itemMirror.getMember("downloadCount");
@@ -398,16 +428,16 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
                 }
             }
             if (itemMirror.hasMember("fileIcon")) {
-                fileInfo.setFileIcon(itemMirror.getMember("fileIcon").toString());
+                fileInfo.setFileIcon(limitField(itemMirror.getMember("fileIcon")));
             }
             if (itemMirror.hasMember("panType")) {
-                fileInfo.setPanType(itemMirror.getMember("panType").toString());
+                fileInfo.setPanType(limitField(itemMirror.getMember("panType")));
             }
             if (itemMirror.hasMember("parserUrl")) {
-                fileInfo.setParserUrl(itemMirror.getMember("parserUrl").toString());
+                fileInfo.setParserUrl(limitField(itemMirror.getMember("parserUrl")));
             }
             if (itemMirror.hasMember("previewUrl")) {
-                fileInfo.setPreviewUrl(itemMirror.getMember("previewUrl").toString());
+                fileInfo.setPreviewUrl(limitField(itemMirror.getMember("previewUrl")));
             }
             
             return fileInfo;
@@ -416,5 +446,23 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
             jsLogger.error("转换FileInfo对象失败", e);
             return null;
         }
+    }
+
+    private static String limitResultString(String value, String operation) {
+        if (value.length() > MAX_RESULT_STRING_LENGTH) {
+            throw new RuntimeException(operation + " 返回结果过大: " + value.length() + " 字符");
+        }
+        return value;
+    }
+
+    private static String limitField(Object value) {
+        if (value == null) {
+            return null;
+        }
+        String text = value.toString();
+        if (text.length() > MAX_FILE_FIELD_LENGTH) {
+            throw new RuntimeException("文件字段过长: " + text.length() + " 字符");
+        }
+        return text;
     }
 }

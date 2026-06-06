@@ -235,7 +235,7 @@ public class CacheManager {
                             WHERE share_key NOT IN (
                                 SELECT DISTINCT share_key FROM cache_link_info WHERE share_key IS NOT NULL
                             )
-                            AND create_time < #{thresholdTime}
+                            AND (create_time IS NULL OR create_time < #{thresholdTime})
                             """;
                     Map<String, Object> orphanParams = new HashMap<>();
                     // 计算1天前的时间，转换为 yyyy-MM-dd HH:mm:ss 格式
@@ -253,7 +253,6 @@ public class CacheManager {
                             })
                             .onFailure(e -> {
                                 LOGGER.warn("清理孤立文件信息记录失败（不影响主流程）", e);
-                                // 即使孤立记录清理失败，也返回已删除的缓存记录数
                                 promise.complete(deletedCache);
                             });
                 })

@@ -106,7 +106,7 @@ executionFuture.toCompletionStage()
 ### 长期方案（需大量工作）
 1. **迁移到GraalVM JavaScript引擎**
    - 支持CPU时间限制
-   - 可以强制中断
+   - 相比Nashorn更容易实现受控取消
    - 更好的性能
    - 但需要额外依赖
 

@@ -240,13 +240,13 @@ var encoded = JsHttpClient.urlEncode("hello world"); // "hello%20world"
 var decoded = JsHttpClient.urlDecode("hello%20world"); // "hello world"
 
 // 发送简单表单数据
-var formResponse = http.sendForm({
+var formResponse = http.sendForm("https://api.example.com/login", {
     username: "user",
     password: "pass"
 });
 
 // 发送JSON数据
-var jsonResponse = http.sendJson({
+var jsonResponse = http.sendJson("https://api.example.com/submit", {
     name: "test",
     value: 123
 });
@@ -637,7 +637,7 @@ A: 使用 `shareLinkInfo.getSharePassword()` 方法。
 
 ### Q: 如何处理需要登录的网盘？
 
-A: 使用 `http.putHeader()` 设置认证头，或使用 `http.sendForm()` 发送登录表单。
+A: 使用 `http.putHeader()` 设置认证头，或使用 `http.sendForm(url, data)` 发送登录表单。
 
 ### Q: 如何解析复杂的HTML？
 

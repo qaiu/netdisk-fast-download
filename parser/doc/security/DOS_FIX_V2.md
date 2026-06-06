@@ -17,7 +17,7 @@
 this.temporaryExecutor = WebClientVertxInit.get().createSharedWorkerExecutor(
     "playground-temp-" + System.currentTimeMillis(), 
     1, // 每个请求只需要1个线程
-    10000000000L // 设置非常长的超时，避免被vertx强制中断
+    10000000000L // 设置非常长的超时，避免触发Vert.x阻塞线程告警
 );
 
 // 执行完成或超时后关闭

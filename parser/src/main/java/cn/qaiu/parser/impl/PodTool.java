@@ -23,10 +23,13 @@ import java.util.regex.Pattern;
  */
 public class PodTool extends PanBase {
 
+    private static final int MAX_RESPONSE_BODY_BYTES = 8 * 1024 * 1024;
+
     // 静态共享的 JDK HttpClient 实例，避免每次调用创建新实例
     private static final HttpClient SHARED_HTTP_CLIENT = HttpClient.newBuilder()
             .connectTimeout(java.time.Duration.ofSeconds(10))
             .build();
+    private static volatile WorkerExecutor SHARED_WORKER_EXECUTOR;
 
     /*
      * https://1drv.ms/w/s!Alg0feQmCv2rnRFd60DQOmMa-Oh_?e=buaRtp --302->
@@ -198,11 +201,10 @@ public class PodTool extends PanBase {
                 .build();
 
         // 发送请求并处理响应（使用共享的 HttpClient）
-        SHARED_HTTP_CLIENT.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+        SHARED_HTTP_CLIENT.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray())
                 .thenApply(response -> {
                     log.debug("Response Status Code: {}", response.statusCode());
-                    log.debug("Response Body: {}", response.body());
-                    promise.complete(response.body());
+                    promise.complete(toLimitedString(response.body()));
                     return null;
                 })
                 .exceptionally(e -> {
@@ -215,11 +217,8 @@ public class PodTool extends PanBase {
     }
 
     public Future<String> sendHttpRequest(String url, String token) {
-        // 创建一个 WorkerExecutor 用于异步执行阻塞的 HTTP 请求
-        WorkerExecutor executor = WebClientVertxInit.get().createSharedWorkerExecutor("http-client-worker");
-
         Promise<String> promise = Promise.promise();
-        executor.executeBlocking(() -> {
+        getWorkerExecutor().executeBlocking(() -> {
             try {
                 // 构造请求
                 HttpRequest request = HttpRequest.newBuilder()
@@ -249,16 +248,37 @@ public class PodTool extends PanBase {
                         .build();
 
                 // 发起请求并获取响应（使用共享的 HttpClient）
-                HttpResponse<String> response = SHARED_HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+                HttpResponse<byte[]> response = SHARED_HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
 
                 // 返回响应体
-                promise.complete(response.body());
+                promise.complete(toLimitedString(response.body()));
                 return null;
             } catch (URISyntaxException | IOException | InterruptedException e) {
+                if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                }
                 throw new RuntimeException(e);
             }
-        });
+        }).onFailure(promise::fail);
 
         return promise.future();
+    }
+
+    private static String toLimitedString(byte[] body) {
+        if (body.length > MAX_RESPONSE_BODY_BYTES) {
+            throw new IllegalArgumentException("OneDrive响应体过大: " + body.length + " bytes");
+        }
+        return new String(body, java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    private static WorkerExecutor getWorkerExecutor() {
+        if (SHARED_WORKER_EXECUTOR == null) {
+            synchronized (PodTool.class) {
+                if (SHARED_WORKER_EXECUTOR == null) {
+                    SHARED_WORKER_EXECUTOR = WebClientVertxInit.get().createSharedWorkerExecutor("http-client-worker", 8);
+                }
+            }
+        }
+        return SHARED_WORKER_EXECUTOR;
     }
 }

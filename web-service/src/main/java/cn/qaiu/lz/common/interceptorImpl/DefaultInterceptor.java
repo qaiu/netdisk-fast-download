@@ -50,28 +50,30 @@ public class DefaultInterceptor implements BeforeInterceptor {
         //  limit: 1000
         //  # 限流的时间窗口(单位秒)
         //  timeWindow: 60
-        if (rateLimit.getBoolean("enable")) {
-            // 获取当前请求的路径
-            String path = ctx.request().path();
-            // 正则匹配路径
-            if (ignorePatterns.stream().anyMatch(pattern -> pattern.matcher(path).matches())) {
-                // 如果匹配到忽略的路径，则不进行限流
-                doNext(ctx);
-                return;
-            }
-            RateLimiter.checkRateLimit(ctx.request())
-                    .onSuccess(v -> {
-                        // 继续执行下一个拦截器
-                        doNext(ctx);
-                    })
-                    .onFailure(t -> {
-                        // 限流失败，返回错误响应
-                        log.warn("Rate limit exceeded for path: {}", path);
-                        ctx.response().putHeader(CONTENT_TYPE, "text/html; charset=utf-8")
-                                .setStatusCode(429)
-                                .end(t.getMessage());
-                    });
+        if (!rateLimit.getBoolean("enable", false)) {
+            doNext(ctx);
+            return;
         }
+        // 获取当前请求的路径
+        String path = ctx.request().path();
+        // 正则匹配路径
+        if (ignorePatterns.stream().anyMatch(pattern -> pattern.matcher(path).matches())) {
+            // 如果匹配到忽略的路径，则不进行限流
+            doNext(ctx);
+            return;
+        }
+        RateLimiter.checkRateLimit(ctx.request())
+                .onSuccess(v -> {
+                    // 继续执行下一个拦截器
+                    doNext(ctx);
+                })
+                .onFailure(t -> {
+                    // 限流失败，返回错误响应
+                    log.warn("Rate limit exceeded for path: {}", path);
+                    ctx.response().putHeader(CONTENT_TYPE, "text/html; charset=utf-8")
+                            .setStatusCode(429)
+                            .end(t.getMessage());
+                });
     }
 
 }

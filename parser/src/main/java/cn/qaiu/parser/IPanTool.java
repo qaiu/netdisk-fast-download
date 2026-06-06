@@ -7,12 +7,13 @@ import cn.qaiu.parser.clientlink.ClientLinkType;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 
+import java.util.function.Supplier;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public interface IPanTool {
+public interface IPanTool extends AutoCloseable {
 
     /** 同步等待超时时间（秒） */
     long SYNC_TIMEOUT_SECONDS = 120;
@@ -22,6 +23,26 @@ public interface IPanTool {
      * @return 文件内容
      */
     Future<String> parse();
+
+    static <T> Future<T> closeAfter(IPanTool tool, Supplier<Future<T>> action) {
+        try {
+            return action.get().onComplete(ar -> closeQuietly(tool));
+        } catch (Throwable t) {
+            closeQuietly(tool);
+            return Future.failedFuture(t);
+        }
+    }
+
+    static void closeQuietly(IPanTool tool) {
+        if (tool == null) {
+            return;
+        }
+        try {
+            tool.close();
+        } catch (Exception ignored) {
+            // ignore cleanup failures
+        }
+    }
 
     default String parseSync() {
         return timedJoin(parse());
@@ -141,6 +162,11 @@ public interface IPanTool {
      */
     default ShareLinkInfo getShareLinkInfo() {
         return null;
+    }
+
+    @Override
+    default void close() {
+        // default no-op
     }
 
     /**

@@ -72,7 +72,7 @@ POST https://api.feijipan.com/ws/recommend/list?devType=6&devModel=Chrome&uuid=2
 ###
 POST https://api.feijipan.com/ws/recommend/list?devType=6&devModel=Chrome&uuid=23e9pOiMqb2Nc164OwF7X&extra=2&timestamp=F09BD416CC5AB6FFA52B8CA1FA6C38B7&shareId=JoUTkZYj&type=0&offset=1&limit=60
 Accept: application/json, text/plain, */*
-Accept-Encoding: gzip, deflate, br, zstd
+Accept-Encoding: gzip, deflate, br
 Accept-Language: zh-CN,zh;q=0.9,en;q=0.8
 Cache-Control: no-cache
 Connection: keep-alive

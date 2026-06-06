@@ -38,8 +38,8 @@
 ### ✅ 3. BUG1修复验证：JS超时机制
 - **状态**: 已修复
 - **修复内容**:
-  - 在`JsPlaygroundExecutor`中实现了线程中断机制
-  - 使用`ScheduledExecutorService`和`Future.cancel(true)`确保超时后强制中断
+  - 在`JsPlaygroundExecutor`中实现了超时返回和资源释放机制
+  - 使用`ScheduledExecutorService`和`Future.cancel(true)`请求取消执行；Nashorn长循环不保证立即停止
   - 超时时间设置为30秒
 - **代码位置**: `parser/src/main/java/cn/qaiu/parser/customjs/JsPlaygroundExecutor.java`
 - **验证**: 代码已编译通过，超时机制已实现

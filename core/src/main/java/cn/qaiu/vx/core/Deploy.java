@@ -133,9 +133,16 @@ public final class Deploy {
         customConfig = globalConfig.getJsonObject(CUSTOM);
 
         JsonObject vertxConfig = globalConfig.getJsonObject(VERTX);
-        Integer vertxConfigELPS = vertxConfig.getInteger(EVENT_LOOP_POOL_SIZE);
-        var vertxOptions = vertxConfigELPS == 0 ?
-                new VertxOptions() : new VertxOptions(vertxConfig);
+        JsonObject vertxOptionsConfig = vertxConfig.copy();
+        if (vertxOptionsConfig.getInteger(EVENT_LOOP_POOL_SIZE, 0) == 0) {
+            vertxOptionsConfig.remove(EVENT_LOOP_POOL_SIZE);
+        }
+        if (vertxOptionsConfig.getInteger("workerPoolSize", 0) == 0) {
+            vertxOptionsConfig.remove("workerPoolSize");
+        }
+        Integer vertxConfigELPS = vertxConfig.getInteger(EVENT_LOOP_POOL_SIZE, 0);
+        var vertxOptions = vertxOptionsConfig.isEmpty() ?
+                new VertxOptions() : new VertxOptions(vertxOptionsConfig);
 
 //        vertxOptions.setAddressResolverOptions(
 //                new AddressResolverOptions().
@@ -165,24 +172,25 @@ public final class Deploy {
         localMap.put(GLOBAL_CONFIG, globalConfig);
         localMap.put(CUSTOM_CONFIG, customConfig);
         localMap.put(SERVER, globalConfig.getJsonObject(SERVER));
-        var future0 = vertx.createSharedWorkerExecutor("other-handle")
-                .executeBlocking(() -> {
+        WorkerExecutor otherHandleExecutor = vertx.createSharedWorkerExecutor("other-handle");
+        var future0 = otherHandleExecutor.executeBlocking(() -> {
                     handle.handle(globalConfig);
                     return "Other handle complete";
                 });
 
         future0.onSuccess(res -> {
+            otherHandleExecutor.close();
             LOGGER.info(res);
             // 部署 路由、异步service、反向代理 服务
             var future1 = vertx.deployVerticle(RouterVerticle.class, getWorkDeploymentOptions("Router"));
             var future2 = vertx.deployVerticle(ServiceVerticle.class, getWorkDeploymentOptions("Service"));
-            var future3 = vertx.deployVerticle(ReverseProxyVerticle.class, getWorkDeploymentOptions("proxy"));
+            var future3 = vertx.deployVerticle(ReverseProxyVerticle.class, getWorkDeploymentOptions("proxy", 1));
 
 
             JsonObject jsonObject = ((JsonObject) localMap.get(GLOBAL_CONFIG)).getJsonObject("proxy-server");
             if (jsonObject != null) {
                 genPwd(jsonObject);
-                var future4 = vertx.deployVerticle(HttpProxyVerticle.class, getWorkDeploymentOptions("proxy"));
+                var future4 = vertx.deployVerticle(HttpProxyVerticle.class, getWorkDeploymentOptions("proxy", 1));
                 future4.onSuccess(LOGGER::info);
                 future4.onFailure(e -> LOGGER.error("Other handle error", e));
                 Future.all(future1, future2, future3, future4)
@@ -194,7 +202,10 @@ public final class Deploy {
                         .onFailure(this::deployVerticalFailed);
             }
 
-        }).onFailure(e -> LOGGER.error("Other handle error", e));
+        }).onFailure(e -> {
+            otherHandleExecutor.close();
+            LOGGER.error("Other handle error", e);
+        });
     }
 
     private static void genPwd(JsonObject jsonObject) {

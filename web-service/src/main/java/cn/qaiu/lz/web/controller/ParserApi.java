@@ -13,6 +13,7 @@ import cn.qaiu.lz.web.model.LinkInfoResp;
 import cn.qaiu.lz.web.model.StatisticsInfo;
 import cn.qaiu.lz.web.service.DbService;
 import cn.qaiu.parser.PanDomainTemplate;
+import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.ParserCreate;
 import cn.qaiu.parser.clientlink.ClientLinkType;
 import cn.qaiu.vx.core.annotaions.RouteHandler;
@@ -151,7 +152,8 @@ public class ParserApi {
         if (StringUtils.isNotBlank(uuid)) {
             parserCreate.getShareLinkInfo().getOtherParam().put("uuid", uuid);
         }
-        return parserCreate.createTool().parseFileList();
+        IPanTool tool = parserCreate.createTool();
+        return IPanTool.closeAfter(tool, tool::parseFileList);
     }
 
     // 目录解析下载文件
@@ -174,7 +176,8 @@ public class ParserApi {
         String linkPrefix = getLinkPrefix(request);
         shareLinkInfo.getOtherParam().put("domainName", linkPrefix);
         shareLinkInfo.getOtherParam().put("_requestOrigin", linkPrefix);
-        return parserCreate.createTool().parseById();
+        IPanTool tool = parserCreate.createTool();
+        return IPanTool.closeAfter(tool, tool::parseById);
     }
 
     @RouteMapping("/redirectUrl/:type/:param")
@@ -320,7 +323,8 @@ public class ParserApi {
             }
             
             // 使用默认方法解析并生成客户端链接
-            parserCreate.createTool().parseWithClientLinks()
+            IPanTool tool = parserCreate.createTool();
+            IPanTool.closeAfter(tool, tool::parseWithClientLinks)
                 .onSuccess(clientLinks -> {
                     try {
                         ClientLinkResp response = buildClientLinkResponse(shareLinkInfo, clientLinks);
@@ -362,7 +366,8 @@ public class ParserApi {
             URLParamUtil.addParam(parserCreate);
 
             // 使用默认方法解析并生成客户端链接
-            parserCreate.createTool().parseWithClientLinks()
+            IPanTool tool = parserCreate.createTool();
+            IPanTool.closeAfter(tool, tool::parseWithClientLinks)
                 .onSuccess(clientLinks -> {
                     try {
                         String clientLink = extractClientLinkByType(clientLinks, clientType);

@@ -31,6 +31,8 @@ public class JsScriptLoader {
     
     private static final String RESOURCE_PATH = "custom-parsers";
     private static final String EXTERNAL_PATH = "./custom-parsers";
+    private static final long MAX_SCRIPT_SIZE_BYTES = 128 * 1024;
+    private static final int MAX_EXTERNAL_SCRIPT_COUNT = 100;
     
     // 系统属性配置的外部目录路径
     private static final String EXTERNAL_PATH_PROPERTY = "parser.custom-parsers.path";
@@ -84,7 +86,7 @@ public class JsScriptLoader {
 
                     if (inputStream != null) {
                         try (inputStream) {
-                            String jsCode = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+                            String jsCode = readResourceScript(inputStream, resourceFile);
                             CustomParserConfig config = JsScriptMetadataParser.parseScript(jsCode);
                             configs.add(config);
 
@@ -209,8 +211,10 @@ public class JsScriptLoader {
                 paths.filter(Files::isRegularFile)
                         .filter(path -> path.toString().endsWith(".js"))
                         .filter(path -> !isExcludedFile(path.getFileName().toString()))
+                        .limit(MAX_EXTERNAL_SCRIPT_COUNT)
                         .forEach(path -> {
                             try {
+                                ensureScriptSize(path);
                                 String jsCode = Files.readString(path, StandardCharsets.UTF_8);
                                 CustomParserConfig config = JsScriptMetadataParser.parseScript(jsCode);
                                 configs.add(config);
@@ -264,6 +268,7 @@ public class JsScriptLoader {
                 throw new IllegalArgumentException("文件不存在: " + filePath);
             }
             
+            ensureScriptSize(path);
             String jsCode = Files.readString(path, StandardCharsets.UTF_8);
             return JsScriptMetadataParser.parseScript(jsCode);
             
@@ -287,7 +292,7 @@ public class JsScriptLoader {
             }
 
             try (inputStream) {
-                String jsCode = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+                String jsCode = readResourceScript(inputStream, resourcePath);
                 return JsScriptMetadataParser.parseScript(jsCode);
             }
 
@@ -349,5 +354,20 @@ public class JsScriptLoader {
                fileName.equals("README.md") ||
                fileName.contains(".test.") ||
                fileName.contains(".spec.");
+    }
+
+    private static void ensureScriptSize(Path path) throws IOException {
+        long size = Files.size(path);
+        if (size > MAX_SCRIPT_SIZE_BYTES) {
+            throw new IllegalArgumentException("JavaScript脚本超过128KB限制: " + path.getFileName());
+        }
+    }
+
+    private static String readResourceScript(InputStream inputStream, String name) throws IOException {
+        byte[] bytes = inputStream.readNBytes((int) MAX_SCRIPT_SIZE_BYTES + 1);
+        if (bytes.length > MAX_SCRIPT_SIZE_BYTES) {
+            throw new IllegalArgumentException("JavaScript资源脚本超过128KB限制: " + name);
+        }
+        return new String(bytes, StandardCharsets.UTF_8);
     }
 }

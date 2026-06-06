@@ -21,10 +21,12 @@ import java.util.Random;
 public class ShoutServiceImpl implements ShoutService {
     private static final int CODE_LENGTH = 6;
     private static final int EXPIRE_HOURS = 24;
+    private static volatile boolean cleanupRegistered = false;
     private final JDBCPool jdbcPool = JDBCPoolInit.instance().getPool();
 
     @Override
     public Future<String> submitMessage(String content, String host) {
+        registerCleanup();
         Promise<String> promise = Promise.promise();
         String code = generateRandomCode();
         // 判断一下当前code是否存在消息
@@ -50,6 +52,7 @@ public class ShoutServiceImpl implements ShoutService {
 
     @Override
     public Future<JsonObject> retrieveMessage(String code) {
+        registerCleanup();
         Promise<JsonObject> promise = Promise.promise();
 
         String sql = "SELECT content FROM t_messages WHERE code = ? AND expire_time > NOW()";
@@ -77,6 +80,37 @@ public class ShoutServiceImpl implements ShoutService {
     private void markAsUsed(String code) {
         String sql = "UPDATE t_messages SET is_used = TRUE WHERE code = ?";
         jdbcPool.preparedQuery(sql).execute(Tuple.of(code));
+    }
+
+    private void registerCleanup() {
+        if (cleanupRegistered) {
+            return;
+        }
+        synchronized (ShoutServiceImpl.class) {
+            if (cleanupRegistered) {
+                return;
+            }
+            cleanupRegistered = true;
+            try {
+                cn.qaiu.vx.core.util.VertxHolder.getVertxInstance()
+                        .setPeriodic(3600_000, 3600_000, id -> cleanupExpiredMessages());
+                cleanupExpiredMessages();
+            } catch (Exception e) {
+                cleanupRegistered = false;
+                log.warn("注册消息清理任务失败", e);
+            }
+        }
+    }
+
+    private void cleanupExpiredMessages() {
+        String sql = "DELETE FROM t_messages WHERE expire_time < NOW()";
+        jdbcPool.query(sql).execute()
+                .onSuccess(res -> {
+                    if (res.rowCount() > 0) {
+                        log.info("清理过期消息 {} 条", res.rowCount());
+                    }
+                })
+                .onFailure(e -> log.warn("清理过期消息失败", e));
     }
 
     private String generateRandomCode() {

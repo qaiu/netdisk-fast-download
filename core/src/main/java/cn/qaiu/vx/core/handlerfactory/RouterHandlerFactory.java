@@ -96,7 +96,9 @@ public class RouterHandlerFactory implements BaseHttpApi {
         mainRouter.route().handler(CorsHandler.create().addRelativeOrigin(".*").allowCredentials(true).allowedMethods(httpMethods));
 
         // 配置文件上传路径
-        mainRouter.route().handler(BodyHandler.create().setUploadsDirectory("uploads"));
+        mainRouter.route().handler(BodyHandler.create()
+                .setUploadsDirectory("uploads")
+                .setBodyLimit(2L * 1024 * 1024));
 
         // 拦截器
         Set<Handler<RoutingContext>> interceptorSet = getInterceptorSet();
