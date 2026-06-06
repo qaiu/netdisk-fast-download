@@ -17,6 +17,7 @@ public class RateLimiter {
 
     private static final Map<String, RequestInfo> ipRequestMap = new ConcurrentHashMap<>();
     private static int MAX_REQUESTS = 10; // 最大请求次数
+    private static int MAX_ENTRIES = 10_000;
     private static long TIME_WINDOW = 60 * 1000; // 时间窗口（毫秒）
 
     private static String PATH_REG = "/.*"; // 限流路径正则（默认匹配所有路径）
@@ -28,6 +29,7 @@ public class RateLimiter {
 
     public static void init(JsonObject rateLimitConfig) {
         MAX_REQUESTS = rateLimitConfig.getInteger("limit", 10);
+        MAX_ENTRIES = rateLimitConfig.getInteger("maxEntries", 10_000);
         TIME_WINDOW = rateLimitConfig.getInteger("timeWindow", 60) * 1000L; // 转换为毫秒
         PATH_REG = rateLimitConfig.getString("pathReg", "/.*");
         log.info("RateLimiter initialized with max requests: {}, time window: {} ms, path regex: {}",
@@ -47,19 +49,29 @@ public class RateLimiter {
         // 基于时间间隔的清理策略，避免 Map 无限增长
         long now = System.currentTimeMillis();
         if (now - lastCleanupTime > CLEANUP_INTERVAL) {
-            cleanupExpiredEntries(now);
+            cleanupExpiredEntries(now, false);
         }
-
-        RequestInfo info = ipRequestMap.compute(ip, (key, requestInfo) -> {
-            if (requestInfo == null || now - requestInfo.timestamp > TIME_WINDOW) {
-                // 初始化或重置计数器
-                return new RequestInfo(1, now);
-            } else {
-                // 增加计数器
-                requestInfo.count.incrementAndGet();
-                return requestInfo;
+        RequestInfo info;
+        synchronized (RateLimiter.class) {
+            if (!ipRequestMap.containsKey(ip) && ipRequestMap.size() >= MAX_ENTRIES) {
+                cleanupExpiredEntries(now, true);
+                if (ipRequestMap.size() >= MAX_ENTRIES) {
+                    promise.fail("限流记录过多，请稍后再试。");
+                    return promise.future();
+                }
             }
-        });
+
+            info = ipRequestMap.compute(ip, (key, requestInfo) -> {
+                if (requestInfo == null || now - requestInfo.timestamp > TIME_WINDOW) {
+                    // 初始化或重置计数器
+                    return new RequestInfo(1, now);
+                } else {
+                    // 增加计数器
+                    requestInfo.count.incrementAndGet();
+                    return requestInfo;
+                }
+            });
+        }
 
         if (info.count.get() > MAX_REQUESTS) {
             // 超过限制
@@ -79,9 +91,9 @@ public class RateLimiter {
      * 清理过期的限流条目
      * 使用 synchronized 避免并发清理
      */
-    private static synchronized void cleanupExpiredEntries(long now) {
+    private static synchronized void cleanupExpiredEntries(long now, boolean force) {
         // 双重检查，避免重复清理
-        if (now - lastCleanupTime <= CLEANUP_INTERVAL) {
+        if (!force && now - lastCleanupTime <= CLEANUP_INTERVAL) {
             return;
         }
         lastCleanupTime = now;

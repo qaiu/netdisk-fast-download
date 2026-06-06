@@ -163,34 +163,31 @@ public class AppMain {
     private static void loadPlaygroundParsers(String accessAddr) {
         DbService dbService = AsyncServiceUtil.getAsyncServiceInstance(DbService.class);
         
-        dbService.getPlaygroundParserList().onSuccess(result -> {
+        dbService.getEnabledPlaygroundParsersForLoad().onSuccess(result -> {
             JsonArray parsers = result.getJsonArray("data");
             if (parsers != null) {
                 int loadedCount = 0;
                 for (int i = 0; i < parsers.size(); i++) {
                     JsonObject parser = parsers.getJsonObject(i);
                     
-                    // 只注册已启用的解析器
-                    if (parser.getBoolean("enabled", false)) {
-                        try {
-                            String jsCode = parser.getString("jsCode");
-                            if (jsCode == null || jsCode.trim().isEmpty()) {
-                                log.error("加载演练场解析器失败: {} - JavaScript代码为空", parser.getString("name"));
-                                continue;
-                            }
-                            CustomParserConfig config = JsScriptMetadataParser.parseScript(jsCode);
-                            CustomParserRegistry.register(config);
-                            loadedCount++;
-                            log.info("已加载演练场解析器: {} ({})", 
-                                    config.getDisplayName(), config.getType());
-                        } catch (Exception e) {
-                            String parserName = parser.getString("name");
-                            String errorMsg = e.getMessage();
-                            log.error("加载演练场解析器失败: {} - {}", parserName, errorMsg, e);
-                            // 如果是require相关错误，提供更详细的提示
-                            if (errorMsg != null && errorMsg.contains("require")) {
-                                log.error("提示：演练场解析器不支持CommonJS模块系统（require），请确保代码使用ES5.1语法");
-                            }
+                    try {
+                        String jsCode = parser.getString("jsCode");
+                        if (jsCode == null || jsCode.trim().isEmpty()) {
+                            log.error("加载演练场解析器失败: {} - JavaScript代码为空", parser.getString("name"));
+                            continue;
+                        }
+                        CustomParserConfig config = JsScriptMetadataParser.parseScript(jsCode);
+                        CustomParserRegistry.register(config);
+                        loadedCount++;
+                        log.info("已加载演练场解析器: {} ({})",
+                                config.getDisplayName(), config.getType());
+                    } catch (Exception e) {
+                        String parserName = parser.getString("name");
+                        String errorMsg = e.getMessage();
+                        log.error("加载演练场解析器失败: {} - {}", parserName, errorMsg, e);
+                        // 如果是require相关错误，提供更详细的提示
+                        if (errorMsg != null && errorMsg.contains("require")) {
+                            log.error("提示：演练场解析器不支持CommonJS模块系统（require），请确保代码使用ES5.1语法");
                         }
                     }
                 }

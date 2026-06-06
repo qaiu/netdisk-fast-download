@@ -308,11 +308,15 @@ public abstract class PanBase implements IPanTool, Closeable {
                 if (iterator.hasNext()) {
                     PanDomainTemplate next = iterator.next();
                     log.debug("规则不匹配, 处理解析器转发: {} -> {}", shareLinkInfo.getPanName(), next.getDisplayName());
-                    ParserCreate.fromType(next.name())
-                            .fromAnyShareUrl(shareLinkInfo.getShareUrl())
-                            .createTool()
-                            .parse()
-                            .onComplete(promise);
+                    try {
+                        IPanTool nextTool = ParserCreate.fromType(next.name())
+                                .fromAnyShareUrl(shareLinkInfo.getShareUrl())
+                                .createTool();
+                        IPanTool.closeAfter(nextTool, nextTool::parse)
+                                .onComplete(promise);
+                    } catch (Exception e) {
+                        fail(e, "转发到下一个解析器失败: {}", next.getDisplayName());
+                    }
                 } else {
                     fail("error: 没有下一个解析处理器");
                 }

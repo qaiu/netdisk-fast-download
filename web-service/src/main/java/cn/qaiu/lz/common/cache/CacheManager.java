@@ -235,7 +235,7 @@ public class CacheManager {
                             WHERE share_key NOT IN (
                                 SELECT DISTINCT share_key FROM cache_link_info WHERE share_key IS NOT NULL
                             )
-                            AND create_time < #{thresholdTime}
+                            AND (create_time IS NULL OR create_time < #{thresholdTime})
                             """;
                     Map<String, Object> orphanParams = new HashMap<>();
                     // 计算1天前的时间，转换为 yyyy-MM-dd HH:mm:ss 格式

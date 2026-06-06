@@ -27,7 +27,9 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -59,6 +61,7 @@ public class ReverseProxyVerticle extends AbstractVerticle {
      * 【优化】HttpClient连接池，按host:port缓存复用，避免每个请求都创建新连接
      */
     private final Map<String, HttpClientEntry> httpClientPool = new ConcurrentHashMap<>();
+    private final List<HttpServer> httpServers = new ArrayList<>();
 
     /**
      * 连接池条目，记录最后使用时间用于驱逐
@@ -80,24 +83,21 @@ public class ReverseProxyVerticle extends AbstractVerticle {
     /**
      * 【优化】高并发场景下的HttpClient配置
      */
-    private static final int MAX_POOL_SIZE = 100;           // 最大连接池大小
-    private static final int MAX_WAIT_QUEUE_SIZE = 500;    // 最大等待队列大小
+    private static final int MAX_POOL_SIZE = 32;           // 最大连接池大小
+    private static final int MAX_WAIT_QUEUE_SIZE = 128;    // 最大等待队列大小
     private static final int CONNECT_TIMEOUT = 30000;      // 连接超时30秒
     private static final int IDLE_TIMEOUT = 60;            // 空闲超时60秒
     private static final boolean KEEP_ALIVE = true;        // 启用Keep-Alive
-    private static final boolean PIPELINING = true;        // 启用HTTP管线化
-    private static final long EVICT_IDLE_MILLIS = 30 * 60 * 1000L; // 30分钟未使用则驱逐
+    private static final boolean PIPELINING = false;       // 代理场景关闭管线化，避免慢响应堆积
+    private static final long EVICT_IDLE_MILLIS = 30 * 60 * 1000L;
     private Long evictTimerId;
-
-
     @Override
     public void start(Promise<Void> startPromise) {
-        CONFIG.onSuccess(this::handleProxyConfList).onFailure(e -> {
+        CONFIG.onSuccess(config -> startProxyServers(config).onComplete(startPromise)).onFailure(e -> {
             LOGGER.info("web代理配置已禁用，当前仅支持API调用");
+            startPromise.complete();
         });
-        // 每 5 分钟驱逐空闲超过 30 分钟的 HttpClient
         evictTimerId = vertx.setPeriodic(5 * 60 * 1000, 5 * 60 * 1000, id -> evictIdleClients());
-        startPromise.complete();
     }
 
     /**
@@ -105,39 +105,45 @@ public class ReverseProxyVerticle extends AbstractVerticle {
      */
     @Override
     public void stop(Promise<Void> stopPromise) {
-        // 取消驱逐定时器
+        LOGGER.info("Stopping ReverseProxyVerticle, closing {} HttpClient connections...", httpClientPool.size());
         if (evictTimerId != null) {
             vertx.cancelTimer(evictTimerId);
         }
-        LOGGER.info("Stopping ReverseProxyVerticle, closing {} HttpClient connections...", httpClientPool.size());
+        List<Future<Void>> closeFutures = new ArrayList<>();
         httpClientPool.values().forEach(entry -> {
             try {
-                entry.client.close();
+                closeFutures.add(entry.client.close());
             } catch (Exception e) {
                 LOGGER.warn("Error closing HttpClient: {}", e.getMessage());
             }
         });
         httpClientPool.clear();
-        stopPromise.complete();
+        httpServers.forEach(server -> closeFutures.add(server.close()));
+        httpServers.clear();
+        if (closeFutures.isEmpty()) {
+            stopPromise.complete();
+            return;
+        }
+        Future.all(closeFutures).onComplete(ar -> {
+            if (ar.succeeded()) {
+                stopPromise.complete();
+            } else {
+                stopPromise.fail(ar.cause());
+            }
+        });
     }
 
-    /**
-     * 驱逐空闲超时的 HttpClient 连接池
-     */
     private void evictIdleClients() {
         long now = System.currentTimeMillis();
         httpClientPool.entrySet().removeIf(entry -> {
-            long lastUsed = entry.getValue().lastUsed;
-            if (now - lastUsed > EVICT_IDLE_MILLIS && lastUsed < now) {
-                try {
-                    entry.getValue().client.close();
-                    LOGGER.info("驱逐空闲 HttpClient: {}", entry.getKey());
-                } catch (Exception e) {
-                    LOGGER.warn("驱逐 HttpClient 失败: {}", e.getMessage());
-                }
-                return true;
+            HttpClientEntry clientEntry = entry.getValue();
+            if (now - clientEntry.lastUsed <= EVICT_IDLE_MILLIS) {
+                return false;
             }
-            return false;
+            clientEntry.client.close()
+                    .onSuccess(v -> LOGGER.info("驱逐空闲 HttpClient: {}", entry.getKey()))
+                    .onFailure(e -> LOGGER.warn("驱逐 HttpClient 失败: {}", entry.getKey(), e));
+            return true;
         });
     }
 
@@ -160,7 +166,7 @@ public class ReverseProxyVerticle extends AbstractVerticle {
                     .setKeepAliveTimeout(120)                         // Keep-Alive超时120秒
                     .setPipelining(PIPELINING)                        // HTTP管线化
                     .setPipeliningLimit(10)                           // 管线化限制
-                    .setDecompressionSupported(true)                  // 支持解压响应
+                    .setDecompressionSupported(false)                 // 代理不解压，避免放大内存
                     .setTcpKeepAlive(true)                            // TCP Keep-Alive
                     .setTcpNoDelay(true)                              // 禁用Nagle算法，降低延迟
                     .setTcpFastOpen(true)                             // 启用TCP Fast Open
@@ -183,7 +189,7 @@ public class ReverseProxyVerticle extends AbstractVerticle {
      *
      * @param config proxy config
      */
-    private void handleProxyConfList(JsonObject config) {
+    private Future<Void> startProxyServers(JsonObject config) {
         serverName = config.getString("server-name");
         // 解析全局 trusted-proxies
         JsonArray trustedArr = config.getJsonArray("trusted-proxies");
@@ -195,13 +201,15 @@ public class ReverseProxyVerticle extends AbstractVerticle {
             });
         }
         JsonArray proxyConfList = config.getJsonArray("proxy");
+        List<Future<Void>> listenFutures = new ArrayList<>();
         if (proxyConfList != null) {
             proxyConfList.forEach(proxyConf -> {
                 if (proxyConf instanceof JsonObject) {
-                    handleProxyConf((JsonObject) proxyConf);
+                    listenFutures.add(handleProxyConf((JsonObject) proxyConf));
                 }
             });
         }
+        return listenFutures.isEmpty() ? Future.succeededFuture() : Future.all(listenFutures).mapEmpty();
     }
 
     /**
@@ -247,7 +255,7 @@ public class ReverseProxyVerticle extends AbstractVerticle {
      *
      * @param proxyConf 代理配置
      */
-    private void handleProxyConf(JsonObject proxyConf) {
+    private Future<Void> handleProxyConf(JsonObject proxyConf) {
         // page404 path
         if (proxyConf.containsKey(
 
@@ -304,7 +312,10 @@ public class ReverseProxyVerticle extends AbstractVerticle {
 
         Integer port = proxyConf.getInteger("listen");
         LOGGER.info("proxy server start on {} port", port);
-        server.listen(port);
+        return server.listen(port)
+                .onSuccess(s -> httpServers.add(s))
+                .onFailure(e -> LOGGER.error("proxy server start failed on {} port", port, e))
+                .mapEmpty();
     }
 
     private HttpServer getHttpsServer(JsonObject proxyConf) {
@@ -313,7 +324,7 @@ public class ReverseProxyVerticle extends AbstractVerticle {
                 .setTcpKeepAlive(true)                    // TCP Keep-Alive
                 .setTcpNoDelay(true)                      // 禁用Nagle算法
                 .setCompressionSupported(true)            // 启用压缩
-                .setAcceptBacklog(50000)                  // 增加积压队列到50000
+                .setAcceptBacklog(1024)                   // 限制积压队列，避免小容器内存膨胀
                 .setIdleTimeout(120)                      // 空闲超时120秒
                 .setTcpFastOpen(true)                     // 启用TCP Fast Open
                 .setTcpQuickAck(true)                     // 启用TCP Quick ACK

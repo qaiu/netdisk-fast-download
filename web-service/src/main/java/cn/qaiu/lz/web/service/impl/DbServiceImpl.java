@@ -85,37 +85,49 @@ public class DbServiceImpl implements DbService {
     public Future<JsonObject> getPlaygroundParserList() {
         JDBCPool client = JDBCPoolInit.instance().getPool();
         Promise<JsonObject> promise = Promise.promise();
-        String sql = "SELECT * FROM playground_parser ORDER BY create_time DESC";
+        String sql = """
+                SELECT id, name, type, display_name, description, author, version,
+                       match_pattern, ip, create_time, update_time, enabled
+                FROM playground_parser
+                ORDER BY create_time DESC
+                LIMIT 100
+                """;
 
         client.query(sql).execute().onSuccess(rows -> {
             List<JsonObject> list = new ArrayList<>();
             for (Row row : rows) {
-                JsonObject parser = new JsonObject();
-                parser.put("id", row.getLong("id"));
-                parser.put("name", row.getString("name"));
-                parser.put("type", row.getString("type"));
-                parser.put("displayName", row.getString("display_name"));
-                parser.put("description", row.getString("description"));
-                parser.put("author", row.getString("author"));
-                parser.put("version", row.getString("version"));
-                parser.put("matchPattern", row.getString("match_pattern"));
-                parser.put("jsCode", row.getString("js_code"));
-                parser.put("ip", row.getString("ip"));
-                // 将LocalDateTime转换为字符串格式，避免序列化为数组
-                var createTime = row.getLocalDateTime("create_time");
-                if (createTime != null) {
-                    parser.put("createTime", createTime.toString().replace("T", " "));
-                }
-                var updateTime = row.getLocalDateTime("update_time");
-                if (updateTime != null) {
-                    parser.put("updateTime", updateTime.toString().replace("T", " "));
-                }
-                parser.put("enabled", row.getBoolean("enabled"));
-                list.add(parser);
+                list.add(toPlaygroundParserJson(row, false));
             }
             promise.complete(JsonResult.data(list).toJsonObject());
         }).onFailure(e -> {
             log.error("getPlaygroundParserList failed", e);
+            promise.fail(e);
+        });
+
+        return promise.future();
+    }
+
+    @Override
+    public Future<JsonObject> getEnabledPlaygroundParsersForLoad() {
+        JDBCPool client = JDBCPoolInit.instance().getPool();
+        Promise<JsonObject> promise = Promise.promise();
+        String sql = """
+                SELECT id, name, type, display_name, description, author, version,
+                       match_pattern, js_code, ip, create_time, update_time, enabled
+                FROM playground_parser
+                WHERE enabled = TRUE
+                ORDER BY update_time DESC, create_time DESC
+                LIMIT 100
+                """;
+
+        client.query(sql).execute().onSuccess(rows -> {
+            List<JsonObject> list = new ArrayList<>();
+            for (Row row : rows) {
+                list.add(toPlaygroundParserJson(row, true));
+            }
+            promise.complete(JsonResult.data(list).toJsonObject());
+        }).onFailure(e -> {
+            log.error("getEnabledPlaygroundParsersForLoad failed", e);
             promise.fail(e);
         });
 
@@ -164,13 +176,14 @@ public class DbServiceImpl implements DbService {
         
         String sql = """
             UPDATE playground_parser 
-            SET name = ?, display_name = ?, description = ?, author = ?, 
+            SET type = ?, name = ?, display_name = ?, description = ?, author = ?,
                 version = ?, match_pattern = ?, js_code = ?, update_time = NOW(), enabled = ?
             WHERE id = ?
             """;
 
         client.preparedQuery(sql)
             .execute(Tuple.of(
+                parser.getString("type"),
                 parser.getString("name"),
                 parser.getString("displayName"),
                 parser.getString("description"),
@@ -182,6 +195,10 @@ public class DbServiceImpl implements DbService {
                 id
             ))
             .onSuccess(res -> {
+                if (res.rowCount() == 0) {
+                    promise.complete(JsonResult.error("解析器不存在").toJsonObject());
+                    return;
+                }
                 promise.complete(JsonResult.success("更新成功").toJsonObject());
             })
             .onFailure(e -> {
@@ -231,6 +248,27 @@ public class DbServiceImpl implements DbService {
     }
 
     @Override
+    public Future<Boolean> playgroundParserTypeExists(String type, Long excludeId) {
+        JDBCPool client = JDBCPoolInit.instance().getPool();
+        Promise<Boolean> promise = Promise.promise();
+
+        String sql = excludeId == null
+                ? "SELECT COUNT(*) as count FROM playground_parser WHERE type = ?"
+                : "SELECT COUNT(*) as count FROM playground_parser WHERE type = ? AND id <> ?";
+        Tuple params = excludeId == null ? Tuple.of(type) : Tuple.of(type, excludeId);
+
+        client.preparedQuery(sql).execute(params).onSuccess(rows -> {
+            Integer count = rows.iterator().next().getInteger("count");
+            promise.complete(count != null && count > 0);
+        }).onFailure(e -> {
+            log.error("playgroundParserTypeExists failed", e);
+            promise.fail(e);
+        });
+
+        return promise.future();
+    }
+
+    @Override
     public Future<JsonObject> getPlaygroundParserById(Long id) {
         JDBCPool client = JDBCPoolInit.instance().getPool();
         Promise<JsonObject> promise = Promise.promise();
@@ -242,28 +280,7 @@ public class DbServiceImpl implements DbService {
             .onSuccess(rows -> {
                 if (rows.size() > 0) {
                     Row row = rows.iterator().next();
-                    JsonObject parser = new JsonObject();
-                    parser.put("id", row.getLong("id"));
-                    parser.put("name", row.getString("name"));
-                    parser.put("type", row.getString("type"));
-                    parser.put("displayName", row.getString("display_name"));
-                    parser.put("description", row.getString("description"));
-                    parser.put("author", row.getString("author"));
-                    parser.put("version", row.getString("version"));
-                    parser.put("matchPattern", row.getString("match_pattern"));
-                    parser.put("jsCode", row.getString("js_code"));
-                    parser.put("ip", row.getString("ip"));
-                    // 将LocalDateTime转换为字符串格式，避免序列化为数组
-                    var createTime = row.getLocalDateTime("create_time");
-                    if (createTime != null) {
-                        parser.put("createTime", createTime.toString().replace("T", " "));
-                    }
-                    var updateTime = row.getLocalDateTime("update_time");
-                    if (updateTime != null) {
-                        parser.put("updateTime", updateTime.toString().replace("T", " "));
-                    }
-                    parser.put("enabled", row.getBoolean("enabled"));
-                    promise.complete(JsonResult.data(parser).toJsonObject());
+                    promise.complete(JsonResult.data(toPlaygroundParserJson(row, true)).toJsonObject());
                 } else {
                     promise.fail("解析器不存在");
                 }
@@ -274,6 +291,32 @@ public class DbServiceImpl implements DbService {
             });
 
         return promise.future();
+    }
+
+    private JsonObject toPlaygroundParserJson(Row row, boolean includeJsCode) {
+        JsonObject parser = new JsonObject();
+        parser.put("id", row.getLong("id"));
+        parser.put("name", row.getString("name"));
+        parser.put("type", row.getString("type"));
+        parser.put("displayName", row.getString("display_name"));
+        parser.put("description", row.getString("description"));
+        parser.put("author", row.getString("author"));
+        parser.put("version", row.getString("version"));
+        parser.put("matchPattern", row.getString("match_pattern"));
+        if (includeJsCode) {
+            parser.put("jsCode", row.getString("js_code"));
+        }
+        parser.put("ip", row.getString("ip"));
+        var createTime = row.getLocalDateTime("create_time");
+        if (createTime != null) {
+            parser.put("createTime", createTime.toString().replace("T", " "));
+        }
+        var updateTime = row.getLocalDateTime("update_time");
+        if (updateTime != null) {
+            parser.put("updateTime", updateTime.toString().replace("T", " "));
+        }
+        parser.put("enabled", row.getBoolean("enabled"));
+        return parser;
     }
 
     // ========== 捐赠账号相关 ==========

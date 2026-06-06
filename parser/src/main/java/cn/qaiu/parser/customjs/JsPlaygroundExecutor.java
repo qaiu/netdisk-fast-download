@@ -27,6 +27,9 @@ public class JsPlaygroundExecutor implements AutoCloseable {
     
     // JavaScript执行超时时间（秒）
     private static final long EXECUTION_TIMEOUT_SECONDS = 30;
+    private static final int MAX_RESULT_STRING_LENGTH = 1024 * 1024;
+    private static final int MAX_FILE_LIST_SIZE = 1000;
+    private static final int MAX_FILE_FIELD_LENGTH = 4096;
     
     // 使用有界线程池，防止线程无限增长导致内存溢出
     private static final int POOL_MAX_THREADS = 16;
@@ -96,7 +99,12 @@ public class JsPlaygroundExecutor implements AutoCloseable {
         this.playgroundLogger = new JsPlaygroundLogger();
         this.shareLinkInfoWrapper = new JsShareLinkInfoWrapper(shareLinkInfo);
         this.fetchBridge = new JsFetchBridge(httpClient);
-        this.engine = initEngine();
+        try {
+            this.engine = initEngine();
+        } catch (RuntimeException e) {
+            this.httpClient.close();
+            throw e;
+        }
     }
     
     /**
@@ -177,8 +185,9 @@ public class JsPlaygroundExecutor implements AutoCloseable {
                     log.debug("[JsPlaygroundExecutor] parse函数执行完成，当前日志数量: {}", playgroundLogger.size());
                     
                     if (result instanceof String) {
-                        playgroundLogger.infoJava("解析成功，返回结果: " + result);
-                        return (String) result;
+                        String resultText = limitResultString((String) result, "parse");
+                        playgroundLogger.infoJava("解析成功，返回结果长度: " + resultText.length());
+                        return resultText;
                     } else {
                         String errorMsg = "parse方法返回值类型错误，期望String，实际: " + 
                                 (result != null ? result.getClass().getSimpleName() : "null");
@@ -201,12 +210,12 @@ public class JsPlaygroundExecutor implements AutoCloseable {
             return promise.future();
         }
 
-        // 创建超时任务，强制取消执行
+        // 创建超时任务。cancel(true) 只能请求中断，Nashorn 死循环不保证立即停止。
         ScheduledFuture<?> timeoutTask = TIMEOUT_SCHEDULER.schedule(() -> {
             if (!executionFuture.isDone()) {
-                executionFuture.cancel(true);  // 强制中断执行线程
-                playgroundLogger.errorJava("执行超时，已强制中断");
-                log.warn("JavaScript执行超时，已强制取消");
+                executionFuture.cancel(true);
+                playgroundLogger.errorJava("执行超时，已请求取消并释放资源");
+                log.warn("JavaScript执行超时，已请求取消；Nashorn长循环可能继续占用线程");
             }
         }, EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
@@ -217,7 +226,7 @@ public class JsPlaygroundExecutor implements AutoCloseable {
 
                 if (error != null) {
                 if (error instanceof CancellationException) {
-                    String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已强制中断";
+                    String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已返回超时并释放资源";
                         playgroundLogger.errorJava(timeoutMsg);
                         log.error(timeoutMsg);
                         promise.fail(new RuntimeException(timeoutMsg));
@@ -284,12 +293,12 @@ public class JsPlaygroundExecutor implements AutoCloseable {
             return promise.future();
         }
 
-        // 创建超时任务，强制取消执行
+        // 创建超时任务。cancel(true) 只能请求中断，Nashorn 死循环不保证立即停止。
         ScheduledFuture<?> timeoutTask = TIMEOUT_SCHEDULER.schedule(() -> {
             if (!executionFuture.isDone()) {
-                executionFuture.cancel(true);  // 强制中断执行线程
-                playgroundLogger.errorJava("执行超时，已强制中断");
-                log.warn("JavaScript执行超时，已强制取消");
+                executionFuture.cancel(true);
+                playgroundLogger.errorJava("执行超时，已请求取消并释放资源");
+                log.warn("JavaScript执行超时，已请求取消；Nashorn长循环可能继续占用线程");
             }
         }, EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
@@ -300,7 +309,7 @@ public class JsPlaygroundExecutor implements AutoCloseable {
 
                 if (error != null) {
                 if (error instanceof CancellationException) {
-                    String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已强制中断";
+                    String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已返回超时并释放资源";
                         playgroundLogger.errorJava(timeoutMsg);
                         log.error(timeoutMsg);
                         promise.fail(new RuntimeException(timeoutMsg));
@@ -342,8 +351,9 @@ public class JsPlaygroundExecutor implements AutoCloseable {
                     Object result = parseByIdMirror.call(null, shareLinkInfoWrapper, httpClient, playgroundLogger);
                     
                     if (result instanceof String) {
-                        playgroundLogger.infoJava("按ID解析成功: " + result);
-                        return (String) result;
+                        String resultText = limitResultString((String) result, "parseById");
+                        playgroundLogger.infoJava("按ID解析成功，返回结果长度: " + resultText.length());
+                        return resultText;
                     } else {
                         String errorMsg = "parseById方法返回值类型错误，期望String，实际: " + 
                                 (result != null ? result.getClass().getSimpleName() : "null");
@@ -366,12 +376,12 @@ public class JsPlaygroundExecutor implements AutoCloseable {
             return promise.future();
         }
 
-        // 创建超时任务，强制取消执行
+        // 创建超时任务。cancel(true) 只能请求中断，Nashorn 死循环不保证立即停止。
         ScheduledFuture<?> timeoutTask = TIMEOUT_SCHEDULER.schedule(() -> {
             if (!executionFuture.isDone()) {
-                executionFuture.cancel(true);  // 强制中断执行线程
-                playgroundLogger.errorJava("执行超时，已强制中断");
-                log.warn("JavaScript执行超时，已强制取消");
+                executionFuture.cancel(true);
+                playgroundLogger.errorJava("执行超时，已请求取消并释放资源");
+                log.warn("JavaScript执行超时，已请求取消；Nashorn长循环可能继续占用线程");
             }
         }, EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
@@ -382,7 +392,7 @@ public class JsPlaygroundExecutor implements AutoCloseable {
 
                 if (error != null) {
                 if (error instanceof CancellationException) {
-                    String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已强制中断";
+                    String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已返回超时并释放资源";
                         playgroundLogger.errorJava(timeoutMsg);
                         log.error(timeoutMsg);
                         promise.fail(new RuntimeException(timeoutMsg));
@@ -421,6 +431,9 @@ public class JsPlaygroundExecutor implements AutoCloseable {
         List<FileInfo> fileList = new ArrayList<>();
         
         if (resultMirror.isArray()) {
+            if (resultMirror.size() > MAX_FILE_LIST_SIZE) {
+                throw new RuntimeException("文件列表数量超过限制: " + resultMirror.size());
+            }
             for (int i = 0; i < resultMirror.size(); i++) {
                 Object item = resultMirror.get(String.valueOf(i));
                 if (item instanceof ScriptObjectMirror) {
@@ -444,13 +457,13 @@ public class JsPlaygroundExecutor implements AutoCloseable {
             
             // 设置基本字段
             if (itemMirror.hasMember("fileName")) {
-                fileInfo.setFileName(itemMirror.getMember("fileName").toString());
+                fileInfo.setFileName(limitField(itemMirror.getMember("fileName")));
             }
             if (itemMirror.hasMember("fileId")) {
-                fileInfo.setFileId(itemMirror.getMember("fileId").toString());
+                fileInfo.setFileId(limitField(itemMirror.getMember("fileId")));
             }
             if (itemMirror.hasMember("fileType")) {
-                fileInfo.setFileType(itemMirror.getMember("fileType").toString());
+                fileInfo.setFileType(limitField(itemMirror.getMember("fileType")));
             }
             if (itemMirror.hasMember("size")) {
                 Object size = itemMirror.getMember("size");
@@ -459,16 +472,16 @@ public class JsPlaygroundExecutor implements AutoCloseable {
                 }
             }
             if (itemMirror.hasMember("sizeStr")) {
-                fileInfo.setSizeStr(itemMirror.getMember("sizeStr").toString());
+                fileInfo.setSizeStr(limitField(itemMirror.getMember("sizeStr")));
             }
             if (itemMirror.hasMember("createTime")) {
-                fileInfo.setCreateTime(itemMirror.getMember("createTime").toString());
+                fileInfo.setCreateTime(limitField(itemMirror.getMember("createTime")));
             }
             if (itemMirror.hasMember("updateTime")) {
-                fileInfo.setUpdateTime(itemMirror.getMember("updateTime").toString());
+                fileInfo.setUpdateTime(limitField(itemMirror.getMember("updateTime")));
             }
             if (itemMirror.hasMember("createBy")) {
-                fileInfo.setCreateBy(itemMirror.getMember("createBy").toString());
+                fileInfo.setCreateBy(limitField(itemMirror.getMember("createBy")));
             }
             if (itemMirror.hasMember("downloadCount")) {
                 Object downloadCount = itemMirror.getMember("downloadCount");
@@ -477,16 +490,16 @@ public class JsPlaygroundExecutor implements AutoCloseable {
                 }
             }
             if (itemMirror.hasMember("fileIcon")) {
-                fileInfo.setFileIcon(itemMirror.getMember("fileIcon").toString());
+                fileInfo.setFileIcon(limitField(itemMirror.getMember("fileIcon")));
             }
             if (itemMirror.hasMember("panType")) {
-                fileInfo.setPanType(itemMirror.getMember("panType").toString());
+                fileInfo.setPanType(limitField(itemMirror.getMember("panType")));
             }
             if (itemMirror.hasMember("parserUrl")) {
-                fileInfo.setParserUrl(itemMirror.getMember("parserUrl").toString());
+                fileInfo.setParserUrl(limitField(itemMirror.getMember("parserUrl")));
             }
             if (itemMirror.hasMember("previewUrl")) {
-                fileInfo.setPreviewUrl(itemMirror.getMember("previewUrl").toString());
+                fileInfo.setPreviewUrl(limitField(itemMirror.getMember("previewUrl")));
             }
             
             return fileInfo;
@@ -495,6 +508,24 @@ public class JsPlaygroundExecutor implements AutoCloseable {
             playgroundLogger.errorJava("转换FileInfo对象失败", e);
             return null;
         }
+    }
+
+    private static String limitResultString(String value, String operation) {
+        if (value.length() > MAX_RESULT_STRING_LENGTH) {
+            throw new RuntimeException(operation + " 返回结果过大: " + value.length() + " 字符");
+        }
+        return value;
+    }
+
+    private static String limitField(Object value) {
+        if (value == null) {
+            return null;
+        }
+        String text = value.toString();
+        if (text.length() > MAX_FILE_FIELD_LENGTH) {
+            throw new RuntimeException("文件字段过长: " + text.length() + " 字符");
+        }
+        return text;
     }
 
     /**

@@ -134,8 +134,8 @@ HTTP客户端对象：
 http.get(url)                           // GET请求
 http.post(url, data)                     // POST请求
 http.putHeader(name, value)              // 设置请求头
-http.sendForm(data)                      // 发送表单数据
-http.sendJson(data)                      // 发送JSON数据
+http.sendForm(url, data)                 // 发送表单数据
+http.sendJson(url, data)                 // 发送JSON数据
 ```
 
 ### JsHttpResponse

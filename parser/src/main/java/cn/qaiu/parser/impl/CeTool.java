@@ -2,6 +2,7 @@ package cn.qaiu.parser.impl;
 
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
+import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.PanBase;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
@@ -160,6 +161,7 @@ public class CeTool extends PanBase {
             } catch (Exception e) {
                 log.debug("v3 share API解析失败: {}", e.getMessage());
             }
+            tryV4ShareApi(baseUrl, key, pwd);
         }).onFailure(t -> {
             log.debug("v3 share API请求失败: {}", t.getMessage());
             // 请求失败，尝试 v4 或下一个解析器
@@ -206,7 +208,8 @@ public class CeTool extends PanBase {
      */
     private void delegateToCe4Tool() {
         log.debug("检测到Cloudreve 4.x，转发到Ce4Tool处理");
-        new Ce4Tool(shareLinkInfo).parse().onComplete(promise);
+        Ce4Tool ce4Tool = new Ce4Tool(shareLinkInfo);
+        IPanTool.closeAfter(ce4Tool, ce4Tool::parse).onComplete(promise);
     }
 
 
