@@ -31,6 +31,17 @@ public class LzTool extends PanBase {
     WebClientSession webClientSession = WebClientSession.create(clientNoRedirects);
 
     public static final String SHARE_URL_PREFIX = "https://w1.lanzn.com/";
+
+    // 静态编译的正则表达式，避免每次调用都重新编译
+    private static final Pattern FILE_NAME_PATTERN = Pattern.compile("padding: 56px 0px 20px 0px;\">(.*?)<|filenajax\">(.*?)<");
+    private static final Pattern FILE_SIZE_PATTERN = Pattern.compile(">文件大小：</span>(.*?)<br>|\"n_filesize\">大小：(.*?)</div>");
+    private static final Pattern SHARE_USER_PATTERN = Pattern.compile(">分享用户：</span><font>(.*?)</font>|获取<span>(.*?)</span>的文件|\"user-name\">(.*?)</");
+    private static final Pattern DESCRIPTION_PATTERN = Pattern.compile("(?s)文件描述：</span><br>(.*?)</td>|class=\"n_box_des\">(.*?)</div>");
+    private static final Pattern FILE_ID_PATTERN = Pattern.compile("\\?f=(.*?)&|fid = (.*?);");
+    private static final Pattern CREATE_TIME_PATTERN = Pattern.compile(">上传时间：</span>(.*?)<");
+    private static final Pattern URL_DATE_PATTERN = Pattern.compile("(\\d{4}/\\d{1,2}/\\d{1,2})");
+    private static final Pattern ARG1_PATTERN = Pattern.compile("var arg1='([^']+)'");
+    private static final Pattern IFRAME_SRC_PATTERN = Pattern.compile("src=\"(/fn\\?[a-zA-Z\\d_+/=]{16,})\"");
     MultiMap headers0 = HeaderUtils.parseHeaders("""
         Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
         Accept-Encoding: gzip, deflate
@@ -111,8 +122,7 @@ public class LzTool extends PanBase {
             log.error("文件信息解析异常", e);
         }
         // 匹配iframe
-        Pattern compile = Pattern.compile("src=\"(/fn\\?[a-zA-Z\\d_+/=]{16,})\"");
-        Matcher matcher = compile.matcher(html);
+        Matcher matcher = IFRAME_SRC_PATTERN.matcher(html);
         // 没有Iframe说明是加密分享, 匹配sign通过密码请求下载页面
         if (!matcher.find()) {
             try {
@@ -126,11 +136,13 @@ public class LzTool extends PanBase {
             // 没有密码
             String iframePath = matcher.group(1);
             String absoluteURI = SHARE_URL_PREFIX + iframePath;
-            webClientSession.getAbs(absoluteURI).putHeaders(headers0).send().onSuccess(res2 -> {
+            // 创建局部副本，避免修改实例字段导致累积
+            MultiMap headersCopy = MultiMap.caseInsensitiveMultiMap().addAll(headers0);
+            headersCopy.add("Referer", absoluteURI);
+            webClientSession.getAbs(absoluteURI).putHeaders(headersCopy).send().onSuccess(res2 -> {
                 String html2 = asText(res2);
                 String jsText = getJsText(html2);
                 if (jsText == null) {
-                    headers0.add("Referer", absoluteURI);
                     setCookie(html2, absoluteURI);
                     webClientSession.getAbs(absoluteURI).send().onSuccess(res3 -> {
                         String html3 = asText(res3);
@@ -307,8 +319,7 @@ public class LzTool extends PanBase {
 
     private void setDateAndComplete(String location0) {
         // 分享时间 提取url中的时间戳格式：lanzoui.com/abc/abc/yyyy/mm/dd/
-        String regex = "(\\d{4}/\\d{1,2}/\\d{1,2})";
-        Matcher matcher = Pattern.compile(regex).matcher(location0);
+        Matcher matcher = URL_DATE_PATTERN.matcher(location0);
         if (matcher.find()) {
             String dateStr = matcher.group().replace("/", "-");
             ((FileInfo)shareLinkInfo.getOtherParam().get("fileInfo")).setCreateTime(dateStr);
@@ -455,13 +466,13 @@ public class LzTool extends PanBase {
         shareLinkInfo.getOtherParam().put("fileInfo", fileInfo);
         try {
             // 提取文件名
-            String fileName = CommonUtils.extract(html, Pattern.compile("padding: 56px 0px 20px 0px;\">(.*?)<|filenajax\">(.*?)<"));
-            String sizeStr  = CommonUtils.extract(html, Pattern.compile(">文件大小：</span>(.*?)<br>|\"n_filesize\">大小：(.*?)</div>"));
-            String createBy = CommonUtils.extract(html, Pattern.compile(">分享用户：</span><font>(.*?)</font>|获取<span>(.*?)</span>的文件|\"user-name\">(.*?)</"));
-            String description = CommonUtils.extract(html, Pattern.compile("(?s)文件描述：</span><br>(.*?)</td>|class=\"n_box_des\">(.*?)</div>"));
+            String fileName = CommonUtils.extract(html, FILE_NAME_PATTERN);
+            String sizeStr  = CommonUtils.extract(html, FILE_SIZE_PATTERN);
+            String createBy = CommonUtils.extract(html, SHARE_USER_PATTERN);
+            String description = CommonUtils.extract(html, DESCRIPTION_PATTERN);
             // String icon = CommonUtils.extract(html, Pattern.compile("class=\"n_file_icon\" src=\"(.*?)\""));
-            String fileId = CommonUtils.extract(html, Pattern.compile("\\?f=(.*?)&|fid = (.*?);"));
-            String createTime = CommonUtils.extract(html, Pattern.compile(">上传时间：</span>(.*?)<"));
+            String fileId = CommonUtils.extract(html, FILE_ID_PATTERN);
+            String createTime = CommonUtils.extract(html, CREATE_TIME_PATTERN);
             try {
                 fileInfo.setFileName(fileName)
                         .setCreateBy(createBy)

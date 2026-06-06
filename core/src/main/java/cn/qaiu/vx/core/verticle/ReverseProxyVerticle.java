@@ -58,7 +58,24 @@ public class ReverseProxyVerticle extends AbstractVerticle {
     /**
      * 【优化】HttpClient连接池，按host:port缓存复用，避免每个请求都创建新连接
      */
-    private final Map<String, HttpClient> httpClientPool = new ConcurrentHashMap<>();
+    private final Map<String, HttpClientEntry> httpClientPool = new ConcurrentHashMap<>();
+
+    /**
+     * 连接池条目，记录最后使用时间用于驱逐
+     */
+    private static class HttpClientEntry {
+        final HttpClient client;
+        volatile long lastUsed;
+
+        HttpClientEntry(HttpClient client) {
+            this.client = client;
+            this.lastUsed = System.currentTimeMillis();
+        }
+
+        void touch() {
+            this.lastUsed = System.currentTimeMillis();
+        }
+    }
 
     /**
      * 【优化】高并发场景下的HttpClient配置
@@ -69,6 +86,8 @@ public class ReverseProxyVerticle extends AbstractVerticle {
     private static final int IDLE_TIMEOUT = 60;            // 空闲超时60秒
     private static final boolean KEEP_ALIVE = true;        // 启用Keep-Alive
     private static final boolean PIPELINING = true;        // 启用HTTP管线化
+    private static final long EVICT_IDLE_MILLIS = 30 * 60 * 1000L; // 30分钟未使用则驱逐
+    private Long evictTimerId;
 
 
     @Override
@@ -76,7 +95,8 @@ public class ReverseProxyVerticle extends AbstractVerticle {
         CONFIG.onSuccess(this::handleProxyConfList).onFailure(e -> {
             LOGGER.info("web代理配置已禁用，当前仅支持API调用");
         });
-//        createFileListener
+        // 每 5 分钟驱逐空闲超过 30 分钟的 HttpClient
+        evictTimerId = vertx.setPeriodic(5 * 60 * 1000, 5 * 60 * 1000, id -> evictIdleClients());
         startPromise.complete();
     }
 
@@ -85,16 +105,40 @@ public class ReverseProxyVerticle extends AbstractVerticle {
      */
     @Override
     public void stop(Promise<Void> stopPromise) {
+        // 取消驱逐定时器
+        if (evictTimerId != null) {
+            vertx.cancelTimer(evictTimerId);
+        }
         LOGGER.info("Stopping ReverseProxyVerticle, closing {} HttpClient connections...", httpClientPool.size());
-        httpClientPool.values().forEach(client -> {
+        httpClientPool.values().forEach(entry -> {
             try {
-                client.close();
+                entry.client.close();
             } catch (Exception e) {
                 LOGGER.warn("Error closing HttpClient: {}", e.getMessage());
             }
         });
         httpClientPool.clear();
         stopPromise.complete();
+    }
+
+    /**
+     * 驱逐空闲超时的 HttpClient 连接池
+     */
+    private void evictIdleClients() {
+        long now = System.currentTimeMillis();
+        httpClientPool.entrySet().removeIf(entry -> {
+            long lastUsed = entry.getValue().lastUsed;
+            if (now - lastUsed > EVICT_IDLE_MILLIS && lastUsed < now) {
+                try {
+                    entry.getValue().client.close();
+                    LOGGER.info("驱逐空闲 HttpClient: {}", entry.getKey());
+                } catch (Exception e) {
+                    LOGGER.warn("驱逐 HttpClient 失败: {}", e.getMessage());
+                }
+                return true;
+            }
+            return false;
+        });
     }
 
     /**
@@ -105,7 +149,7 @@ public class ReverseProxyVerticle extends AbstractVerticle {
      */
     private HttpClient getOrCreateHttpClient(String host, int port) {
         String key = host + ":" + port;
-        return httpClientPool.computeIfAbsent(key, k -> {
+        HttpClientEntry entry = httpClientPool.computeIfAbsent(key, k -> {
             LOGGER.info("Creating new HttpClient for {}", key);
             HttpClientOptions options = new HttpClientOptions()
                     .setMaxPoolSize(MAX_POOL_SIZE)                    // 连接池大小
@@ -123,8 +167,10 @@ public class ReverseProxyVerticle extends AbstractVerticle {
                     .setTcpQuickAck(true)                             // 启用TCP Quick ACK
                     .setReuseAddress(true)                            // 允许地址重用
                     .setReusePort(true);                              // 允许端口重用
-            return vertx.createHttpClient(options);
+            return new HttpClientEntry(vertx.createHttpClient(options));
         });
+        entry.touch();
+        return entry.client;
     }
 
     /**

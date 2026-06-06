@@ -9,8 +9,13 @@ import io.vertx.core.Promise;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public interface IPanTool {
+
+    /** 同步等待超时时间（秒） */
+    long SYNC_TIMEOUT_SECONDS = 120;
 
     /**
      * 解析文件
@@ -19,7 +24,7 @@ public interface IPanTool {
     Future<String> parse();
 
     default String parseSync() {
-        return parse().toCompletionStage().toCompletableFuture().join();
+        return timedJoin(parse());
     }
 
     /**
@@ -33,7 +38,7 @@ public interface IPanTool {
     }
 
     default List<FileInfo> parseFileListSync() {
-        return parseFileList().toCompletionStage().toCompletableFuture().join();
+        return timedJoin(parseFileList());
     }
 
     /**
@@ -47,7 +52,7 @@ public interface IPanTool {
     }
 
     default String parseByIdSync() {
-        return parseById().toCompletionStage().toCompletableFuture().join();
+        return timedJoin(parseById());
     }
 
     /**
@@ -126,7 +131,7 @@ public interface IPanTool {
      * @return Map<ClientLinkType, String> 客户端下载链接集合
      */
     default Map<ClientLinkType, String> parseWithClientLinksSync() {
-        return parseWithClientLinks().toCompletionStage().toCompletableFuture().join();
+        return timedJoin(parseWithClientLinks());
     }
 
     /**
@@ -136,5 +141,22 @@ public interface IPanTool {
      */
     default ShareLinkInfo getShareLinkInfo() {
         return null;
+    }
+
+    /**
+     * 带超时的同步等待工具方法，替代无超时的 join()
+     */
+    private static <T> T timedJoin(Future<T> future) {
+        try {
+            return future.toCompletionStage().toCompletableFuture()
+                    .get(SYNC_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("线程被中断", e);
+        } catch (TimeoutException e) {
+            throw new RuntimeException("同步等待超时（" + SYNC_TIMEOUT_SECONDS + "秒）", e);
+        } catch (java.util.concurrent.ExecutionException e) {
+            throw new RuntimeException(e.getCause() != null ? e.getCause() : e);
+        }
     }
 }

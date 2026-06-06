@@ -24,6 +24,7 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.text.ParseException;
 import java.util.*;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +44,12 @@ public final class ReflectionUtil {
 
     // 缓存Reflections实例，避免重复扫描（每次扫描约35K+值，耗时1-3秒，占用大量内存）
     private static final Map<String, Reflections> REFLECTIONS_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+
+    // 预编译的类型匹配正则，避免每次请求重新编译
+    private static final Pattern BASIC_TYPE_PATTERN = Pattern.compile(
+            "^java\\.lang\\.((Boolean)|(Character)|(Byte)|(Short)|(Integer)|(Long)|(Float)|(Double)|(String))$");
+    private static final Pattern BASIC_TYPE_ARRAY_PATTERN = Pattern.compile(
+            "^(boolean|char|byte|short|int|long|float|double|String)\\[]$");
 
     /**
      * 以默认配置的基础包路径获取反射器
@@ -234,8 +241,7 @@ public final class ReflectionUtil {
         if (ctClass.isPrimitive() || "java.util.Date".equals(ctClass.getName())) {
             return true;
         }
-        return ctClass.getName().matches("^java\\.lang\\.((Boolean)|(Character)|(Byte)|(Short)|(Integer)|(Long)|" +
-                "(Float)|(Double)|(String))$");
+        return BASIC_TYPE_PATTERN.matcher(ctClass.getName()).matches();
     }
 
     /**
@@ -246,7 +252,7 @@ public final class ReflectionUtil {
     public static boolean isBasicTypeArray(CtClass ctClass) {
         if (!ctClass.isArray()) {
             return false;
-        } else return (ctClass.getName().matches("^(boolean|char|byte|short|int|long|float|double|String)\\[]$"));
+        } else return BASIC_TYPE_ARRAY_PATTERN.matcher(ctClass.getName()).matches();
     }
 
     /**

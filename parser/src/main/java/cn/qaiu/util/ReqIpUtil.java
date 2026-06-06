@@ -1,8 +1,8 @@
 package cn.qaiu.util;
 
+import cn.qaiu.WebClientVertxInit;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.MultiMap;
-import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.impl.headers.HeadersMultiMap;
 import io.vertx.ext.web.client.HttpResponse;
@@ -47,15 +47,13 @@ public class ReqIpUtil {
 
     }
 
-
-    Vertx vertx = Vertx.vertx();
-    WebClient webClient = WebClient.create(vertx);
-    // 发送GET请求
-    WebClientSession webClientSession = WebClientSession.create(webClient);
+    // 使用共享的 Vertx 实例和 WebClient，避免每次创建新实例导致资源泄漏
+    private static final WebClient WEB_CLIENT = WebClient.create(WebClientVertxInit.get());
+    private static final WebClientSession WEB_CLIENT_SESSION = WebClientSession.create(WEB_CLIENT);
 
 
     public void exec() {
-        webClientSession.getAbs(BASE_URL)
+        WEB_CLIENT_SESSION.getAbs(BASE_URL)
             .putHeaders(headers) // 将请求头Map添加到请求中
             .send(this::next);
     }
@@ -67,7 +65,7 @@ public class ReqIpUtil {
             HttpResponse<Buffer> res = response.result();
             log.debug("Received response with status code {}", res.statusCode());
             log.debug("Body: {}", res.body());
-            webClientSession.getAbs(BASE_URL_TEMPLATE).setTemplateParam("path", PATH1)
+            WEB_CLIENT_SESSION.getAbs(BASE_URL_TEMPLATE).setTemplateParam("path", PATH1)
                     .putHeaders(headers) // 将请求头Map添加到请求中
                     .send(response2 -> {
                         log.debug("response2: {}", response2.result().bodyAsString());

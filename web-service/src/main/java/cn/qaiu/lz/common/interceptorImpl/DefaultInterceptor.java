@@ -9,6 +9,10 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import static cn.qaiu.vx.core.util.ConfigConstant.IGNORES_REG;
 import static io.vertx.core.http.HttpHeaders.CONTENT_TYPE;
 
@@ -19,7 +23,15 @@ import static io.vertx.core.http.HttpHeaders.CONTENT_TYPE;
 @HandleSortFilter(1)
 public class DefaultInterceptor implements BeforeInterceptor {
 
-    protected final JsonArray ignores = SharedDataUtil.getJsonArrayForCustomConfig(IGNORES_REG);
+    /** 预编译的忽略路径正则列表，避免每次请求重新编译 */
+    protected final List<Pattern> ignorePatterns;
+
+    public DefaultInterceptor() {
+        JsonArray ignores = SharedDataUtil.getJsonArrayForCustomConfig(IGNORES_REG);
+        this.ignorePatterns = ignores.stream()
+                .map(obj -> Pattern.compile(obj.toString()))
+                .collect(Collectors.toList());
+    }
 
     @Override
     public void handle(RoutingContext ctx) {
@@ -42,7 +54,7 @@ public class DefaultInterceptor implements BeforeInterceptor {
             // 获取当前请求的路径
             String path = ctx.request().path();
             // 正则匹配路径
-            if (ignores.stream().anyMatch(ignore -> path.matches(ignore.toString()))) {
+            if (ignorePatterns.stream().anyMatch(pattern -> pattern.matcher(path).matches())) {
                 // 如果匹配到忽略的路径，则不进行限流
                 doNext(ctx);
                 return;

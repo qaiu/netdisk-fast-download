@@ -34,20 +34,28 @@ import java.util.zip.GZIPInputStream;
  * <p>{网盘标识}Tool, 网盘标识不超过5个字符, 可以取网盘名称首字母缩写或拼音首字母, <br>
  * 音乐类型的解析以M开头, 例如网易云音乐Mne</p>
  */
-public abstract class PanBase implements IPanTool {
+public abstract class PanBase implements IPanTool, Closeable {
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
     protected Promise<String> promise = Promise.promise();
 
     /**
+     * 共享的 WebClient 配置（设置超时避免连接无限期占用）
+     */
+    private static final WebClientOptions SHARED_OPTIONS = new WebClientOptions()
+            .setConnectTimeout(10000)      // 连接超时 10 秒
+            .setIdleTimeout(30)            // 空闲超时 30 秒
+            .setIdleTimeoutUnit(java.util.concurrent.TimeUnit.SECONDS);
+
+    /**
      * 共享的 WebClient 实例（线程安全，避免每请求创建导致资源泄漏）
      */
     private static final WebClient SHARED_CLIENT = WebClient.create(WebClientVertxInit.get(),
-            new WebClientOptions());
+            new WebClientOptions(SHARED_OPTIONS));
     private static final WebClient SHARED_CLIENT_NO_REDIRECTS = WebClient.create(WebClientVertxInit.get(),
-            new WebClientOptions().setFollowRedirects(false));
+            new WebClientOptions(SHARED_OPTIONS).setFollowRedirects(false));
     private static final WebClient SHARED_CLIENT_DISABLE_UA = WebClient.create(WebClientVertxInit.get(),
-            new WebClientOptions().setUserAgentEnabled(false));
+            new WebClientOptions(SHARED_OPTIONS).setUserAgentEnabled(false));
 
     /**
      * Http client (默认使用共享实例，代理模式下使用独立实例)
@@ -70,6 +78,17 @@ public abstract class PanBase implements IPanTool {
     protected WebClient clientDisableUA = SHARED_CLIENT_DISABLE_UA;
 
     protected ShareLinkInfo shareLinkInfo;
+
+    /**
+     * 标记是否为代理模式（代理模式创建的 WebClient 需要手动关闭）
+     */
+    private boolean isProxyMode = false;
+
+    /**
+     * 代理模式下创建的独立 WebClient 实例（需要在 close 时释放）
+     */
+    private WebClient proxyClient = null;
+    private WebClient proxyClientNoRedirects = null;
     
 
     /**
@@ -86,6 +105,7 @@ public abstract class PanBase implements IPanTool {
     public PanBase(ShareLinkInfo shareLinkInfo) {
         this.shareLinkInfo = shareLinkInfo;
         if (shareLinkInfo.getOtherParam().containsKey("proxy")) {
+            this.isProxyMode = true;
             JsonObject proxy = (JsonObject) shareLinkInfo.getOtherParam().get("proxy");
             ProxyOptions proxyOptions = new ProxyOptions()
                     .setType(ProxyType.valueOf(proxy.getString("type").toUpperCase()))
@@ -97,16 +117,19 @@ public abstract class PanBase implements IPanTool {
             if (StringUtils.isNotEmpty(proxy.getString("password"))) {
                 proxyOptions.setPassword(proxy.getString("password"));
             }
-            this.client = WebClient.create(WebClientVertxInit.get(),
-                    new WebClientOptions()
+            // 代理模式下创建独立的 WebClient 实例（应用超时配置）
+            this.proxyClient = WebClient.create(WebClientVertxInit.get(),
+                    new WebClientOptions(SHARED_OPTIONS)
+                            .setUserAgentEnabled(false)
+                            .setProxyOptions(proxyOptions));
+            this.proxyClientNoRedirects = WebClient.create(WebClientVertxInit.get(),
+                    new WebClientOptions(SHARED_OPTIONS).setFollowRedirects(false)
                             .setUserAgentEnabled(false)
                             .setProxyOptions(proxyOptions));
 
+            this.client = proxyClient;
             this.clientSession = WebClientSession.create(client);
-            this.clientNoRedirects = WebClient.create(WebClientVertxInit.get(),
-                    new WebClientOptions().setFollowRedirects(false)
-                            .setUserAgentEnabled(false)
-                            .setProxyOptions(proxyOptions));
+            this.clientNoRedirects = proxyClientNoRedirects;
         }
     }
 
@@ -137,16 +160,19 @@ public abstract class PanBase implements IPanTool {
                 return;
             }
             String s = String.format(errorMsg.replaceAll("\\{}", "%s"), args);
-            log.error("解析异常: " + s, t.fillInStackTrace());
-            promise.fail(baseMsg() + ": 解析异常: " + s + " -> " + t);
+            // 只记录异常消息和类型，不调用 fillInStackTrace 避免产生巨大栈信息
+            log.error("解析异常: {} - {}: {}", s, t.getClass().getSimpleName(), t.getMessage());
+            // 只传递异常消息，不传递完整异常对象，减少内存占用
+            String failMsg = baseMsg() + ": 解析异常: " + s + " -> " + t.getClass().getSimpleName() + ": " + t.getMessage();
+            promise.fail(failMsg);
         } catch (Exception e) {
             log.error("ErrorMsg format fail. The parameter has been discarded", e);
-            log.error("解析异常: " + errorMsg, t.fillInStackTrace());
+            log.error("解析异常: {} - {}: {}", errorMsg, t.getClass().getSimpleName(), t.getMessage());
             if (promise.future().isComplete()) {
                 log.warn("ErrorMsg format. Promise 已经完成, 无法再次失败: {}", errorMsg);
                 return;
             }
-            promise.fail(baseMsg() + ": 解析异常: " + errorMsg + " -> " + t);
+            promise.fail(baseMsg() + ": 解析异常: " + errorMsg + " -> " + t.getClass().getSimpleName() + ": " + t.getMessage());
         }
     }
 
@@ -186,7 +212,7 @@ public abstract class PanBase implements IPanTool {
      * @return Handler
      */
     protected Handler<Throwable> handleFail(String errorMsg) {
-        return t -> fail(baseMsg() + " - 请求异常 {}: -> {}", errorMsg, t.fillInStackTrace());
+        return t -> fail(baseMsg() + " - 请求异常 {}: -> {}", errorMsg, t.getClass().getSimpleName() + ": " + t.getMessage());
     }
 
     protected Handler<Throwable> handleFail() {
@@ -205,28 +231,21 @@ public abstract class PanBase implements IPanTool {
         String contentEncoding = res.getHeader("Content-Encoding");
         try {
             if ("gzip".equalsIgnoreCase(contentEncoding)) {
-                // 如果是gzip压缩的响应体，解压
-                return new JsonObject(decompressGzip((Buffer) res.body()));
+                // 如果是gzip压缩的响应体，解压（只解压一次，缓存结果）
+                String decompressed = decompressGzip((Buffer) res.body());
+                return new JsonObject(decompressed);
             } else {
                 return res.bodyAsJsonObject();
             }
 
         } catch (Exception e) {
             if ("gzip".equalsIgnoreCase(contentEncoding)) {
-                // 如果是gzip压缩的响应体，解压
-                try {
-                    log.error(decompressGzip((Buffer) res.body()));
-                    fail(decompressGzip((Buffer) res.body()));
-                    //throw new RuntimeException("响应不是JSON格式");
-                } catch (IOException ex) {
-                    log.error("响应gzip解压失败");
-                    fail("响应gzip解压失败: {}", ex.getMessage());
-                    //throw new RuntimeException("响应gzip解压失败", ex);
-                }
+                // gzip解压失败，记录错误
+                log.error("响应gzip解压或JSON解析失败: {}", e.getMessage());
+                fail("响应gzip解压或JSON解析失败: {}", e.getMessage());
             } else {
                 log.error("解析失败: json格式异常: {}", res.bodyAsString());
                 fail("解析失败: json格式异常: {}", res.bodyAsString());
-                //throw new RuntimeException("解析失败: json格式异常");
             }
             return JsonObject.of();
         }
@@ -330,5 +349,29 @@ public abstract class PanBase implements IPanTool {
     @Override
     public ShareLinkInfo getShareLinkInfo() {
         return shareLinkInfo;
+    }
+
+    /**
+     * 关闭代理模式下创建的 WebClient 资源
+     * 非代理模式使用共享实例，不需要关闭
+     */
+    @Override
+    public void close() {
+        if (isProxyMode) {
+            try {
+                if (proxyClient != null) {
+                    proxyClient.close();
+                }
+            } catch (Exception e) {
+                log.warn("关闭代理 WebClient 失败: {}", e.getMessage());
+            }
+            try {
+                if (proxyClientNoRedirects != null) {
+                    proxyClientNoRedirects.close();
+                }
+            } catch (Exception e) {
+                log.warn("关闭代理 WebClientNoRedirects 失败: {}", e.getMessage());
+            }
+        }
     }
 }

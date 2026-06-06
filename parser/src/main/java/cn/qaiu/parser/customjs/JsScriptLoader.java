@@ -81,14 +81,16 @@ public class JsScriptLoader {
                 try {
                     InputStream inputStream = JsScriptLoader.class.getClassLoader()
                             .getResourceAsStream(resourceFile);
-                    
+
                     if (inputStream != null) {
-                        String jsCode = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-                        CustomParserConfig config = JsScriptMetadataParser.parseScript(jsCode);
-                        configs.add(config);
-                        
-                        String fileName = resourceFile.substring(resourceFile.lastIndexOf('/') + 1);
-                        log.debug("从资源目录加载脚本: {}", fileName);
+                        try (inputStream) {
+                            String jsCode = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+                            CustomParserConfig config = JsScriptMetadataParser.parseScript(jsCode);
+                            configs.add(config);
+
+                            String fileName = resourceFile.substring(resourceFile.lastIndexOf('/') + 1);
+                            log.debug("从资源目录加载脚本: {}", fileName);
+                        }
                     }
                 } catch (Exception e) {
                     log.warn("加载资源脚本失败: {}", resourceFile, e);
@@ -279,14 +281,16 @@ public class JsScriptLoader {
         try {
             InputStream inputStream = JsScriptLoader.class.getClassLoader()
                     .getResourceAsStream(resourcePath);
-            
+
             if (inputStream == null) {
                 throw new IllegalArgumentException("资源文件不存在: " + resourcePath);
             }
-            
-            String jsCode = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-            return JsScriptMetadataParser.parseScript(jsCode);
-            
+
+            try (inputStream) {
+                String jsCode = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+                return JsScriptMetadataParser.parseScript(jsCode);
+            }
+
         } catch (IOException e) {
             throw new RuntimeException("读取资源文件失败: " + resourcePath, e);
         }
