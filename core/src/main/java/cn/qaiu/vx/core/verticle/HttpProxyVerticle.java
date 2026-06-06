@@ -307,8 +307,13 @@ public class HttpProxyVerticle extends AbstractVerticle {
         Future<Void> httpClientClose = httpClient == null ? Future.succeededFuture() : httpClient.close();
         Future<Void> netClientClose = netClient == null ? Future.succeededFuture() : netClient.close();
         Future.all(serverClose, httpClientClose, netClientClose)
-                .mapEmpty()
-                .onComplete(stopPromise);
+                .onComplete(ar -> {
+                    if (ar.succeeded()) {
+                        stopPromise.complete();
+                    } else {
+                        stopPromise.fail(ar.cause());
+                    }
+                });
     }
 
     private void closeClients() {
