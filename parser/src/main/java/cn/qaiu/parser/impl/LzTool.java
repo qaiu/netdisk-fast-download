@@ -15,8 +15,8 @@ import org.openjdk.nashorn.api.scripting.ScriptObjectMirror;
 
 import javax.script.ScriptException;
 import java.net.MalformedURLException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +45,8 @@ public class LzTool extends PanBase {
     private static final Pattern ARG1_PATTERN = Pattern.compile("var arg1='([^']+)'");
     private static final Pattern IFRAME_SRC_PATTERN = Pattern.compile("src=\"(/fn\\?[a-zA-Z\\d_+/=]{16,})\"");
     private static final Pattern RELATIVE_TIME_PATTERN = Pattern.compile("^(\\d+|几)\\s*(分钟|小时)前$");
-    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final Pattern DATE_PATTERN = Pattern.compile("^(\\d{4})\\s*[-/年]\\s*(\\d{1,2})\\s*[-/月]\\s*(\\d{1,2})\\s*日?$");
+    private static final Pattern MONTH_DAY_PATTERN = Pattern.compile("^(\\d{1,2})\\s*月\\s*(\\d{1,2})\\s*日?$");
     MultiMap headers0 = HeaderUtils.parseHeaders("""
         Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
         Accept-Encoding: gzip, deflate
@@ -325,7 +326,7 @@ public class LzTool extends PanBase {
         // 分享时间 提取url中的时间戳格式：lanzoui.com/abc/abc/yyyy/mm/dd/
         Matcher matcher = URL_DATE_PATTERN.matcher(location0);
         if (matcher.find()) {
-            String dateStr = matcher.group().replace("/", "-");
+            String dateStr = parseLanzouFileTime(matcher.group());
             ((FileInfo)shareLinkInfo.getOtherParam().get("fileInfo")).setCreateTime(dateStr);
         }
         promise.complete(location0);
@@ -461,18 +462,34 @@ public class LzTool extends PanBase {
         }
         String normalized = timeText.trim().replaceAll("\\s+", " ");
         Matcher matcher = RELATIVE_TIME_PATTERN.matcher(normalized);
-        if (!matcher.matches()) {
-            return normalized;
+        if (matcher.matches()) {
+            int amount = "几".equals(matcher.group(1)) ? 1 : Integer.parseInt(matcher.group(1));
+            String unit = matcher.group(2);
+            LocalDateTime time = LocalDateTime.now();
+            if ("小时".equals(unit)) {
+                time = time.minusHours(amount);
+            } else {
+                time = time.minusMinutes(amount);
+            }
+            return time.toLocalDate().toString();
         }
-        int amount = "几".equals(matcher.group(1)) ? 1 : Integer.parseInt(matcher.group(1));
-        String unit = matcher.group(2);
-        LocalDateTime time = LocalDateTime.now();
-        if ("小时".equals(unit)) {
-            time = time.minusHours(amount);
-        } else {
-            time = time.minusMinutes(amount);
+        matcher = DATE_PATTERN.matcher(normalized);
+        if (matcher.matches()) {
+            return LocalDate.of(
+                    Integer.parseInt(matcher.group(1)),
+                    Integer.parseInt(matcher.group(2)),
+                    Integer.parseInt(matcher.group(3))
+            ).toString();
         }
-        return time.format(DATE_TIME_FORMATTER);
+        matcher = MONTH_DAY_PATTERN.matcher(normalized);
+        if (matcher.matches()) {
+            return LocalDate.of(
+                    LocalDate.now().getYear(),
+                    Integer.parseInt(matcher.group(1)),
+                    Integer.parseInt(matcher.group(2))
+            ).toString();
+        }
+        return normalized;
     }
 
     @Override
@@ -504,7 +521,7 @@ public class LzTool extends PanBase {
                         .setDescription(description)
                         .setFileType("file")
                         .setFileId(fileId)
-                        .setCreateTime(createTime);
+                        .setCreateTime(parseLanzouFileTime(createTime));
                 if (sizeStr != null && !sizeStr.isBlank()) {
                     long bytes = FileSizeConverter.convertToBytes(sizeStr);
                     fileInfo.setSize(bytes).setSizeStr(FileSizeConverter.convertToReadableSize(bytes));
