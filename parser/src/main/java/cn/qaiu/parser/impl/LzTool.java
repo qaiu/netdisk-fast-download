@@ -15,6 +15,8 @@ import org.openjdk.nashorn.api.scripting.ScriptObjectMirror;
 
 import javax.script.ScriptException;
 import java.net.MalformedURLException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +44,8 @@ public class LzTool extends PanBase {
     private static final Pattern URL_DATE_PATTERN = Pattern.compile("(\\d{4}/\\d{1,2}/\\d{1,2})");
     private static final Pattern ARG1_PATTERN = Pattern.compile("var arg1='([^']+)'");
     private static final Pattern IFRAME_SRC_PATTERN = Pattern.compile("src=\"(/fn\\?[a-zA-Z\\d_+/=]{16,})\"");
+    private static final Pattern RELATIVE_TIME_PATTERN = Pattern.compile("^(\\d+|几)\\s*(分钟|小时)前$");
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     MultiMap headers0 = HeaderUtils.parseHeaders("""
         Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
         Accept-Encoding: gzip, deflate
@@ -434,7 +438,7 @@ public class LzTool extends PanBase {
                 String param = CommonUtils.urlBase64Encode(paramJson.encode());
                 fileInfo.setFileName(fileName)
                         .setFileId(id)
-                        .setCreateTime(fileJson.getString("time"))
+                        .setCreateTime(parseLanzouFileTime(fileJson.getString("time")))
                         .setFileType(fileJson.getString("icon"))
                         .setSizeStr(fileJson.getString("size"))
                         .setSize(sizeNum)
@@ -449,6 +453,26 @@ public class LzTool extends PanBase {
         } catch (Exception e) {
             promise.fail(e);
         }
+    }
+
+    private static String parseLanzouFileTime(String timeText) {
+        if (timeText == null || timeText.isBlank()) {
+            return timeText;
+        }
+        String normalized = timeText.trim().replaceAll("\\s+", " ");
+        Matcher matcher = RELATIVE_TIME_PATTERN.matcher(normalized);
+        if (!matcher.matches()) {
+            return normalized;
+        }
+        int amount = "几".equals(matcher.group(1)) ? 1 : Integer.parseInt(matcher.group(1));
+        String unit = matcher.group(2);
+        LocalDateTime time = LocalDateTime.now();
+        if ("小时".equals(unit)) {
+            time = time.minusHours(amount);
+        } else {
+            time = time.minusMinutes(amount);
+        }
+        return time.format(DATE_TIME_FORMATTER);
     }
 
     @Override
