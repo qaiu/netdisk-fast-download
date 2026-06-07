@@ -3,17 +3,20 @@ package cn.qaiu.vx.core.verticle;
 import cn.qaiu.vx.core.util.*;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.proxy.handler.ProxyHandler;
 import io.vertx.httpproxy.HttpProxy;
@@ -47,10 +50,6 @@ public class ReverseProxyVerticle extends AbstractVerticle {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReverseProxyVerticle.class);
 
-    private static final String PATH_PROXY_CONFIG = SharedDataUtil
-            .getJsonConfig(ConfigConstant.GLOBAL_CONFIG)
-            .getString("proxyConf");
-    private static final Future<JsonObject> CONFIG = ConfigUtil.readYamlConfig(PATH_PROXY_CONFIG);
     private static final String DEFAULT_PATH_404 = "webroot/err/page404.html";
 
     private static String serverName = "Vert.x-proxy-server"; //Server name in Http response header
@@ -62,21 +61,16 @@ public class ReverseProxyVerticle extends AbstractVerticle {
      */
     private final Map<String, HttpClientEntry> httpClientPool = new ConcurrentHashMap<>();
     private final List<HttpServer> httpServers = new ArrayList<>();
+    private volatile boolean stopping = false;
 
     /**
-     * 连接池条目，记录最后使用时间用于驱逐
+     * 连接池条目。HttpProxy 会持有这里的 HttpClient 引用，不能在路由仍可用时关闭。
      */
     private static class HttpClientEntry {
         final HttpClient client;
-        volatile long lastUsed;
 
         HttpClientEntry(HttpClient client) {
             this.client = client;
-            this.lastUsed = System.currentTimeMillis();
-        }
-
-        void touch() {
-            this.lastUsed = System.currentTimeMillis();
         }
     }
 
@@ -89,15 +83,16 @@ public class ReverseProxyVerticle extends AbstractVerticle {
     private static final int IDLE_TIMEOUT = 60;            // 空闲超时60秒
     private static final boolean KEEP_ALIVE = true;        // 启用Keep-Alive
     private static final boolean PIPELINING = false;       // 代理场景关闭管线化，避免慢响应堆积
-    private static final long EVICT_IDLE_MILLIS = 30 * 60 * 1000L;
-    private Long evictTimerId;
     @Override
     public void start(Promise<Void> startPromise) {
-        CONFIG.onSuccess(config -> startProxyServers(config).onComplete(startPromise)).onFailure(e -> {
+        stopping = false;
+        String pathProxyConfig = SharedDataUtil
+                .getJsonConfig(ConfigConstant.GLOBAL_CONFIG)
+                .getString("proxyConf");
+        ConfigUtil.readYamlConfig(pathProxyConfig).onSuccess(config -> startProxyServers(config).onComplete(startPromise)).onFailure(e -> {
             LOGGER.info("web代理配置已禁用，当前仅支持API调用");
             startPromise.complete();
         });
-        evictTimerId = vertx.setPeriodic(5 * 60 * 1000, 5 * 60 * 1000, id -> evictIdleClients());
     }
 
     /**
@@ -105,11 +100,39 @@ public class ReverseProxyVerticle extends AbstractVerticle {
      */
     @Override
     public void stop(Promise<Void> stopPromise) {
-        LOGGER.info("Stopping ReverseProxyVerticle, closing {} HttpClient connections...", httpClientPool.size());
-        if (evictTimerId != null) {
-            vertx.cancelTimer(evictTimerId);
-        }
-        List<Future<Void>> closeFutures = new ArrayList<>();
+        stopping = true;
+        LOGGER.info("Stopping ReverseProxyVerticle, closing {} servers and {} HttpClient connections...",
+                httpServers.size(), httpClientPool.size());
+
+        List<Future<Void>> serverCloseFutures = new ArrayList<>();
+        httpServers.forEach(server -> serverCloseFutures.add(server.close()));
+        Future<Void> serverCloseFuture = serverCloseFutures.isEmpty()
+                ? Future.succeededFuture()
+                : Future.all(serverCloseFutures).mapEmpty();
+
+        serverCloseFuture.onComplete(serverClose -> {
+            if (serverClose.failed()) {
+                stopPromise.fail(serverClose.cause());
+                return;
+            }
+            List<Future<Void>> clientCloseFutures = new ArrayList<>();
+            closeHttpClients(clientCloseFutures);
+            Future<Void> clientCloseFuture = clientCloseFutures.isEmpty()
+                    ? Future.succeededFuture()
+                    : Future.all(clientCloseFutures).mapEmpty();
+
+            clientCloseFuture.onComplete(clientClose -> {
+                httpServers.clear();
+                if (clientClose.failed()) {
+                    stopPromise.fail(clientClose.cause());
+                } else {
+                    stopPromise.complete();
+                }
+            });
+        });
+    }
+
+    private void closeHttpClients(List<Future<Void>> closeFutures) {
         httpClientPool.values().forEach(entry -> {
             try {
                 closeFutures.add(entry.client.close());
@@ -118,33 +141,6 @@ public class ReverseProxyVerticle extends AbstractVerticle {
             }
         });
         httpClientPool.clear();
-        httpServers.forEach(server -> closeFutures.add(server.close()));
-        httpServers.clear();
-        if (closeFutures.isEmpty()) {
-            stopPromise.complete();
-            return;
-        }
-        Future.all(closeFutures).onComplete(ar -> {
-            if (ar.succeeded()) {
-                stopPromise.complete();
-            } else {
-                stopPromise.fail(ar.cause());
-            }
-        });
-    }
-
-    private void evictIdleClients() {
-        long now = System.currentTimeMillis();
-        httpClientPool.entrySet().removeIf(entry -> {
-            HttpClientEntry clientEntry = entry.getValue();
-            if (now - clientEntry.lastUsed <= EVICT_IDLE_MILLIS) {
-                return false;
-            }
-            clientEntry.client.close()
-                    .onSuccess(v -> LOGGER.info("驱逐空闲 HttpClient: {}", entry.getKey()))
-                    .onFailure(e -> LOGGER.warn("驱逐 HttpClient 失败: {}", entry.getKey(), e));
-            return true;
-        });
     }
 
     /**
@@ -175,7 +171,6 @@ public class ReverseProxyVerticle extends AbstractVerticle {
                     .setReusePort(true);                              // 允许端口重用
             return new HttpClientEntry(vertx.createHttpClient(options));
         });
-        entry.touch();
         return entry.client;
     }
 
@@ -280,6 +275,10 @@ public class ReverseProxyVerticle extends AbstractVerticle {
 
         // Add Server name header
         proxyRouter.route().handler(ctx -> {
+            if (stopping) {
+                sendProxyError(ctx, 503, "Service Unavailable");
+                return;
+            }
             String realPath = ctx.request().uri();
             if (realPath.startsWith(REROUTE_PATH_PREFIX)) {
                 // vertx web proxy暂不支持rewrite, 所以这里进行手动替换, 请求地址中的请求path前缀替换为originPath
@@ -288,7 +287,9 @@ public class ReverseProxyVerticle extends AbstractVerticle {
                 return;
             }
 
-            ctx.response().putHeader("Server", serverName);
+            if (!ctx.response().ended() && !ctx.response().closed()) {
+                ctx.response().putHeader("Server", serverName);
+            }
             ctx.next();
         });
 
@@ -304,8 +305,9 @@ public class ReverseProxyVerticle extends AbstractVerticle {
 
         // Send page404 page
         proxyRouter.errorHandler(404, ctx -> {
-            ctx.response().sendFile(proxyConf.getString("page404"));
+            sendNotFoundPage(ctx, proxyConf.getString("page404"));
         });
+        proxyRouter.errorHandler(500, this::handleProxyFailure);
 
         HttpServer server = getHttpsServer(proxyConf);
         server.requestHandler(proxyRouter);
@@ -358,6 +360,67 @@ public class ReverseProxyVerticle extends AbstractVerticle {
 
         }
         return vertx.createHttpServer(httpServerOptions);
+    }
+
+    private void addProxyHandler(Route route, HttpProxy httpProxy) {
+        Handler<RoutingContext> proxyHandler = ProxyHandler.create(httpProxy);
+        route.handler(ctx -> {
+            try {
+                proxyHandler.handle(ctx);
+            } catch (Throwable t) {
+                LOGGER.error("反向代理处理异常", t);
+                ctx.fail(t);
+            }
+        }).failureHandler(this::handleProxyFailure);
+    }
+
+    private void handleProxyFailure(RoutingContext ctx) {
+        Throwable failure = ctx.failure();
+        if (failure != null) {
+            LOGGER.error("反向代理路由失败", failure);
+        }
+        int statusCode = ctx.statusCode() > 0 ? ctx.statusCode() : 502;
+        if (statusCode < 400) {
+            statusCode = 502;
+        }
+        sendProxyError(ctx, statusCode, "Bad Gateway");
+    }
+
+    private void sendNotFoundPage(RoutingContext ctx, String page404) {
+        HttpServerResponse response = ctx.response();
+        if (response.ended() || response.closed()) {
+            return;
+        }
+        try {
+            if (response.headWritten()) {
+                response.reset();
+                return;
+            }
+            response.sendFile(page404)
+                    .onFailure(e -> {
+                        LOGGER.warn("发送代理 404 页面失败: {}", page404, e);
+                        sendProxyError(ctx, 404, "404 not found");
+                    });
+        } catch (Exception e) {
+            LOGGER.warn("发送代理 404 页面异常: {}", page404, e);
+            sendProxyError(ctx, 404, "404 not found");
+        }
+    }
+
+    private void sendProxyError(RoutingContext ctx, int statusCode, String message) {
+        HttpServerResponse response = ctx.response();
+        if (response.ended() || response.closed()) {
+            return;
+        }
+        try {
+            if (!response.headWritten()) {
+                response.setStatusCode(statusCode).end(message);
+            } else {
+                response.reset();
+            }
+        } catch (Exception e) {
+            LOGGER.debug("代理响应已关闭，忽略错误响应", e);
+        }
     }
 
     /**
@@ -448,15 +511,14 @@ public class ReverseProxyVerticle extends AbstractVerticle {
                 if (StringUtils.isEmpty(originPath) || path.equals(originPath)) {
                     Route route = path.startsWith("~") ? proxyRouter.routeWithRegex(path.substring(1))
                             : proxyRouter.route(path);
-                    // 【优化】为代理处理器添加超时
-                    route.handler(ProxyHandler.create(httpProxy));
+                    addProxyHandler(route, httpProxy);
                 } else {
                     // 配置 /api/, / => 请求 /api/test 代理后 /test
                     // 配置 /api/, /xxx => 请求 /api/test 代理后 /xxx/test
                      final String path0 = path;
                      final String originPath0 = REROUTE_PATH_PREFIX + originPath;
 
-                     proxyRouter.route(originPath0 + "*").handler(ProxyHandler.create(httpProxy));
+                     addProxyHandler(proxyRouter.route(originPath0 + "*"), httpProxy);
                      proxyRouter.route(path0 + "*").handler(ctx -> {
                          String realPath = ctx.request().uri();
                          if (realPath.startsWith(path0)) {

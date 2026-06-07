@@ -42,12 +42,11 @@ public class ServerApi {
 
         cacheService.getCachedByShareUrlAndPwd(url, pwd, otherParam)
                 .onSuccess(res -> ResponseUtil.redirect(
-                        response.putHeader("nfd-cache-hit", res.getCacheHit().toString())
-                                .putHeader("nfd-cache-expires", res.getExpires()),
+                        addCacheHeaders(response, res),
                                 res.getDirectLink(), promise))
                 .onFailure(t -> {
                     recordDonatedAccountFailureIfNeeded(otherParam, t);
-                    promise.fail(t.fillInStackTrace());
+                    promise.tryFail(t);
                 });
         return promise.future();
     }
@@ -84,11 +83,18 @@ public class ServerApi {
         String origin = resolveOrigin(request);
         cacheService.getCachedByShareKeyAndPwd(type, key, pwd, JsonObject.of("UA",request.headers().get("user-agent"), "_requestOrigin", origin))
                 .onSuccess(res -> ResponseUtil.redirect(
-                        response.putHeader("nfd-cache-hit", res.getCacheHit().toString())
-                                .putHeader("nfd-cache-expires", res.getExpires()),
+                        addCacheHeaders(response, res),
                         res.getDirectLink(), promise))
-                .onFailure(t -> promise.fail(t.fillInStackTrace()));
+                .onFailure(promise::tryFail);
         return promise.future();
+    }
+
+    private static HttpServerResponse addCacheHeaders(HttpServerResponse response, CacheLinkInfo cacheLinkInfo) {
+        if (response.ended() || response.closed()) {
+            return response;
+        }
+        return response.putHeader("nfd-cache-hit", cacheLinkInfo.getCacheHit().toString())
+                .putHeader("nfd-cache-expires", cacheLinkInfo.getExpires());
     }
 
     /**

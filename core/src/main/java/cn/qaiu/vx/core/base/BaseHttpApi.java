@@ -7,6 +7,8 @@ import cn.qaiu.vx.core.util.ReflectionUtil;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.reflections.Reflections;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 
@@ -22,9 +24,10 @@ public interface BaseHttpApi {
 
     // 需要扫描注册的Router路径
     Reflections reflections = ReflectionUtil.getReflections();
+    Logger LOGGER = LoggerFactory.getLogger(BaseHttpApi.class);
 
     default void doFireJsonObjectResponse(RoutingContext ctx, JsonObject jsonObject) {
-        if (!ctx.response().ended()) {
+        if (!isResponseDone(ctx)) {
             fireJsonObjectResponse(ctx, jsonObject);
         }
         handleAfterInterceptor(ctx, jsonObject);
@@ -32,14 +35,14 @@ public interface BaseHttpApi {
 
 
     default <T> void doFireJsonResultResponse(RoutingContext ctx, JsonResult<T> jsonResult) {
-        if (!ctx.response().ended()) {
+        if (!isResponseDone(ctx)) {
             fireJsonResultResponse(ctx, jsonResult);
         }
         handleAfterInterceptor(ctx, jsonResult.toJsonObject());
     }
 
     default void doFireJsonObjectResponse(RoutingContext ctx, JsonObject jsonObject, int statusCode) {
-        if (!ctx.response().ended()) {
+        if (!isResponseDone(ctx)) {
             fireJsonObjectResponse(ctx, jsonObject, statusCode);
         }
         handleAfterInterceptor(ctx, jsonObject);
@@ -47,7 +50,7 @@ public interface BaseHttpApi {
 
 
     default <T> void doFireJsonResultResponse(RoutingContext ctx, JsonResult<T> jsonResult, int statusCode) {
-        if (!ctx.response().ended()) {
+        if (!isResponseDone(ctx)) {
             fireJsonResultResponse(ctx, jsonResult, statusCode);
         }
         handleAfterInterceptor(ctx, jsonResult.toJsonObject());
@@ -64,13 +67,26 @@ public interface BaseHttpApi {
     }
 
     default void handleAfterInterceptor(RoutingContext ctx, JsonObject jsonObject) {
+        if (ctx.response().closed()) {
+            return;
+        }
         Set<AfterInterceptor> afterInterceptor = getAfterInterceptor();
         if (afterInterceptor != null) {
-            afterInterceptor.forEach(ai -> ai.handle(ctx, jsonObject));
+            afterInterceptor.forEach(ai -> {
+                try {
+                    ai.handle(ctx, jsonObject);
+                } catch (Exception e) {
+                    LOGGER.warn("AfterInterceptor 执行失败: {}", ai.getClass().getName(), e);
+                }
+            });
         }
-        if (!ctx.response().ended()) {
+        if (!isResponseDone(ctx)) {
             fireTextResponse(ctx, "handleAfterInterceptor: response not end");
         }
+    }
+
+    default boolean isResponseDone(RoutingContext ctx) {
+        return ctx.response().ended() || ctx.response().closed();
     }
 
 }

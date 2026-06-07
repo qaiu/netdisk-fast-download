@@ -177,7 +177,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
                 route.handler(TimeoutHandler.create(SharedDataUtil.getCustomConfig().getInteger(ROUTE_TIME_OUT)));
                 route.handler(ResponseTimeHandler.create());
                 route.handler(ctx -> handlerMethod(instance, method, ctx)).failureHandler(ctx -> {
-                    if (ctx.response().ended()) return;
+                    if (isResponseDone(ctx)) return;
                     // 超时处理器状态码503
                     if (ctx.statusCode() == 503 || ctx.failure() == null) {
                         doFireJsonResultResponse(ctx, JsonResult.error("未知异常, 请联系管理员"), 503);

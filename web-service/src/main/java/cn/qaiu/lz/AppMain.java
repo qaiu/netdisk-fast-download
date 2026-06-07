@@ -3,9 +3,11 @@ package cn.qaiu.lz;
 import cn.qaiu.WebClientVertxInit;
 import cn.qaiu.db.pool.JDBCPoolInit;
 import cn.qaiu.lz.common.cache.CacheConfigLoader;
+import cn.qaiu.lz.common.cache.CacheManager;
 import cn.qaiu.lz.common.interceptorImpl.RateLimiter;
 import cn.qaiu.lz.web.config.PlaygroundConfig;
 import cn.qaiu.lz.web.service.DbService;
+import cn.qaiu.lz.web.service.impl.ShoutServiceImpl;
 import cn.qaiu.parser.custom.CustomParserConfig;
 import cn.qaiu.parser.custom.CustomParserRegistry;
 import cn.qaiu.parser.customjs.JsScriptMetadataParser;
@@ -38,32 +40,17 @@ import static cn.qaiu.vx.core.util.ConfigConstant.LOCAL;
 public class AppMain {
 
     public static void main(String[] args) {
-        // 先注册 ShutdownHook（JVM 逆序执行，先注册的后执行）
-        // 确保关闭顺序：Vert.x -> JDBCPoolInit -> JsParserExecutor
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            try {
-                JDBCPoolInit.instance().close();
-            } catch (Exception e) {
-                // ignore
-            }
-            try {
-                cn.qaiu.parser.customjs.JsParserExecutor.shutdownExecutor();
-            } catch (Exception e) {
-                // ignore
-            }
-            try {
-                cn.qaiu.parser.customjs.JsPlaygroundExecutor.shutdownPools();
-            } catch (Exception e) {
-                // ignore
-            }
-            try {
-                cn.qaiu.parser.customjs.JsHttpClient.shutdownSharedClient();
-            } catch (Exception e) {
-                // ignore
-            }
-        }));
+        Deploy deploy = Deploy.instance();
+        // 先阻断应用级定时任务，再让 Vert.x 停入口和 verticle。
+        deploy.addPreShutdownTask(CacheManager::cancelPeriodicCleanup);
+        deploy.addPreShutdownTask(ShoutServiceImpl::cancelCleanup);
+        // Vert.x 停完后再关数据库和解析器共享资源，避免请求还在路上就先关底层 client。
+        deploy.addPostShutdownTask(() -> JDBCPoolInit.instance().close());
+        deploy.addPostShutdownTask(cn.qaiu.parser.customjs.JsParserExecutor::shutdownExecutor);
+        deploy.addPostShutdownTask(cn.qaiu.parser.customjs.JsPlaygroundExecutor::shutdownPools);
+        deploy.addPostShutdownTask(cn.qaiu.parser.customjs.JsHttpClient::shutdownSharedClient);
         // start
-        Deploy.instance().start(args, AppMain::exec);
+        deploy.start(args, AppMain::exec);
     }
 
     /**

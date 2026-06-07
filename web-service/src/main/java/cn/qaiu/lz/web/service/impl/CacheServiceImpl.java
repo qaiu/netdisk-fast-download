@@ -126,7 +126,7 @@ public class CacheServiceImpl implements CacheService {
                 cacheManager.updateTotalByField(cacheKey, CacheTotalField.CACHE_HIT_TOTAL)
                         .onFailure(e -> log.error("更新缓存命中计数失败: cacheKey={}", cacheKey, e));
             }
-        }).onFailure(t -> promise.fail(t.fillInStackTrace()));
+        }).onFailure(promise::tryFail);
 
         return promise.future();
     }

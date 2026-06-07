@@ -5,8 +5,10 @@ import cn.qaiu.db.pool.JDBCType;
 import cn.qaiu.lz.web.model.CacheLinkInfo;
 import cn.qaiu.lz.web.model.PanFileInfo;
 import cn.qaiu.lz.web.model.PanFileInfoRowMapper;
+import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.Row;
@@ -18,6 +20,8 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class CacheManager {
     private final Pool jdbcPool = JDBCPoolInit.instance().getPool();
@@ -268,27 +272,111 @@ public class CacheManager {
      * 注册定时清理过期缓存任务（每小时执行一次）
      * 应在应用启动后调用
      */
-    private static volatile boolean cleanupRegistered = false;
+    private static final long CLEANUP_INTERVAL_MILLIS = 3600_000L;
+    private static final long CLEANUP_SHUTDOWN_WAIT_MILLIS = 5_000L;
+    private static final AtomicBoolean CLEANUP_REGISTERED = new AtomicBoolean(false);
+    private static final AtomicInteger CLEANUP_IN_FLIGHT = new AtomicInteger(0);
+    private static final Object CLEANUP_MONITOR = new Object();
+    private static volatile Long cleanupTimerId;
+    private static volatile Vertx cleanupVertx;
 
     public static void registerPeriodicCleanup() {
-        if (cleanupRegistered) return;
+        if (!CLEANUP_REGISTERED.compareAndSet(false, true)) {
+            return;
+        }
         try {
-            io.vertx.core.Vertx vertx = cn.qaiu.vx.core.util.VertxHolder.getVertxInstance();
-            if (vertx == null) {
-                LOGGER.warn("Vertx 未就绪，缓存定时清理任务延迟注册");
-                return;
-            }
-            cleanupRegistered = true;
-            vertx.setPeriodic(3600_000, 3600_000, id -> {
-                try {
-                    new CacheManager().cleanupExpiredCache();
-                } catch (Exception e) {
-                    LOGGER.warn("定时清理缓存任务跳过（数据库可能未就绪）", e);
-                }
-            });
+            Vertx vertx = VertxHolder.getVertxInstance();
+            cleanupVertx = vertx;
+            cleanupTimerId = vertx.setPeriodic(CLEANUP_INTERVAL_MILLIS, CLEANUP_INTERVAL_MILLIS,
+                    id -> cleanupExpiredCacheSafely());
             LOGGER.info("缓存定时清理任务已注册（每小时执行）");
         } catch (Exception e) {
+            cleanupTimerId = null;
+            cleanupVertx = null;
+            CLEANUP_REGISTERED.set(false);
             LOGGER.warn("注册缓存定时清理任务失败", e);
+        }
+    }
+
+    public static void cancelPeriodicCleanup() {
+        Long timerId = cleanupTimerId;
+        Vertx vertx = cleanupVertx;
+        cleanupTimerId = null;
+        cleanupVertx = null;
+        CLEANUP_REGISTERED.set(false);
+
+        if (timerId == null || vertx == null) {
+            waitForCleanupToFinish();
+            return;
+        }
+        try {
+            if (vertx.cancelTimer(timerId)) {
+                LOGGER.info("缓存定时清理任务已取消");
+            }
+        } catch (Exception e) {
+            LOGGER.warn("取消缓存定时清理任务失败", e);
+        }
+        waitForCleanupToFinish();
+    }
+
+    private static void cleanupExpiredCacheSafely() {
+        cleanupStarted();
+        boolean asyncCleanupStarted = false;
+        try {
+            if (!CLEANUP_REGISTERED.get()) {
+                return;
+            }
+            JDBCPoolInit poolInit = JDBCPoolInit.instance();
+            if (poolInit == null || poolInit.getPool() == null) {
+                LOGGER.debug("数据库连接池未就绪，跳过缓存定时清理");
+                return;
+            }
+            Future<Integer> cleanupFuture = new CacheManager().cleanupExpiredCache();
+            asyncCleanupStarted = true;
+            cleanupFuture.onComplete(ar -> {
+                if (ar.failed()) {
+                    LOGGER.warn("定时清理缓存失败", ar.cause());
+                }
+                cleanupFinished();
+            });
+        } catch (Exception e) {
+            LOGGER.warn("定时清理缓存任务跳过（数据库可能正在关闭）", e);
+        } finally {
+            if (!asyncCleanupStarted) {
+                cleanupFinished();
+            }
+        }
+    }
+
+    private static void cleanupStarted() {
+        CLEANUP_IN_FLIGHT.incrementAndGet();
+    }
+
+    private static void cleanupFinished() {
+        if (CLEANUP_IN_FLIGHT.decrementAndGet() <= 0) {
+            synchronized (CLEANUP_MONITOR) {
+                CLEANUP_MONITOR.notifyAll();
+            }
+        }
+    }
+
+    private static void waitForCleanupToFinish() {
+        long deadline = System.currentTimeMillis() + CLEANUP_SHUTDOWN_WAIT_MILLIS;
+        synchronized (CLEANUP_MONITOR) {
+            while (CLEANUP_IN_FLIGHT.get() > 0) {
+                long waitMillis = deadline - System.currentTimeMillis();
+                if (waitMillis <= 0) {
+                    LOGGER.warn("等待缓存定时清理结束超时，剩余任务数: {}", CLEANUP_IN_FLIGHT.get());
+                    return;
+                }
+                try {
+                    CLEANUP_MONITOR.wait(waitMillis);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    LOGGER.warn("等待缓存定时清理结束被中断");
+                    return;
+                }
+            }
         }
     }
 

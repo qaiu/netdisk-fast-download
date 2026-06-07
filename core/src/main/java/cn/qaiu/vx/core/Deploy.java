@@ -21,6 +21,8 @@ import java.nio.file.Path;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.UUID;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.LockSupport;
 
 import static cn.qaiu.vx.core.util.ConfigConstant.*;
@@ -45,9 +47,23 @@ public final class Deploy {
     private Handler<JsonObject> handle;
 
     private Thread mainThread;
+    private final List<Runnable> preShutdownTasks = new CopyOnWriteArrayList<>();
+    private final List<Runnable> postShutdownTasks = new CopyOnWriteArrayList<>();
 
     public static Deploy instance() {
         return INSTANCE;
+    }
+
+    public void addPreShutdownTask(Runnable task) {
+        if (task != null) {
+            preShutdownTasks.add(task);
+        }
+    }
+
+    public void addPostShutdownTask(Runnable task) {
+        if (task != null) {
+            postShutdownTasks.add(task);
+        }
     }
 
     /**
@@ -158,12 +174,16 @@ public final class Deploy {
 
         // 注册 ShutdownHook，确保进程退出时优雅关闭资源
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            LOGGER.info("JVM shutting down, closing Vert.x...");
+            LOGGER.info("JVM shutting down...");
+            runShutdownTasks("before Vert.x close", preShutdownTasks);
             try {
+                LOGGER.info("Closing Vert.x...");
                 vertx.close().toCompletionStage().toCompletableFuture().get(10, java.util.concurrent.TimeUnit.SECONDS);
                 LOGGER.info("Vert.x closed successfully");
             } catch (Exception e) {
                 LOGGER.warn("Vert.x close error or timeout", e);
+            } finally {
+                runShutdownTasks("after Vert.x close", postShutdownTasks);
             }
         }));
         //配置保存在共享数据中
@@ -222,6 +242,21 @@ public final class Deploy {
                 jsonObject.getString("password"));
         LOGGER.info("==============server info================");
     }
+
+    private static void runShutdownTasks(String stage, List<Runnable> tasks) {
+        if (tasks.isEmpty()) {
+            return;
+        }
+        LOGGER.info("Running {} shutdown tasks: {}", stage, tasks.size());
+        for (Runnable task : tasks) {
+            try {
+                task.run();
+            } catch (Exception e) {
+                LOGGER.warn("Shutdown task failed at stage {}", stage, e);
+            }
+        }
+    }
+
     /**
      * 部署失败
      *

@@ -241,8 +241,7 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
         try {
             safetyCleanupFuture = CLEANUP_SCHEDULER.schedule(() -> {
                 if (promise.tryFail("JavaScript " + operation + " 执行超时（" + EXECUTION_TIMEOUT_SECONDS + "秒）")) {
-                    jsLogger.error("{} 执行超时，已释放解析器资源", operation);
-                    close();
+                    jsLogger.error("{} 执行超时，等待执行线程结束后释放解析器资源", operation);
                 }
             }, EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (Exception e) {

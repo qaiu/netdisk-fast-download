@@ -27,6 +27,7 @@ public class HttpProxyVerticle extends AbstractVerticle {
     private HttpClient httpClient;
     private NetClient netClient;
     private HttpServer httpServer;
+    private volatile boolean stopping = false;
 
     private JsonObject proxyPreConf;
     private JsonObject proxyServerConf;
@@ -34,6 +35,7 @@ public class HttpProxyVerticle extends AbstractVerticle {
 
     @Override
     public void start(io.vertx.core.Promise<Void> startPromise) {
+        stopping = false;
         proxyServerConf = ((JsonObject)vertx.sharedData().getLocalMap(LOCAL).get(GLOBAL_CONFIG)).getJsonObject("proxy-server");
         proxyPreConf = ((JsonObject)vertx.sharedData().getLocalMap(LOCAL).get(GLOBAL_CONFIG)).getJsonObject("proxy-pre");
         Integer serverPort = proxyServerConf.getInteger("port");
@@ -84,8 +86,7 @@ public class HttpProxyVerticle extends AbstractVerticle {
                 })
                 .onFailure(err -> {
                     LOGGER.error("Failed to start HTTP Proxy server: " + err.getMessage(), err);
-                    closeClients();
-                    startPromise.fail(err);
+                    closeClients().onComplete(close -> startPromise.fail(err));
                 });
     }
 
@@ -93,7 +94,7 @@ public class HttpProxyVerticle extends AbstractVerticle {
     private void handleConnectRequest(HttpServerRequest clientRequest) {
         String[] uriParts = clientRequest.uri().split(":");
         if (uriParts.length != 2) {
-            clientRequest.response().setStatusCode(400).end("Bad Request: Invalid URI format");
+            failClientResponse(clientRequest.response(), 400, "Bad Request: Invalid URI format");
             return;
         }
 
@@ -103,46 +104,55 @@ public class HttpProxyVerticle extends AbstractVerticle {
         try {
             targetPort = Integer.parseInt(uriParts[1]);
         } catch (NumberFormatException e) {
-            clientRequest.response().setStatusCode(400).end("Bad Request: Invalid port");
+            failClientResponse(clientRequest.response(), 400, "Bad Request: Invalid port");
             return;
         }
         clientRequest.pause();
         // 通过 NetClient 连接目标服务器并创建隧道
-        netClient.connect(targetPort, targetHost)
-                .onSuccess(targetSocket -> {
-                    // Upgrade client connection to NetSocket and implement bidirectional data flow
-                    clientRequest.toNetSocket()
-                            .onSuccess(clientSocket -> {
-                                clientSocket.pipeTo(targetSocket)
-                                        .onFailure(err -> LOGGER.debug("CONNECT client -> target pipe closed", err));
-                                targetSocket.pipeTo(clientSocket)
-                                        .onFailure(err -> LOGGER.debug("CONNECT target -> client pipe closed", err));
+        try {
+            netClient.connect(targetPort, targetHost)
+                    .onSuccess(targetSocket -> {
+                        // Upgrade client connection to NetSocket and implement bidirectional data flow
+                        clientRequest.toNetSocket()
+                                .onSuccess(clientSocket -> {
+                                    clientSocket.pipeTo(targetSocket)
+                                            .onFailure(err -> LOGGER.debug("CONNECT client -> target pipe closed", err));
+                                    targetSocket.pipeTo(clientSocket)
+                                            .onFailure(err -> LOGGER.debug("CONNECT target -> client pipe closed", err));
 
-                                // Close the other socket when one side closes
-                                clientSocket.closeHandler(v -> targetSocket.close());
-                                targetSocket.closeHandler(v -> clientSocket.close());
-                            })
-                            .onFailure(clientSocketAttempt -> {
-                                System.err.println("Failed to upgrade client connection to socket: " + clientSocketAttempt.getMessage());
-                                targetSocket.close();
-                                clientRequest.response().setStatusCode(500).end("Internal Server Error");
-                            });
-                })
-                .onFailure(connectionAttempt -> {
-                    LOGGER.warn("Failed to connect to target: {}", connectionAttempt.getMessage());
-                    clientRequest.response().setStatusCode(502).end("Bad Gateway: Unable to connect to target");
-                });
+                                    // Close the other socket when one side closes
+                                    clientSocket.closeHandler(v -> targetSocket.close());
+                                    targetSocket.closeHandler(v -> clientSocket.close());
+                                })
+                                .onFailure(clientSocketAttempt -> {
+                                    System.err.println("Failed to upgrade client connection to socket: " + clientSocketAttempt.getMessage());
+                                    targetSocket.close();
+                                    failClientResponse(clientRequest.response(), 500, "Internal Server Error");
+                                });
+                    })
+                    .onFailure(connectionAttempt -> {
+                        LOGGER.warn("Failed to connect to target: {}", connectionAttempt.getMessage());
+                        failClientResponse(clientRequest.response(), "Bad Gateway: Unable to connect to target");
+                    });
+        } catch (Exception e) {
+            LOGGER.warn("CONNECT 请求创建失败", e);
+            failClientResponse(clientRequest.response(), "Bad Gateway: Unable to connect to target");
+        }
     }
 
     // 处理客户端的 HTTP 请求
     private void handleClientRequest(HttpServerRequest clientRequest) {
+        if (stopping) {
+            failClientResponse(clientRequest.response(), 503, "Service Unavailable");
+            return;
+        }
         // 打印来源ip和访问目标URI
         LOGGER.debug("source: {}, target: {}", clientRequest.remoteAddress().toString(), clientRequest.uri());
         if (proxyServerConf.containsKey("username") &&
                 StringUtils.isNotBlank(proxyServerConf.getString("username"))) {
             String s = clientRequest.headers().get("Proxy-Authorization");
             if (s == null) {
-                clientRequest.response().setStatusCode(403).end();
+                failClientResponse(clientRequest.response(), 403, null);
                 return;
             }
             String[] split;
@@ -150,19 +160,19 @@ public class HttpProxyVerticle extends AbstractVerticle {
                 split = new String(Base64.getDecoder().decode(s.replace("Basic ", ""))).split(":");
             } catch (IllegalArgumentException e) {
                 LOGGER.warn("Proxy-Authorization header is not valid Base64");
-                clientRequest.response().setStatusCode(403).end();
+                failClientResponse(clientRequest.response(), 403, null);
                 return;
             }
             if (split.length <= 1) {
                 LOGGER.warn("Proxy-Authorization header format invalid: missing username:password separator");
-                clientRequest.response().setStatusCode(403).end();
+                failClientResponse(clientRequest.response(), 403, null);
                 return;
             }
             String username = proxyServerConf.getString("username");
             String password = proxyServerConf.getString("password");
             if (!split[0].equals(username) || !split[1].equals(password)) {
                 LOGGER.info("-----auth failed------\nusername: {}", split[0]);
-                clientRequest.response().setStatusCode(403).end();
+                failClientResponse(clientRequest.response(), 403, null);
                 return;
             }
         }
@@ -181,7 +191,7 @@ public class HttpProxyVerticle extends AbstractVerticle {
         // 获取目标主机
         String hostHeader = clientRequest.getHeader("Host");
         if (hostHeader == null) {
-            clientRequest.response().setStatusCode(400).end("Host header is missing");
+            failClientResponse(clientRequest.response(), 400, "Host header is missing");
             return;
         }
 
@@ -189,61 +199,86 @@ public class HttpProxyVerticle extends AbstractVerticle {
         try {
             target = parseHostHeader(hostHeader);
         } catch (IllegalArgumentException e) {
-            clientRequest.response().setStatusCode(400).end("Bad Request: Invalid Host header");
+            failClientResponse(clientRequest.response(), 400, "Bad Request: Invalid Host header");
             return;
         }
         String targetHost = target.host();
         int targetPort = extractPortFromUrl(clientRequest.uri(), target.port()); // 默认为 HTTP 的端口
         if (targetPort <= 0) {
-            clientRequest.response().setStatusCode(400).end("Bad Request: Invalid target port");
+            failClientResponse(clientRequest.response(), 400, "Bad Request: Invalid target port");
             return;
         }
         clientRequest.pause(); // 暂停客户端请求的读取，等上游请求创建完成
 
-        httpClient.request(clientRequest.method(), targetPort, targetHost, clientRequest.uri())
-                .onSuccess(request -> {
-                    // 逐个设置请求头
-                    clientRequest.headers().forEach(header -> request.putHeader(header.getKey(), header.getValue()));
+        try {
+            httpClient.request(clientRequest.method(), targetPort, targetHost, clientRequest.uri())
+                    .onSuccess(request -> {
+                        // 逐个设置请求头
+                        clientRequest.headers().forEach(header -> request.putHeader(header.getKey(), header.getValue()));
 
-                    request.response()
-                            .onSuccess(response -> {
-                                HttpServerResponse clientResponse = clientRequest.response();
-                                clientResponse.setStatusCode(response.statusCode());
-                                clientResponse.headers().setAll(response.headers());
-                                response.pipeTo(clientResponse)
-                                        .onFailure(err -> {
-                                            LOGGER.error("HTTP代理响应转发失败", err);
-                                            if (!clientResponse.headWritten() && !clientResponse.ended()) {
-                                                clientResponse.setStatusCode(502).end("Bad Gateway: Unable to reach target");
-                                            } else {
-                                                clientResponse.reset();
-                                            }
-                                        });
-                            })
-                            .onFailure(err -> {
-                                LOGGER.error("HTTP代理响应失败", err);
-                                clientRequest.response().setStatusCode(502).end("Bad Gateway: Unable to reach target");
-                            });
+                        request.response()
+                                .onSuccess(response -> {
+                                    HttpServerResponse clientResponse = clientRequest.response();
+                                    if (clientResponse.ended() || clientResponse.closed()) {
+                                        response.resume();
+                                        return;
+                                    }
+                                    clientResponse.setStatusCode(response.statusCode());
+                                    clientResponse.headers().setAll(response.headers());
+                                    response.pipeTo(clientResponse)
+                                            .onFailure(err -> {
+                                                LOGGER.error("HTTP代理响应转发失败", err);
+                                                failClientResponse(clientResponse, "Bad Gateway: Unable to reach target");
+                                            });
+                                })
+                                .onFailure(err -> {
+                                    LOGGER.error("HTTP代理响应失败", err);
+                                    failClientResponse(clientRequest.response(), "Bad Gateway: Unable to reach target");
+                                });
 
-                    clientRequest.pipeTo(request)
-                            .onFailure(err -> {
-                                LOGGER.error("HTTP代理请求转发失败", err);
-                                request.reset();
-                                failClientResponse(clientRequest.response(), "Bad Gateway: Unable to reach target");
-                            });
-                    clientRequest.resume();
-                })
-                .onFailure(err -> {
-                    LOGGER.error("HTTP请求失败", err);
-                    clientRequest.response().setStatusCode(502).end("Bad Gateway: Request failed");
-                });
+                        clientRequest.pipeTo(request)
+                                .onFailure(err -> {
+                                    LOGGER.error("HTTP代理请求转发失败", err);
+                                    try {
+                                        request.reset();
+                                    } catch (Exception e) {
+                                        LOGGER.debug("HTTP代理上游请求已关闭", e);
+                                    }
+                                    failClientResponse(clientRequest.response(), "Bad Gateway: Unable to reach target");
+                                });
+                        clientRequest.resume();
+                    })
+                    .onFailure(err -> {
+                        LOGGER.error("HTTP请求失败", err);
+                        failClientResponse(clientRequest.response(), "Bad Gateway: Request failed");
+                    });
+        } catch (Exception e) {
+            LOGGER.error("HTTP请求创建失败", e);
+            failClientResponse(clientRequest.response(), "Bad Gateway: Request failed");
+        }
     }
 
     private void failClientResponse(HttpServerResponse response, String message) {
-        if (!response.headWritten() && !response.ended()) {
-            response.setStatusCode(502).end(message);
-        } else if (!response.ended()) {
-            response.reset();
+        failClientResponse(response, 502, message);
+    }
+
+    private void failClientResponse(HttpServerResponse response, int statusCode, String message) {
+        if (response.ended() || response.closed()) {
+            return;
+        }
+        try {
+            if (!response.headWritten()) {
+                response.setStatusCode(statusCode);
+                if (message == null) {
+                    response.end();
+                } else {
+                    response.end(message);
+                }
+            } else {
+                response.reset();
+            }
+        } catch (Exception e) {
+            LOGGER.debug("客户端响应已关闭，忽略代理错误响应", e);
         }
     }
 
@@ -303,10 +338,10 @@ public class HttpProxyVerticle extends AbstractVerticle {
 
     @Override
     public void stop(Promise<Void> stopPromise) {
+        stopping = true;
         Future<Void> serverClose = httpServer == null ? Future.succeededFuture() : httpServer.close();
-        Future<Void> httpClientClose = httpClient == null ? Future.succeededFuture() : httpClient.close();
-        Future<Void> netClientClose = netClient == null ? Future.succeededFuture() : netClient.close();
-        Future.all(serverClose, httpClientClose, netClientClose)
+        serverClose
+                .compose(v -> closeClients())
                 .onComplete(ar -> {
                     if (ar.succeeded()) {
                         stopPromise.complete();
@@ -316,16 +351,10 @@ public class HttpProxyVerticle extends AbstractVerticle {
                 });
     }
 
-    private void closeClients() {
-        if (httpServer != null) {
-            httpServer.close();
-        }
-        if (httpClient != null) {
-            httpClient.close();
-        }
-        if (netClient != null) {
-            netClient.close();
-        }
+    private Future<Void> closeClients() {
+        Future<Void> httpClientClose = httpClient == null ? Future.succeededFuture() : httpClient.close();
+        Future<Void> netClientClose = netClient == null ? Future.succeededFuture() : netClient.close();
+        return Future.all(httpClientClose, netClientClose).mapEmpty();
     }
 
 }
