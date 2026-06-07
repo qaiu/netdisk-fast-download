@@ -19,6 +19,7 @@ public class PlaygroundConfig {
 
     /** Token有效期：24小时 */
     private static final long TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000L;
+    private static final int MAX_TOKEN_COUNT = 1024;
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -59,10 +60,10 @@ public class PlaygroundConfig {
     /**
      * 生成并存储一个新的认证Token，同时清理过期Token
      */
-    public String generateToken() {
-        // 清理过期Token，防止Map无限增长
+    public synchronized String generateToken() {
         long now = System.currentTimeMillis();
-        validTokens.entrySet().removeIf(e -> now - e.getValue() > TOKEN_EXPIRY_MS);
+        cleanupExpiredTokens(now);
+        evictOldestTokensIfNeeded();
         // 使用SecureRandom生成32字节的密码学安全Token
         byte[] bytes = new byte[32];
         SECURE_RANDOM.nextBytes(bytes);
@@ -78,15 +79,38 @@ public class PlaygroundConfig {
     /**
      * 校验Token是否合法且未过期
      */
-    public boolean validateToken(String token) {
+    public synchronized boolean validateToken(String token) {
         if (token == null || token.isEmpty()) return false;
+        long now = System.currentTimeMillis();
+        cleanupExpiredTokens(now);
         Long createdAt = validTokens.get(token);
         if (createdAt == null) return false;
-        if (System.currentTimeMillis() - createdAt > TOKEN_EXPIRY_MS) {
+        if (now - createdAt > TOKEN_EXPIRY_MS) {
             validTokens.remove(token);
             return false;
         }
         return true;
+    }
+
+    private void cleanupExpiredTokens(long now) {
+        validTokens.entrySet().removeIf(e -> now - e.getValue() > TOKEN_EXPIRY_MS);
+    }
+
+    private void evictOldestTokensIfNeeded() {
+        while (validTokens.size() >= MAX_TOKEN_COUNT) {
+            String oldestToken = null;
+            long oldestTime = Long.MAX_VALUE;
+            for (Map.Entry<String, Long> entry : validTokens.entrySet()) {
+                if (entry.getValue() < oldestTime) {
+                    oldestTime = entry.getValue();
+                    oldestToken = entry.getKey();
+                }
+            }
+            if (oldestToken == null) {
+                return;
+            }
+            validTokens.remove(oldestToken);
+        }
     }
     
     /**

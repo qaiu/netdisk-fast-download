@@ -30,6 +30,7 @@ public class JsPlaygroundExecutor implements AutoCloseable {
     private static final int MAX_RESULT_STRING_LENGTH = 1024 * 1024;
     private static final int MAX_FILE_LIST_SIZE = 1000;
     private static final int MAX_FILE_FIELD_LENGTH = 4096;
+    private static final int TIMEOUT_LOG_RETAIN = 50;
     
     // 使用有界线程池，防止线程无限增长导致内存溢出
     private static final int POOL_MAX_THREADS = 16;
@@ -71,7 +72,8 @@ public class JsPlaygroundExecutor implements AutoCloseable {
     
     private final ShareLinkInfo shareLinkInfo;
     private final String jsCode;
-    private final ScriptEngine engine;
+    private volatile ScriptEngine engine;
+    private final Object engineLock = new Object();
     private final JsHttpClient httpClient;
     private final JsPlaygroundLogger playgroundLogger;
     private final JsShareLinkInfoWrapper shareLinkInfoWrapper;
@@ -102,12 +104,6 @@ public class JsPlaygroundExecutor implements AutoCloseable {
         this.playgroundLogger = new JsPlaygroundLogger();
         this.shareLinkInfoWrapper = new JsShareLinkInfoWrapper(shareLinkInfo);
         this.fetchBridge = new JsFetchBridge(httpClient);
-        try {
-            this.engine = initEngine();
-        } catch (RuntimeException e) {
-            this.httpClient.close();
-            throw e;
-        }
     }
     
     /**
@@ -124,6 +120,7 @@ public class JsPlaygroundExecutor implements AutoCloseable {
             if (engine == null) {
                 throw new RuntimeException("无法创建JavaScript引擎，请确保Nashorn可用");
             }
+            this.engine = engine;
             
             // 注入Java对象到JavaScript环境
             engine.put("http", httpClient);
@@ -175,6 +172,7 @@ public class JsPlaygroundExecutor implements AutoCloseable {
             executionFuture = CompletableFuture.supplyAsync(() -> {
             beginExecution();
             try {
+            ScriptEngine engine = engine();
             playgroundLogger.infoJava("开始执行parse方法");
             try {
                 Object parseFunction = engine.get("parse");
@@ -218,14 +216,7 @@ public class JsPlaygroundExecutor implements AutoCloseable {
             return promise.future();
         }
 
-        // 创建超时任务。cancel(true) 只能请求中断，Nashorn 死循环不保证立即停止。
-        ScheduledFuture<?> timeoutTask = TIMEOUT_SCHEDULER.schedule(() -> {
-            if (!executionFuture.isDone()) {
-                executionFuture.cancel(true);
-                playgroundLogger.errorJava("执行超时，已请求取消；资源将在执行线程退出后释放");
-                log.warn("JavaScript执行超时，已请求取消；Nashorn长循环可能继续占用线程");
-            }
-        }, EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        ScheduledFuture<?> timeoutTask = scheduleTimeout(executionFuture, "parse");
 
         // 处理执行结果
         executionFuture.whenComplete((result, error) -> {
@@ -234,7 +225,7 @@ public class JsPlaygroundExecutor implements AutoCloseable {
 
                 if (error != null) {
                 if (error instanceof CancellationException) {
-                    String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已返回超时，资源将在执行线程退出后释放";
+                    String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已返回超时并停止外部HTTP资源；ScriptEngine将在执行线程退出后清理";
                         playgroundLogger.errorJava(timeoutMsg);
                         log.error(timeoutMsg);
                         promise.fail(new RuntimeException(timeoutMsg));
@@ -265,6 +256,7 @@ public class JsPlaygroundExecutor implements AutoCloseable {
             executionFuture = CompletableFuture.supplyAsync(() -> {
             beginExecution();
             try {
+            ScriptEngine engine = engine();
             playgroundLogger.infoJava("开始执行parseFileList方法");
             try {
                 Object parseFileListFunction = engine.get("parseFileList");
@@ -306,14 +298,7 @@ public class JsPlaygroundExecutor implements AutoCloseable {
             return promise.future();
         }
 
-        // 创建超时任务。cancel(true) 只能请求中断，Nashorn 死循环不保证立即停止。
-        ScheduledFuture<?> timeoutTask = TIMEOUT_SCHEDULER.schedule(() -> {
-            if (!executionFuture.isDone()) {
-                executionFuture.cancel(true);
-                playgroundLogger.errorJava("执行超时，已请求取消；资源将在执行线程退出后释放");
-                log.warn("JavaScript执行超时，已请求取消；Nashorn长循环可能继续占用线程");
-            }
-        }, EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        ScheduledFuture<?> timeoutTask = scheduleTimeout(executionFuture, "parseFileList");
 
         // 处理执行结果
         executionFuture.whenComplete((result, error) -> {
@@ -322,7 +307,7 @@ public class JsPlaygroundExecutor implements AutoCloseable {
 
                 if (error != null) {
                 if (error instanceof CancellationException) {
-                    String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已返回超时，资源将在执行线程退出后释放";
+                    String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已返回超时并停止外部HTTP资源；ScriptEngine将在执行线程退出后清理";
                         playgroundLogger.errorJava(timeoutMsg);
                         log.error(timeoutMsg);
                         promise.fail(new RuntimeException(timeoutMsg));
@@ -353,6 +338,7 @@ public class JsPlaygroundExecutor implements AutoCloseable {
             executionFuture = CompletableFuture.supplyAsync(() -> {
             beginExecution();
             try {
+            ScriptEngine engine = engine();
             playgroundLogger.infoJava("开始执行parseById方法");
             try {
                 Object parseByIdFunction = engine.get("parseById");
@@ -394,14 +380,7 @@ public class JsPlaygroundExecutor implements AutoCloseable {
             return promise.future();
         }
 
-        // 创建超时任务。cancel(true) 只能请求中断，Nashorn 死循环不保证立即停止。
-        ScheduledFuture<?> timeoutTask = TIMEOUT_SCHEDULER.schedule(() -> {
-            if (!executionFuture.isDone()) {
-                executionFuture.cancel(true);
-                playgroundLogger.errorJava("执行超时，已请求取消；资源将在执行线程退出后释放");
-                log.warn("JavaScript执行超时，已请求取消；Nashorn长循环可能继续占用线程");
-            }
-        }, EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        ScheduledFuture<?> timeoutTask = scheduleTimeout(executionFuture, "parseById");
 
         // 处理执行结果
         executionFuture.whenComplete((result, error) -> {
@@ -410,7 +389,7 @@ public class JsPlaygroundExecutor implements AutoCloseable {
 
                 if (error != null) {
                 if (error instanceof CancellationException) {
-                    String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已返回超时，资源将在执行线程退出后释放";
+                    String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已返回超时并停止外部HTTP资源；ScriptEngine将在执行线程退出后清理";
                         playgroundLogger.errorJava(timeoutMsg);
                         log.error(timeoutMsg);
                         promise.fail(new RuntimeException(timeoutMsg));
@@ -558,6 +537,22 @@ public class JsPlaygroundExecutor implements AutoCloseable {
         }
     }
 
+    private ScriptEngine engine() {
+        ScriptEngine current = engine;
+        if (current != null) {
+            return current;
+        }
+        synchronized (engineLock) {
+            if (closed) {
+                throw new CancellationException("演练场执行器已关闭");
+            }
+            if (engine == null) {
+                engine = initEngine();
+            }
+            return engine;
+        }
+    }
+
     private void finishExecution() {
         synchronized (lifecycleLock) {
             running = false;
@@ -565,6 +560,30 @@ public class JsPlaygroundExecutor implements AutoCloseable {
                 doClose();
             }
         }
+    }
+
+    private ScheduledFuture<?> scheduleTimeout(CompletableFuture<?> executionFuture, String operation) {
+        // cancel(true) 只能请求中断，Nashorn 死循环不保证立即停止。
+        return TIMEOUT_SCHEDULER.schedule(() -> {
+            if (!executionFuture.isDone()) {
+                executionFuture.cancel(true);
+                playgroundLogger.errorJava(operation + " 执行超时，已请求取消并停止外部HTTP资源");
+                forceCloseAfterTimeout();
+                log.warn("JavaScript {} 执行超时，已请求取消；Nashorn长循环可能继续占用线程，ScriptEngine将在执行线程退出后清理", operation);
+            }
+        }, EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    }
+
+    private void forceCloseAfterTimeout() {
+        synchronized (lifecycleLock) {
+            closeRequested = true;
+            if (running || closed) {
+                closeExternalResources();
+            } else {
+                doClose();
+            }
+        }
+        playgroundLogger.trimToLast(TIMEOUT_LOG_RETAIN);
     }
 
     /**
@@ -576,6 +595,7 @@ public class JsPlaygroundExecutor implements AutoCloseable {
         synchronized (lifecycleLock) {
             closeRequested = true;
             if (running || closed) {
+                closeExternalResources();
                 return;
             }
             doClose();
@@ -586,10 +606,19 @@ public class JsPlaygroundExecutor implements AutoCloseable {
         if (closed) return;
         closed = true;
         closeRequested = false;
+        closeExternalResources();
+        cleanupEngine();
+        log.debug("JsPlaygroundExecutor 资源已释放");
+    }
+
+    private void closeExternalResources() {
         if (httpClient != null) {
             httpClient.close();
         }
-        // 清除 ScriptEngine 的所有 bindings，彻底释放资源
+    }
+
+    private void cleanupEngine() {
+        // 清除 ScriptEngine 的所有 bindings，释放 JS 运行时引用
         if (engine != null) {
             try {
                 // 清除注入的 Java 对象引用
@@ -606,7 +635,6 @@ public class JsPlaygroundExecutor implements AutoCloseable {
                 log.warn("清理 ScriptEngine bindings 失败: {}", e.getMessage());
             }
         }
-        log.debug("JsPlaygroundExecutor 资源已释放");
     }
 }
 

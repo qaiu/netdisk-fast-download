@@ -65,7 +65,7 @@ public class RouterVerticle extends AbstractVerticle {
                 SharedDataUtil.getJsonStringForServerConfig("contextPath")).createRouter();
         server = vertx.createHttpServer(options);
 
-        server.requestHandler(router).webSocketHandler(s->{}).listen()
+        server.requestHandler(router).listen()
                 .onSuccess(s -> startPromise.complete())
                 .onFailure(e -> startPromise.fail(e.getCause()));
     }

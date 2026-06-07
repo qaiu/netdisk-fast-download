@@ -29,7 +29,9 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -54,25 +56,50 @@ public class JsHttpClient {
     private static final int MAX_REDIRECTS = 5;
     private static final String DEFAULT_ACCEPT_ENCODING = "gzip, deflate, br";
 
-    // 共享 HttpClient 实例（非代理模式），避免每次请求创建新连接池。
-    private static final HttpClient SHARED_CLIENT = WebClientVertxInit.get().createHttpClient(
-            new HttpClientOptions()
-                    .setConnectTimeout(10000)
-                    .setIdleTimeout(30)
-                    .setIdleTimeoutUnit(TimeUnit.SECONDS)
-                    .setMaxPoolSize(64));
+    private static final Object SHARED_CLIENT_LOCK = new Object();
+    // 共享 HttpClient 实例（非代理模式），懒加载避免类初始化阶段抢跑 Vert.x。
+    private static volatile HttpClient sharedClient;
+    private static volatile boolean sharedClientShutdown = false;
 
     /**
      * 关闭共享 HttpClient（应用关闭时调用）
      */
     public static void shutdownSharedClient() {
-        if (SHARED_CLIENT != null) {
-            SHARED_CLIENT.close();
+        synchronized (SHARED_CLIENT_LOCK) {
+            sharedClientShutdown = true;
+            if (sharedClient != null) {
+                sharedClient.close();
+                sharedClient = null;
+            }
+        }
+    }
+
+    private static HttpClient sharedClient() {
+        synchronized (SHARED_CLIENT_LOCK) {
+            ensureSharedClientAvailable();
+            if (sharedClient == null) {
+                sharedClient = WebClientVertxInit.get().createHttpClient(
+                        new HttpClientOptions()
+                                .setConnectTimeout(10000)
+                                .setIdleTimeout(30)
+                                .setIdleTimeoutUnit(TimeUnit.SECONDS)
+                                .setMaxPoolSize(64));
+            }
+            return sharedClient;
+        }
+    }
+
+    private static void ensureSharedClientAvailable() {
+        if (sharedClientShutdown) {
+            throw new IllegalStateException("共享 JavaScript HttpClient 已关闭");
         }
     }
 
     private final HttpClient client;
     private final boolean ownClient; // 标记是否为自建 client（需要 close）
+    private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final Object requestLock = new Object();
+    private final Set<HttpClientRequest> activeRequests = ConcurrentHashMap.newKeySet();
     private MultiMap headers;
     private int timeoutSeconds = 30; // 默认超时时间30秒
     
@@ -90,7 +117,8 @@ public class JsHttpClient {
     };
     
     public JsHttpClient() {
-        this.client = SHARED_CLIENT;
+        ensureSharedClientAvailable();
+        this.client = sharedClient();
         this.ownClient = false;
         this.headers = MultiMap.caseInsensitiveMultiMap();
         // 设置默认的Accept-Encoding头以支持压缩响应
@@ -106,6 +134,7 @@ public class JsHttpClient {
      * @param proxyConfig 代理配置JsonObject，包含type、host、port、username、password
      */
     public JsHttpClient(JsonObject proxyConfig) {
+        ensureSharedClientAvailable();
         if (proxyConfig != null && proxyConfig.containsKey("type")) {
             ProxyOptions proxyOptions = new ProxyOptions()
                     .setType(ProxyType.valueOf(proxyConfig.getString("type").toUpperCase()))
@@ -128,7 +157,7 @@ public class JsHttpClient {
                             .setProxyOptions(proxyOptions));
             this.ownClient = true;
         } else {
-            this.client = SHARED_CLIENT;
+            this.client = sharedClient();
             this.ownClient = false;
         }
         this.headers = MultiMap.caseInsensitiveMultiMap();
@@ -459,7 +488,11 @@ public class JsHttpClient {
      * 执行HTTP请求（同步）
      */
     private JsHttpResponse executeRequest(HttpMethod method, String url, RequestBody requestBody, boolean followRedirects) {
+        if (closed.get()) {
+            throw new IllegalStateException("HTTP客户端已关闭");
+        }
         AtomicReference<HttpClientRequest> requestRef = new AtomicReference<>();
+        AtomicBoolean abandoned = new AtomicBoolean(false);
         try {
             Promise<JsHttpResponse> promise = Promise.promise();
 
@@ -477,24 +510,48 @@ public class JsHttpClient {
                 }
 
                 HttpClientRequest request = ar.result();
-                requestRef.set(request);
-                request.exceptionHandler(promise::tryFail);
-                request.response().onComplete(responseAr -> {
-                    if (responseAr.succeeded()) {
-                        collectResponse(request, responseAr.result(), promise);
-                    } else {
-                        promise.tryFail(responseAr.cause());
+                synchronized (requestLock) {
+                    if (closed.get() || abandoned.get()) {
+                        request.reset();
+                        promise.tryFail("HTTP客户端已关闭");
+                        return;
                     }
-                });
+                    activeRequests.add(request);
+                    requestRef.set(request);
+                    request.exceptionHandler(e -> {
+                        finishRequest(request);
+                        promise.tryFail(e);
+                    });
+                    request.response().onComplete(responseAr -> {
+                        if (responseAr.succeeded()) {
+                            collectResponse(request, responseAr.result(), promise);
+                        } else {
+                            finishRequest(request);
+                            promise.tryFail(responseAr.cause());
+                        }
+                    });
 
-                if (requestBody == null || requestBody.body() == null) {
-                    request.end().onFailure(promise::tryFail);
-                } else {
-                    request.headers().set(HttpHeaders.CONTENT_LENGTH, String.valueOf(requestBody.body().length()));
-                    if (StringUtils.isNotEmpty(requestBody.contentType())) {
-                        request.headers().set(HttpHeaders.CONTENT_TYPE, requestBody.contentType());
+                    if (closed.get() || abandoned.get()) {
+                        request.reset();
+                        finishRequest(request);
+                        promise.tryFail("HTTP客户端已关闭");
+                        return;
                     }
-                    request.end(requestBody.body()).onFailure(promise::tryFail);
+                    if (requestBody == null || requestBody.body() == null) {
+                        request.end().onFailure(e -> {
+                            finishRequest(request);
+                            promise.tryFail(e);
+                        });
+                    } else {
+                        request.headers().set(HttpHeaders.CONTENT_LENGTH, String.valueOf(requestBody.body().length()));
+                        if (StringUtils.isNotEmpty(requestBody.contentType())) {
+                            request.headers().set(HttpHeaders.CONTENT_TYPE, requestBody.contentType());
+                        }
+                        request.end(requestBody.body()).onFailure(e -> {
+                            finishRequest(request);
+                            promise.tryFail(e);
+                        });
+                    }
                 }
             });
 
@@ -505,13 +562,17 @@ public class JsHttpClient {
         } catch (TimeoutException e) {
             // RequestOptions timeout 通常会先触发；这里再兜底，避免等待线程返回后请求还在后台下载。
             String errorMsg = "HTTP请求超时（" + timeoutSeconds + "秒）";
-            HttpClientRequest request = requestRef.get();
-            if (request != null) {
-                request.reset();
+            abandoned.set(true);
+            synchronized (requestLock) {
+                abortRequest(requestRef);
             }
             log.error(errorMsg, e);
             throw new RuntimeException(errorMsg, e);
         } catch (Exception e) {
+            abandoned.set(true);
+            synchronized (requestLock) {
+                abortRequest(requestRef);
+            }
             String errorMsg = e.getMessage();
             if (errorMsg == null || errorMsg.trim().isEmpty()) {
                 errorMsg = e.getClass().getSimpleName();
@@ -556,6 +617,7 @@ public class JsHttpClient {
             if (contentLength > MAX_RESPONSE_BODY_BYTES) {
                 done.set(true);
                 request.reset();
+                finishRequest(request);
                 promise.tryFail("响应体过大: " + contentLength + " bytes");
                 return;
             }
@@ -563,6 +625,7 @@ public class JsHttpClient {
 
         response.exceptionHandler(e -> {
             if (done.compareAndSet(false, true)) {
+                finishRequest(request);
                 promise.tryFail(e);
             }
         });
@@ -573,6 +636,7 @@ public class JsHttpClient {
             if (body.length() + chunk.length() > MAX_RESPONSE_BODY_BYTES) {
                 if (done.compareAndSet(false, true)) {
                     request.reset();
+                    finishRequest(request);
                     promise.tryFail("响应体过大: " + (body.length() + chunk.length()) + " bytes");
                 }
                 return;
@@ -581,6 +645,7 @@ public class JsHttpClient {
         });
         response.endHandler(v -> {
             if (done.compareAndSet(false, true)) {
+                finishRequest(request);
                 promise.tryComplete(new JsHttpResponse(
                         response.statusCode(),
                         MultiMap.caseInsensitiveMultiMap().setAll(response.headers()),
@@ -591,6 +656,23 @@ public class JsHttpClient {
             }
         });
         response.resume();
+    }
+
+    private void finishRequest(HttpClientRequest request) {
+        if (request != null) {
+            activeRequests.remove(request);
+        }
+    }
+
+    private void abortRequest(AtomicReference<HttpClientRequest> requestRef) {
+        HttpClientRequest request = requestRef.get();
+        if (request != null) {
+            try {
+                request.reset();
+            } finally {
+                finishRequest(request);
+            }
+        }
     }
 
     private RequestBody bodyFromData(Object data) {
@@ -830,6 +912,19 @@ public class JsHttpClient {
      * 仅关闭自建的 client（代理模式），共享实例不关闭
      */
     public void close() {
+        if (!closed.compareAndSet(false, true)) {
+            return;
+        }
+        synchronized (requestLock) {
+            for (HttpClientRequest request : activeRequests) {
+                try {
+                    request.reset();
+                } catch (Exception e) {
+                    log.debug("重置 JavaScript HTTP 请求失败: {}", e.getMessage());
+                }
+            }
+            activeRequests.clear();
+        }
         if (ownClient && client != null) {
             client.close();
         }

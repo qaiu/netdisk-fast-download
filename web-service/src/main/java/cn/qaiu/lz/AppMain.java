@@ -49,6 +49,8 @@ public class AppMain {
         deploy.addPostShutdownTask(cn.qaiu.parser.customjs.JsParserExecutor::shutdownExecutor);
         deploy.addPostShutdownTask(cn.qaiu.parser.customjs.JsPlaygroundExecutor::shutdownPools);
         deploy.addPostShutdownTask(cn.qaiu.parser.customjs.JsHttpClient::shutdownSharedClient);
+        deploy.addPostShutdownTask(cn.qaiu.parser.PanBase::shutdownSharedClients);
+        deploy.addPostShutdownTask(cn.qaiu.parser.impl.PodTool::shutdownWorkerExecutor);
         // start
         deploy.start(args, AppMain::exec);
     }

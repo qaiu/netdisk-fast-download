@@ -7,6 +7,7 @@ import io.vertx.core.http.*;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
+import io.vertx.core.net.NetSocket;
 import io.vertx.core.net.ProxyOptions;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -116,9 +117,15 @@ public class HttpProxyVerticle extends AbstractVerticle {
                         clientRequest.toNetSocket()
                                 .onSuccess(clientSocket -> {
                                     clientSocket.pipeTo(targetSocket)
-                                            .onFailure(err -> LOGGER.debug("CONNECT client -> target pipe closed", err));
+                                            .onFailure(err -> {
+                                                LOGGER.debug("CONNECT client -> target pipe closed", err);
+                                                closeTunnelSockets(clientSocket, targetSocket);
+                                            });
                                     targetSocket.pipeTo(clientSocket)
-                                            .onFailure(err -> LOGGER.debug("CONNECT target -> client pipe closed", err));
+                                            .onFailure(err -> {
+                                                LOGGER.debug("CONNECT target -> client pipe closed", err);
+                                                closeTunnelSockets(clientSocket, targetSocket);
+                                            });
 
                                     // Close the other socket when one side closes
                                     clientSocket.closeHandler(v -> targetSocket.close());
@@ -127,16 +134,16 @@ public class HttpProxyVerticle extends AbstractVerticle {
                                 .onFailure(clientSocketAttempt -> {
                                     System.err.println("Failed to upgrade client connection to socket: " + clientSocketAttempt.getMessage());
                                     targetSocket.close();
-                                    failClientResponse(clientRequest.response(), 500, "Internal Server Error");
+                                    failClientRequestAndClose(clientRequest, 500, "Internal Server Error");
                                 });
                     })
                     .onFailure(connectionAttempt -> {
                         LOGGER.warn("Failed to connect to target: {}", connectionAttempt.getMessage());
-                        failClientResponse(clientRequest.response(), "Bad Gateway: Unable to connect to target");
+                        failClientRequestAndClose(clientRequest, 502, "Bad Gateway: Unable to connect to target");
                     });
         } catch (Exception e) {
             LOGGER.warn("CONNECT 请求创建失败", e);
-            failClientResponse(clientRequest.response(), "Bad Gateway: Unable to connect to target");
+            failClientRequestAndClose(clientRequest, 502, "Bad Gateway: Unable to connect to target");
         }
     }
 
@@ -228,12 +235,22 @@ public class HttpProxyVerticle extends AbstractVerticle {
                                     response.pipeTo(clientResponse)
                                             .onFailure(err -> {
                                                 LOGGER.error("HTTP代理响应转发失败", err);
-                                                failClientResponse(clientResponse, "Bad Gateway: Unable to reach target");
+                                                try {
+                                                    response.request().reset();
+                                                } catch (Exception e) {
+                                                    LOGGER.debug("HTTP代理上游响应已关闭", e);
+                                                }
+                                                failClientRequestAndClose(clientRequest, 502, "Bad Gateway: Unable to reach target");
                                             });
                                 })
                                 .onFailure(err -> {
                                     LOGGER.error("HTTP代理响应失败", err);
-                                    failClientResponse(clientRequest.response(), "Bad Gateway: Unable to reach target");
+                                    try {
+                                        request.reset();
+                                    } catch (Exception e) {
+                                        LOGGER.debug("HTTP代理上游请求已关闭", e);
+                                    }
+                                    failClientRequestAndClose(clientRequest, 502, "Bad Gateway: Unable to reach target");
                                 });
 
                         clientRequest.pipeTo(request)
@@ -244,17 +261,17 @@ public class HttpProxyVerticle extends AbstractVerticle {
                                     } catch (Exception e) {
                                         LOGGER.debug("HTTP代理上游请求已关闭", e);
                                     }
-                                    failClientResponse(clientRequest.response(), "Bad Gateway: Unable to reach target");
+                                    failClientRequestAndClose(clientRequest, 502, "Bad Gateway: Unable to reach target");
                                 });
                         clientRequest.resume();
                     })
                     .onFailure(err -> {
                         LOGGER.error("HTTP请求失败", err);
-                        failClientResponse(clientRequest.response(), "Bad Gateway: Request failed");
+                        failClientRequestAndClose(clientRequest, 502, "Bad Gateway: Request failed");
                     });
         } catch (Exception e) {
             LOGGER.error("HTTP请求创建失败", e);
-            failClientResponse(clientRequest.response(), "Bad Gateway: Request failed");
+            failClientRequestAndClose(clientRequest, 502, "Bad Gateway: Request failed");
         }
     }
 
@@ -279,6 +296,48 @@ public class HttpProxyVerticle extends AbstractVerticle {
             }
         } catch (Exception e) {
             LOGGER.debug("客户端响应已关闭，忽略代理错误响应", e);
+        }
+    }
+
+    private void failClientRequestAndClose(HttpServerRequest request, int statusCode, String message) {
+        HttpServerResponse response = request.response();
+        if (response.ended() || response.closed()) {
+            closeClientConnection(request);
+            return;
+        }
+        try {
+            if (!response.headWritten()) {
+                response.setStatusCode(statusCode);
+                Future<Void> endFuture = message == null ? response.end() : response.end(message);
+                endFuture.onComplete(v -> closeClientConnection(request));
+            } else {
+                response.reset();
+                closeClientConnection(request);
+            }
+        } catch (Exception e) {
+            LOGGER.debug("客户端响应已关闭，关闭代理连接", e);
+            closeClientConnection(request);
+        }
+    }
+
+    private void closeClientConnection(HttpServerRequest request) {
+        try {
+            request.connection().close();
+        } catch (Exception e) {
+            LOGGER.debug("关闭客户端代理连接失败", e);
+        }
+    }
+
+    private void closeTunnelSockets(NetSocket clientSocket, NetSocket targetSocket) {
+        try {
+            clientSocket.close();
+        } catch (Exception e) {
+            LOGGER.debug("关闭CONNECT客户端socket失败", e);
+        }
+        try {
+            targetSocket.close();
+        } catch (Exception e) {
+            LOGGER.debug("关闭CONNECT目标socket失败", e);
         }
     }
 
@@ -340,15 +399,15 @@ public class HttpProxyVerticle extends AbstractVerticle {
     public void stop(Promise<Void> stopPromise) {
         stopping = true;
         Future<Void> serverClose = httpServer == null ? Future.succeededFuture() : httpServer.close();
-        serverClose
-                .compose(v -> closeClients())
-                .onComplete(ar -> {
-                    if (ar.succeeded()) {
-                        stopPromise.complete();
+        serverClose.onComplete(serverResult -> closeClients().onComplete(clientResult -> {
+                    if (serverResult.failed()) {
+                        stopPromise.fail(serverResult.cause());
+                    } else if (clientResult.failed()) {
+                        stopPromise.fail(clientResult.cause());
                     } else {
-                        stopPromise.fail(ar.cause());
+                        stopPromise.complete();
                     }
-                });
+                }));
     }
 
     private Future<Void> closeClients() {

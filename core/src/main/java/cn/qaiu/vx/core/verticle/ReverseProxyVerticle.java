@@ -111,10 +111,6 @@ public class ReverseProxyVerticle extends AbstractVerticle {
                 : Future.all(serverCloseFutures).mapEmpty();
 
         serverCloseFuture.onComplete(serverClose -> {
-            if (serverClose.failed()) {
-                stopPromise.fail(serverClose.cause());
-                return;
-            }
             List<Future<Void>> clientCloseFutures = new ArrayList<>();
             closeHttpClients(clientCloseFutures);
             Future<Void> clientCloseFuture = clientCloseFutures.isEmpty()
@@ -122,8 +118,15 @@ public class ReverseProxyVerticle extends AbstractVerticle {
                     : Future.all(clientCloseFutures).mapEmpty();
 
             clientCloseFuture.onComplete(clientClose -> {
-                httpServers.clear();
-                if (clientClose.failed()) {
+                if (serverClose.succeeded()) {
+                    httpServers.clear();
+                }
+                if (clientClose.succeeded()) {
+                    httpClientPool.clear();
+                }
+                if (serverClose.failed()) {
+                    stopPromise.fail(serverClose.cause());
+                } else if (clientClose.failed()) {
                     stopPromise.fail(clientClose.cause());
                 } else {
                     stopPromise.complete();
@@ -140,7 +143,6 @@ public class ReverseProxyVerticle extends AbstractVerticle {
                 LOGGER.warn("Error closing HttpClient: {}", e.getMessage());
             }
         });
-        httpClientPool.clear();
     }
 
     /**

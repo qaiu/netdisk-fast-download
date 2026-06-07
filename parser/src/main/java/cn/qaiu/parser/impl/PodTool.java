@@ -24,12 +24,14 @@ import java.util.regex.Pattern;
 public class PodTool extends PanBase {
 
     private static final int MAX_RESPONSE_BODY_BYTES = 8 * 1024 * 1024;
+    private static final java.time.Duration REQUEST_TIMEOUT = java.time.Duration.ofSeconds(30);
 
     // 静态共享的 JDK HttpClient 实例，避免每次调用创建新实例
     private static final HttpClient SHARED_HTTP_CLIENT = HttpClient.newBuilder()
             .connectTimeout(java.time.Duration.ofSeconds(10))
             .build();
     private static volatile WorkerExecutor SHARED_WORKER_EXECUTOR;
+    private static volatile boolean workerExecutorShutdown = false;
 
     /*
      * https://1drv.ms/w/s!Alg0feQmCv2rnRFd60DQOmMa-Oh_?e=buaRtp --302->
@@ -197,6 +199,7 @@ public class PodTool extends PanBase {
         // 构建请求
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
+                .timeout(REQUEST_TIMEOUT)
                 .header("Authorization", authorizationHeader)
                 .build();
 
@@ -223,6 +226,7 @@ public class PodTool extends PanBase {
                 // 构造请求
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(new URI(url))
+                        .timeout(REQUEST_TIMEOUT)
                         .header("accept", "text/html,application/xhtml+xml,application/xml;q=0.9," +
                                 "image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;" +
                                 "v=b3;q=0.7")
@@ -272,13 +276,24 @@ public class PodTool extends PanBase {
     }
 
     private static WorkerExecutor getWorkerExecutor() {
-        if (SHARED_WORKER_EXECUTOR == null) {
-            synchronized (PodTool.class) {
-                if (SHARED_WORKER_EXECUTOR == null) {
-                    SHARED_WORKER_EXECUTOR = WebClientVertxInit.get().createSharedWorkerExecutor("http-client-worker", 8);
-                }
+        synchronized (PodTool.class) {
+            if (workerExecutorShutdown) {
+                throw new IllegalStateException("OneDrive WorkerExecutor 已关闭");
+            }
+            if (SHARED_WORKER_EXECUTOR == null) {
+                SHARED_WORKER_EXECUTOR = WebClientVertxInit.get().createSharedWorkerExecutor("http-client-worker", 8);
+            }
+            return SHARED_WORKER_EXECUTOR;
+        }
+    }
+
+    public static void shutdownWorkerExecutor() {
+        synchronized (PodTool.class) {
+            workerExecutorShutdown = true;
+            if (SHARED_WORKER_EXECUTOR != null) {
+                SHARED_WORKER_EXECUTOR.close();
+                SHARED_WORKER_EXECUTOR = null;
             }
         }
-        return SHARED_WORKER_EXECUTOR;
     }
 }

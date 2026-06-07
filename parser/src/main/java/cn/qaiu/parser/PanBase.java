@@ -47,20 +47,20 @@ public abstract class PanBase implements IPanTool, Closeable {
             .setIdleTimeout(30)            // 空闲超时 30 秒
             .setIdleTimeoutUnit(java.util.concurrent.TimeUnit.SECONDS);
 
+    private static final Object SHARED_CLIENT_LOCK = new Object();
+
     /**
      * 共享的 WebClient 实例（线程安全，避免每请求创建导致资源泄漏）
      */
-    private static final WebClient SHARED_CLIENT = WebClient.create(WebClientVertxInit.get(),
-            new WebClientOptions(SHARED_OPTIONS));
-    private static final WebClient SHARED_CLIENT_NO_REDIRECTS = WebClient.create(WebClientVertxInit.get(),
-            new WebClientOptions(SHARED_OPTIONS).setFollowRedirects(false));
-    private static final WebClient SHARED_CLIENT_DISABLE_UA = WebClient.create(WebClientVertxInit.get(),
-            new WebClientOptions(SHARED_OPTIONS).setUserAgentEnabled(false));
+    private static volatile WebClient sharedClient;
+    private static volatile WebClient sharedClientNoRedirects;
+    private static volatile WebClient sharedClientDisableUA;
+    private static volatile boolean sharedClientsShutdown = false;
 
     /**
      * Http client (默认使用共享实例，代理模式下使用独立实例)
      */
-    protected WebClient client = SHARED_CLIENT;
+    protected WebClient client = sharedClient();
 
     /**
      * Http client session (会话管理, 带cookie请求, 每实例独立)
@@ -70,12 +70,12 @@ public abstract class PanBase implements IPanTool, Closeable {
     /**
      * Http client 不自动跳转
      */
-    protected WebClient clientNoRedirects = SHARED_CLIENT_NO_REDIRECTS;
+    protected WebClient clientNoRedirects = sharedClientNoRedirects();
 
     /**
      * Http client disable UserAgent
      */
-    protected WebClient clientDisableUA = SHARED_CLIENT_DISABLE_UA;
+    protected WebClient clientDisableUA = sharedClientDisableUA();
 
     protected ShareLinkInfo shareLinkInfo;
 
@@ -134,6 +134,67 @@ public abstract class PanBase implements IPanTool, Closeable {
     }
 
     protected PanBase() {
+    }
+
+    private static WebClient sharedClient() {
+        synchronized (SHARED_CLIENT_LOCK) {
+            if (sharedClientsShutdown) {
+                throw new IllegalStateException("共享 WebClient 已关闭");
+            }
+            if (sharedClient == null) {
+                sharedClient = WebClient.create(WebClientVertxInit.get(), new WebClientOptions(SHARED_OPTIONS));
+            }
+            return sharedClient;
+        }
+    }
+
+    private static WebClient sharedClientNoRedirects() {
+        synchronized (SHARED_CLIENT_LOCK) {
+            if (sharedClientsShutdown) {
+                throw new IllegalStateException("共享 WebClient 已关闭");
+            }
+            if (sharedClientNoRedirects == null) {
+                sharedClientNoRedirects = WebClient.create(WebClientVertxInit.get(),
+                        new WebClientOptions(SHARED_OPTIONS).setFollowRedirects(false));
+            }
+            return sharedClientNoRedirects;
+        }
+    }
+
+    private static WebClient sharedClientDisableUA() {
+        synchronized (SHARED_CLIENT_LOCK) {
+            if (sharedClientsShutdown) {
+                throw new IllegalStateException("共享 WebClient 已关闭");
+            }
+            if (sharedClientDisableUA == null) {
+                sharedClientDisableUA = WebClient.create(WebClientVertxInit.get(),
+                        new WebClientOptions(SHARED_OPTIONS).setUserAgentEnabled(false));
+            }
+            return sharedClientDisableUA;
+        }
+    }
+
+    public static void shutdownSharedClients() {
+        synchronized (SHARED_CLIENT_LOCK) {
+            sharedClientsShutdown = true;
+            closeSharedClient(sharedClient, "shared WebClient");
+            closeSharedClient(sharedClientNoRedirects, "shared WebClientNoRedirects");
+            closeSharedClient(sharedClientDisableUA, "shared WebClientDisableUA");
+            sharedClient = null;
+            sharedClientNoRedirects = null;
+            sharedClientDisableUA = null;
+        }
+    }
+
+    private static void closeSharedClient(WebClient client, String name) {
+        if (client == null) {
+            return;
+        }
+        try {
+            client.close();
+        } catch (Exception e) {
+            LoggerFactory.getLogger(PanBase.class).warn("关闭 {} 失败: {}", name, e.getMessage());
+        }
     }
 
     protected String baseMsg() {

@@ -21,10 +21,13 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -40,6 +43,7 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
 
     private static volatile WorkerExecutor EXECUTOR;
     private static final Object EXECUTOR_LOCK = new Object();
+    private static volatile boolean executorShutdown = false;
 
     /** 安全网调度器：当 onComplete 未触发时，延迟强制释放资源 */
     private static final ScheduledExecutorService CLEANUP_SCHEDULER =
@@ -52,18 +56,25 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
     private static final int MAX_RESULT_STRING_LENGTH = 1024 * 1024;
     private static final int MAX_FILE_LIST_SIZE = 1000;
     private static final int MAX_FILE_FIELD_LENGTH = 4096;
+    private static final int MAX_CONCURRENT_EXECUTIONS =
+            Math.max(1, Integer.getInteger("parser.custom.js.maxConcurrentExecutions", 32));
+    private static final Semaphore EXECUTION_PERMITS = new Semaphore(MAX_CONCURRENT_EXECUTIONS);
 
     private static volatile String FETCH_RUNTIME_JS = null;
     
     private final CustomParserConfig config;
     private final ShareLinkInfo shareLinkInfo;
-    private final ScriptEngine engine;
+    private volatile ScriptEngine engine;
+    private final Object engineLock = new Object();
     private final JsHttpClient httpClient;
     private final JsLogger jsLogger;
     private final JsShareLinkInfoWrapper shareLinkInfoWrapper;
     private final JsFetchBridge fetchBridge;
     /** 标记是否已释放，防止重复关闭 */
-    private volatile boolean closed = false;
+    private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final Object lifecycleLock = new Object();
+    private volatile boolean running = false;
+    private volatile boolean closeRequested = false;
     /** 安全网定时任务句柄，正常完成时取消 */
     private volatile ScheduledFuture<?> safetyCleanupFuture = null;
     
@@ -81,12 +92,6 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
         this.jsLogger = new JsLogger("JsParser-" + config.getType());
         this.shareLinkInfoWrapper = new JsShareLinkInfoWrapper(shareLinkInfo);
         this.fetchBridge = new JsFetchBridge(httpClient);
-        try {
-            this.engine = initEngine();
-        } catch (RuntimeException e) {
-            this.httpClient.close();
-            throw e;
-        }
     }
     
     /**
@@ -138,6 +143,7 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
             if (engine == null) {
                 throw new RuntimeException("无法创建JavaScript引擎，请确保Nashorn可用");
             }
+            this.engine = engine;
             
             // 注入Java对象到JavaScript环境
             engine.put("http", httpClient);
@@ -172,6 +178,43 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
             throw new RuntimeException("JavaScript引擎初始化失败: " + e.getMessage(), e);
         }
     }
+
+    private ScriptEngine engine() {
+        ScriptEngine current = engine;
+        if (current != null) {
+            return current;
+        }
+        synchronized (engineLock) {
+            if (closed.get()) {
+                throw new IllegalStateException("JavaScript解析器已关闭");
+            }
+            if (engine == null) {
+                engine = initEngine();
+            }
+            return engine;
+        }
+    }
+
+    private void beginExecution() {
+        synchronized (lifecycleLock) {
+            if (closed.get() || closeRequested) {
+                throw new IllegalStateException("JavaScript解析器已关闭");
+            }
+            if (running) {
+                throw new IllegalStateException("JavaScript解析器已在运行");
+            }
+            running = true;
+        }
+    }
+
+    private void finishExecution() {
+        synchronized (lifecycleLock) {
+            running = false;
+            if (closeRequested) {
+                doClose();
+            }
+        }
+    }
     
     /**
      * 释放资源（ScriptEngine 和 HttpClient），避免内存泄漏
@@ -179,16 +222,31 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
      */
     @Override
     public void close() {
-        if (closed) return;
-        closed = true;
-        // 取消安全网定时任务（如果正常完成则无需再触发）
-        if (safetyCleanupFuture != null) {
-            safetyCleanupFuture.cancel(false);
-            safetyCleanupFuture = null;
+        synchronized (lifecycleLock) {
+            closeRequested = true;
+            cancelSafetyCleanup();
+            if (running || closed.get()) {
+                closeExternalResources();
+                return;
+            }
+            doClose();
         }
+    }
+
+    private void doClose() {
+        if (!closed.compareAndSet(false, true)) return;
+        closeRequested = false;
+        closeExternalResources();
+        cleanupEngine();
+    }
+
+    private void closeExternalResources() {
         if (httpClient != null) {
             httpClient.close();
         }
+    }
+
+    private void cleanupEngine() {
         // 清除 ScriptEngine 持有的所有引用和内部状态，帮助 GC 回收
         if (engine != null) {
             try {
@@ -207,11 +265,20 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
         }
     }
 
+    private void cancelSafetyCleanup() {
+        // 取消安全网定时任务（如果正常完成则无需再触发）
+        if (safetyCleanupFuture != null) {
+            safetyCleanupFuture.cancel(false);
+            safetyCleanupFuture = null;
+        }
+    }
+
     /**
      * 关闭全局 WorkerExecutor 和清理调度器（应在应用关闭时调用）
      */
     public static void shutdownExecutor() {
         synchronized (EXECUTOR_LOCK) {
+            executorShutdown = true;
             if (EXECUTOR != null) {
                 EXECUTOR.close();
                 EXECUTOR = null;
@@ -225,14 +292,43 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
      * 获取或创建 WorkerExecutor（懒加载）
      */
     private static WorkerExecutor getExecutor() {
-        if (EXECUTOR != null) {
-            return EXECUTOR;
-        }
         synchronized (EXECUTOR_LOCK) {
+            if (executorShutdown) {
+                throw new IllegalStateException("JavaScript解析器 WorkerExecutor 已关闭");
+            }
             if (EXECUTOR == null) {
                 EXECUTOR = WebClientVertxInit.get().createSharedWorkerExecutor("parser-executor", 32);
             }
             return EXECUTOR;
+        }
+    }
+
+    private <T> Future<T> executeBlockingWithPermit(String operation, Callable<T> blockingCode) {
+        if (!EXECUTION_PERMITS.tryAcquire()) {
+            String message = "JavaScript " + operation + " 执行并发已满，请稍后重试";
+            jsLogger.error(message);
+            close();
+            return Future.failedFuture(message);
+        }
+
+        try {
+            return getExecutor().executeBlocking(() -> {
+                boolean executionStarted = false;
+                try {
+                    beginExecution();
+                    executionStarted = true;
+                    return blockingCode.call();
+                } finally {
+                    if (executionStarted) {
+                        finishExecution();
+                    }
+                    EXECUTION_PERMITS.release();
+                }
+            });
+        } catch (Throwable e) {
+            EXECUTION_PERMITS.release();
+            close();
+            return Future.failedFuture(e);
         }
     }
 
@@ -241,17 +337,15 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
         try {
             safetyCleanupFuture = CLEANUP_SCHEDULER.schedule(() -> {
                 if (promise.tryFail("JavaScript " + operation + " 执行超时（" + EXECUTION_TIMEOUT_SECONDS + "秒）")) {
-                    jsLogger.error("{} 执行超时，等待执行线程结束后释放解析器资源", operation);
+                    jsLogger.error("{} 执行超时，已停止外部HTTP资源；ScriptEngine将在执行线程退出后清理", operation);
+                    close();
                 }
             }, EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (Exception e) {
             log.warn("安全网调度失败: {}", e.getMessage());
         }
         executionFuture.onComplete(ar -> {
-            if (safetyCleanupFuture != null) {
-                safetyCleanupFuture.cancel(false);
-                safetyCleanupFuture = null;
-            }
+            cancelSafetyCleanup();
             if (ar.succeeded()) {
                 promise.tryComplete(ar.result());
             } else {
@@ -267,23 +361,24 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
         jsLogger.info("开始执行JavaScript解析器: {}", config.getType());
 
         // 使用executeBlocking在工作线程上执行，避免阻塞EventLoop线程
-        Future<String> executionFuture = getExecutor().executeBlocking(() -> {
+        Future<String> executionFuture = executeBlockingWithPermit("parse", () -> {
+            ScriptEngine engine = engine();
             // 直接调用全局parse函数
             Object parseFunction = engine.get("parse");
             if (parseFunction == null) {
                 throw new RuntimeException("JavaScript代码中未找到parse函数");
             }
-            
+
             if (parseFunction instanceof ScriptObjectMirror parseMirror) {
 
                 Object result = parseMirror.call(null, shareLinkInfoWrapper, httpClient, jsLogger);
-                
+
                 if (result instanceof String) {
                     String resultText = limitResultString((String) result, "parse");
                     jsLogger.info("解析成功，结果长度: {}", resultText.length());
                     return resultText;
                 } else {
-                    jsLogger.error("parse方法返回值类型错误，期望String，实际: {}", 
+                    jsLogger.error("parse方法返回值类型错误，期望String，实际: {}",
                             result != null ? result.getClass().getSimpleName() : "null");
                     throw new RuntimeException("parse方法返回值类型错误");
                 }
@@ -299,25 +394,26 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
         jsLogger.info("开始执行JavaScript文件列表解析: {}", config.getType());
 
         // 使用executeBlocking在工作线程上执行，避免阻塞EventLoop线程
-        Future<List<FileInfo>> executionFuture = getExecutor().executeBlocking(() -> {
+        Future<List<FileInfo>> executionFuture = executeBlockingWithPermit("parseFileList", () -> {
+            ScriptEngine engine = engine();
             // 直接调用全局parseFileList函数
             Object parseFileListFunction = engine.get("parseFileList");
             if (parseFileListFunction == null) {
                 throw new RuntimeException("JavaScript代码中未找到parseFileList函数");
             }
-            
+
             // 调用parseFileList方法
             if (parseFileListFunction instanceof ScriptObjectMirror parseFileListMirror) {
 
                 Object result = parseFileListMirror.call(null, shareLinkInfoWrapper, httpClient, jsLogger);
-                
+
                 if (result instanceof ScriptObjectMirror resultMirror) {
                     List<FileInfo> fileList = convertToFileInfoList(resultMirror);
-                    
+
                     jsLogger.info("文件列表解析成功，共 {} 个文件", fileList.size());
                     return fileList;
                 } else {
-                    jsLogger.error("parseFileList方法返回值类型错误，期望数组，实际: {}", 
+                    jsLogger.error("parseFileList方法返回值类型错误，期望数组，实际: {}",
                             result != null ? result.getClass().getSimpleName() : "null");
                     throw new RuntimeException("parseFileList方法返回值类型错误");
                 }
@@ -333,24 +429,25 @@ public class JsParserExecutor implements IPanTool, AutoCloseable {
         jsLogger.info("开始执行JavaScript按ID解析: {}", config.getType());
 
         // 使用executeBlocking在工作线程上执行，避免阻塞EventLoop线程
-        Future<String> executionFuture = getExecutor().executeBlocking(() -> {
+        Future<String> executionFuture = executeBlockingWithPermit("parseById", () -> {
+            ScriptEngine engine = engine();
             // 直接调用全局parseById函数
             Object parseByIdFunction = engine.get("parseById");
             if (parseByIdFunction == null) {
                 throw new RuntimeException("JavaScript代码中未找到parseById函数");
             }
-            
+
             // 调用parseById方法
             if (parseByIdFunction instanceof ScriptObjectMirror parseByIdMirror) {
 
                 Object result = parseByIdMirror.call(null, shareLinkInfoWrapper, httpClient, jsLogger);
-                
+
                 if (result instanceof String) {
                     String resultText = limitResultString((String) result, "parseById");
                     jsLogger.info("按ID解析成功，结果长度: {}", resultText.length());
                     return resultText;
                 } else {
-                    jsLogger.error("parseById方法返回值类型错误，期望String，实际: {}", 
+                    jsLogger.error("parseById方法返回值类型错误，期望String，实际: {}",
                             result != null ? result.getClass().getSimpleName() : "null");
                     throw new RuntimeException("parseById方法返回值类型错误");
                 }

@@ -202,4 +202,17 @@ public class JsPlaygroundLogger {
     public void clear() {
         logs.clear();
     }
+
+    public void trimToLast(int maxEntries) {
+        if (maxEntries < 0) {
+            throw new IllegalArgumentException("maxEntries不能小于0");
+        }
+        synchronized (logs) {
+            int removeCount = logs.size() - maxEntries;
+            if (removeCount <= 0) {
+                return;
+            }
+            logs.subList(0, removeCount).clear();
+        }
+    }
 }
