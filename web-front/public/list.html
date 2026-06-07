@@ -520,9 +520,7 @@
                             <i class="fas fa-folder"></i>
                         </div>
                         <div class="item-name">${file.fileName || '未命名文件夹'}</div>
-                        <div class="item-meta">
-                            ${file.sizeStr || '0B'} · ${formatDate(file.createTime)}
-                        </div>
+                        <div class="item-meta">${fileMetaText(file)}</div>
                     `;
                     folderCount++;
                     
@@ -541,9 +539,7 @@
                             <i class="fas ${fileTypeInfo.icon}"></i>
                         </div>
                         <div class="item-name">${file.fileName}</div>
-                        <div class="item-meta">
-                            ${file.sizeStr || '0B'} · ${formatDate(file.createTime)}
-                        </div>
+                        <div class="item-meta">${fileMetaText(file)}</div>
                     `;
                     fileCount++;
                     
@@ -675,17 +671,63 @@
             renderBreadcrumb();
         }
 
+        // 文件元信息
+        function fileMetaText(file) {
+            const parts = [];
+            if (file.fileType !== 'folder') {
+                parts.push(file.sizeStr || '0B');
+            }
+            const dateText = formatDate(file.createTime);
+            if (dateText) {
+                parts.push(dateText);
+            }
+            return parts.join(' · ');
+        }
+
+        function hasValidTime(value) {
+            if (value === null || value === undefined) return false;
+            if (typeof value !== 'string') return true;
+            const trimmedValue = value.trim();
+            return trimmedValue !== '' && trimmedValue !== 'null' && trimmedValue !== 'undefined';
+        }
+
+        function formatDateOnly(yearValue, monthValue, dayValue) {
+            const year = Number(yearValue);
+            const month = Number(monthValue);
+            const day = Number(dayValue);
+            const date = new Date(year, month - 1, day);
+            if (
+                date.getFullYear() !== year ||
+                date.getMonth() !== month - 1 ||
+                date.getDate() !== day
+            ) {
+                return '';
+            }
+            return `${yearValue}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        }
+
         // 格式化日期
         function formatDate(dateString) {
-            if (!dateString) return '未知日期';
+            if (!hasValidTime(dateString)) return '';
             
             try {
-                const date = new Date(dateString);
+                const value = typeof dateString === 'string' ? dateString.trim() : dateString;
+                if (typeof value === 'string') {
+                    const dateOnly = value.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+                    if (dateOnly) {
+                        return formatDateOnly(dateOnly[1], dateOnly[2], dateOnly[3]);
+                    }
+                    const cnDateOnly = value.match(/^(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日$/);
+                    if (cnDateOnly) {
+                        return formatDateOnly(cnDateOnly[1], cnDateOnly[2], cnDateOnly[3]);
+                    }
+                }
+                const date = new Date(value);
                 return isNaN(date.getTime()) 
-                    ? '未知日期' 
+                    ? ''
                     : `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
             } catch {
-                return '未知日期';
+                return '';
             }
         }
     </script>
