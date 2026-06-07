@@ -79,7 +79,7 @@ public class WebProxyExamples {
 //            }
 //        });
 
-        proxyRouter.route("/*").handler(StaticHandler.create("webroot/test"));
+//        proxyRouter.route("/*").handler(StaticHandler.create("webroot/test"));
 
         proxyRouter.errorHandler(404, this::handle404);
 

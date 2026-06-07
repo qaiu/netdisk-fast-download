@@ -511,6 +511,7 @@
             
             files.forEach(file => {
                 const item = document.createElement('div');
+                const metaText = fileMetaText(file);
                 
                 if (file.fileType === 'folder') {
                     // 文件夹
@@ -520,7 +521,7 @@
                             <i class="fas fa-folder"></i>
                         </div>
                         <div class="item-name">${file.fileName || '未命名文件夹'}</div>
-                        <div class="item-meta">${fileMetaText(file)}</div>
+                        ${metaText ? `<div class="item-meta">${metaText}</div>` : ''}
                     `;
                     folderCount++;
                     
@@ -539,7 +540,7 @@
                             <i class="fas ${fileTypeInfo.icon}"></i>
                         </div>
                         <div class="item-name">${file.fileName}</div>
-                        <div class="item-meta">${fileMetaText(file)}</div>
+                        ${metaText ? `<div class="item-meta">${metaText}</div>` : ''}
                     `;
                     fileCount++;
                     
