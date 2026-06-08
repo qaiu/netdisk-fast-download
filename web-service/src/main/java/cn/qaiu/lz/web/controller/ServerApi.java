@@ -29,6 +29,8 @@ import lombok.extern.slf4j.Slf4j;
 @RouteHandler("/")
 public class ServerApi {
 
+    private static final String SKIP_CLIENT_LINKS = "_skipClientLinks";
+
     private final CacheService cacheService = AsyncServiceUtil.getAsyncServiceInstance(CacheService.class);
     private final DbService dbService = AsyncServiceUtil.getAsyncServiceInstance(DbService.class);
 
@@ -38,7 +40,7 @@ public class ServerApi {
         String url = URLParamUtil.parserParams(request);
 
         // 构建 otherParam，包含 UA 和解码后的认证参数
-        JsonObject otherParam = buildOtherParam(request, auth);
+        JsonObject otherParam = buildOtherParam(request, auth, true);
 
         cacheService.getCachedByShareUrlAndPwd(url, pwd, otherParam)
                 .onSuccess(res -> ResponseUtil.redirect(
@@ -59,6 +61,13 @@ public class ServerApi {
                 .onFailure(t -> recordDonatedAccountFailureIfNeeded(otherParam, t));
     }
 
+    public Future<CacheLinkInfo> parseJsonForRedirect(HttpServerRequest request, String pwd, String auth) {
+        String url = URLParamUtil.parserParams(request);
+        JsonObject otherParam = buildOtherParam(request, auth, true);
+        return cacheService.getCachedByShareUrlAndPwd(url, pwd, otherParam)
+                .onFailure(t -> recordDonatedAccountFailureIfNeeded(otherParam, t));
+    }
+
     @RouteMapping(value = "/json/:type/:key", method = RouteMethod.GET)
     public Future<CacheLinkInfo> parseKeyJson(HttpServerRequest request, String type, String key) {
         String pwd = "";
@@ -71,6 +80,18 @@ public class ServerApi {
         return cacheService.getCachedByShareKeyAndPwd(type, key, pwd, JsonObject.of("UA",request.headers().get("user-agent"), "_requestOrigin", origin));
     }
 
+    public Future<CacheLinkInfo> parseKeyJsonForRedirect(HttpServerRequest request, String type, String key) {
+        String pwd = "";
+        if (key.contains("@")) {
+            String[] keys = key.split("@");
+            key = keys[0];
+            pwd = keys[1];
+        }
+        String origin = resolveOrigin(request);
+        return cacheService.getCachedByShareKeyAndPwd(type, key, pwd,
+                JsonObject.of("UA", request.headers().get("user-agent"), "_requestOrigin", origin, SKIP_CLIENT_LINKS, true));
+    }
+
     @RouteMapping(value = "/:type/:key", method = RouteMethod.GET)
     public Future<Void> parseKey(HttpServerResponse response, HttpServerRequest request, String type, String key) {
         Promise<Void> promise = Promise.promise();
@@ -81,7 +102,8 @@ public class ServerApi {
             pwd = keys[1];
         }
         String origin = resolveOrigin(request);
-        cacheService.getCachedByShareKeyAndPwd(type, key, pwd, JsonObject.of("UA",request.headers().get("user-agent"), "_requestOrigin", origin))
+        cacheService.getCachedByShareKeyAndPwd(type, key, pwd,
+                        JsonObject.of("UA", request.headers().get("user-agent"), "_requestOrigin", origin, SKIP_CLIENT_LINKS, true))
                 .onSuccess(res -> ResponseUtil.redirect(
                         addCacheHeaders(response, res),
                         res.getDirectLink(), promise))
@@ -120,7 +142,14 @@ public class ServerApi {
      * @return JsonObject
      */
     private JsonObject buildOtherParam(HttpServerRequest request, String auth) {
+        return buildOtherParam(request, auth, false);
+    }
+
+    private JsonObject buildOtherParam(HttpServerRequest request, String auth, boolean skipClientLinks) {
         JsonObject otherParam = JsonObject.of("UA", request.headers().get("user-agent"), "_requestOrigin", resolveOrigin(request));
+        if (skipClientLinks) {
+            otherParam.put(SKIP_CLIENT_LINKS, true);
+        }
 
         // 解码认证参数
         if (auth != null && !auth.isEmpty()) {

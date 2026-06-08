@@ -55,7 +55,7 @@
     <logger name="io.netty" level="warn"/>
     <logger name="io.vertx" level="info"/>
     <logger name="com.zaxxer.hikari" level="info"/>
-    <logger name="cn.qaiu" level="debug"/>
+    <logger name="cn.qaiu" level="${NFD_LOG_LEVEL:-info}"/>
     <root level="info">
         <appender-ref ref="STDOUT"/>
 <!--        <appender-ref ref="FILE"/>-->

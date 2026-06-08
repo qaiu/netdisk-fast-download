@@ -169,8 +169,13 @@ public class FjTool extends PanBase {
 
                                 // 文件Id
                                 JsonObject fileInfo = resJson.getJsonArray("list").getJsonObject(0);
+                                JsonArray fileListArray = fileInfo.getJsonArray("fileList");
+                                if (fileListArray == null || fileListArray.isEmpty()) {
+                                    fail(FIRST_REQUEST_URL + " 文件列表为空: " + fileInfo);
+                                    return;
+                                }
                                 // 如果是目录返回目录ID
-                                JsonObject fileList = fileInfo.getJsonArray("fileList").getJsonObject(0);
+                                JsonObject fileList = fileListArray.getJsonObject(0);
                                 if (fileList.getInteger("fileType") == 2) {
                                     promise.complete(fileList.getInteger("folderId").toString());
                                     return;

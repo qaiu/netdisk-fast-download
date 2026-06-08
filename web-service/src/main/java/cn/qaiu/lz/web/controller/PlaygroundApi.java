@@ -123,6 +123,10 @@ public class PlaygroundApi {
             
             // 获取密码
             JsonObject body = ctx.body().asJsonObject();
+            if (body == null) {
+                promise.complete(JsonResult.error("请求体不能为空").toJsonObject());
+                return promise.future();
+            }
             String password = body.getString("password");
             
             if (StringUtils.isBlank(password)) {

@@ -39,6 +39,10 @@ public abstract class PanBase implements IPanTool, Closeable {
 
     protected Promise<String> promise = Promise.promise();
 
+    private static final int MAX_COMPRESSED_RESPONSE_BYTES = 8 * 1024 * 1024;
+    private static final int MAX_DECOMPRESSED_RESPONSE_CHARS = 16 * 1024 * 1024;
+    private static final int MAX_ERROR_BODY_CHARS = 4096;
+
     /**
      * 共享的 WebClient 配置（设置超时避免连接无限期占用）
      */
@@ -305,8 +309,9 @@ public abstract class PanBase implements IPanTool, Closeable {
                 log.error("响应gzip解压或JSON解析失败: {}", e.getMessage());
                 fail("响应gzip解压或JSON解析失败: {}", e.getMessage());
             } else {
-                log.error("解析失败: json格式异常: {}", res.bodyAsString());
-                fail("解析失败: json格式异常: {}", res.bodyAsString());
+                String bodyPreview = responseBodyPreview(res);
+                log.error("解析失败: json格式异常: {}", bodyPreview);
+                fail("解析失败: json格式异常: {}", bodyPreview);
             }
             return JsonObject.of();
         }
@@ -393,6 +398,12 @@ public abstract class PanBase implements IPanTool, Closeable {
      * @throws IOException IOException
      */
     private String decompressGzip(Buffer compressedData) throws IOException {
+        if (compressedData == null) {
+            return "";
+        }
+        if (compressedData.length() > MAX_COMPRESSED_RESPONSE_BYTES) {
+            throw new IOException("gzip响应体过大: " + compressedData.length() + " bytes");
+        }
         try (ByteArrayInputStream bais = new ByteArrayInputStream(compressedData.getBytes());
              GZIPInputStream gzis = new GZIPInputStream(bais);
              InputStreamReader isr = new InputStreamReader(gzis, StandardCharsets.UTF_8);
@@ -401,9 +412,36 @@ public abstract class PanBase implements IPanTool, Closeable {
             char[] buffer = new char[4096];
             int n;
             while ((n = isr.read(buffer)) != -1) {
-                writer.write(buffer, 0, n);
+                writeLimited(writer, buffer, n);
             }
             return writer.toString();
+        }
+    }
+
+    private void writeLimited(StringWriter writer, char[] buffer, int len) throws IOException {
+        if (writer.getBuffer().length() + len > MAX_DECOMPRESSED_RESPONSE_CHARS) {
+            throw new IOException("gzip解压后响应体过大");
+        }
+        writer.write(buffer, 0, len);
+    }
+
+    private String responseBodyPreview(HttpResponse<?> res) {
+        if (res == null || res.body() == null) {
+            return "";
+        }
+        try {
+            if (res.body() instanceof Buffer body) {
+                int length = Math.min(body.length(), MAX_ERROR_BODY_CHARS);
+                String preview = new String(body.getBytes(0, length), StandardCharsets.UTF_8);
+                return body.length() > length ? preview + "...(truncated " + body.length() + " bytes)" : preview;
+            }
+            String text = res.bodyAsString();
+            if (text == null || text.length() <= MAX_ERROR_BODY_CHARS) {
+                return text;
+            }
+            return text.substring(0, MAX_ERROR_BODY_CHARS) + "...(truncated " + text.length() + " chars)";
+        } catch (Exception e) {
+            return "<body preview failed: " + e.getMessage() + ">";
         }
     }
 

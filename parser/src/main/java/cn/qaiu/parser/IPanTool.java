@@ -1,5 +1,6 @@
 package cn.qaiu.parser;//package cn.qaiu.lz.common.parser;
 
+import cn.qaiu.WebClientVertxInit;
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.clientlink.ClientLinkGeneratorFactory;
@@ -10,13 +11,23 @@ import io.vertx.core.Promise;
 import java.util.function.Supplier;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public interface IPanTool extends AutoCloseable {
 
     /** 同步等待超时时间（秒） */
     long SYNC_TIMEOUT_SECONDS = 120;
+
+    ScheduledExecutorService CLOSE_AFTER_SCHEDULER = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "pan-tool-close-after");
+        t.setDaemon(true);
+        return t;
+    });
 
     /**
      * 解析文件
@@ -25,11 +36,51 @@ public interface IPanTool extends AutoCloseable {
     Future<String> parse();
 
     static <T> Future<T> closeAfter(IPanTool tool, Supplier<Future<T>> action) {
+        Promise<T> promise = Promise.promise();
+        AtomicBoolean cleanupDone = new AtomicBoolean(false);
+        ScheduledFuture<?> cleanupTask = null;
         try {
-            return action.get().onComplete(ar -> closeQuietly(tool));
+            Future<T> future = action.get();
+            if (future == null) {
+                closeQuietly(tool);
+                return Future.failedFuture("解析器返回空 Future");
+            }
+
+            cleanupTask = CLOSE_AFTER_SCHEDULER.schedule(() -> {
+                if (cleanupDone.compareAndSet(false, true)) {
+                    closeQuietly(tool);
+                    failOnVertxContext(promise, "解析超时（" + SYNC_TIMEOUT_SECONDS + "秒）");
+                }
+            }, SYNC_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+            ScheduledFuture<?> scheduledCleanupTask = cleanupTask;
+            future.onComplete(ar -> {
+                scheduledCleanupTask.cancel(false);
+                if (!cleanupDone.compareAndSet(false, true)) {
+                    return;
+                }
+                closeQuietly(tool);
+                if (ar.succeeded()) {
+                    promise.tryComplete(ar.result());
+                } else {
+                    promise.tryFail(ar.cause());
+                }
+            });
+            return promise.future();
         } catch (Throwable t) {
+            if (cleanupTask != null) {
+                cleanupTask.cancel(false);
+            }
             closeQuietly(tool);
             return Future.failedFuture(t);
+        }
+    }
+
+    private static <T> void failOnVertxContext(Promise<T> promise, String message) {
+        try {
+            WebClientVertxInit.get().runOnContext(ignored -> promise.tryFail(message));
+        } catch (Exception ignored) {
+            promise.tryFail(message);
         }
     }
 
@@ -42,6 +93,10 @@ public interface IPanTool extends AutoCloseable {
         } catch (Exception ignored) {
             // ignore cleanup failures
         }
+    }
+
+    static void shutdownCloseAfterScheduler() {
+        CLOSE_AFTER_SCHEDULER.shutdownNow();
     }
 
     default String parseSync() {

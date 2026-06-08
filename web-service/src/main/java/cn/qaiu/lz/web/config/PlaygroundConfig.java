@@ -149,5 +149,13 @@ public class PlaygroundConfig {
         } else {
             log.info("未找到playground配置，使用默认值: enabled=false, public=false");
         }
+        String enabledOverride = System.getProperty("NFD_PLAYGROUND_ENABLED");
+        if (enabledOverride == null || enabledOverride.isBlank()) {
+            enabledOverride = System.getenv("NFD_PLAYGROUND_ENABLED");
+        }
+        if (enabledOverride != null && !enabledOverride.isBlank()) {
+            cfg.enabled = Boolean.parseBoolean(enabledOverride);
+            log.info("Playground enabled 已被 NFD_PLAYGROUND_ENABLED 覆盖为 {}", cfg.enabled);
+        }
     }
 }

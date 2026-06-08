@@ -77,6 +77,20 @@ public class ParserApi {
     private static final CacheManager cacheManager = new CacheManager();
     private static final ServerApi serverApi = new ServerApi();
 
+    @RouteMapping(value = "/check/:type/:key", method = RouteMethod.GET)
+    public void check(HttpServerResponse response, String type, String key) {
+        response.putHeader("Content-Type", "text/plain; charset=utf-8")
+                .setStatusCode(200)
+                .end("ok");
+    }
+
+    @RouteMapping(value = "/check/:type/:key", method = RouteMethod.HEAD)
+    public void checkHead(HttpServerResponse response, String type, String key) {
+        response.putHeader("Content-Type", "text/plain; charset=utf-8")
+                .setStatusCode(200)
+                .end();
+    }
+
     @RouteMapping(value = "/linkInfo", method = RouteMethod.GET)
     public Future<LinkInfoResp> parse(HttpServerRequest request, String pwd, String auth) {
         Promise<LinkInfoResp> promise = Promise.promise();
@@ -214,7 +228,7 @@ public class ParserApi {
         }
         
         String previewURL = SharedDataUtil.getJsonStringForServerConfig("previewURL");
-        serverApi.parseKeyJson(request, type, key).onSuccess(res -> {
+        serverApi.parseKeyJsonForRedirect(request, type, key).onSuccess(res -> {
             redirect(response, previewURL, res);
         }).onFailure(e -> {
             ResponseUtil.fireJsonResultResponse(response, JsonResult.error(e.toString()));
@@ -250,7 +264,7 @@ public class ParserApi {
         }
         
         String previewURL = SharedDataUtil.getJsonStringForServerConfig("previewURL");
-        serverApi.parseJson(request, pwd, null).onSuccess(res -> {
+        serverApi.parseJsonForRedirect(request, pwd, null).onSuccess(res -> {
             redirect(response, previewURL, res);
         }).onFailure(e -> {
             ResponseUtil.fireJsonResultResponse(response, JsonResult.error(e.toString()));

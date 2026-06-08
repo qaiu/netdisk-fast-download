@@ -249,6 +249,11 @@ public class ParserCreate {
 
     // 根据分享链接获取PanDomainTemplate实例（优先匹配自定义解析器）
     public synchronized static ParserCreate fromShareUrl(String shareUrl) {
+        if (StringUtils.isBlank(shareUrl)) {
+            throw new IllegalArgumentException("shareUrl不能为空");
+        }
+        shareUrl = shareUrl.trim();
+
         // 优先查找支持正则匹配的自定义解析器
         for (CustomParserConfig customConfig : CustomParserRegistry.getAll().values()) {
             if (customConfig.supportsFromShareUrl()) {

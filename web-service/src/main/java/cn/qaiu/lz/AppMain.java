@@ -22,6 +22,7 @@ import io.vertx.core.json.jackson.DatabindCodec;
 import io.vertx.core.shareddata.LocalMap;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.time.DateFormatUtils;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -40,6 +41,7 @@ import static cn.qaiu.vx.core.util.ConfigConstant.LOCAL;
 public class AppMain {
 
     public static void main(String[] args) {
+        applyRuntimeLogLevelOverride();
         Deploy deploy = Deploy.instance();
         // 先阻断应用级定时任务，再让 Vert.x 停入口和 verticle。
         deploy.addPreShutdownTask(CacheManager::cancelPeriodicCleanup);
@@ -50,9 +52,34 @@ public class AppMain {
         deploy.addPostShutdownTask(cn.qaiu.parser.customjs.JsPlaygroundExecutor::shutdownPools);
         deploy.addPostShutdownTask(cn.qaiu.parser.customjs.JsHttpClient::shutdownSharedClient);
         deploy.addPostShutdownTask(cn.qaiu.parser.PanBase::shutdownSharedClients);
+        deploy.addPostShutdownTask(cn.qaiu.parser.IPanTool::shutdownCloseAfterScheduler);
         deploy.addPostShutdownTask(cn.qaiu.parser.impl.PodTool::shutdownWorkerExecutor);
         // start
         deploy.start(args, AppMain::exec);
+    }
+
+    private static void applyRuntimeLogLevelOverride() {
+        String levelName = System.getProperty("NFD_LOG_LEVEL");
+        if (levelName == null || levelName.isBlank()) {
+            levelName = System.getenv("NFD_LOG_LEVEL");
+        }
+        if (levelName == null || levelName.isBlank()) {
+            return;
+        }
+        try {
+            var level = ch.qos.logback.classic.Level.toLevel(levelName, null);
+            if (level == null) {
+                log.warn("忽略无效的 NFD_LOG_LEVEL: {}", levelName);
+                return;
+            }
+            var logger = LoggerFactory.getLogger("cn.qaiu");
+            if (logger instanceof ch.qos.logback.classic.Logger logbackLogger) {
+                logbackLogger.setLevel(level);
+                log.info("cn.qaiu 日志级别已覆盖为 {}", level);
+            }
+        } catch (Exception e) {
+            log.warn("覆盖 cn.qaiu 日志级别失败: {}", e.getMessage());
+        }
     }
 
     /**
@@ -64,6 +91,8 @@ public class AppMain {
     private static void exec(JsonObject jsonObject) {
         WebClientVertxInit.init(VertxHolder.getVertxInstance());
         DatabindCodec.mapper().registerModule(new JavaTimeModule());
+        // 演练场配置要先加载，后续启动流程才能按开关决定是否注册动态解析器。
+        PlaygroundConfig.loadFromJson(jsonObject);
         // 限流
         if (jsonObject.containsKey("rateLimit")) {
             JsonObject rateLimit = jsonObject.getJsonObject("rateLimit");
@@ -107,7 +136,12 @@ public class AppMain {
                             } catch (Exception e) {
                                 log.warn("读取代理配置失败，使用默认页面地址: {}", e.getMessage());
                             }
-                            loadPlaygroundParsers(pageAddr);
+                            if (PlaygroundConfig.getInstance().isEnabled()) {
+                                loadPlaygroundParsers(pageAddr);
+                            } else {
+                                log.info("演练场功能已禁用，跳过加载演练场解析器");
+                                log.info("服务已启动，可通过 {} 访问页面", pageAddr);
+                            }
                             System.out.println("启动成功: \n本地服务地址: " + addr);
                         });
                     });
@@ -141,9 +175,6 @@ public class AppMain {
             JsonObject auths = jsonObject.getJsonObject(ConfigConstant.AUTHS);
             localMap.put(ConfigConstant.AUTHS, auths);
         }
-        
-        // 演练场配置
-        PlaygroundConfig.loadFromJson(jsonObject);
     }
     
     /**
