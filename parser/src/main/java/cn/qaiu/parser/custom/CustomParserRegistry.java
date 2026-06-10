@@ -21,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class CustomParserRegistry {
 
     private static final Logger log = LoggerFactory.getLogger(CustomParserRegistry.class);
+    private static final int MAX_CUSTOM_PARSERS = Integer.getInteger("parser.custom.maxRegistrySize", 256);
 
     /**
      * 存储自定义解析器配置的Map，key为类型标识，value为配置对象
@@ -33,7 +34,7 @@ public class CustomParserRegistry {
      * @param config 解析器配置
      * @throws IllegalArgumentException 如果type已存在或与内置解析器冲突
      */
-    public static void register(CustomParserConfig config) {
+    public static synchronized void register(CustomParserConfig config) {
         if (config == null) {
             throw new IllegalArgumentException("config不能为空");
         }
@@ -57,6 +58,11 @@ public class CustomParserRegistry {
         if (CUSTOM_PARSERS.containsKey(type)) {
             throw new IllegalArgumentException(
                     "类型标识 '" + type + "' 已被注册，请先注销或使用其他标识"
+            );
+        }
+        if (CUSTOM_PARSERS.size() >= MAX_CUSTOM_PARSERS) {
+            throw new IllegalArgumentException(
+                    "自定义解析器数量已达到上限（" + MAX_CUSTOM_PARSERS + "个），请先注销不需要的解析器"
             );
         }
 
@@ -171,7 +177,7 @@ public class CustomParserRegistry {
      * @param type 解析器类型标识
      * @return 是否注销成功
      */
-    public static boolean unregister(String type) {
+    public static synchronized boolean unregister(String type) {
         if (type == null || type.trim().isEmpty()) {
             return false;
         }
@@ -213,7 +219,7 @@ public class CustomParserRegistry {
     /**
      * 清空所有自定义解析器
      */
-    public static void clear() {
+    public static synchronized void clear() {
         CUSTOM_PARSERS.clear();
     }
 

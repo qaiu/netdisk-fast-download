@@ -1,5 +1,6 @@
 package cn.qaiu.parser;//package cn.qaiu.lz.common.parser;
 
+import cn.qaiu.WebClientVertxInit;
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.clientlink.ClientLinkGeneratorFactory;
@@ -7,10 +8,26 @@ import cn.qaiu.parser.clientlink.ClientLinkType;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 
+import java.util.function.Supplier;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public interface IPanTool {
+public interface IPanTool extends AutoCloseable {
+
+    /** 同步等待超时时间（秒） */
+    long SYNC_TIMEOUT_SECONDS = 120;
+
+    ScheduledExecutorService CLOSE_AFTER_SCHEDULER = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "pan-tool-close-after");
+        t.setDaemon(true);
+        return t;
+    });
 
     /**
      * 解析文件
@@ -18,8 +35,72 @@ public interface IPanTool {
      */
     Future<String> parse();
 
+    static <T> Future<T> closeAfter(IPanTool tool, Supplier<Future<T>> action) {
+        Promise<T> promise = Promise.promise();
+        AtomicBoolean cleanupDone = new AtomicBoolean(false);
+        ScheduledFuture<?> cleanupTask = null;
+        try {
+            Future<T> future = action.get();
+            if (future == null) {
+                closeQuietly(tool);
+                return Future.failedFuture("解析器返回空 Future");
+            }
+
+            cleanupTask = CLOSE_AFTER_SCHEDULER.schedule(() -> {
+                if (cleanupDone.compareAndSet(false, true)) {
+                    closeQuietly(tool);
+                    failOnVertxContext(promise, "解析超时（" + SYNC_TIMEOUT_SECONDS + "秒）");
+                }
+            }, SYNC_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+            ScheduledFuture<?> scheduledCleanupTask = cleanupTask;
+            future.onComplete(ar -> {
+                scheduledCleanupTask.cancel(false);
+                if (!cleanupDone.compareAndSet(false, true)) {
+                    return;
+                }
+                closeQuietly(tool);
+                if (ar.succeeded()) {
+                    promise.tryComplete(ar.result());
+                } else {
+                    promise.tryFail(ar.cause());
+                }
+            });
+            return promise.future();
+        } catch (Throwable t) {
+            if (cleanupTask != null) {
+                cleanupTask.cancel(false);
+            }
+            closeQuietly(tool);
+            return Future.failedFuture(t);
+        }
+    }
+
+    private static <T> void failOnVertxContext(Promise<T> promise, String message) {
+        try {
+            WebClientVertxInit.get().runOnContext(ignored -> promise.tryFail(message));
+        } catch (Exception ignored) {
+            promise.tryFail(message);
+        }
+    }
+
+    static void closeQuietly(IPanTool tool) {
+        if (tool == null) {
+            return;
+        }
+        try {
+            tool.close();
+        } catch (Exception ignored) {
+            // ignore cleanup failures
+        }
+    }
+
+    static void shutdownCloseAfterScheduler() {
+        CLOSE_AFTER_SCHEDULER.shutdownNow();
+    }
+
     default String parseSync() {
-        return parse().toCompletionStage().toCompletableFuture().join();
+        return timedJoin(parse());
     }
 
     /**
@@ -33,7 +114,7 @@ public interface IPanTool {
     }
 
     default List<FileInfo> parseFileListSync() {
-        return parseFileList().toCompletionStage().toCompletableFuture().join();
+        return timedJoin(parseFileList());
     }
 
     /**
@@ -47,7 +128,7 @@ public interface IPanTool {
     }
 
     default String parseByIdSync() {
-        return parseById().toCompletionStage().toCompletableFuture().join();
+        return timedJoin(parseById());
     }
 
     /**
@@ -126,7 +207,7 @@ public interface IPanTool {
      * @return Map<ClientLinkType, String> 客户端下载链接集合
      */
     default Map<ClientLinkType, String> parseWithClientLinksSync() {
-        return parseWithClientLinks().toCompletionStage().toCompletableFuture().join();
+        return timedJoin(parseWithClientLinks());
     }
 
     /**
@@ -136,5 +217,27 @@ public interface IPanTool {
      */
     default ShareLinkInfo getShareLinkInfo() {
         return null;
+    }
+
+    @Override
+    default void close() {
+        // default no-op
+    }
+
+    /**
+     * 带超时的同步等待工具方法，替代无超时的 join()
+     */
+    private static <T> T timedJoin(Future<T> future) {
+        try {
+            return future.toCompletionStage().toCompletableFuture()
+                    .get(SYNC_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("线程被中断", e);
+        } catch (TimeoutException e) {
+            throw new RuntimeException("同步等待超时（" + SYNC_TIMEOUT_SECONDS + "秒）", e);
+        } catch (java.util.concurrent.ExecutionException e) {
+            throw new RuntimeException(e.getCause() != null ? e.getCause() : e);
+        }
     }
 }
