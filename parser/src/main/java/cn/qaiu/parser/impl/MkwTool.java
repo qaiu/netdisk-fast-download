@@ -19,6 +19,8 @@ public class MkwTool extends PanBase {
 
     public static final String API_URL = "https://www.kuwo.cn/api/v1/www/music/playUrl?mid={mid}&type=music&httpsStatus=1&reqId=&plat=web_www&from=";
 
+    private static final Pattern COOKIE_PATTERN = Pattern.compile("([A-Za-z0-9_]+)=([A-Za-z0-9]+)");
+
 
     public MkwTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
@@ -29,39 +31,41 @@ public class MkwTool extends PanBase {
         clientSession.getAbs(shareUrl).send().onSuccess(result -> {
             String cookie = result.headers().get("set-cookie");
 
-            if (cookie != null && !cookie.isEmpty()) {
-
-                String regex = "([A-Za-z0-9_]+)=([A-Za-z0-9]+)";
-                Pattern pattern = Pattern.compile(regex);
-                Matcher matcher = pattern.matcher(cookie);
-                if (matcher.find()) {
-                    log.debug("cookie key: {}", matcher.group(1));
-                    log.debug("cookie value: {}", matcher.group(2));
-
-                    var key = matcher.group(1);
-                    var token = matcher.group(2);
-                    String sign = JsExecUtils.getKwSign(token, key);
-                    log.debug("sign: {}", sign);
-                    clientSession.getAbs(UriTemplate.of(API_URL)).setTemplateParam("mid", shareLinkInfo.getShareKey())
-                            .putHeader("Secret", sign).send().onSuccess(res -> {
-                                JsonObject json = asJson(res);
-                                log.debug(json.encodePrettily());
-                                try {
-                                    if (json.getInteger("code") == 200) {
-                                        complete(json.getJsonObject("data").getString("url"));
-                                    } else {
-                                        fail("链接已失效/需要VIP");
-                                    }
-
-                                } catch (Exception e) {
-                                    log.error("解析失败", e);
-                                    fail("解析失败");
-                                }
-                            });
-                }
+            if (cookie == null || cookie.isEmpty()) {
+                fail("未获取到 cookie，无法继续解析");
+                return;
             }
 
-        });
+            Matcher matcher = COOKIE_PATTERN.matcher(cookie);
+            if (!matcher.find()) {
+                fail("cookie 格式不匹配");
+                return;
+            }
+
+            log.debug("cookie key: {}", matcher.group(1));
+            log.debug("cookie value: {}", matcher.group(2));
+
+            var key = matcher.group(1);
+            var token = matcher.group(2);
+            String sign = JsExecUtils.getKwSign(token, key);
+            log.debug("sign: {}", sign);
+            clientSession.getAbs(UriTemplate.of(API_URL)).setTemplateParam("mid", shareLinkInfo.getShareKey())
+                    .putHeader("Secret", sign).send().onSuccess(res -> {
+                        JsonObject json = asJson(res);
+                        log.debug(json.encodePrettily());
+                        try {
+                            if (json.getInteger("code") == 200) {
+                                complete(json.getJsonObject("data").getString("url"));
+                            } else {
+                                fail("链接已失效/需要VIP");
+                            }
+
+                        } catch (Exception e) {
+                            log.error("解析失败", e);
+                            fail("解析失败");
+                        }
+                    }).onFailure(handleFail("获取下载链接失败"));
+        }).onFailure(handleFail("请求分享页面失败"));
 
         return promise.future();
     }

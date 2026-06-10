@@ -1,6 +1,5 @@
 package cn.qaiu.parser.impl;
 
-import cn.qaiu.WebClientVertxInit;
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
@@ -11,7 +10,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.json.pointer.JsonPointer;
-import io.vertx.ext.web.client.WebClient;
 import io.vertx.uritemplate.UriTemplate;
 
 import java.util.List;
@@ -53,9 +51,8 @@ public class PvyyTool extends PanBase {
 
     @Override
     public Future<String> parse() {
-        // 请求downcode
-        WebClient.create(WebClientVertxInit.get())
-                .getAbs(api + shareLinkInfo.getShareKey())
+        // 请求downcode - 使用父类的共享 WebClient 而非创建新实例
+        client.getAbs(api + shareLinkInfo.getShareKey())
                 .send()
                 .onSuccess(res -> {
                     if (res.statusCode() == 200) {

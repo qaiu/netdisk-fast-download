@@ -414,11 +414,70 @@ public class IzToolWithAuth extends PanBase {
 
     private void down(HttpResponse<Buffer> res2) {
         MultiMap headers = res2.headers();
-        if (!headers.contains("Location") || StringUtils.isBlank(headers.get("Location"))) {
-            fail("找不到下载链接可能服务器已被禁止或者配置的认证信息有误");
+        String location = headers.get("Location");
+        if (StringUtils.isBlank(location)) {
+            fail("{}", buildMissingLocationMessage(res2));
             return;
         }
-        promise.complete(headers.get("Location"));
+        promise.complete(location);
+    }
+
+    private String buildMissingLocationMessage(HttpResponse<Buffer> response) {
+        StringBuilder message = new StringBuilder("未获取到下载重定向地址");
+        message.append(", HTTP ").append(response.statusCode());
+
+        String body = null;
+        try {
+            body = asText(response);
+        } catch (Exception e) {
+            body = "<响应体读取失败: " + e.getMessage() + ">";
+        }
+
+        if (StringUtils.isNotBlank(body)) {
+            try {
+                JsonObject json = new JsonObject(body);
+                String upstreamMsg = json.getString("msg");
+                Object code = json.getValue("code");
+                if (StringUtils.isNotBlank(upstreamMsg)) {
+                    message.append(", 上游返回: ").append(upstreamMsg);
+                    if (code != null) {
+                        message.append(" (code=").append(code).append(")");
+                    }
+                } else {
+                    message.append(", 响应体: ").append(previewBody(body));
+                }
+            } catch (Exception ignored) {
+                message.append(", 响应体: ").append(previewBody(body));
+            }
+        } else {
+            message.append(", 响应体为空");
+        }
+
+        Object fileName = shareLinkInfo.getOtherParam().get("fileName");
+        Object fileSize = shareLinkInfo.getOtherParam().get("fileSizeFormat");
+        if (fileName != null) {
+            message.append(", 文件: ").append(fileName);
+        }
+        if (fileSize != null) {
+            message.append(", 大小: ").append(fileSize);
+        }
+        if (!hasConfiguredAuth()) {
+            message.append(", 当前为免登录解析，上游可能要求登录、会员或人工处理");
+        }
+        return message.toString();
+    }
+
+    private boolean hasConfiguredAuth() {
+        Object authObj = shareLinkInfo.getOtherParam().get("auths");
+        if (!(authObj instanceof MultiMap auths)) {
+            return false;
+        }
+        return StringUtils.isNotBlank(auths.get("username")) && StringUtils.isNotBlank(auths.get("password"));
+    }
+
+    private String previewBody(String body) {
+        int maxLength = 500;
+        return body.length() <= maxLength ? body : body.substring(0, maxLength) + "...";
     }
 
     // 目录解析

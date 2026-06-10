@@ -21,6 +21,8 @@ public class MkgsTool extends PanBase {
 
     public static final String API_URL = "https://m.kugou.com/app/i/getSongInfo.php?cmd=playInfo&hash={hash}";
 
+    private static final Pattern HASH_PATTERN = Pattern.compile("\"hash\"\\s*:\\s*\"([A-F0-9]+)\"");
+
     private static final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
     static {
         // 设置 User-Agent
@@ -78,10 +80,7 @@ public class MkgsTool extends PanBase {
     protected void downUrl(String locationURL) {
         client.getAbs(locationURL).putHeaders(headers).send().onSuccess(res2->{
             String body = res2.bodyAsString();
-            // 正则表达式匹配 hash 字段
-            String regex = "\"hash\"\s*:\s*\"([A-F0-9]+)\"";
-            Pattern pattern = Pattern.compile(regex);
-            Matcher matcher = pattern.matcher(body);
+            Matcher matcher = HASH_PATTERN.matcher(body);
 
             // 查找并输出 hash 字段的值
             if (matcher.find()) {
