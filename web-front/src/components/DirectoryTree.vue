@@ -32,8 +32,8 @@
               <i :class="getFileIcon(file)"></i>
             </div>
             <div class="file-name">{{ file.fileName }}</div>
-            <div class="file-meta">
-              <template v-if="file.fileType !== 'folder'">{{ file.sizeStr || '0B' }} · </template>{{ formatDate(file.createTime) }}
+            <div v-if="fileMetaText(file)" class="file-meta">
+              {{ fileMetaText(file) }}
             </div>
           </div>
           <div v-if="!loading && (!currentFileList || currentFileList.length === 0)" class="empty-state">
@@ -168,7 +168,8 @@
                   <div v-if="selectedNode.fileType !== 'folder'" class="file-detail-meta">
                     <p>类型: {{ getFileTypeClass(selectedNode) }}</p>
                     <p>大小: {{ selectedNode.sizeStr || '0B' }}</p>
-                    <p v-if="selectedNode.createTime">创建时间: {{ formatDate(selectedNode.createTime) }}</p>
+                    <p v-if="formatDate(selectedNode.createTime)">创建时间: {{ formatDate(selectedNode.createTime) }}</p>
+                    <p v-if="formatDate(selectedNode.updateTime)">更新时间: {{ formatDate(selectedNode.updateTime) }}</p>
                   </div>
                   <div class="file-detail-actions">
                     <el-button v-if="selectedNode.parserUrl" size="small" @click="previewFile(selectedNode)">
@@ -244,7 +245,8 @@
                 <div v-if="selectedNode.fileType !== 'folder'" class="file-detail-meta">
                   <p>类型: {{ getFileTypeClass(selectedNode) }}</p>
                   <p>大小: {{ selectedNode.sizeStr || '0B' }}</p>
-                  <p v-if="selectedNode.createTime">创建时间: {{ formatDate(selectedNode.createTime) }}</p>
+                  <p v-if="formatDate(selectedNode.createTime)">创建时间: {{ formatDate(selectedNode.createTime) }}</p>
+                  <p v-if="formatDate(selectedNode.updateTime)">更新时间: {{ formatDate(selectedNode.updateTime) }}</p>
                 </div>
                 <div class="file-detail-actions">
                   <el-button v-if="selectedNode.parserUrl" size="small" @click="previewFile(selectedNode)">
@@ -314,8 +316,9 @@
         <div class="file-dialog-content">
           <p><strong>{{ selectedFile?.fileName || '未命名文件' }}</strong></p>
           <p class="file-info">
-            大小: {{ selectedFile?.sizeStr || '0B' }}<br>
-            创建时间: {{ formatDate(selectedFile?.createTime) }}
+            <template v-for="(line, index) in selectedFileInfoLines" :key="index">
+              {{ line }}<br v-if="index < selectedFileInfoLines.length - 1">
+            </template>
           </p>
         </div>
         
@@ -444,6 +447,19 @@ export default {
       if (this.batchProgress.failed > 0) return 'exception'
       if (this.batchProgress.current >= this.batchProgress.total && this.batchProgress.total > 0) return 'success'
       return ''
+    },
+    selectedFileInfoLines() {
+      if (!this.selectedFile) return []
+      const lines = [`大小: ${this.selectedFile.sizeStr || '0B'}`]
+      const createTime = this.formatDate(this.selectedFile.createTime)
+      const updateTime = this.formatDate(this.selectedFile.updateTime)
+      if (createTime) {
+        lines.push(`创建时间: ${createTime}`)
+      }
+      if (updateTime) {
+        lines.push(`更新时间: ${updateTime}`)
+      }
+      return lines
     }
   },
   watch: {
@@ -815,10 +831,53 @@ export default {
         document.body.removeChild(a)
       }
     },
+    hasValidTime(value) {
+      if (value === null || value === undefined) return false
+      if (typeof value !== 'string') return true
+      const trimmedValue = value.trim()
+      return trimmedValue !== '' && trimmedValue !== 'null' && trimmedValue !== 'undefined'
+    },
+    formatDateOnly(yearValue, monthValue, dayValue) {
+      const year = Number(yearValue)
+      const month = Number(monthValue)
+      const day = Number(dayValue)
+      const date = new Date(year, month - 1, day)
+      if (
+        date.getFullYear() !== year ||
+        date.getMonth() !== month - 1 ||
+        date.getDate() !== day
+      ) {
+        return ''
+      }
+      return `${yearValue}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    },
     formatDate(timestamp) {
-      if (!timestamp) return '未知时间'
-      const date = new Date(timestamp)
+      if (!this.hasValidTime(timestamp)) return ''
+      const value = typeof timestamp === 'string' ? timestamp.trim() : timestamp
+      if (typeof value === 'string') {
+        const dateOnly = value.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/)
+        if (dateOnly) {
+          return this.formatDateOnly(dateOnly[1], dateOnly[2], dateOnly[3])
+        }
+        const cnDateOnly = value.match(/^(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日$/)
+        if (cnDateOnly) {
+          return this.formatDateOnly(cnDateOnly[1], cnDateOnly[2], cnDateOnly[3])
+        }
+      }
+      const date = new Date(value)
+      if (Number.isNaN(date.getTime())) return ''
       return date.toLocaleString('zh-CN')
+    },
+    fileMetaText(file) {
+      const parts = []
+      if (file.fileType !== 'folder') {
+        parts.push(file.sizeStr || '0B')
+      }
+      const timeText = this.formatDate(file.createTime)
+      if (timeText) {
+        parts.push(timeText)
+      }
+      return parts.join(' · ')
     },
     checkTheme() {
       this.isDarkTheme = document.documentElement.classList.contains('dark')

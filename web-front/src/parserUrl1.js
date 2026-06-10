@@ -238,8 +238,8 @@
             storage: 'hash'
         },
         'ctfile': {
-            reg: /((?:https?:\/\/)?(?:[a-zA-Z\d-.]+)?(?:ctfile|545c|u062|ghpym|474b)\.com\/\w+\/[a-zA-Z\d-]+)/,
-            host: /(?:[a-zA-Z\d-.]+)?(?:ctfile|545c|u062|474b)\.com/,
+            reg: /((?:https?:\/\/)?(?:[a-zA-Z\d-.]+)?(?:ctfile|545c|u062|ghpym|474b)\.com\/(?:f(?:ile)?|d)\/[a-zA-Z\d_-]+\/?(?:\?[^#\s]*)?)/,
+            host: /(?:[a-zA-Z\d-.]+)?(?:ctfile|545c|u062|ghpym|474b)\.com/,
             input: ['#passcode'],
             button: ['.card-body button'],
             name: '城通网盘',
