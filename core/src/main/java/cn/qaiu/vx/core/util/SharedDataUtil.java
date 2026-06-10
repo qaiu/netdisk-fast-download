@@ -3,7 +3,6 @@ package cn.qaiu.vx.core.util;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.shareddata.LocalMap;
-import io.vertx.core.shareddata.SharedData;
 
 /**
  * vertx 共享数据
@@ -13,10 +12,8 @@ import io.vertx.core.shareddata.SharedData;
  */
 public class SharedDataUtil {
 
-    private static final SharedData sharedData = VertxHolder.getVertxInstance().sharedData();
-
-    public static SharedData shareData() {
-        return sharedData;
+    public static io.vertx.core.shareddata.SharedData shareData() {
+        return VertxHolder.getVertxInstance().sharedData();
     }
 
     public static LocalMap<String, Object> getLocalMap(String key) {
@@ -24,7 +21,7 @@ public class SharedDataUtil {
     }
 
     public static <T> LocalMap<String, T> getLocalMapWithCast(String key) {
-        return  sharedData.getLocalMap(key);
+        return shareData().getLocalMap(key);
     }
 
     public static JsonObject getJsonConfig(String key) {

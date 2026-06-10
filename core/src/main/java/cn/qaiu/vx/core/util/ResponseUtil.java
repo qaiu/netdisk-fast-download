@@ -12,14 +12,21 @@ import static io.vertx.core.http.HttpHeaders.CONTENT_TYPE;
 public class ResponseUtil {
 
     public static void redirect(HttpServerResponse response, String url) {
+        if (response.ended() || response.closed()) {
+            return;
+        }
         response.putHeader(CONTENT_TYPE, "text/html; charset=utf-8")
                 .putHeader("Referrer-Policy", "no-referrer")
                 .putHeader(HttpHeaders.LOCATION, url).setStatusCode(302).end();
     }
 
     public static void redirect(HttpServerResponse response, String url, Promise<?> promise) {
-        redirect(response, url);
-        promise.complete();
+        try {
+            redirect(response, url);
+            promise.tryComplete();
+        } catch (Throwable t) {
+            promise.tryFail(t);
+        }
     }
 
     public static void fireJsonObjectResponse(RoutingContext ctx, JsonObject jsonObject) {
@@ -31,12 +38,18 @@ public class ResponseUtil {
     }
 
     public static void fireJsonObjectResponse(RoutingContext ctx, JsonObject jsonObject, int statusCode) {
+        if (ctx.response().ended() || ctx.response().closed()) {
+            return;
+        }
         ctx.response().putHeader(CONTENT_TYPE, "application/json; charset=utf-8")
                 .setStatusCode(statusCode)
                 .end(jsonObject.encode());
     }
 
     public static void fireJsonObjectResponse(HttpServerResponse ctx, JsonObject jsonObject, int statusCode) {
+        if (ctx.ended() || ctx.closed()) {
+            return;
+        }
         ctx.putHeader(CONTENT_TYPE, "application/json; charset=utf-8")
                 .setStatusCode(statusCode)
                 .end(jsonObject.encode());
@@ -55,10 +68,16 @@ public class ResponseUtil {
     }
 
     public static void fireTextResponse(RoutingContext ctx, String text) {
+        if (ctx.response().ended() || ctx.response().closed()) {
+            return;
+        }
         ctx.response().putHeader(CONTENT_TYPE, "text/html; charset=utf-8").end(text);
     }
 
     public static void sendError(RoutingContext ctx, int statusCode) {
+        if (ctx.response().ended() || ctx.response().closed()) {
+            return;
+        }
         ctx.response().setStatusCode(statusCode).end();
     }
 }
