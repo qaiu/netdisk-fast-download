@@ -27,6 +27,8 @@ import java.util.Map;
 @Slf4j
 public class CacheServiceImpl implements CacheService {
 
+    private static final String SKIP_CLIENT_LINKS = "_skipClientLinks";
+
     private final CacheManager cacheManager = new CacheManager();
 
     static {
@@ -62,10 +64,14 @@ public class CacheServiceImpl implements CacheService {
                 try {
                     tool = parserCreate.createTool();
                 } catch (Exception e) {
-                    promise.fail(e.getCause().getCause());
+                    Throwable cause = e;
+                    while (cause.getCause() != null) {
+                        cause = cause.getCause();
+                    }
+                    promise.fail(cause);
                     return;
                 }
-                tool.parse().onSuccess(redirectUrl -> {
+                IPanTool.closeAfter(tool, tool::parse).onSuccess(redirectUrl -> {
                     // 使用 effectiveCacheDuration
                     long expires = System.currentTimeMillis() + effectiveCacheDuration * 60 * 1000L;
                     result.setDirectLink(redirectUrl);
@@ -74,7 +80,7 @@ public class CacheServiceImpl implements CacheService {
                     result.setExpires(generateDate(expires));
                     
                     // 调试日志：检查解析器返回的otherParam
-                    log.info("[解析完成] shareKey={}, otherParam.keys={}, hasFileInfo={}", 
+                    log.debug("[解析完成] shareKey={}, otherParam.keys={}, hasFileInfo={}",
                             cacheKey, 
                             shareLinkInfo.getOtherParam().keySet(),
                             shareLinkInfo.getOtherParam().containsKey("fileInfo"));
@@ -90,17 +96,19 @@ public class CacheServiceImpl implements CacheService {
                             FileInfo fileInfo = (FileInfo) shareLinkInfo.getOtherParam().get("fileInfo");
                             result.setFileInfo(fileInfo);
                             cacheLinkInfo.setFileInfo(fileInfo);
-                            log.info("[设置文件信息] shareKey={}, fileName={}, size={}", 
+                            log.debug("[设置文件信息] shareKey={}, fileName={}, size={}",
                                     cacheKey, fileInfo.getFileName(), fileInfo.getSize());
                         } catch (Exception e) {
                             log.error("文件对象转换异常: shareKey={}", cacheKey, e);
                         }
                     } else {
-                        log.warn("[文件信息缺失] 解析器未返回fileInfo: shareKey={}, otherParam.keys={}", 
+                        log.debug("[文件信息缺失] 解析器未返回fileInfo: shareKey={}, otherParam.keys={}",
                                 cacheKey, shareLinkInfo.getOtherParam().keySet());
                     }
-                    // 传递 downloadHeaders 并生成下载命令
-                    processDownloadHeaders(shareLinkInfo, cacheLinkInfo, result);
+                    if (shouldGenerateClientLinks(shareLinkInfo)) {
+                        // 传递 downloadHeaders 并生成下载命令
+                        processDownloadHeaders(shareLinkInfo, cacheLinkInfo, result);
+                    }
                     promise.complete(result);
                     // 更新缓存
                     cacheManager.cacheShareLink(cacheLinkInfo);
@@ -110,25 +118,34 @@ public class CacheServiceImpl implements CacheService {
                 // 缓存命中，生成过期时间并生成下载命令
                 result.setExpires(generateDate(result.getExpiration()));
                 
-                // 初始化 otherParam（如果为空）
-                if (result.getOtherParam() == null) {
-                    result.setOtherParam(new HashMap<>());
+                if (shouldGenerateClientLinks(shareLinkInfo)) {
+                    // 初始化 otherParam（如果为空）
+                    if (result.getOtherParam() == null) {
+                        result.setOtherParam(new HashMap<>());
+                    }
+
+                    // 生成下载命令（aria2、curl）
+                    generateDownloadCommands(result);
                 }
-                
-                // 生成下载命令（aria2、curl）
-                generateDownloadCommands(result);
                 
                 promise.complete(result);
                 cacheManager.updateTotalByField(cacheKey, CacheTotalField.CACHE_HIT_TOTAL)
                         .onFailure(e -> log.error("更新缓存命中计数失败: cacheKey={}", cacheKey, e));
             }
-        }).onFailure(t -> promise.fail(t.fillInStackTrace()));
+        }).onFailure(promise::tryFail);
 
         return promise.future();
     }
 
     private String generateDate(Long ts) {
         return DateFormatUtils.format(new Date(ts), "yyyy-MM-dd HH:mm:ss");
+    }
+
+    private boolean shouldGenerateClientLinks(ShareLinkInfo shareLinkInfo) {
+        if (shareLinkInfo == null || shareLinkInfo.getOtherParam() == null) {
+            return true;
+        }
+        return !Boolean.TRUE.equals(shareLinkInfo.getOtherParam().get(SKIP_CLIENT_LINKS));
     }
 
     /**
@@ -147,7 +164,7 @@ public class CacheServiceImpl implements CacheService {
                 Map<String, String> headers = (Map<String, String>) shareLinkInfo.getOtherParam().get("downloadHeaders");
                 if (headers != null) {
                     downloadHeaders = headers;
-                    log.info("从shareLinkInfo提取downloadHeaders: shareKey={}, 请求头数量={}", 
+                    log.debug("从shareLinkInfo提取downloadHeaders: shareKey={}, 请求头数量={}",
                             cacheLinkInfo.getShareKey(), downloadHeaders.size());
                 }
             }
@@ -255,14 +272,24 @@ public class CacheServiceImpl implements CacheService {
 
     @Override
     public Future<CacheLinkInfo> getCachedByShareKeyAndPwd(String type, String shareKey, String pwd, JsonObject otherParam) {
-        ParserCreate parserCreate = ParserCreate.fromType(type).shareKey(shareKey).setShareLinkInfoPwd(pwd);
+        ParserCreate parserCreate;
+        try {
+            parserCreate = ParserCreate.fromType(type).shareKey(shareKey).setShareLinkInfoPwd(pwd);
+        } catch (Exception e) {
+            return Future.failedFuture(e);
+        }
         parserCreate.getShareLinkInfo().getOtherParam().putAll(otherParam.getMap());
         return getAndSaveCachedShareLink(parserCreate);
     }
 
     @Override
     public Future<CacheLinkInfo> getCachedByShareUrlAndPwd(String shareUrl, String pwd, JsonObject otherParam) {
-        ParserCreate parserCreate = ParserCreate.fromShareUrl(shareUrl).setShareLinkInfoPwd(pwd);
+        ParserCreate parserCreate;
+        try {
+            parserCreate = ParserCreate.fromShareUrl(shareUrl).setShareLinkInfoPwd(pwd);
+        } catch (Exception e) {
+            return Future.failedFuture(e);
+        }
         parserCreate.getShareLinkInfo().getOtherParam().putAll(otherParam.getMap());
         
         // 检查是否有临时认证参数

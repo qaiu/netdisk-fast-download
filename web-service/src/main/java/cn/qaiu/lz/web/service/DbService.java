@@ -26,6 +26,11 @@ public interface DbService extends BaseAsyncService {
     Future<JsonObject> getPlaygroundParserList();
 
     /**
+     * 获取启动时需要注册的已启用演练场解析器
+     */
+    Future<JsonObject> getEnabledPlaygroundParsersForLoad();
+
+    /**
      * 保存演练场解析器
      */
     Future<JsonObject> savePlaygroundParser(JsonObject parser);
@@ -44,6 +49,11 @@ public interface DbService extends BaseAsyncService {
      * 获取演练场解析器数量
      */
     Future<Integer> getPlaygroundParserCount();
+
+    /**
+     * 检查演练场解析器类型是否已存在
+     */
+    Future<Boolean> playgroundParserTypeExists(String type, Long excludeId);
 
     /**
      * 根据ID获取演练场解析器
