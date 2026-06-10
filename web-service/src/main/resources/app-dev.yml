@@ -17,7 +17,7 @@ proxyConf: server-proxy
 # JS演练场配置
 playground:
   # 是否启用演练场，默认false不启用
-  enabled: true
+  enabled: false
   # 公开模式，默认false需要密码访问，设为true则无需密码
   public: false
   # 访问密码，建议修改默认密码！
@@ -86,12 +86,12 @@ cache:
     ct: 30               # 城通网盘
     ec: 5                # 移动云空间
     fc:                  # 亿方云
-    fj: 20               # 小飞机网盘
+    fj: 20               # 小飞机网盘 链接有效期约30分钟
     fs:                  # 飞书云盘
-    iz: 20               # 蓝奏云优享
+    iz: 20               # 蓝奏云优享 链接有效期约30分钟
     kd:                  # 可道云
     le: 2879             # 联想乐云
-    lz: 20               # 蓝奏云
+    lz: 30               # 蓝奏云 链接有效期约45分钟
     other:               # 其他网盘
     p115: 30             # 115网盘
     pdb:                 # Dropbox

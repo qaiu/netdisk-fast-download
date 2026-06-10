@@ -20,6 +20,7 @@ public class JsPlaygroundLogger {
 
     // 使用线程安全的列表
     private static final int MAX_LOG_SIZE = 1000;
+    private static final int MAX_LOG_MESSAGE_LENGTH = 4096;
     private final List<LogEntry> logs = Collections.synchronizedList(new ArrayList<>());
     
     /**
@@ -62,7 +63,11 @@ public class JsPlaygroundLogger {
         if (obj == null) {
             return "null";
         }
-        return obj.toString();
+        String msg = obj.toString();
+        if (msg.length() <= MAX_LOG_MESSAGE_LENGTH) {
+            return msg;
+        }
+        return msg.substring(0, MAX_LOG_MESSAGE_LENGTH) + "...[truncated]";
     }
     
     /**
@@ -127,7 +132,7 @@ public class JsPlaygroundLogger {
     public void error(Object message, Throwable throwable) {
         String msg = toString(message);
         if (throwable != null) {
-            msg = msg + ": " + throwable.getMessage();
+            msg = toString(msg + ": " + throwable.getMessage());
         }
         addLog(new LogEntry("ERROR", msg, "JS"));
         log.debug("[JSPlaygroundLogger] ERROR: {}", msg);
@@ -167,9 +172,9 @@ public class JsPlaygroundLogger {
      * 错误日志（带异常，供Java层调用）
      */
     public void errorJava(String message, Throwable throwable) {
-        String msg = message;
+        String msg = toString(message);
         if (throwable != null) {
-            msg = msg + ": " + throwable.getMessage();
+            msg = toString(msg + ": " + throwable.getMessage());
         }
         addLog(new LogEntry("ERROR", msg, "JAVA"));
         log.debug("[JAVAPlaygroundLogger] ERROR: {}", msg);
@@ -196,5 +201,18 @@ public class JsPlaygroundLogger {
      */
     public void clear() {
         logs.clear();
+    }
+
+    public void trimToLast(int maxEntries) {
+        if (maxEntries < 0) {
+            throw new IllegalArgumentException("maxEntries不能小于0");
+        }
+        synchronized (logs) {
+            int removeCount = logs.size() - maxEntries;
+            if (removeCount <= 0) {
+                return;
+            }
+            logs.subList(0, removeCount).clear();
+        }
     }
 }

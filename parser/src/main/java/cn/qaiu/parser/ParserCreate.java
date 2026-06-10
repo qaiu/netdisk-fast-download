@@ -9,6 +9,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.regex.Matcher;
 
 import static cn.qaiu.parser.PanDomainTemplate.KEY;
@@ -23,6 +25,9 @@ import static cn.qaiu.parser.PanDomainTemplate.PWD;
  * Create at 2024/9/15 14:10
  */
 public class ParserCreate {
+    private static final Set<PanDomainTemplate> GENERIC_BUILT_IN_PARSERS =
+            EnumSet.of(PanDomainTemplate.CE, PanDomainTemplate.KD, PanDomainTemplate.OTHER);
+
     private final PanDomainTemplate panDomainTemplate;
     private final ShareLinkInfo shareLinkInfo;
     
@@ -132,12 +137,12 @@ public class ParserCreate {
                 if (StringUtils.isNotEmpty(pwd)) {
                     shareLinkInfo.setSharePassword(pwd);
                 }
-                standardUrl = standardUrl.replace("{pwd}", pwd);
+                standardUrl = standardUrl.replace("{pwd}", StringUtils.defaultString(pwd));
             } catch (IllegalStateException | IllegalArgumentException ignored) {}
 
             shareLinkInfo.setShareUrl(shareUrl);
             shareLinkInfo.setShareKey(shareKey);
-            if (!(panDomainTemplate.ordinal() >= PanDomainTemplate.CE.ordinal())) {
+            if (!isGenericBuiltInParser(panDomainTemplate)) {
                 shareLinkInfo.setStandardUrl(standardUrl);
             }
             return this;
@@ -197,7 +202,7 @@ public class ParserCreate {
         }
         
         // 内置解析器处理
-        if (panDomainTemplate.ordinal() >= PanDomainTemplate.CE.ordinal()) {
+        if (isGenericBuiltInParser(panDomainTemplate)) {
             // 处理Cloudreve(ce)类: pan.huang1111.cn_s_wDz5TK _ -> /
             String[] s = shareKey.split("_");
             String standardUrl = "https://" + String.join("/", s);
@@ -247,9 +252,19 @@ public class ParserCreate {
         return this;
     }
 
-    // 根据分享链接获取PanDomainTemplate实例（优先匹配自定义解析器）
+    // 根据分享链接获取PanDomainTemplate实例
     public synchronized static ParserCreate fromShareUrl(String shareUrl) {
-        // 优先查找支持正则匹配的自定义解析器
+        if (StringUtils.isBlank(shareUrl)) {
+            throw new IllegalArgumentException("shareUrl不能为空");
+        }
+        shareUrl = shareUrl.trim();
+
+        ParserCreate builtInParser = fromBuiltInShareUrl(shareUrl, false);
+        if (builtInParser != null) {
+            return builtInParser;
+        }
+
+        // 明确内置解析器未命中时，再查找支持正则匹配的自定义解析器
         for (CustomParserConfig customConfig : CustomParserRegistry.getAll().values()) {
             if (customConfig.supportsFromShareUrl()) {
                 Matcher matcher = customConfig.getMatchPattern().matcher(shareUrl);
@@ -295,22 +310,35 @@ public class ParserCreate {
                 }
             }
         }
-        
-        // 查找内置解析器
+
+        // 最后再走 Cloudreve/可道云/其他网盘这类泛化兜底，避免抢走自定义解析器
+        builtInParser = fromBuiltInShareUrl(shareUrl, true);
+        if (builtInParser != null) {
+            return builtInParser;
+        }
+
+        throw new IllegalArgumentException("Unsupported share URL");
+    }
+
+    private static ParserCreate fromBuiltInShareUrl(String shareUrl, boolean genericOnly) {
         for (PanDomainTemplate panDomainTemplate : PanDomainTemplate.values()) {
+            boolean genericParser = isGenericBuiltInParser(panDomainTemplate);
+            if (genericOnly != genericParser) {
+                continue;
+            }
             if (panDomainTemplate.getPattern().matcher(shareUrl).matches()) {
                 ShareLinkInfo shareLinkInfo = ShareLinkInfo.newBuilder()
                         .type(panDomainTemplate.name().toLowerCase())
                         .panName(panDomainTemplate.getDisplayName())
                         .shareUrl(shareUrl).build();
-                if (panDomainTemplate.ordinal() >= PanDomainTemplate.CE.ordinal()) {
+                if (isGenericBuiltInParser(panDomainTemplate)) {
                     shareLinkInfo.setStandardUrl(shareUrl);
                 }
                 ParserCreate parserCreate = new ParserCreate(panDomainTemplate, shareLinkInfo);
                 return parserCreate.normalizeShareLink();
             }
         }
-        throw new IllegalArgumentException("Unsupported share URL");
+        return null;
     }
 
     // 根据type获取枚举实例（优先查找自定义解析器）
@@ -353,7 +381,7 @@ public class ParserCreate {
         // 自定义解析器处理
         if (isCustomParser) {
             path = this.shareLinkInfo.getType() + "/" + this.shareLinkInfo.getShareKey();
-        } else if (panDomainTemplate.ordinal() >= PanDomainTemplate.CE.ordinal()) {
+        } else if (isGenericBuiltInParser(panDomainTemplate)) {
             // 处理Cloudreve(ce)类: pan.huang1111.cn_s_wDz5TK _ -> /
             path = this.shareLinkInfo.getType() + "/"
                     + this.shareLinkInfo.getShareUrl()
@@ -381,7 +409,11 @@ public class ParserCreate {
     public CustomParserConfig getCustomParserConfig() {
         return customParserConfig;
     }
-    
+
+    private static boolean isGenericBuiltInParser(PanDomainTemplate panDomainTemplate) {
+        return GENERIC_BUILT_IN_PARSERS.contains(panDomainTemplate);
+    }
+
     /**
      * 获取内置解析器模板（仅当isCustomParser为false时有效）
      * @return 内置解析器模板，如果是自定义解析器则返回null

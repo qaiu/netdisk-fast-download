@@ -83,9 +83,9 @@ function registerTypeDefinitions(monaco) {
       clearHeaders(): JsHttpClient;
       getHeaders(): Record<string, string>;
       setTimeout(seconds: number): JsHttpClient;
-      sendForm(data: Record<string, any>): JsHttpResponse;
+      sendForm(url: string, data: Record<string, any>): JsHttpResponse;
       sendMultipartForm(url: string, data: Record<string, any>): JsHttpResponse;
-      sendJson(data: any): JsHttpResponse;
+      sendJson(url: string, data: any): JsHttpResponse;
       urlEncode(str: string): string;
       urlDecode(str: string): string;
     }
@@ -244,17 +244,17 @@ function registerCompletionProvider(monaco) {
           range
         },
         {
-          label: 'http.sendForm(data)',
+          label: 'http.sendForm(url, data)',
           kind: monaco.languages.CompletionItemKind.Method,
-          insertText: 'http.sendForm(${1:data})',
+          insertText: 'http.sendForm(${1:url}, ${2:data})',
           insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           documentation: '发送表单数据',
           range
         },
         {
-          label: 'http.sendJson(data)',
+          label: 'http.sendJson(url, data)',
           kind: monaco.languages.CompletionItemKind.Method,
-          insertText: 'http.sendJson(${1:data})',
+          insertText: 'http.sendJson(${1:url}, ${2:data})',
           insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           documentation: '发送JSON数据',
           range

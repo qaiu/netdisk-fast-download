@@ -247,14 +247,14 @@ public enum PanDomainTemplate {
             "https://cowtransfer.com/s/{shareKey}",
             CowTool.class),
     CT("城通网盘",
-            compile("https://(?:[a-zA-Z\\d-]+\\.)?(ctfile|545c|u062|ghpym|474b)\\.com/f(ile)?/" +
-                    "(?<KEY>[0-9a-zA-Z_-]+)(\\?p=(?<PWD>\\w+))?"),
+            compile("https?://(?:[a-zA-Z\\d-]+\\.)?(ctfile|545c|u062|ghpym|474b)\\.com/f(ile)?/" +
+                    "(?<KEY>[0-9a-zA-Z_-]+)/?(?:\\?(?:(?:[^#&]*&)*p=(?<PWD>\\w+)(?:&[^#]*)?|[^#]*))?"),
             "https://ctfile.com/file/{shareKey}",
             CtTool.class),
     // https://url94.ctfile.com/d/64115194-164803691-48508c?p=7609&d=164803691&fk=decb36
     CTD("城通网盘-目录",
-            compile("https://(?:[a-zA-Z\\d-]+\\.)?(ctfile|545c|u062|ghpym|474b)\\.com/d/" +
-                    "(?<KEY>[0-9a-zA-Z_-]+)(\\?p=(?<PWD>\\w+))?"),
+            compile("https?://(?:[a-zA-Z\\d-]+\\.)?(ctfile|545c|u062|ghpym|474b)\\.com/d/" +
+                    "(?<KEY>[0-9a-zA-Z_-]+)/?(?:\\?(?:(?:[^#&]*&)*p=(?<PWD>\\w+)(?:&[^#]*)?|[^#]*))?"),
             "https://ctfile.com/d/{shareKey}",
             CtTool.class),
     // https://www.vyuyun.com/s/QMa6ie?password=I4KG7H

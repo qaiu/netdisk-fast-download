@@ -21,20 +21,37 @@ import java.util.concurrent.*;
  *
  * @author <a href="https://qaiu.top">QAIU</a>
  */
-public class JsPlaygroundExecutor {
+public class JsPlaygroundExecutor implements AutoCloseable {
     
     private static final Logger log = LoggerFactory.getLogger(JsPlaygroundExecutor.class);
     
     // JavaScript执行超时时间（秒）
     private static final long EXECUTION_TIMEOUT_SECONDS = 30;
+    private static final int MAX_RESULT_STRING_LENGTH = 1024 * 1024;
+    private static final int MAX_FILE_LIST_SIZE = 1000;
+    private static final int MAX_FILE_FIELD_LENGTH = 4096;
+    private static final int TIMEOUT_LOG_RETAIN = 50;
     
-    // 使用独立的线程池，不受Vert.x的BlockedThreadChecker监控
-    private static final ExecutorService INDEPENDENT_EXECUTOR = Executors.newCachedThreadPool(r -> {
-        Thread thread = new Thread(r);
-        thread.setName("playground-independent-" + System.currentTimeMillis());
-        thread.setDaemon(true); // 设置为守护线程，服务关闭时自动清理
-        return thread;
-    });
+    // 使用有界线程池，防止线程无限增长导致内存溢出
+    private static final int POOL_MAX_THREADS = 16;
+    private static final int POOL_QUEUE_CAPACITY = 256;
+    private static final ExecutorService INDEPENDENT_EXECUTOR = new ThreadPoolExecutor(
+            4, POOL_MAX_THREADS, 60L, TimeUnit.SECONDS,
+            new ArrayBlockingQueue<>(POOL_QUEUE_CAPACITY),
+            r -> {
+                Thread thread = new Thread(r);
+                thread.setName("playground-independent-" + thread.getId());
+                thread.setDaemon(true);
+                return thread;
+            },
+            (r, executor) -> {
+                // 拒绝策略：记录日志并抛出异常，避免阻塞 Vert.x EventLoop
+                log.warn("演练场线程池已满，拒绝任务。活跃线程: {}, 队列大小: {}",
+                        ((ThreadPoolExecutor) executor).getActiveCount(),
+                        ((ThreadPoolExecutor) executor).getQueue().size());
+                throw new java.util.concurrent.RejectedExecutionException("演练场线程池已满，请稍后重试");
+            }
+    );
     
     // 超时调度线程池，用于处理超时中断
     private static final ScheduledExecutorService TIMEOUT_SCHEDULER = Executors.newScheduledThreadPool(2, r -> {
@@ -43,14 +60,29 @@ public class JsPlaygroundExecutor {
         thread.setDaemon(true);
         return thread;
     });
+
+    /**
+     * 关闭静态线程池（应在应用关闭时调用）
+     */
+    public static void shutdownPools() {
+        INDEPENDENT_EXECUTOR.shutdown();
+        TIMEOUT_SCHEDULER.shutdown();
+        log.info("JsPlaygroundExecutor 线程池已关闭");
+    }
     
     private final ShareLinkInfo shareLinkInfo;
     private final String jsCode;
-    private final ScriptEngine engine;
+    private volatile ScriptEngine engine;
+    private final Object engineLock = new Object();
     private final JsHttpClient httpClient;
     private final JsPlaygroundLogger playgroundLogger;
     private final JsShareLinkInfoWrapper shareLinkInfoWrapper;
     private final JsFetchBridge fetchBridge;
+    /** 标记是否已释放，防止重复关闭 */
+    private volatile boolean closed = false;
+    private final Object lifecycleLock = new Object();
+    private volatile boolean running = false;
+    private volatile boolean closeRequested = false;
     
     /**
      * 创建演练场执行器
@@ -72,7 +104,6 @@ public class JsPlaygroundExecutor {
         this.playgroundLogger = new JsPlaygroundLogger();
         this.shareLinkInfoWrapper = new JsShareLinkInfoWrapper(shareLinkInfo);
         this.fetchBridge = new JsFetchBridge(httpClient);
-        this.engine = initEngine();
     }
     
     /**
@@ -89,6 +120,7 @@ public class JsPlaygroundExecutor {
             if (engine == null) {
                 throw new RuntimeException("无法创建JavaScript引擎，请确保Nashorn可用");
             }
+            this.engine = engine;
             
             // 注入Java对象到JavaScript环境
             engine.put("http", httpClient);
@@ -133,9 +165,14 @@ public class JsPlaygroundExecutor {
      */
     public Future<String> executeParseAsync() {
         Promise<String> promise = Promise.promise();
-        
-        // 使用独立的ExecutorService执行，避免Vert.x的BlockedThreadChecker输出警告
-        CompletableFuture<String> executionFuture = CompletableFuture.supplyAsync(() -> {
+
+        final CompletableFuture<String> executionFuture;
+        try {
+            // 使用独立的ExecutorService执行，避免Vert.x的BlockedThreadChecker输出警告
+            executionFuture = CompletableFuture.supplyAsync(() -> {
+            beginExecution();
+            try {
+            ScriptEngine engine = engine();
             playgroundLogger.infoJava("开始执行parse方法");
             try {
                 Object parseFunction = engine.get("parse");
@@ -151,8 +188,9 @@ public class JsPlaygroundExecutor {
                     log.debug("[JsPlaygroundExecutor] parse函数执行完成，当前日志数量: {}", playgroundLogger.size());
                     
                     if (result instanceof String) {
-                        playgroundLogger.infoJava("解析成功，返回结果: " + result);
-                        return (String) result;
+                        String resultText = limitResultString((String) result, "parse");
+                        playgroundLogger.infoJava("解析成功，返回结果长度: " + resultText.length());
+                        return resultText;
                     } else {
                         String errorMsg = "parse方法返回值类型错误，期望String，实际: " + 
                                 (result != null ? result.getClass().getSimpleName() : "null");
@@ -167,25 +205,27 @@ public class JsPlaygroundExecutor {
                 playgroundLogger.errorJava("执行parse方法失败: " + e.getMessage(), e);
                 throw new RuntimeException(e);
             }
-        }, INDEPENDENT_EXECUTOR);
-        
-        // 创建超时任务，强制取消执行
-        ScheduledFuture<?> timeoutTask = TIMEOUT_SCHEDULER.schedule(() -> {
-            if (!executionFuture.isDone()) {
-                executionFuture.cancel(true);  // 强制中断执行线程
-                playgroundLogger.errorJava("执行超时，已强制中断");
-                log.warn("JavaScript执行超时，已强制取消");
+            } finally {
+                finishExecution();
             }
-        }, EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        
+        }, INDEPENDENT_EXECUTOR);
+        } catch (java.util.concurrent.RejectedExecutionException e) {
+            log.warn("演练场线程池已满，任务被拒绝");
+            close(); // 释放已创建的 ScriptEngine 和 HttpClient 资源
+            promise.fail(new RuntimeException("演练场线程池已满，请稍后重试", e));
+            return promise.future();
+        }
+
+        ScheduledFuture<?> timeoutTask = scheduleTimeout(executionFuture, "parse");
+
         // 处理执行结果
         executionFuture.whenComplete((result, error) -> {
             // 取消超时任务
             timeoutTask.cancel(false);
-            
+
                 if (error != null) {
                 if (error instanceof CancellationException) {
-                    String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已强制中断";
+                    String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已返回超时并停止外部HTTP资源；ScriptEngine将在执行线程退出后清理";
                         playgroundLogger.errorJava(timeoutMsg);
                         log.error(timeoutMsg);
                         promise.fail(new RuntimeException(timeoutMsg));
@@ -197,10 +237,10 @@ public class JsPlaygroundExecutor {
                     promise.complete(result);
                 }
             });
-        
+
         return promise.future();
     }
-    
+
     /**
      * 执行parseFileList方法（异步，带超时控制）
      * 使用独立线程池，不受Vert.x BlockedThreadChecker监控
@@ -209,9 +249,14 @@ public class JsPlaygroundExecutor {
      */
     public Future<List<FileInfo>> executeParseFileListAsync() {
         Promise<List<FileInfo>> promise = Promise.promise();
-        
-        // 使用独立的ExecutorService执行，避免Vert.x的BlockedThreadChecker输出警告
-        CompletableFuture<List<FileInfo>> executionFuture = CompletableFuture.supplyAsync(() -> {
+
+        final CompletableFuture<List<FileInfo>> executionFuture;
+        try {
+            // 使用独立的ExecutorService执行，避免Vert.x的BlockedThreadChecker输出警告
+            executionFuture = CompletableFuture.supplyAsync(() -> {
+            beginExecution();
+            try {
+            ScriptEngine engine = engine();
             playgroundLogger.infoJava("开始执行parseFileList方法");
             try {
                 Object parseFileListFunction = engine.get("parseFileList");
@@ -242,25 +287,27 @@ public class JsPlaygroundExecutor {
                 playgroundLogger.errorJava("执行parseFileList方法失败: " + e.getMessage(), e);
                 throw new RuntimeException(e);
             }
-        }, INDEPENDENT_EXECUTOR);
-        
-        // 创建超时任务，强制取消执行
-        ScheduledFuture<?> timeoutTask = TIMEOUT_SCHEDULER.schedule(() -> {
-            if (!executionFuture.isDone()) {
-                executionFuture.cancel(true);  // 强制中断执行线程
-                playgroundLogger.errorJava("执行超时，已强制中断");
-                log.warn("JavaScript执行超时，已强制取消");
+            } finally {
+                finishExecution();
             }
-        }, EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        
+        }, INDEPENDENT_EXECUTOR);
+        } catch (java.util.concurrent.RejectedExecutionException e) {
+            log.warn("演练场线程池已满，任务被拒绝");
+            close(); // 释放已创建的 ScriptEngine 和 HttpClient 资源
+            promise.fail(new RuntimeException("演练场线程池已满，请稍后重试", e));
+            return promise.future();
+        }
+
+        ScheduledFuture<?> timeoutTask = scheduleTimeout(executionFuture, "parseFileList");
+
         // 处理执行结果
         executionFuture.whenComplete((result, error) -> {
             // 取消超时任务
             timeoutTask.cancel(false);
-            
+
                 if (error != null) {
                 if (error instanceof CancellationException) {
-                    String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已强制中断";
+                    String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已返回超时并停止外部HTTP资源；ScriptEngine将在执行线程退出后清理";
                         playgroundLogger.errorJava(timeoutMsg);
                         log.error(timeoutMsg);
                         promise.fail(new RuntimeException(timeoutMsg));
@@ -272,10 +319,10 @@ public class JsPlaygroundExecutor {
                     promise.complete(result);
                 }
             });
-        
+
         return promise.future();
     }
-    
+
     /**
      * 执行parseById方法（异步，带超时控制）
      * 使用独立线程池，不受Vert.x BlockedThreadChecker监控
@@ -284,9 +331,14 @@ public class JsPlaygroundExecutor {
      */
     public Future<String> executeParseByIdAsync() {
         Promise<String> promise = Promise.promise();
-        
-        // 使用独立的ExecutorService执行，避免Vert.x的BlockedThreadChecker输出警告
-        CompletableFuture<String> executionFuture = CompletableFuture.supplyAsync(() -> {
+
+        final CompletableFuture<String> executionFuture;
+        try {
+            // 使用独立的ExecutorService执行，避免Vert.x的BlockedThreadChecker输出警告
+            executionFuture = CompletableFuture.supplyAsync(() -> {
+            beginExecution();
+            try {
+            ScriptEngine engine = engine();
             playgroundLogger.infoJava("开始执行parseById方法");
             try {
                 Object parseByIdFunction = engine.get("parseById");
@@ -300,8 +352,9 @@ public class JsPlaygroundExecutor {
                     Object result = parseByIdMirror.call(null, shareLinkInfoWrapper, httpClient, playgroundLogger);
                     
                     if (result instanceof String) {
-                        playgroundLogger.infoJava("按ID解析成功: " + result);
-                        return (String) result;
+                        String resultText = limitResultString((String) result, "parseById");
+                        playgroundLogger.infoJava("按ID解析成功，返回结果长度: " + resultText.length());
+                        return resultText;
                     } else {
                         String errorMsg = "parseById方法返回值类型错误，期望String，实际: " + 
                                 (result != null ? result.getClass().getSimpleName() : "null");
@@ -316,25 +369,27 @@ public class JsPlaygroundExecutor {
                 playgroundLogger.errorJava("执行parseById方法失败: " + e.getMessage(), e);
                 throw new RuntimeException(e);
             }
-        }, INDEPENDENT_EXECUTOR);
-        
-        // 创建超时任务，强制取消执行
-        ScheduledFuture<?> timeoutTask = TIMEOUT_SCHEDULER.schedule(() -> {
-            if (!executionFuture.isDone()) {
-                executionFuture.cancel(true);  // 强制中断执行线程
-                playgroundLogger.errorJava("执行超时，已强制中断");
-                log.warn("JavaScript执行超时，已强制取消");
+            } finally {
+                finishExecution();
             }
-        }, EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        
+        }, INDEPENDENT_EXECUTOR);
+        } catch (java.util.concurrent.RejectedExecutionException e) {
+            log.warn("演练场线程池已满，任务被拒绝");
+            close(); // 释放已创建的 ScriptEngine 和 HttpClient 资源
+            promise.fail(new RuntimeException("演练场线程池已满，请稍后重试", e));
+            return promise.future();
+        }
+
+        ScheduledFuture<?> timeoutTask = scheduleTimeout(executionFuture, "parseById");
+
         // 处理执行结果
         executionFuture.whenComplete((result, error) -> {
             // 取消超时任务
             timeoutTask.cancel(false);
-            
+
                 if (error != null) {
                 if (error instanceof CancellationException) {
-                    String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已强制中断";
+                    String timeoutMsg = "JavaScript执行超时（超过" + EXECUTION_TIMEOUT_SECONDS + "秒），已返回超时并停止外部HTTP资源；ScriptEngine将在执行线程退出后清理";
                         playgroundLogger.errorJava(timeoutMsg);
                         log.error(timeoutMsg);
                         promise.fail(new RuntimeException(timeoutMsg));
@@ -346,7 +401,7 @@ public class JsPlaygroundExecutor {
                     promise.complete(result);
                 }
             });
-        
+
         return promise.future();
     }
     
@@ -373,6 +428,9 @@ public class JsPlaygroundExecutor {
         List<FileInfo> fileList = new ArrayList<>();
         
         if (resultMirror.isArray()) {
+            if (resultMirror.size() > MAX_FILE_LIST_SIZE) {
+                throw new RuntimeException("文件列表数量超过限制: " + resultMirror.size());
+            }
             for (int i = 0; i < resultMirror.size(); i++) {
                 Object item = resultMirror.get(String.valueOf(i));
                 if (item instanceof ScriptObjectMirror) {
@@ -396,13 +454,13 @@ public class JsPlaygroundExecutor {
             
             // 设置基本字段
             if (itemMirror.hasMember("fileName")) {
-                fileInfo.setFileName(itemMirror.getMember("fileName").toString());
+                fileInfo.setFileName(limitField(itemMirror.getMember("fileName")));
             }
             if (itemMirror.hasMember("fileId")) {
-                fileInfo.setFileId(itemMirror.getMember("fileId").toString());
+                fileInfo.setFileId(limitField(itemMirror.getMember("fileId")));
             }
             if (itemMirror.hasMember("fileType")) {
-                fileInfo.setFileType(itemMirror.getMember("fileType").toString());
+                fileInfo.setFileType(limitField(itemMirror.getMember("fileType")));
             }
             if (itemMirror.hasMember("size")) {
                 Object size = itemMirror.getMember("size");
@@ -411,16 +469,16 @@ public class JsPlaygroundExecutor {
                 }
             }
             if (itemMirror.hasMember("sizeStr")) {
-                fileInfo.setSizeStr(itemMirror.getMember("sizeStr").toString());
+                fileInfo.setSizeStr(limitField(itemMirror.getMember("sizeStr")));
             }
             if (itemMirror.hasMember("createTime")) {
-                fileInfo.setCreateTime(itemMirror.getMember("createTime").toString());
+                fileInfo.setCreateTime(limitField(itemMirror.getMember("createTime")));
             }
             if (itemMirror.hasMember("updateTime")) {
-                fileInfo.setUpdateTime(itemMirror.getMember("updateTime").toString());
+                fileInfo.setUpdateTime(limitField(itemMirror.getMember("updateTime")));
             }
             if (itemMirror.hasMember("createBy")) {
-                fileInfo.setCreateBy(itemMirror.getMember("createBy").toString());
+                fileInfo.setCreateBy(limitField(itemMirror.getMember("createBy")));
             }
             if (itemMirror.hasMember("downloadCount")) {
                 Object downloadCount = itemMirror.getMember("downloadCount");
@@ -429,23 +487,153 @@ public class JsPlaygroundExecutor {
                 }
             }
             if (itemMirror.hasMember("fileIcon")) {
-                fileInfo.setFileIcon(itemMirror.getMember("fileIcon").toString());
+                fileInfo.setFileIcon(limitField(itemMirror.getMember("fileIcon")));
             }
             if (itemMirror.hasMember("panType")) {
-                fileInfo.setPanType(itemMirror.getMember("panType").toString());
+                fileInfo.setPanType(limitField(itemMirror.getMember("panType")));
             }
             if (itemMirror.hasMember("parserUrl")) {
-                fileInfo.setParserUrl(itemMirror.getMember("parserUrl").toString());
+                fileInfo.setParserUrl(limitField(itemMirror.getMember("parserUrl")));
             }
             if (itemMirror.hasMember("previewUrl")) {
-                fileInfo.setPreviewUrl(itemMirror.getMember("previewUrl").toString());
+                fileInfo.setPreviewUrl(limitField(itemMirror.getMember("previewUrl")));
             }
             
             return fileInfo;
-            
+
         } catch (Exception e) {
             playgroundLogger.errorJava("转换FileInfo对象失败", e);
             return null;
+        }
+    }
+
+    private static String limitResultString(String value, String operation) {
+        if (value.length() > MAX_RESULT_STRING_LENGTH) {
+            throw new RuntimeException(operation + " 返回结果过大: " + value.length() + " 字符");
+        }
+        return value;
+    }
+
+    private static String limitField(Object value) {
+        if (value == null) {
+            return null;
+        }
+        String text = value.toString();
+        if (text.length() > MAX_FILE_FIELD_LENGTH) {
+            throw new RuntimeException("文件字段过长: " + text.length() + " 字符");
+        }
+        return text;
+    }
+
+    private void beginExecution() {
+        synchronized (lifecycleLock) {
+            if (closed) {
+                throw new CancellationException("演练场执行器已关闭");
+            }
+            if (running) {
+                throw new IllegalStateException("演练场执行器已在运行");
+            }
+            running = true;
+        }
+    }
+
+    private ScriptEngine engine() {
+        ScriptEngine current = engine;
+        if (current != null) {
+            return current;
+        }
+        synchronized (engineLock) {
+            if (closed) {
+                throw new CancellationException("演练场执行器已关闭");
+            }
+            if (engine == null) {
+                engine = initEngine();
+            }
+            return engine;
+        }
+    }
+
+    private void finishExecution() {
+        synchronized (lifecycleLock) {
+            running = false;
+            if (closeRequested) {
+                doClose();
+            }
+        }
+    }
+
+    private ScheduledFuture<?> scheduleTimeout(CompletableFuture<?> executionFuture, String operation) {
+        // cancel(true) 只能请求中断，Nashorn 死循环不保证立即停止。
+        return TIMEOUT_SCHEDULER.schedule(() -> {
+            if (!executionFuture.isDone()) {
+                executionFuture.cancel(true);
+                playgroundLogger.errorJava(operation + " 执行超时，已请求取消并停止外部HTTP资源");
+                forceCloseAfterTimeout();
+                log.warn("JavaScript {} 执行超时，已请求取消；Nashorn长循环可能继续占用线程，ScriptEngine将在执行线程退出后清理", operation);
+            }
+        }, EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    }
+
+    private void forceCloseAfterTimeout() {
+        synchronized (lifecycleLock) {
+            closeRequested = true;
+            if (running || closed) {
+                closeExternalResources();
+            } else {
+                doClose();
+            }
+        }
+        playgroundLogger.trimToLast(TIMEOUT_LOG_RETAIN);
+    }
+
+    /**
+     * 释放资源（HttpClient 和 ScriptEngine），避免内存泄漏
+     * 幂等：可安全多次调用
+     */
+    @Override
+    public void close() {
+        synchronized (lifecycleLock) {
+            closeRequested = true;
+            if (running || closed) {
+                closeExternalResources();
+                return;
+            }
+            doClose();
+        }
+    }
+
+    private void doClose() {
+        if (closed) return;
+        closed = true;
+        closeRequested = false;
+        closeExternalResources();
+        cleanupEngine();
+        log.debug("JsPlaygroundExecutor 资源已释放");
+    }
+
+    private void closeExternalResources() {
+        if (httpClient != null) {
+            httpClient.close();
+        }
+    }
+
+    private void cleanupEngine() {
+        // 清除 ScriptEngine 的所有 bindings，释放 JS 运行时引用
+        if (engine != null) {
+            try {
+                // 清除注入的 Java 对象引用
+                engine.put("http", null);
+                engine.put("logger", null);
+                engine.put("shareLinkInfo", null);
+                engine.put("JavaFetch", null);
+                // 清除所有 ENGINE_SCOPE bindings，包括 eval 加载的 JS 函数
+                var bindings = engine.getBindings(javax.script.ScriptContext.ENGINE_SCOPE);
+                if (bindings != null) {
+                    bindings.clear();
+                }
+            } catch (Exception e) {
+                log.warn("清理 ScriptEngine bindings 失败: {}", e.getMessage());
+            }
         }
     }
 }

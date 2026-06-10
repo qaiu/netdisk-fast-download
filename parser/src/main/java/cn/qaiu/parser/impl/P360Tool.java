@@ -16,6 +16,9 @@ import java.util.regex.Pattern;
  * 下载链接需要Referer: https://link.yunpan.com/
  */
 public class P360Tool extends PanBase {
+
+    private static final Pattern NID_PATTERN = Pattern.compile("\"nid\": \"([^\"]+)\"");
+
     public P360Tool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
     }
@@ -43,9 +46,7 @@ public class P360Tool extends PanBase {
         clientSession.getAbs(url)
                 .send()
                 .onSuccess(res -> {
-                    // find  "nid": "17402043311959599"
-                    Pattern compile = Pattern.compile("\"nid\": \"([^\"]+)\"");
-                    Matcher matcher = compile.matcher(res.bodyAsString());
+                    Matcher matcher = NID_PATTERN.matcher(res.bodyAsString());
                     AtomicReference<String> nid = new AtomicReference<>();
                     if (matcher.find()) {
                         nid.set(matcher.group(1));
@@ -69,7 +70,7 @@ public class P360Tool extends PanBase {
                                         clientSession.getAbs(url)
                                                 .send()
                                                 .onSuccess(res3 -> {
-                                                    Matcher matcher1 = compile.matcher(res3.bodyAsString());
+                                                    Matcher matcher1 = NID_PATTERN.matcher(res3.bodyAsString());
                                                     if (matcher1.find()) {
                                                         nid.set(matcher1.group(1));
                                                     } else {

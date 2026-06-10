@@ -2,19 +2,21 @@ package cn.qaiu.parser.customjs;
 
 import cn.qaiu.WebClientVertxInit;
 import cn.qaiu.util.HttpResponseHelper;
-import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.RequestOptions;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.ProxyOptions;
 import io.vertx.core.net.ProxyType;
-import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.client.WebClientOptions;
-import io.vertx.ext.web.client.WebClientSession;
-import io.vertx.ext.web.multipart.MultipartForm;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,8 +29,13 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 /**
@@ -39,11 +46,60 @@ import java.util.regex.Pattern;
  * Create at 2025/10/17
  */
 public class JsHttpClient {
-    
+
     private static final Logger log = LoggerFactory.getLogger(JsHttpClient.class);
-    
-    private final WebClient client;
-    private final WebClientSession clientSession;
+    private static final int MAX_RESPONSE_BODY_BYTES = 8 * 1024 * 1024;
+    private static final int MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024;
+    private static final int MAX_HEADER_COUNT = 64;
+    private static final int MAX_HEADER_VALUE_LENGTH = 4096;
+    private static final int MAX_TIMEOUT_SECONDS = 120;
+    private static final int MAX_REDIRECTS = 5;
+    private static final String DEFAULT_ACCEPT_ENCODING = "gzip, deflate, br";
+
+    private static final Object SHARED_CLIENT_LOCK = new Object();
+    // 共享 HttpClient 实例（非代理模式），懒加载避免类初始化阶段抢跑 Vert.x。
+    private static volatile HttpClient sharedClient;
+    private static volatile boolean sharedClientShutdown = false;
+
+    /**
+     * 关闭共享 HttpClient（应用关闭时调用）
+     */
+    public static void shutdownSharedClient() {
+        synchronized (SHARED_CLIENT_LOCK) {
+            sharedClientShutdown = true;
+            if (sharedClient != null) {
+                sharedClient.close();
+                sharedClient = null;
+            }
+        }
+    }
+
+    private static HttpClient sharedClient() {
+        synchronized (SHARED_CLIENT_LOCK) {
+            ensureSharedClientAvailable();
+            if (sharedClient == null) {
+                sharedClient = WebClientVertxInit.get().createHttpClient(
+                        new HttpClientOptions()
+                                .setConnectTimeout(10000)
+                                .setIdleTimeout(30)
+                                .setIdleTimeoutUnit(TimeUnit.SECONDS)
+                                .setMaxPoolSize(64));
+            }
+            return sharedClient;
+        }
+    }
+
+    private static void ensureSharedClientAvailable() {
+        if (sharedClientShutdown) {
+            throw new IllegalStateException("共享 JavaScript HttpClient 已关闭");
+        }
+    }
+
+    private final HttpClient client;
+    private final boolean ownClient; // 标记是否为自建 client（需要 close）
+    private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final Object requestLock = new Object();
+    private final Set<HttpClientRequest> activeRequests = ConcurrentHashMap.newKeySet();
     private MultiMap headers;
     private int timeoutSeconds = 30; // 默认超时时间30秒
     
@@ -61,11 +117,12 @@ public class JsHttpClient {
     };
     
     public JsHttpClient() {
-        this.client = WebClient.create(WebClientVertxInit.get(), new WebClientOptions());
-        this.clientSession = WebClientSession.create(client);
+        ensureSharedClientAvailable();
+        this.client = sharedClient();
+        this.ownClient = false;
         this.headers = MultiMap.caseInsensitiveMultiMap();
         // 设置默认的Accept-Encoding头以支持压缩响应
-        this.headers.set("Accept-Encoding", "gzip, deflate, br, zstd");
+        this.headers.set("Accept-Encoding", DEFAULT_ACCEPT_ENCODING);
         // 设置默认的User-Agent头
         this.headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0");
         // 设置默认的Accept-Language头
@@ -77,31 +134,35 @@ public class JsHttpClient {
      * @param proxyConfig 代理配置JsonObject，包含type、host、port、username、password
      */
     public JsHttpClient(JsonObject proxyConfig) {
+        ensureSharedClientAvailable();
         if (proxyConfig != null && proxyConfig.containsKey("type")) {
             ProxyOptions proxyOptions = new ProxyOptions()
                     .setType(ProxyType.valueOf(proxyConfig.getString("type").toUpperCase()))
                     .setHost(proxyConfig.getString("host"))
                     .setPort(proxyConfig.getInteger("port"));
-            
+
             if (StringUtils.isNotEmpty(proxyConfig.getString("username"))) {
                 proxyOptions.setUsername(proxyConfig.getString("username"));
             }
             if (StringUtils.isNotEmpty(proxyConfig.getString("password"))) {
                 proxyOptions.setPassword(proxyConfig.getString("password"));
             }
-            
-            this.client = WebClient.create(WebClientVertxInit.get(),
-                    new WebClientOptions()
-                            .setUserAgentEnabled(false)
+
+            this.client = WebClientVertxInit.get().createHttpClient(
+                    new HttpClientOptions()
+                            .setConnectTimeout(10000)
+                            .setIdleTimeout(30)
+                            .setIdleTimeoutUnit(TimeUnit.SECONDS)
+                            .setMaxPoolSize(16)
                             .setProxyOptions(proxyOptions));
-            this.clientSession = WebClientSession.create(client);
+            this.ownClient = true;
         } else {
-            this.client = WebClient.create(WebClientVertxInit.get());
-            this.clientSession = WebClientSession.create(client);
+            this.client = sharedClient();
+            this.ownClient = false;
         }
         this.headers = MultiMap.caseInsensitiveMultiMap();
         // 设置默认的Accept-Encoding头以支持压缩响应
-        this.headers.set("Accept-Encoding", "gzip, deflate, br, zstd");
+        this.headers.set("Accept-Encoding", DEFAULT_ACCEPT_ENCODING);
         // 设置默认的User-Agent头
         this.headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0");
         // 设置默认的Accept-Language头
@@ -183,13 +244,7 @@ public class JsHttpClient {
      */
     public JsHttpResponse get(String url) {
         validateUrlSecurity(url);
-        return executeRequest(() -> {
-            HttpRequest<Buffer> request = client.getAbs(url);
-            if (!headers.isEmpty()) {
-                request.putHeaders(headers);
-            }
-            return request.send();
-        });
+        return executeRequest(HttpMethod.GET, url, null, false);
     }
     
     /**
@@ -198,16 +253,25 @@ public class JsHttpClient {
      * @return HTTP响应
      */
     public JsHttpResponse getWithRedirect(String url) {
-        validateUrlSecurity(url);
-        return executeRequest(() -> {
-            HttpRequest<Buffer> request = client.getAbs(url);
-            if (!headers.isEmpty()) {
-                request.putHeaders(headers);
+        String currentUrl = url;
+        for (int redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount++) {
+            validateUrlSecurity(currentUrl);
+            JsHttpResponse response = executeRequest(HttpMethod.GET, currentUrl, null, false);
+            if (!isRedirectStatus(response.statusCode())) {
+                return response;
             }
-            // 设置跟随重定向
-            request.followRedirects(true);
-            return request.send();
-        });
+
+            if (redirectCount == MAX_REDIRECTS) {
+                throw new RuntimeException("重定向次数超过限制: " + MAX_REDIRECTS);
+            }
+
+            String location = response.header(HttpHeaders.LOCATION.toString());
+            if (StringUtils.isBlank(location)) {
+                throw new RuntimeException("重定向响应缺少Location头");
+            }
+            currentUrl = resolveRedirectUrl(currentUrl, location);
+        }
+        throw new RuntimeException("重定向处理失败");
     }
     
     /**
@@ -217,15 +281,7 @@ public class JsHttpClient {
      */
     public JsHttpResponse getNoRedirect(String url) {
         validateUrlSecurity(url);
-        return executeRequest(() -> {
-            HttpRequest<Buffer> request = client.getAbs(url);
-            if (!headers.isEmpty()) {
-                request.putHeaders(headers);
-            }
-            // 设置不跟随重定向
-            request.followRedirects(false);
-            return request.send();
-        });
+        return executeRequest(HttpMethod.GET, url, null, false);
     }
     
     /**
@@ -236,26 +292,7 @@ public class JsHttpClient {
      */
     public JsHttpResponse post(String url, Object data) {
         validateUrlSecurity(url);
-        return executeRequest(() -> {
-            HttpRequest<Buffer> request = client.postAbs(url);
-            if (!headers.isEmpty()) {
-                request.putHeaders(headers);
-            }
-            
-            if (data != null) {
-                if (data instanceof String) {
-                    return request.sendBuffer(Buffer.buffer((String) data));
-                } else if (data instanceof Map) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, String> mapData = (Map<String, String>) data;
-                    return request.sendForm(MultiMap.caseInsensitiveMultiMap().addAll(mapData));
-                } else {
-                    return request.sendJson(data);
-                }
-            } else {
-                return request.send();
-            }
-        });
+        return executeRequest(HttpMethod.POST, url, bodyFromData(data), false);
     }
     
     /**
@@ -266,26 +303,7 @@ public class JsHttpClient {
      */
     public JsHttpResponse put(String url, Object data) {
         validateUrlSecurity(url);
-        return executeRequest(() -> {
-            HttpRequest<Buffer> request = client.putAbs(url);
-            if (!headers.isEmpty()) {
-                request.putHeaders(headers);
-            }
-            
-            if (data != null) {
-                if (data instanceof String) {
-                    return request.sendBuffer(Buffer.buffer((String) data));
-                } else if (data instanceof Map) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, String> mapData = (Map<String, String>) data;
-                    return request.sendForm(MultiMap.caseInsensitiveMultiMap().addAll(mapData));
-                } else {
-                    return request.sendJson(data);
-                }
-            } else {
-                return request.send();
-            }
-        });
+        return executeRequest(HttpMethod.PUT, url, bodyFromData(data), false);
     }
     
     /**
@@ -294,13 +312,8 @@ public class JsHttpClient {
      * @return HTTP响应
      */
     public JsHttpResponse delete(String url) {
-        return executeRequest(() -> {
-            HttpRequest<Buffer> request = client.deleteAbs(url);
-            if (!headers.isEmpty()) {
-                request.putHeaders(headers);
-            }
-            return request.send();
-        });
+        validateUrlSecurity(url);
+        return executeRequest(HttpMethod.DELETE, url, null, false);
     }
     
     /**
@@ -310,26 +323,8 @@ public class JsHttpClient {
      * @return HTTP响应
      */
     public JsHttpResponse patch(String url, Object data) {
-        return executeRequest(() -> {
-            HttpRequest<Buffer> request = client.patchAbs(url);
-            if (!headers.isEmpty()) {
-                request.putHeaders(headers);
-            }
-            
-            if (data != null) {
-                if (data instanceof String) {
-                    return request.sendBuffer(Buffer.buffer((String) data));
-                } else if (data instanceof Map) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, String> mapData = (Map<String, String>) data;
-                    return request.sendForm(MultiMap.caseInsensitiveMultiMap().addAll(mapData));
-                } else {
-                    return request.sendJson(data);
-                }
-            } else {
-                return request.send();
-            }
-        });
+        validateUrlSecurity(url);
+        return executeRequest(HttpMethod.PATCH, url, bodyFromData(data), false);
     }
     
     /**
@@ -340,6 +335,12 @@ public class JsHttpClient {
      */
     public JsHttpClient putHeader(String name, String value) {
         if (name != null && value != null) {
+            if (headers.size() >= MAX_HEADER_COUNT && !headers.contains(name)) {
+                throw new IllegalArgumentException("请求头数量超过限制");
+            }
+            if (value.length() > MAX_HEADER_VALUE_LENGTH) {
+                throw new IllegalArgumentException("请求头过长: " + name);
+            }
             headers.set(name, value);
         }
         return this;
@@ -353,9 +354,7 @@ public class JsHttpClient {
     public JsHttpClient putHeaders(Map<String, String> headersMap) {
         if (headersMap != null) {
             for (Map.Entry<String, String> entry : headersMap.entrySet()) {
-                if (entry.getKey() != null && entry.getValue() != null) {
-                    headers.set(entry.getKey(), entry.getValue());
-                }
+                putHeader(entry.getKey(), entry.getValue());
             }
         }
         return this;
@@ -380,7 +379,7 @@ public class JsHttpClient {
     public JsHttpClient clearHeaders() {
         headers.clear();
         // 重新设置默认头
-        headers.set("Accept-Encoding", "gzip, deflate, br, zstd");
+        headers.set("Accept-Encoding", DEFAULT_ACCEPT_ENCODING);
         headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0");
         headers.set("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
         return this;
@@ -405,7 +404,7 @@ public class JsHttpClient {
      */
     public JsHttpClient setTimeout(int seconds) {
         if (seconds > 0) {
-            this.timeoutSeconds = seconds;
+            this.timeoutSeconds = Math.min(seconds, MAX_TIMEOUT_SECONDS);
         }
         return this;
     }
@@ -450,19 +449,12 @@ public class JsHttpClient {
      * @return HTTP响应
      */
     public JsHttpResponse sendForm(Map<String, String> data) {
-        return executeRequest(() -> {
-            HttpRequest<Buffer> request = client.postAbs("");
-            if (!headers.isEmpty()) {
-                request.putHeaders(headers);
-            }
-            
-            MultiMap formData = MultiMap.caseInsensitiveMultiMap();
-            if (data != null) {
-                formData.addAll(data);
-            }
-            
-            return request.sendForm(formData);
-        });
+        throw new IllegalArgumentException("sendForm(data) 缺少请求URL，请使用 post(url, data)");
+    }
+
+    public JsHttpResponse sendForm(String url, Map<String, String> data) {
+        validateUrlSecurity(url);
+        return executeRequest(HttpMethod.POST, url, formBody(data), false);
     }
     
     /**
@@ -474,34 +466,8 @@ public class JsHttpClient {
      * @return HTTP响应
      */
     public JsHttpResponse sendMultipartForm(String url, Map<String, Object> data) {
-        return executeRequest(() -> {
-            HttpRequest<Buffer> request = client.postAbs(url);
-            if (!headers.isEmpty()) {
-                request.putHeaders(headers);
-            }
-            
-            MultipartForm form = MultipartForm.create();
-            
-            if (data != null) {
-                for (Map.Entry<String, Object> entry : data.entrySet()) {
-                    String key = entry.getKey();
-                    Object value = entry.getValue();
-                    
-                    if (value instanceof String) {
-                        form.attribute(key, (String) value);
-                    } else if (value instanceof byte[]) {
-                        form.binaryFileUpload(key, key, Buffer.buffer((byte[]) value), "application/octet-stream");
-                    } else if (value instanceof Buffer) {
-                        form.binaryFileUpload(key, key, (Buffer) value, "application/octet-stream");
-                    } else if (value != null) {
-                        // 其他类型转换为字符串
-                        form.attribute(key, value.toString());
-                    }
-                }
-            }
-            
-            return request.sendMultipartForm(form);
-        });
+        validateUrlSecurity(url);
+        return executeRequest(HttpMethod.POST, url, multipartBody(data), false);
     }
     
     /**
@@ -510,44 +476,103 @@ public class JsHttpClient {
      * @return HTTP响应
      */
     public JsHttpResponse sendJson(Object data) {
-        return executeRequest(() -> {
-            HttpRequest<Buffer> request = client.postAbs("");
-            if (!headers.isEmpty()) {
-                request.putHeaders(headers);
-            }
-            
-            return request.sendJson(data);
-        });
+        throw new IllegalArgumentException("sendJson(data) 缺少请求URL，请使用 post(url, data)");
+    }
+
+    public JsHttpResponse sendJson(String url, Object data) {
+        validateUrlSecurity(url);
+        return executeRequest(HttpMethod.POST, url, jsonBody(data), false);
     }
     
     /**
      * 执行HTTP请求（同步）
      */
-    private JsHttpResponse executeRequest(RequestExecutor executor) {
+    private JsHttpResponse executeRequest(HttpMethod method, String url, RequestBody requestBody, boolean followRedirects) {
+        if (closed.get()) {
+            throw new IllegalStateException("HTTP客户端已关闭");
+        }
+        AtomicReference<HttpClientRequest> requestRef = new AtomicReference<>();
+        AtomicBoolean abandoned = new AtomicBoolean(false);
         try {
-            Promise<HttpResponse<Buffer>> promise = Promise.promise();
-            Future<HttpResponse<Buffer>> future = executor.execute();
-            
-            future.onComplete(result -> {
-                if (result.succeeded()) {
-                    promise.complete(result.result());
-                } else {
-                    promise.fail(result.cause());
-                }
-            }).onFailure(e -> log.error("HTTP请求失败", e));
+            Promise<JsHttpResponse> promise = Promise.promise();
 
-            // 等待响应完成（使用配置的超时时间）
-            HttpResponse<Buffer> response = promise.future().toCompletionStage()
+            RequestOptions options = new RequestOptions()
+                    .setMethod(method)
+                    .setAbsoluteURI(url)
+                    .setFollowRedirects(followRedirects)
+                    .setTimeout(TimeUnit.SECONDS.toMillis(timeoutSeconds))
+                    .setHeaders(MultiMap.caseInsensitiveMultiMap().setAll(headers));
+
+            client.request(options).onComplete(ar -> {
+                if (ar.failed()) {
+                    promise.tryFail(ar.cause());
+                    return;
+                }
+
+                HttpClientRequest request = ar.result();
+                synchronized (requestLock) {
+                    if (closed.get() || abandoned.get()) {
+                        request.reset();
+                        promise.tryFail("HTTP客户端已关闭");
+                        return;
+                    }
+                    activeRequests.add(request);
+                    requestRef.set(request);
+                    request.exceptionHandler(e -> {
+                        finishRequest(request);
+                        promise.tryFail(e);
+                    });
+                    request.response().onComplete(responseAr -> {
+                        if (responseAr.succeeded()) {
+                            collectResponse(request, responseAr.result(), promise);
+                        } else {
+                            finishRequest(request);
+                            promise.tryFail(responseAr.cause());
+                        }
+                    });
+
+                    if (closed.get() || abandoned.get()) {
+                        request.reset();
+                        finishRequest(request);
+                        promise.tryFail("HTTP客户端已关闭");
+                        return;
+                    }
+                    if (requestBody == null || requestBody.body() == null) {
+                        request.end().onFailure(e -> {
+                            finishRequest(request);
+                            promise.tryFail(e);
+                        });
+                    } else {
+                        request.headers().set(HttpHeaders.CONTENT_LENGTH, String.valueOf(requestBody.body().length()));
+                        if (StringUtils.isNotEmpty(requestBody.contentType())) {
+                            request.headers().set(HttpHeaders.CONTENT_TYPE, requestBody.contentType());
+                        }
+                        request.end(requestBody.body()).onFailure(e -> {
+                            finishRequest(request);
+                            promise.tryFail(e);
+                        });
+                    }
+                }
+            });
+
+            return promise.future().toCompletionStage()
                     .toCompletableFuture()
                     .get(timeoutSeconds, TimeUnit.SECONDS);
-            
-            return new JsHttpResponse(response);
-            
+
         } catch (TimeoutException e) {
+            // RequestOptions timeout 通常会先触发；这里再兜底，避免等待线程返回后请求还在后台下载。
             String errorMsg = "HTTP请求超时（" + timeoutSeconds + "秒）";
+            abandoned.set(true);
+            synchronized (requestLock) {
+                abortRequest(requestRef);
+            }
             log.error(errorMsg, e);
             throw new RuntimeException(errorMsg, e);
         } catch (Exception e) {
+            abandoned.set(true);
+            synchronized (requestLock) {
+                abortRequest(requestRef);
+            }
             String errorMsg = e.getMessage();
             if (errorMsg == null || errorMsg.trim().isEmpty()) {
                 errorMsg = e.getClass().getSimpleName();
@@ -559,13 +584,196 @@ public class JsHttpClient {
             throw new RuntimeException("HTTP请求执行失败: " + errorMsg, e);
         }
     }
-    
-    /**
-     * 请求执行器接口
-     */
-    @FunctionalInterface
-    private interface RequestExecutor {
-        Future<HttpResponse<Buffer>> execute();
+
+    private static boolean isRedirectStatus(int statusCode) {
+        return statusCode == 301 || statusCode == 302 || statusCode == 303
+                || statusCode == 307 || statusCode == 308;
+    }
+
+    private String resolveRedirectUrl(String currentUrl, String location) {
+        try {
+            URI redirectUri = new URI(currentUrl).resolve(location.trim());
+            String scheme = redirectUri.getScheme();
+            if (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme)) {
+                throw new SecurityException("🔒 安全拦截: 重定向协议不被允许");
+            }
+            String redirectUrl = redirectUri.toString();
+            validateUrlSecurity(redirectUrl);
+            return redirectUrl;
+        } catch (SecurityException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("解析重定向地址失败: " + e.getMessage(), e);
+        }
+    }
+
+    private void collectResponse(HttpClientRequest request, HttpClientResponse response, Promise<JsHttpResponse> promise) {
+        Buffer body = Buffer.buffer();
+        AtomicBoolean done = new AtomicBoolean(false);
+
+        String contentLengthHeader = response.getHeader(HttpHeaders.CONTENT_LENGTH.toString());
+        if (StringUtils.isNumeric(contentLengthHeader)) {
+            long contentLength = Long.parseLong(contentLengthHeader);
+            if (contentLength > MAX_RESPONSE_BODY_BYTES) {
+                done.set(true);
+                request.reset();
+                finishRequest(request);
+                promise.tryFail("响应体过大: " + contentLength + " bytes");
+                return;
+            }
+        }
+
+        response.exceptionHandler(e -> {
+            if (done.compareAndSet(false, true)) {
+                finishRequest(request);
+                promise.tryFail(e);
+            }
+        });
+        response.handler(chunk -> {
+            if (done.get()) {
+                return;
+            }
+            if (body.length() + chunk.length() > MAX_RESPONSE_BODY_BYTES) {
+                if (done.compareAndSet(false, true)) {
+                    request.reset();
+                    finishRequest(request);
+                    promise.tryFail("响应体过大: " + (body.length() + chunk.length()) + " bytes");
+                }
+                return;
+            }
+            body.appendBuffer(chunk);
+        });
+        response.endHandler(v -> {
+            if (done.compareAndSet(false, true)) {
+                finishRequest(request);
+                promise.tryComplete(new JsHttpResponse(
+                        response.statusCode(),
+                        MultiMap.caseInsensitiveMultiMap().setAll(response.headers()),
+                        body,
+                        response.statusMessage(),
+                        null
+                ));
+            }
+        });
+        response.resume();
+    }
+
+    private void finishRequest(HttpClientRequest request) {
+        if (request != null) {
+            activeRequests.remove(request);
+        }
+    }
+
+    private void abortRequest(AtomicReference<HttpClientRequest> requestRef) {
+        HttpClientRequest request = requestRef.get();
+        if (request != null) {
+            try {
+                request.reset();
+            } finally {
+                finishRequest(request);
+            }
+        }
+    }
+
+    private RequestBody bodyFromData(Object data) {
+        if (data == null) {
+            return null;
+        }
+        if (data instanceof String str) {
+            return plainTextBody(str);
+        }
+        if (data instanceof Buffer buffer) {
+            return limitedBody(buffer, null);
+        }
+        if (data instanceof byte[] bytes) {
+            return limitedBody(Buffer.buffer(bytes), null);
+        }
+        if (data instanceof Map<?, ?> map) {
+            Map<String, String> formMap = new HashMap<>();
+            map.forEach((key, value) -> {
+                if (key != null && value != null) {
+                    formMap.put(String.valueOf(key), String.valueOf(value));
+                }
+            });
+            return formBody(formMap);
+        }
+        return jsonBody(data);
+    }
+
+    private RequestBody plainTextBody(String data) {
+        return limitedBody(Buffer.buffer(data, StandardCharsets.UTF_8.name()), null);
+    }
+
+    private RequestBody jsonBody(Object data) {
+        Buffer body = data == null ? Buffer.buffer() : Buffer.buffer(Json.encode(data), StandardCharsets.UTF_8.name());
+        return limitedBody(body, "application/json; charset=utf-8");
+    }
+
+    private RequestBody formBody(Map<String, String> data) {
+        StringBuilder encoded = new StringBuilder();
+        if (data != null) {
+            for (Map.Entry<String, String> entry : data.entrySet()) {
+                if (encoded.length() > 0) {
+                    encoded.append('&');
+                }
+                encoded.append(urlEncode(entry.getKey()));
+                encoded.append('=');
+                encoded.append(urlEncode(entry.getValue()));
+            }
+        }
+        return limitedBody(Buffer.buffer(encoded.toString(), StandardCharsets.UTF_8.name()),
+                "application/x-www-form-urlencoded; charset=utf-8");
+    }
+
+    private RequestBody multipartBody(Map<String, Object> data) {
+        String boundary = "----NetdiskJsHttpClientBoundary" + UUID.randomUUID().toString().replace("-", "");
+        Buffer body = Buffer.buffer();
+        if (data != null) {
+            for (Map.Entry<String, Object> entry : data.entrySet()) {
+                String key = entry.getKey();
+                Object value = entry.getValue();
+                if (key == null || value == null) {
+                    continue;
+                }
+                appendAscii(body, "--" + boundary + "\r\n");
+                if (value instanceof byte[] bytes) {
+                    appendAscii(body, "Content-Disposition: form-data; name=\"" + escapeMultipart(key)
+                            + "\"; filename=\"" + escapeMultipart(key) + "\"\r\n");
+                    appendAscii(body, "Content-Type: application/octet-stream\r\n\r\n");
+                    body.appendBytes(bytes);
+                    appendAscii(body, "\r\n");
+                } else if (value instanceof Buffer buffer) {
+                    appendAscii(body, "Content-Disposition: form-data; name=\"" + escapeMultipart(key)
+                            + "\"; filename=\"" + escapeMultipart(key) + "\"\r\n");
+                    appendAscii(body, "Content-Type: application/octet-stream\r\n\r\n");
+                    body.appendBuffer(buffer);
+                    appendAscii(body, "\r\n");
+                } else {
+                    appendAscii(body, "Content-Disposition: form-data; name=\"" + escapeMultipart(key) + "\"\r\n\r\n");
+                    body.appendString(String.valueOf(value), StandardCharsets.UTF_8.name());
+                    appendAscii(body, "\r\n");
+                }
+                ensureRequestBodyLimit(body);
+            }
+        }
+        appendAscii(body, "--" + boundary + "--\r\n");
+        return limitedBody(body, "multipart/form-data; boundary=" + boundary);
+    }
+
+    private static void appendAscii(Buffer body, String value) {
+        body.appendString(value, StandardCharsets.US_ASCII.name());
+    }
+
+    private static String escapeMultipart(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private static RequestBody limitedBody(Buffer body, String contentType) {
+        ensureRequestBodyLimit(body);
+        return new RequestBody(body, contentType);
+    }
+
+    private record RequestBody(Buffer body, String contentType) {
     }
     
     /**
@@ -573,10 +781,29 @@ public class JsHttpClient {
      */
     public static class JsHttpResponse {
         
-        private final HttpResponse<Buffer> response;
+        private final int statusCode;
+        private final MultiMap headers;
+        private final Buffer body;
+        private final String statusMessage;
+        private final HttpResponse<Buffer> originalResponse;
         
         public JsHttpResponse(HttpResponse<Buffer> response) {
-            this.response = response;
+            this(
+                    response.statusCode(),
+                    MultiMap.caseInsensitiveMultiMap().setAll(response.headers()),
+                    response.body(),
+                    response.statusMessage(),
+                    response
+            );
+        }
+
+        public JsHttpResponse(int statusCode, MultiMap headers, Buffer body, String statusMessage,
+                              HttpResponse<Buffer> originalResponse) {
+            this.statusCode = statusCode;
+            this.headers = headers == null ? MultiMap.caseInsensitiveMultiMap() : headers;
+            this.body = body == null ? Buffer.buffer() : body;
+            this.statusMessage = statusMessage;
+            this.originalResponse = originalResponse;
         }
         
         /**
@@ -584,7 +811,7 @@ public class JsHttpClient {
          * @return 响应体字符串
          */
         public String body() {
-            return HttpResponseHelper.asText(response);
+            return HttpResponseHelper.asText(body, header(HttpHeaders.CONTENT_ENCODING.toString()));
         }
         
         /**
@@ -593,7 +820,7 @@ public class JsHttpClient {
          */
         public Object json() {
             try {
-                JsonObject jsonObject = HttpResponseHelper.asJson(response);
+                JsonObject jsonObject = HttpResponseHelper.asJson(body, header(HttpHeaders.CONTENT_ENCODING.toString()));
                 if (jsonObject == null || jsonObject.isEmpty()) {
                     return null;
                 }
@@ -611,7 +838,7 @@ public class JsHttpClient {
          * @return 状态码
          */
         public int statusCode() {
-            return response.statusCode();
+            return statusCode;
         }
         
         /**
@@ -620,7 +847,7 @@ public class JsHttpClient {
          * @return 头值
          */
         public String header(String name) {
-            return response.getHeader(name);
+            return headers.get(name);
         }
         
         /**
@@ -628,10 +855,9 @@ public class JsHttpClient {
          * @return 响应头Map
          */
         public Map<String, String> headers() {
-            MultiMap responseHeaders = response.headers();
             Map<String, String> result = new HashMap<>();
-            for (String name : responseHeaders.names()) {
-                result.put(name, responseHeaders.get(name));
+            for (String name : headers.names()) {
+                result.put(name, headers.get(name));
             }
             return result;
         }
@@ -649,8 +875,14 @@ public class JsHttpClient {
          * 获取原始响应对象
          * @return HttpResponse对象
          */
+        @Deprecated
         public HttpResponse<Buffer> getOriginalResponse() {
-            return response;
+            if (originalResponse == null) {
+                throw new UnsupportedOperationException(
+                        "流式HTTP客户端不再保留原始Vert.x HttpResponse，请使用statusCode/header/headers/body/bodyBytes方法"
+                );
+            }
+            return originalResponse;
         }
         
         /**
@@ -658,11 +890,8 @@ public class JsHttpClient {
          * @return 响应体字节数组
          */
         public byte[] bodyBytes() {
-            Buffer buffer = response.body();
-            if (buffer == null) {
-                return new byte[0];
-            }
-            return buffer.getBytes();
+            ensureResponseBodyLimit(body);
+            return body.getBytes();
         }
         
         /**
@@ -670,20 +899,46 @@ public class JsHttpClient {
          * @return 响应体大小（字节）
          */
         public long bodySize() {
-            Buffer buffer = response.body();
-            if (buffer == null) {
-                return 0;
-            }
-            return buffer.length();
+            return body.length();
+        }
+
+        public String statusMessage() {
+            return statusMessage;
         }
     }
 
     /**
-     * 关闭 WebClient 释放连接池资源
+     * 关闭 HttpClient 释放连接池资源
+     * 仅关闭自建的 client（代理模式），共享实例不关闭
      */
     public void close() {
-        if (client != null) {
+        if (!closed.compareAndSet(false, true)) {
+            return;
+        }
+        synchronized (requestLock) {
+            for (HttpClientRequest request : activeRequests) {
+                try {
+                    request.reset();
+                } catch (Exception e) {
+                    log.debug("重置 JavaScript HTTP 请求失败: {}", e.getMessage());
+                }
+            }
+            activeRequests.clear();
+        }
+        if (ownClient && client != null) {
             client.close();
+        }
+    }
+
+    private static void ensureResponseBodyLimit(Buffer buffer) {
+        if (buffer != null && buffer.length() > MAX_RESPONSE_BODY_BYTES) {
+            throw new IllegalArgumentException("响应体过大: " + buffer.length() + " bytes");
+        }
+    }
+
+    private static void ensureRequestBodyLimit(Buffer buffer) {
+        if (buffer != null && buffer.length() > MAX_REQUEST_BODY_BYTES) {
+            throw new IllegalArgumentException("请求体过大: " + buffer.length() + " bytes");
         }
     }
 }

@@ -13,6 +13,7 @@ import cn.qaiu.lz.web.model.LinkInfoResp;
 import cn.qaiu.lz.web.model.StatisticsInfo;
 import cn.qaiu.lz.web.service.DbService;
 import cn.qaiu.parser.PanDomainTemplate;
+import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.ParserCreate;
 import cn.qaiu.parser.clientlink.ClientLinkType;
 import cn.qaiu.vx.core.annotaions.RouteHandler;
@@ -76,11 +77,30 @@ public class ParserApi {
     private static final CacheManager cacheManager = new CacheManager();
     private static final ServerApi serverApi = new ServerApi();
 
+    @RouteMapping(value = "/check/:type/:key", method = RouteMethod.GET)
+    public void check(HttpServerResponse response, String type, String key) {
+        response.putHeader("Content-Type", "text/plain; charset=utf-8")
+                .setStatusCode(200)
+                .end("ok");
+    }
+
+    @RouteMapping(value = "/check/:type/:key", method = RouteMethod.HEAD)
+    public void checkHead(HttpServerResponse response, String type, String key) {
+        response.putHeader("Content-Type", "text/plain; charset=utf-8")
+                .setStatusCode(200)
+                .end();
+    }
+
     @RouteMapping(value = "/linkInfo", method = RouteMethod.GET)
     public Future<LinkInfoResp> parse(HttpServerRequest request, String pwd, String auth) {
         Promise<LinkInfoResp> promise = Promise.promise();
         String url = URLParamUtil.parserParams(request);
-        ParserCreate parserCreate = ParserCreate.fromShareUrl(url).setShareLinkInfoPwd(pwd);
+        ParserCreate parserCreate;
+        try {
+            parserCreate = ParserCreate.fromShareUrl(url).setShareLinkInfoPwd(pwd);
+        } catch (Exception e) {
+            return Future.failedFuture(e);
+        }
         ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();
         
         // 构建链接信息响应，如果有 auth 参数则附加到链接中
@@ -141,7 +161,12 @@ public class ParserApi {
     @RouteMapping("/getFileList")
     public Future<List<FileInfo>> getFileList(HttpServerRequest request, String pwd, String dirId, String uuid) {
         String url = URLParamUtil.parserParams(request);
-        ParserCreate parserCreate = ParserCreate.fromShareUrl(url).setShareLinkInfoPwd(pwd);
+        ParserCreate parserCreate;
+        try {
+            parserCreate = ParserCreate.fromShareUrl(url).setShareLinkInfoPwd(pwd);
+        } catch (Exception e) {
+            return Future.failedFuture(e);
+        }
         String linkPrefix = getLinkPrefix(request);
         parserCreate.getShareLinkInfo().getOtherParam().put("domainName", linkPrefix);
         parserCreate.getShareLinkInfo().getOtherParam().put("_requestOrigin", linkPrefix);
@@ -151,7 +176,8 @@ public class ParserApi {
         if (StringUtils.isNotBlank(uuid)) {
             parserCreate.getShareLinkInfo().getOtherParam().put("uuid", uuid);
         }
-        return parserCreate.createTool().parseFileList();
+        IPanTool tool = parserCreate.createTool();
+        return IPanTool.closeAfter(tool, tool::parseFileList);
     }
 
     // 目录解析下载文件
@@ -174,7 +200,8 @@ public class ParserApi {
         String linkPrefix = getLinkPrefix(request);
         shareLinkInfo.getOtherParam().put("domainName", linkPrefix);
         shareLinkInfo.getOtherParam().put("_requestOrigin", linkPrefix);
-        return parserCreate.createTool().parseById();
+        IPanTool tool = parserCreate.createTool();
+        return IPanTool.closeAfter(tool, tool::parseById);
     }
 
     @RouteMapping("/redirectUrl/:type/:param")
@@ -183,10 +210,9 @@ public class ParserApi {
 
         getFileDownUrl(request, type, param)
                 .onSuccess(res -> {
-                    ResponseUtil.redirect(response, res);
-                    promise.complete();
+                    ResponseUtil.redirect(response, res, promise);
                 })
-                .onFailure(t -> promise.fail(t.fillInStackTrace()));
+                .onFailure(promise::tryFail);
         return promise.future();
     }
 
@@ -212,7 +238,7 @@ public class ParserApi {
         }
         
         String previewURL = SharedDataUtil.getJsonStringForServerConfig("previewURL");
-        serverApi.parseKeyJson(request, type, key).onSuccess(res -> {
+        serverApi.parseKeyJsonForRedirect(request, type, key).onSuccess(res -> {
             redirect(response, previewURL, res);
         }).onFailure(e -> {
             ResponseUtil.fireJsonResultResponse(response, JsonResult.error(e.toString()));
@@ -248,7 +274,7 @@ public class ParserApi {
         }
         
         String previewURL = SharedDataUtil.getJsonStringForServerConfig("previewURL");
-        serverApi.parseJson(request, pwd, null).onSuccess(res -> {
+        serverApi.parseJsonForRedirect(request, pwd, null).onSuccess(res -> {
             redirect(response, previewURL, res);
         }).onFailure(e -> {
             ResponseUtil.fireJsonResultResponse(response, JsonResult.error(e.toString()));
@@ -264,10 +290,9 @@ public class ParserApi {
         getFileDownUrl(request, type, param)
                 .onSuccess(res -> {
                     String url = viewPrefix + URLEncoder.encode(res, StandardCharsets.UTF_8);
-                    ResponseUtil.redirect(response, url);
-                    promise.complete();
+                    ResponseUtil.redirect(response, url, promise);
                 })
-                .onFailure(t -> promise.fail(t.fillInStackTrace()));
+                .onFailure(promise::tryFail);
         return promise.future();
     }
 
@@ -320,7 +345,8 @@ public class ParserApi {
             }
             
             // 使用默认方法解析并生成客户端链接
-            parserCreate.createTool().parseWithClientLinks()
+            IPanTool tool = parserCreate.createTool();
+            IPanTool.closeAfter(tool, tool::parseWithClientLinks)
                 .onSuccess(clientLinks -> {
                     try {
                         ClientLinkResp response = buildClientLinkResponse(shareLinkInfo, clientLinks);
@@ -362,7 +388,8 @@ public class ParserApi {
             URLParamUtil.addParam(parserCreate);
 
             // 使用默认方法解析并生成客户端链接
-            parserCreate.createTool().parseWithClientLinks()
+            IPanTool tool = parserCreate.createTool();
+            IPanTool.closeAfter(tool, tool::parseWithClientLinks)
                 .onSuccess(clientLinks -> {
                     try {
                         String clientLink = extractClientLinkByType(clientLinks, clientType);

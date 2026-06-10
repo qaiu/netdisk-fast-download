@@ -52,4 +52,14 @@ public class IzSelectorTool implements IPanTool {
     public Future<String> parseById() {
         return selectedTool.parseById();
     }
+
+    @Override
+    public ShareLinkInfo getShareLinkInfo() {
+        return selectedTool.getShareLinkInfo();
+    }
+
+    @Override
+    public void close() {
+        IPanTool.closeQuietly(selectedTool);
+    }
 }

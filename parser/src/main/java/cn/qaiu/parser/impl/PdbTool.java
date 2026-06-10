@@ -28,6 +28,7 @@ public class PdbTool extends PanBase implements IPanTool {
     private static final String API_URL =
             "https://www.dropbox.com/sharing/fetch_user_content_link";
     static final String COOKIE_KEY = "__Host-js_csrf=";
+    private static final Pattern CSRF_TOKEN_PATTERN = Pattern.compile(COOKIE_KEY + "([\\w-]+);");
 
     public PdbTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
@@ -47,7 +48,7 @@ public class PdbTool extends PanBase implements IPanTool {
                         fail("cookie未找到");
                         return;
                     }
-                    Matcher matcher = Pattern.compile(COOKIE_KEY + "([\\w-]+);").matcher(collect.get(0));
+                    Matcher matcher = CSRF_TOKEN_PATTERN.matcher(collect.get(0));
                     String _t;
                     if (matcher.find()) {
                         _t = matcher.group(1);

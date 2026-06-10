@@ -63,6 +63,11 @@ public class QQscTool extends PanBase {
             x-oidb: {"uint32_command":"0x93d4", "uint32_service_type":"1"}
             """);
 
+    private static final Pattern FILESET_ID_PATTERN = Pattern.compile(
+            "fileset_id[^a-f0-9]*([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})");
+
+    private static final Pattern TITLE_PATTERN = Pattern.compile("<title>(.*?)</title>");
+
     public QQscTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
     }
@@ -247,7 +252,9 @@ public class QQscTool extends PanBase {
                                                 .put("sort_order", 0)))))
                 .put("support_folder_status", true);
 
-        MultiMap headers = GET_FILE_LIST_HEADERS.set("Referer", shareLinkInfo.getShareUrl());
+        // 创建局部副本，避免修改静态 MultiMap 导致并发污染
+        MultiMap headers = MultiMap.caseInsensitiveMultiMap().addAll(GET_FILE_LIST_HEADERS)
+                .set("Referer", shareLinkInfo.getShareUrl());
 
         client.postAbs(GET_FILE_LIST_API)
                 .putHeaders(headers)
@@ -283,9 +290,7 @@ public class QQscTool extends PanBase {
     String extractFilesetId(String html) {
         // Nuxt __NUXT_DATA__ 中 fileset_id 出现在缓存 key 的嵌套 JSON 中
         // 直接匹配 fileset_id 后面最近的 UUID（跳过转义引号、冒号等非hex字符）
-        Pattern pattern = Pattern.compile(
-                "fileset_id[^a-f0-9]*([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})");
-        Matcher matcher = pattern.matcher(html);
+        Matcher matcher = FILESET_ID_PATTERN.matcher(html);
         if (matcher.find()) {
             return matcher.group(1);
         }
@@ -326,8 +331,7 @@ public class QQscTool extends PanBase {
     }
 
     public static String extractFileNameFromTitle(String content) {
-        Pattern pattern = Pattern.compile("<title>(.*?)</title>");
-        Matcher matcher = pattern.matcher(content);
+        Matcher matcher = TITLE_PATTERN.matcher(content);
         if (matcher.find()) {
             String fullTitle = matcher.group(1);
             int sepIndex = fullTitle.indexOf("｜");

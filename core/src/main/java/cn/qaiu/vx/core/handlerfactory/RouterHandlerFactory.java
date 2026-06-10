@@ -34,6 +34,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -96,7 +97,9 @@ public class RouterHandlerFactory implements BaseHttpApi {
         mainRouter.route().handler(CorsHandler.create().addRelativeOrigin(".*").allowCredentials(true).allowedMethods(httpMethods));
 
         // 配置文件上传路径
-        mainRouter.route().handler(BodyHandler.create().setUploadsDirectory("uploads"));
+        mainRouter.route().handler(BodyHandler.create()
+                .setUploadsDirectory("uploads")
+                .setBodyLimit(2L * 1024 * 1024));
 
         // 拦截器
         Set<Handler<RoutingContext>> interceptorSet = getInterceptorSet();
@@ -175,7 +178,7 @@ public class RouterHandlerFactory implements BaseHttpApi {
                 route.handler(TimeoutHandler.create(SharedDataUtil.getCustomConfig().getInteger(ROUTE_TIME_OUT)));
                 route.handler(ResponseTimeHandler.create());
                 route.handler(ctx -> handlerMethod(instance, method, ctx)).failureHandler(ctx -> {
-                    if (ctx.response().ended()) return;
+                    if (isResponseDone(ctx)) return;
                     // 超时处理器状态码503
                     if (ctx.statusCode() == 503 || ctx.failure() == null) {
                         doFireJsonResultResponse(ctx, JsonResult.error("未知异常, 请联系管理员"), 503);
@@ -394,26 +397,34 @@ public class RouterHandlerFactory implements BaseHttpApi {
 
                 if (data instanceof JsonResult jsonResult) {
                     doFireJsonResultResponse(ctx, (JsonResult<?>) data, jsonResult.getCode());
-                }
-                if (data instanceof JsonObject) {
+                } else if (data instanceof JsonObject) {
                     doFireJsonObjectResponse(ctx, ((JsonObject) data));
                 } else if (data instanceof Future) { // 处理异步响应
-                    ((Future<?>) data).onSuccess(res -> {
-                        if (res instanceof JsonResult jsonResult) {
-                            doFireJsonResultResponse(ctx, jsonResult, jsonResult.getCode());
+                    Future<?> responseFuture = (Future<?>) data;
+                    AtomicReference<RoutingContext> ctxRef = new AtomicReference<>(ctx);
+                    ctx.addEndHandler(v -> ctxRef.set(null));
+                    responseFuture.onComplete(ar -> {
+                        RoutingContext responseCtx = ctxRef.getAndSet(null);
+                        if (responseCtx == null || isResponseDone(responseCtx)) {
+                            return;
                         }
-                        if (res instanceof JsonObject) {
-                            doFireJsonObjectResponse(ctx, ((JsonObject) res));
-                        } else if (res != null) {
-                            doFireJsonResultResponse(ctx, JsonResult.data(res));
+                        if (ar.succeeded()) {
+                            Object res = ar.result();
+                            if (res instanceof JsonResult jsonResult) {
+                                doFireJsonResultResponse(responseCtx, jsonResult, jsonResult.getCode());
+                            } else if (res instanceof JsonObject) {
+                                doFireJsonObjectResponse(responseCtx, ((JsonObject) res));
+                            } else if (res != null) {
+                                doFireJsonResultResponse(responseCtx, JsonResult.data(res));
+                            } else {
+                                doFireJsonResultResponse(responseCtx, JsonResult.data(null));
+                            }
                         } else {
-                            doFireJsonResultResponse(ctx, JsonResult.data(null));
+                            Throwable e = ar.cause();
+                            LOGGER.error("请求处理失败", e);
+                            String msg = e != null && e.getMessage() != null ? e.getMessage() : "服务器内部错误";
+                            doFireJsonResultResponse(responseCtx, JsonResult.error(msg), 500);
                         }
-
-                    }).onFailure(e -> {
-                        LOGGER.error("请求处理失败", e);
-                        String msg = e.getMessage() != null ? e.getMessage() : "服务器内部错误";
-                        doFireJsonResultResponse(ctx, JsonResult.error(msg), 500);
                     });
                 } else {
                     doFireJsonResultResponse(ctx, JsonResult.data(data));

@@ -68,7 +68,7 @@ List<FileInfo> files = tool.parseFileListSync();
 ```
 
 要点：
-- 必须先 WebClientVertxInit.init(Vertx)；若未显式初始化，内部将懒加载 Vertx.vertx()，建议显式注入以统一生命周期。
+- 必须先 WebClientVertxInit.init(Vertx)；未初始化时会直接报错，避免解析器偷偷创建第二个 Vert.x 实例。
 - 支持三种同步方法：
   - `parseSync()`: 解析单个文件下载链接
   - `parseFileListSync()`: 解析文件列表

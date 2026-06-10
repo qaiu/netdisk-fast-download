@@ -23,6 +23,16 @@ import java.util.regex.Pattern;
  */
 public class PodTool extends PanBase {
 
+    private static final int MAX_RESPONSE_BODY_BYTES = 8 * 1024 * 1024;
+    private static final java.time.Duration REQUEST_TIMEOUT = java.time.Duration.ofSeconds(30);
+
+    // 静态共享的 JDK HttpClient 实例，避免每次调用创建新实例
+    private static final HttpClient SHARED_HTTP_CLIENT = HttpClient.newBuilder()
+            .connectTimeout(java.time.Duration.ofSeconds(10))
+            .build();
+    private static volatile WorkerExecutor SHARED_WORKER_EXECUTOR;
+    private static volatile boolean workerExecutorShutdown = false;
+
     /*
      * https://1drv.ms/w/s!Alg0feQmCv2rnRFd60DQOmMa-Oh_?e=buaRtp --302->
      * https://api.onedrive.com/v1.0/drives/abfd0a26e47d3458/items/ABFD0A26E47D3458!3729?authkey=!AF3rQNA6Yxr46H8
@@ -44,6 +54,13 @@ public class PodTool extends PanBase {
 
     private static final Pattern redirectUrlRegex =
             Pattern.compile("resid=(?<cid1>[^!]+)!(?<cid2>[^&]+).+&redeem=(?<redeem>.+).*");
+
+    private static final Pattern DOWNLOAD_URL_IN_RESPONSE_PATTERN =
+            Pattern.compile("\"downloadUrl\":\"(?<url>https?://[^\\s\"]+)");
+    private static final Pattern ACTION_URL_PATTERN =
+            Pattern.compile("'action'.+(?<url>https://.+)'\\)");
+    private static final Pattern TOKEN_PATTERN =
+            Pattern.compile("inputElem\\.value\\s*=\\s*'([^']+)'");
 
     public PodTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
@@ -97,7 +114,7 @@ public class PodTool extends PanBase {
 
                             sendHttpRequest(url, token).onSuccess(body -> {
                                 Matcher matcher1 =
-                                        Pattern.compile("\"downloadUrl\":\"(?<url>https?://[^\s\"]+)").matcher(body);
+                                        DOWNLOAD_URL_IN_RESPONSE_PATTERN.matcher(body);
                                 if (matcher1.find()) {
                                     // 响应体是 JSON 文本，URL 中的 '&' 被转义为 \u0026，需要反转义
                                     complete(unescapeJsonUnicode(matcher1.group("url")));
@@ -121,11 +138,7 @@ public class PodTool extends PanBase {
     }
 
     private String matcherUrl(String html) {
-
-        // 正则表达式来匹配 URL
-        String urlRegex = "'action'.+(?<url>https://.+)'\\)";
-        Pattern urlPattern = Pattern.compile(urlRegex);
-        Matcher urlMatcher = urlPattern.matcher(html);
+        Matcher urlMatcher = ACTION_URL_PATTERN.matcher(html);
 
         if (urlMatcher.find()) {
             String url = urlMatcher.group("url");
@@ -165,10 +178,7 @@ public class PodTool extends PanBase {
 
 
     private String matcherToken(String html) {
-        // 正则表达式来匹配 inputElem.value 中的 Token
-        String tokenRegex = "inputElem\\.value\\s*=\\s*'([^']+)'";
-        Pattern tokenPattern = Pattern.compile(tokenRegex);
-        Matcher tokenMatcher = tokenPattern.matcher(html);
+        Matcher tokenMatcher = TOKEN_PATTERN.matcher(html);
 
         if (tokenMatcher.find()) {
             String token = tokenMatcher.group(1);
@@ -180,11 +190,8 @@ public class PodTool extends PanBase {
 
     public Future<String> sendHttpRequest2(String token, String redeem) {
         Promise<String> promise = Promise.promise();
-        // 构造 HttpClient
-        HttpClient client = HttpClient.newHttpClient();
 
         // 构造请求的 URI 和头部信息
-        // https://onedrive.live.com/redir?cid=abfd0a26e47d3458&resid=ABFD0A26E47D3458!4465&ithint=file%2cxlsx&e=Ao2uSU&migratedtospo=true&redeem=aHR0cHM6Ly8xZHJ2Lm1zL3gvYy9hYmZkMGEyNmU0N2QzNDU4L0VWZzBmZVFtQ3YwZ2dLdHhFUUFBQUFBQlRQRWVDMTZfZk1EYk5FTjhEdTRta1E_ZT1BbzJ1U1U
         String url = ("https://my.microsoftpersonalcontent.com/_api/v2.0/shares/u!%s/driveItem?$select=content" +
                 ".downloadUrl").formatted(redeem);
         String authorizationHeader = "Badger " + token;
@@ -192,15 +199,20 @@ public class PodTool extends PanBase {
         // 构建请求
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
+                .timeout(REQUEST_TIMEOUT)
                 .header("Authorization", authorizationHeader)
                 .build();
 
-        // 发送请求并处理响应
-        client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+        // 发送请求并处理响应（使用共享的 HttpClient）
+        SHARED_HTTP_CLIENT.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray())
                 .thenApply(response -> {
                     log.debug("Response Status Code: {}", response.statusCode());
-                    log.debug("Response Body: {}", response.body());
-                    promise.complete(response.body());
+                    promise.complete(toLimitedString(response.body()));
+                    return null;
+                })
+                .exceptionally(e -> {
+                    log.error("sendHttpRequest2 请求失败: {}", e.getMessage());
+                    promise.fail(e);
                     return null;
                 });
 
@@ -208,18 +220,13 @@ public class PodTool extends PanBase {
     }
 
     public Future<String> sendHttpRequest(String url, String token) {
-        // 创建一个 WorkerExecutor 用于异步执行阻塞的 HTTP 请求
-        WorkerExecutor executor = WebClientVertxInit.get().createSharedWorkerExecutor("http-client-worker");
-
         Promise<String> promise = Promise.promise();
-        executor.executeBlocking(() -> {
-            HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = null;
-
+        getWorkerExecutor().executeBlocking(() -> {
             try {
                 // 构造请求
-                request = HttpRequest.newBuilder()
+                HttpRequest request = HttpRequest.newBuilder()
                         .uri(new URI(url))
+                        .timeout(REQUEST_TIMEOUT)
                         .header("accept", "text/html,application/xhtml+xml,application/xml;q=0.9," +
                                 "image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;" +
                                 "v=b3;q=0.7")
@@ -244,17 +251,49 @@ public class PodTool extends PanBase {
                         .POST(HttpRequest.BodyPublishers.ofString("badger_token=" + token))
                         .build();
 
-                // 发起请求并获取响应
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                // 发起请求并获取响应（使用共享的 HttpClient）
+                HttpResponse<byte[]> response = SHARED_HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
 
                 // 返回响应体
-                promise.complete(response.body());
+                promise.complete(toLimitedString(response.body()));
                 return null;
             } catch (URISyntaxException | IOException | InterruptedException e) {
+                if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                }
                 throw new RuntimeException(e);
             }
-        });
+        }).onFailure(promise::fail);
 
         return promise.future();
+    }
+
+    private static String toLimitedString(byte[] body) {
+        if (body.length > MAX_RESPONSE_BODY_BYTES) {
+            throw new IllegalArgumentException("OneDrive响应体过大: " + body.length + " bytes");
+        }
+        return new String(body, java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    private static WorkerExecutor getWorkerExecutor() {
+        synchronized (PodTool.class) {
+            if (workerExecutorShutdown) {
+                throw new IllegalStateException("OneDrive WorkerExecutor 已关闭");
+            }
+            if (SHARED_WORKER_EXECUTOR == null) {
+                SHARED_WORKER_EXECUTOR = WebClientVertxInit.get().createSharedWorkerExecutor("http-client-worker", 8);
+            }
+            return SHARED_WORKER_EXECUTOR;
+        }
+    }
+
+    public static void shutdownWorkerExecutor() {
+        synchronized (PodTool.class) {
+            workerExecutorShutdown = true;
+            if (SHARED_WORKER_EXECUTOR != null) {
+                SHARED_WORKER_EXECUTOR.close();
+                SHARED_WORKER_EXECUTOR = null;
+            }
+        }
     }
 }

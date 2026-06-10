@@ -25,6 +25,10 @@ public class FcTool extends PanBase {
     private static final String DOWN_REQUEST_URL = "https://v2.fangcloud.cn/apps/files/download?file_id={fid}" +
             "&scenario=share&unique_name={uname}";
 
+    // 静态编译的正则表达式，避免每次调用都重新编译
+    private static final Pattern REQUEST_TOKEN_PATTERN = Pattern.compile("name=\"requesttoken\"\\s+value=\"([a-zA-Z0-9_+=]+)\"");
+    private static final Pattern TYPED_ID_PATTERN = Pattern.compile("id=\"typed_id\"\\s+value=\"file_(\\d+)\"");
+
     public FcTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
     }
@@ -41,8 +45,7 @@ public class FcTool extends PanBase {
             if (StringUtils.isNotEmpty(pwd)) {
                 // 获取requesttoken
                 String html = res.bodyAsString();
-                Pattern compile = Pattern.compile("name=\"requesttoken\"\\s+value=\"([a-zA-Z0-9_+=]+)\"");
-                Matcher matcher = compile.matcher(html);
+                Matcher matcher = REQUEST_TOKEN_PATTERN.matcher(html);
                 if (!matcher.find()) {
                     fail(SHARE_URL_PREFIX + " 未匹配到加密分享的密码输入页面的requesttoken");
                     return;
@@ -71,8 +74,7 @@ public class FcTool extends PanBase {
                                    WebClientSession sClient) {
         // 从HTML中找到文件id
         String html = res.bodyAsString();
-        Pattern compile = Pattern.compile("id=\"typed_id\"\\s+value=\"file_(\\d+)\"");
-        Matcher matcher = compile.matcher(html);
+        Matcher matcher = TYPED_ID_PATTERN.matcher(html);
         if (!matcher.find()) {
             fail(SHARE_URL_PREFIX + " 未匹配到文件id(typed_id)");
             return;
