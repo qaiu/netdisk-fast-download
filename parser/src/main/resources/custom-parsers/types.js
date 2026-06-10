@@ -89,9 +89,9 @@ var java;
  * @property {function(): JsHttpClient} clearHeaders - 清空所有请求头（保留默认头）
  * @property {function(): Object} getHeaders - 获取所有请求头
  * @property {function(number): JsHttpClient} setTimeout - 设置请求超时时间（秒）
- * @property {function(Object): JsHttpResponse} sendForm - 发送简单表单数据
+ * @property {function(string, Object): JsHttpResponse} sendForm - 发送简单表单数据
  * @property {function(string, Object): JsHttpResponse} sendMultipartForm - 发送multipart表单数据（仅支持文本字段）
- * @property {function(any): JsHttpResponse} sendJson - 发送JSON数据
+ * @property {function(string, any): JsHttpResponse} sendJson - 发送JSON数据
  * @property {function(string): string} urlEncode - URL编码（静态方法）
  * @property {function(string): string} urlDecode - URL解码（静态方法）
  */
