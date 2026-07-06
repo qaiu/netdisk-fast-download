@@ -1,6 +1,7 @@
 package cn.qaiu.parser;
 
 import cn.qaiu.entity.ShareLinkInfo;
+import cn.qaiu.util.YeShareHostUtil;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -156,6 +157,26 @@ public class PanDomainTemplateTest {
         assertTrue("LZ should match existing domain lanzoul.com", m5.find());
         assertEquals("somekey", m5.group("KEY"));
     }
+
+        @Test
+        public void testYeRedirectPatternAndUidDecode() {
+                Pattern yePattern = PanDomainTemplate.YE.getPattern();
+
+                Matcher oldUrl = yePattern.matcher("https://www.123pan.com/s/lN7UVv-pbYJ");
+                assertTrue("YE should match old 123pan share URL", oldUrl.find());
+                assertEquals("lN7UVv-pbYJ", oldUrl.group("KEY"));
+
+                Matcher redirectedUrl = yePattern.matcher("https://1813382308.mshare.123pan.cn/123pan/lN7UVv-pbYJ");
+                assertTrue("YE should match redirected mshare URL", redirectedUrl.find());
+                assertEquals("lN7UVv-pbYJ", redirectedUrl.group("KEY"));
+
+                Matcher htmlUrl = yePattern.matcher("https://www.123278.com/s/lN7UVv-pbYJ.html?pwd=abcd");
+                assertTrue("YE should match html URL with query", htmlUrl.find());
+                assertEquals("lN7UVv-pbYJ", htmlUrl.group("KEY"));
+
+                assertEquals("1813382308", YeShareHostUtil.getNumericSubdomainIdByShareKey("lN7UVv-pbYJ"));
+                assertEquals("lN7UVv-pbYJ", YeShareHostUtil.normalizeShareKey("https://1813382308.mshare.123pan.cn/123pan/lN7UVv-pbYJ?pwd=abcd"));
+        }
 
     @Test
     public void testLePatternFix() {
