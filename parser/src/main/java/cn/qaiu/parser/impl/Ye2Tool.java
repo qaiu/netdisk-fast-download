@@ -188,9 +188,16 @@ public class Ye2Tool extends PanBase {
 
     private Future<String> resolveTokenFuture() {
         MultiMap auths = (MultiMap) shareLinkInfo.getOtherParam().get("auths");
-        if (auths != null && auths.contains("token")) {
-            String providedToken = auths.get("token");
+        if (auths != null) {
+            String raw = null;
+            if (auths.contains("token")) {
+                raw = auths.get("token");
+            } else if (auths.contains("Authorization")) {
+                raw = auths.get("Authorization");
+            }
+            String providedToken = normalizeBearerToken(raw);
             if (StringUtils.isNotEmpty(providedToken)) {
+                log.info("使用配置token，前8位: {}...", providedToken.substring(0, Math.min(8, providedToken.length())));
                 TokenCache.putToken(cacheKey, providedToken);
                 return Future.succeededFuture(providedToken);
             }
@@ -201,6 +208,17 @@ public class Ye2Tool extends PanBase {
             return loginAndGetToken();
         }
         return Future.succeededFuture(cached);
+    }
+
+    private String normalizeBearerToken(String raw) {
+        if (StringUtils.isBlank(raw)) {
+            return null;
+        }
+        String token = raw.trim();
+        if (token.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            token = token.substring(7).trim();
+        }
+        return StringUtils.isNotEmpty(token) ? token : null;
     }
 
     private Future<String> loginAndGetToken() {
