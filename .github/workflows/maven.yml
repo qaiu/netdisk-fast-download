@@ -175,11 +175,11 @@ jobs:
 
         if [ -z "$RAW_MODULES" ] || [[ "$RAW_MODULES" == *"Missing"* ]] || [[ "$RAW_MODULES" == *"Error"* ]]; then
           # ⚠️ 回退列表：若项目新增了需要 java.* / jdk.* 模块的依赖，需同步更新此处
-          RAW_MODULES="java.base,java.logging,java.sql,java.naming,java.management,java.xml,jdk.unsupported,java.net.http,java.instrument,java.security.jgss,java.security.sasl,java.desktop,jdk.crypto.ec"
+          RAW_MODULES="java.base,java.logging,java.sql,java.naming,java.management,java.xml,java.scripting,jdk.unsupported,java.net.http,java.instrument,java.security.jgss,java.security.sasl,java.desktop,jdk.crypto.ec"
           echo "jdeps 分析失败，使用回退模块列表"
         else
           # 补上 jdeps 无法检测的反射/SPI依赖
-          RAW_MODULES="$RAW_MODULES,java.desktop,jdk.crypto.ec"
+          RAW_MODULES="$RAW_MODULES,java.desktop,java.scripting,jdk.crypto.ec"
         fi
 
         echo "detected modules: $RAW_MODULES"
@@ -214,6 +214,8 @@ jobs:
           echo "=== JRE bin 目录 DLL 清单 ==="
           ls -la "$JRE_BIN"/*.dll 2>/dev/null || echo "(无 .dll 文件)"
         fi
+
+        "native-package/netdisk-fast-download/jre/bin/java" --list-modules | grep -q '^java.scripting@'
 
     # ============================================================
     # 组装包目录
