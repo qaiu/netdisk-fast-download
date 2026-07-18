@@ -99,10 +99,26 @@ public class Ye2Tool extends PanBase {
             return null;
         }
         String token = auths.get("token");
-        if (StringUtils.isNotEmpty(token)) {
+        if (StringUtils.isEmpty(token)) {
+            token = auths.get("authorization");
+        }
+        return stripBearerPrefix(token);
+    }
+
+    /**
+     * 用户/捐赠账号提供的 token 经常是从浏览器开发者工具里连同 "Bearer " 前缀一起复制过来的，
+     * 如果不做清理，后续 header.set("Authorization", "Bearer " + token) 会拼出
+     * "Bearer Bearer xxx"，导致123网盘接口报错 tokenstring should not contain 'bearer '。
+     */
+    private String stripBearerPrefix(String token) {
+        if (StringUtils.isBlank(token)) {
             return token;
         }
-        return auths.get("authorization");
+        String trimmed = token.trim();
+        if (trimmed.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            trimmed = trimmed.substring(7).trim();
+        }
+        return trimmed;
     }
 
     private boolean isTokenExpired() {

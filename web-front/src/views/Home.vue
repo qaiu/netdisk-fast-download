@@ -326,6 +326,10 @@
                       <span>蓝奏优享 (IZ)</span>
                       <el-tag size="small" type="warning" style="margin-left: 8px">大文件</el-tag>
                     </el-option>
+                    <el-option label="123云盘 (YE)" value="YE">
+                      <span>123云盘 (YE)</span>
+                      <el-tag size="small" type="warning" style="margin-left: 8px">部分分享需登录</el-tag>
+                    </el-option>
                   </el-option-group>
                 </el-select>
               </el-form-item>
@@ -767,7 +771,8 @@ export default {
       if (url.includes('drive.uc.cn') || url.includes('fast.uc.cn')) return 'UC'
       if (url.includes('feijipan.com') || url.includes('feijihe.com') || url.includes('xiaofeiyang.com')) return 'FJ'
       if (url.includes('ilanzou.com') || url.includes('lanzouv.com')) return 'IZ'
-      if (url.includes('123pan.com') || url.includes('123684.com') || url.includes('123865.com')) return 'YE'
+      // 123网盘域名较多（如 123pan.com/123pan.cn/share.123pan.cn/123684.com/123865.com 等数字域名），使用规则匹配代替枚举
+      if (/123\d{3}\.com|123panpay\.com|123pan\.(?:com|cn)/.test(url)) return 'YE'
       return ''
     },
     
@@ -789,7 +794,8 @@ export default {
         'QK': '夸克网盘必须配置 Cookie 才能解析和下载（登录后从浏览器开发者工具获取）',
         'UC': 'UC网盘必须配置 Cookie 才能解析和下载（登录后从浏览器开发者工具获取）',
         'FJ': '小飞机网盘大文件（>100MB）需要配置认证信息',
-        'IZ': '蓝奏优享大文件需要配置认证信息'
+        'IZ': '蓝奏优享大文件需要配置认证信息',
+        'YE': '123云盘部分分享（需要登录才能查看/下载）需要配置账号密码或 Authorization Token'
       }
       return hints[this.authConfig.panType] || '请选择网盘类型后配置认证信息'
     },
@@ -1230,10 +1236,11 @@ export default {
             duration: 5000,
             showClose: true
           })
-        } else if (panType === 'fj' || panType === 'lz' || panType === 'iz' || panType === 'le') {
-          // 小飞机、蓝奏、优享、联想乐云：提示大文件需要认证
+        } else if (panType === 'fj' || panType === 'lz' || panType === 'iz' || panType === 'le' || panType === 'ye') {
+          // 小飞机、蓝奏、优享、联想乐云、123云盘：提示大文件/需登录分享需要认证
           const hasAuth = this.allAuthConfigs[panType]?.cookie || 
                           this.allAuthConfigs[panType]?.username ||
+                          this.allAuthConfigs[panType]?.token ||
                           (this.donateAccountCounts.active[panType.toUpperCase()] || 0) > 0
           if (!hasAuth) {
             this.$message.info({
@@ -1612,12 +1619,14 @@ export default {
       
       this.donateSubmitting = true
       try {
+        // 只提交当前认证方式实际用到的字段，避免切换认证类型后遗留的用户名/密码脏数据被一起提交
+        const isPasswordAuth = this.donateConfig.authType === 'password'
         const payload = {
           panType: this.donateConfig.panType,
           authType: this.donateConfig.authType,
-          username: this.donateConfig.username || '',
-          password: this.donateConfig.password || '',
-          token: this.donateConfig.token || '',
+          username: isPasswordAuth ? (this.donateConfig.username || '') : '',
+          password: isPasswordAuth ? (this.donateConfig.password || '') : '',
+          token: isPasswordAuth ? '' : (this.donateConfig.token || ''),
           remark: this.donateConfig.remark || ''
         }
         await axios.post(`${this.baseAPI}/v2/donateAccount`, payload)

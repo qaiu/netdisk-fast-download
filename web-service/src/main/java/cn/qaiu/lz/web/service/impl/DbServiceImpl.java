@@ -325,9 +325,16 @@ public class DbServiceImpl implements DbService {
     public Future<JsonObject> saveDonatedAccount(JsonObject account) {
         JDBCPool client = JDBCPoolInit.instance().getPool();
 
-        Future<String> encryptedUsername = CryptoUtil.encrypt(account.getString("username"));
-        Future<String> encryptedPassword = CryptoUtil.encrypt(account.getString("password"));
-        Future<String> encryptedToken = CryptoUtil.encrypt(account.getString("token"));
+        // 只保留当前认证方式实际用到的字段，避免调用方切换认证类型后遗留的用户名/密码脏数据
+        // 被一并存入库中，导致后续解析时被误当作真实凭证使用（例如把废弃的用户名当手机号登录）。
+        boolean isPasswordAuth = "password".equalsIgnoreCase(account.getString("authType"));
+        String usernameToStore = isPasswordAuth ? account.getString("username") : null;
+        String passwordToStore = isPasswordAuth ? account.getString("password") : null;
+        String tokenToStore = isPasswordAuth ? null : account.getString("token");
+
+        Future<String> encryptedUsername = CryptoUtil.encrypt(usernameToStore);
+        Future<String> encryptedPassword = CryptoUtil.encrypt(passwordToStore);
+        Future<String> encryptedToken = CryptoUtil.encrypt(tokenToStore);
 
         return ensureFailCountColumn(client).compose(v ->
                 Future.all(encryptedUsername, encryptedPassword, encryptedToken).compose(compositeFuture -> {
@@ -411,6 +418,14 @@ public class DbServiceImpl implements DbService {
                                     String username = usernameFuture.result();
                                     String password = passwordFuture.result();
                                     String token = tokenFuture.result();
+
+                                    // 历史脏数据兜底：非 password 认证类型的账号不应该带用户名/密码
+                                    // （例如切换认证类型前遗留的表单数据），否则会被解析器误当作真实账号密码去登录。
+                                    boolean isPasswordAuth = "password".equalsIgnoreCase(row.getString("auth_type"));
+                                    if (!isPasswordAuth) {
+                                        username = null;
+                                        password = null;
+                                    }
 
                                     // 如果解密后没有任何可用凭证，返回空对象，避免把密文当作明文认证参数下发给前端
                                     if (StringUtils.isBlank(username) && StringUtils.isBlank(password) && StringUtils.isBlank(token)) {
