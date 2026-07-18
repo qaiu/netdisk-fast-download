@@ -79,11 +79,30 @@ public class Ye2Tool extends PanBase {
             accountId = auths.get("_configId");
         } else if (auths.contains("username")) {
             accountId = auths.get("username");
-        } else if (auths.contains("token")) {
-            String token = auths.get("token");
-            accountId = token.substring(0, Math.min(16, token.length()));
+        } else {
+            String token = resolveProvidedToken(auths);
+            if (StringUtils.isNotEmpty(token)) {
+                accountId = token.substring(0, Math.min(16, token.length()));
+            }
         }
         return accountId;
+    }
+
+    /**
+     * 从配置/临时认证参数中取出可直接使用的 Bearer token。
+     * 兼容两种 key：
+     * - token：URLParamUtil 处理 auth= 临时参数(authType=accesstoken/authorization)时写入的字段名
+     * - authorization：app-dev.yml 静态配置中更符合直觉的写法（auths.ye.authorization: xxx）
+     */
+    private String resolveProvidedToken(MultiMap auths) {
+        if (auths == null) {
+            return null;
+        }
+        String token = auths.get("token");
+        if (StringUtils.isNotEmpty(token)) {
+            return token;
+        }
+        return auths.get("authorization");
     }
 
     private boolean isTokenExpired() {
@@ -188,9 +207,15 @@ public class Ye2Tool extends PanBase {
 
     private Future<String> resolveTokenFuture() {
         MultiMap auths = (MultiMap) shareLinkInfo.getOtherParam().get("auths");
-        if (auths != null && auths.contains("token")) {
-            String providedToken = auths.get("token");
-            if (StringUtils.isNotEmpty(providedToken)) {
+        if (auths != null) {
+            // 当同时提供了用户名+密码时，优先走真实登录流程。
+            // 注：前端/auth参数中 authType=password|username_password 时，URLParamUtil 出于兼容旧解析器的目的
+            // 会把 authToken(用户名) 同时写入 token 字段，如果这里无条件信任 token，会把用户名当成
+            // Bearer token 使用，导致真实的账号密码登录被跳过。
+            boolean hasCredential = StringUtils.isNotEmpty(auths.get("username"))
+                    && StringUtils.isNotEmpty(auths.get("password"));
+            String providedToken = resolveProvidedToken(auths);
+            if (!hasCredential && StringUtils.isNotEmpty(providedToken)) {
                 TokenCache.putToken(cacheKey, providedToken);
                 return Future.succeededFuture(providedToken);
             }

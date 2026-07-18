@@ -69,7 +69,7 @@ https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.
 - [移动云云空间-ec](https://www.ecpan.cn/web)
 - [小飞机网盘-fj](https://www.feijipan.com/)
 - [亿方云-fc](https://www.fangcloud.com/)
-- [123云盘-ye](https://www.123pan.com/)
+- [123云盘-ye](https://www.123pan.com/) ⚠️仅建议本地部署使用，需登录认证，公共/云端服务器风控严格建议自行部署（Windows 可直接用 run.bat 一键运行）
 - ~[115网盘(失效)-p115](https://115.com/)~
 - [文叔叔-ws](https://www.wenshushu.cn/)
 - [联想乐云-le](https://lecloud.lenovo.com/)
@@ -176,6 +176,7 @@ GET /json/getFileList?url={分享链接}&pwd={密码}
 | UC网盘(UC) | **必须** | 必须配置 Cookie 才能解析 |
 | 小飞机网盘(FJ) | 可选 | 大文件（>100MB）需要认证 |
 | 蓝奏优享(IZ) | 可选 | 大文件需要认证 |
+| 123网盘(YE) | 可选 | 需要下载大文件/需要登录的分享时才需要认证，支持账号密码或 token/authorization |
 
 **使用示例**：
 ```
@@ -195,6 +196,38 @@ GET /parser?url={分享链接}&pwd={密码}&auth={加密后的认证参数}
   - 作用：用于“捐赠账号失败计数 token”的 HMAC 签名/验签
   - 目的：防止客户端伪造失败计数请求
   - 建议：使用高强度随机字符串，且不要与 `authEncryptKey` 相同
+
+#### `auth` 临时认证参数 与 `auths` 静态配置认证 的区别
+
+本项目存在两种互相独立的认证配置方式，作用范围不同，不要混淆：
+
+| 方式 | 配置位置 | 生效范围 | 适用场景 |
+|------|---------|---------|---------|
+| `auth` 临时认证参数 | 请求 URL 上的 `auth` 查询参数 | **仅当次请求**，优先级高于 app-dev.yml 中的静态配置 | 调用方按用户临时提供的账号/Cookie/token 解析，不同请求可携带不同认证信息 |
+| `auths` 静态配置认证 | `app-dev.yml` 的 `auths.<网盘标识>` 节点 | **服务端长期生效**，所有未携带 `auth` 参数的请求都会复用 | 部署方自己长期配置一份账号，供所有请求默认使用 |
+
+以 123网盘（`ye`）为例，`app-dev.yml` 中支持以下几种写法（三选一即可）：
+
+```yaml
+auths:
+  ye:
+    username: 你的123网盘账号
+    password: 你的123网盘密码
+```
+```yaml
+auths:
+  ye:
+    token: 已登录后获取的 Authorization/AccessToken
+```
+```yaml
+auths:
+  ye:
+    authorization: 已登录后获取的 Authorization/AccessToken   # 与 token 等价，二选一
+```
+
+> ⚠️ 注意：YAML 中 key 后面不写值（如 `authorization:` 空着）等同于没配置，不会生效，必须填入真实的账号密码或 token 内容。
+
+如果只是临时调用一次，不想改动服务端配置，也可以用上面提到的 `auth` 参数临时传递（`authType` 可选 `password`/`accesstoken`/`authorization`），无需重启服务，仅本次请求生效。
 
 ### 特殊说明
 
