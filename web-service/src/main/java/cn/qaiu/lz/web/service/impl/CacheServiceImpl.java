@@ -5,6 +5,7 @@ import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.lz.common.cache.CacheConfigLoader;
 import cn.qaiu.lz.common.cache.CacheManager;
 import cn.qaiu.lz.common.cache.CacheTotalField;
+import cn.qaiu.lz.common.util.ParserAuthUtil;
 import cn.qaiu.lz.common.util.URLParamUtil;
 import cn.qaiu.lz.web.model.CacheLinkInfo;
 import cn.qaiu.lz.web.service.CacheService;
@@ -15,15 +16,10 @@ import cn.qaiu.parser.clientlink.ClientLinkGeneratorFactory;
 import cn.qaiu.parser.clientlink.ClientLinkType;
 import cn.qaiu.vx.core.annotaions.Service;
 import cn.qaiu.vx.core.util.AsyncServiceUtil;
-import cn.qaiu.vx.core.util.ConfigConstant;
-import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
-import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.shareddata.LocalMap;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
 
 import java.util.Date;
@@ -34,9 +30,7 @@ import java.util.Map;
 @Slf4j
 public class CacheServiceImpl implements CacheService {
 
-    private static final String SKIP_CLIENT_LINKS = "_skipClientLinks";
-    private static final String TEMP_AUTH_ADDED = "__TEMP_AUTH_ADDED";
-    private static final String DONATED_ACCOUNT_TOKEN = "__AUTO_DONATED_ACCOUNT_TOKEN";
+    private static final String SKIP_CLIENT_LINKS = ParserAuthUtil.SKIP_CLIENT_LINKS;
 
     private final CacheManager cacheManager = new CacheManager();
     private final DbService dbService = AsyncServiceUtil.getAsyncServiceInstance(DbService.class);
@@ -82,7 +76,7 @@ public class CacheServiceImpl implements CacheService {
                     return;
                 }
                 IPanTool.closeAfter(tool, tool::parse).onFailure(err -> {
-                    recordAutoDonatedFailureIfNeeded(shareLinkInfo, err);
+                    ParserAuthUtil.recordAutoDonatedFailureIfNeeded(dbService, shareLinkInfo, err);
                 }).onSuccess(redirectUrl -> {
                     // 使用 effectiveCacheDuration
                     long expires = System.currentTimeMillis() + effectiveCacheDuration * 60 * 1000L;
@@ -151,124 +145,6 @@ public class CacheServiceImpl implements CacheService {
 
     private String generateDate(Long ts) {
         return DateFormatUtils.format(new Date(ts), "yyyy-MM-dd HH:mm:ss");
-    }
-
-    /**
-     * 当本次请求没有携带临时认证参数（auth=xxx），且该网盘类型在 app-dev.yml 中也没有配置可用的
-     * 静态账号密码/token 时，自动从捐赠账号池中随机挑选一个可用账号使用，
-     * 这样捐赠者捐赠账号后，普通请求（不带 auth 参数）也能直接受益，无需前端额外拼接参数。
-     */
-    private Future<Void> applyDonatedAccountFallback(ParserCreate parserCreate) {
-        ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();
-        Map<String, Object> otherParam = shareLinkInfo.getOtherParam();
-        if (Boolean.TRUE.equals(otherParam.get(TEMP_AUTH_ADDED))) {
-            // 请求已经携带了个人配置/捐赠账号的临时认证参数，无需再自动回退
-            return Future.succeededFuture();
-        }
-        String type = shareLinkInfo.getType();
-        if (StringUtils.isBlank(type) || hasUsableStaticAuthConfig(type)) {
-            return Future.succeededFuture();
-        }
-        return dbService.getRandomDonatedAccount(type.toUpperCase())
-                .compose(res -> {
-                    if (!Integer.valueOf(200).equals(res.getInteger("code"))) {
-                        return Future.succeededFuture();
-                    }
-                    JsonObject data = res.getJsonObject("data");
-                    if (data == null || data.isEmpty()) {
-                        return Future.succeededFuture();
-                    }
-                    String username = data.getString("username");
-                    String password = data.getString("password");
-                    String token = data.getString("token");
-                    if (StringUtils.isBlank(username) && StringUtils.isBlank(password) && StringUtils.isBlank(token)) {
-                        return Future.succeededFuture();
-                    }
-                    MultiMap tempAuth = MultiMap.caseInsensitiveMultiMap();
-                    if (StringUtils.isNotBlank(username)) {
-                        tempAuth.set("username", username);
-                    }
-                    if (StringUtils.isNotBlank(password)) {
-                        tempAuth.set("password", password);
-                    }
-                    if (StringUtils.isNotBlank(token)) {
-                        tempAuth.set("token", token);
-                    }
-                    otherParam.put(ConfigConstant.AUTHS, tempAuth);
-                    otherParam.put(TEMP_AUTH_ADDED, true);
-                    String donatedAccountToken = data.getString("donatedAccountToken");
-                    if (StringUtils.isNotBlank(donatedAccountToken)) {
-                        otherParam.put(DONATED_ACCOUNT_TOKEN, donatedAccountToken);
-                    }
-                    log.debug("已自动应用捐赠账号: type={}", type);
-                    return Future.<Void>succeededFuture();
-                })
-                .recover(err -> {
-                    log.warn("自动获取捐赠账号失败: type={}", type, err);
-                    return Future.succeededFuture();
-                });
-    }
-
-    /**
-     * 检查 app-dev.yml 中该网盘类型是否已配置了可用的静态认证信息（非空的 username/password/token/authorization 等）。
-     * 如果已配置，则不需要再自动回退到捐赠账号池。
-     */
-    private boolean hasUsableStaticAuthConfig(String type) {
-        LocalMap<Object, Object> localMap = VertxHolder.getVertxInstance().sharedData()
-                .getLocalMap(ConfigConstant.LOCAL);
-        if (!localMap.containsKey(ConfigConstant.AUTHS)) {
-            return false;
-        }
-        JsonObject auths = (JsonObject) localMap.get(ConfigConstant.AUTHS);
-        JsonObject cfg = auths.getJsonObject(type);
-        if (cfg == null) {
-            return false;
-        }
-        for (String key : cfg.fieldNames()) {
-            Object value = cfg.getValue(key);
-            if (value != null && StringUtils.isNotBlank(value.toString())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * 自动回退使用的捐赠账号解析失败时，记录一次失败次数（达到阈值后台账号会被自动禁用）。
-     */
-    private void recordAutoDonatedFailureIfNeeded(ShareLinkInfo shareLinkInfo, Throwable cause) {
-        Object tokenObj = shareLinkInfo.getOtherParam().get(DONATED_ACCOUNT_TOKEN);
-        if (!(tokenObj instanceof String) || StringUtils.isBlank((String) tokenObj)) {
-            return;
-        }
-        if (!isLikelyAuthFailure(cause)) {
-            return;
-        }
-        dbService.recordDonatedAccountFailureByToken((String) tokenObj)
-                .onFailure(e -> log.warn("记录自动捐赠账号失败次数失败", e));
-    }
-
-    private boolean isLikelyAuthFailure(Throwable cause) {
-        if (cause == null) {
-            return false;
-        }
-        String msg = cause.getMessage();
-        if (msg == null || msg.isBlank()) {
-            return false;
-        }
-        String lower = msg.toLowerCase();
-        return lower.contains("auth")
-                || lower.contains("token")
-                || lower.contains("cookie")
-                || lower.contains("password")
-                || lower.contains("credential")
-                || lower.contains("401")
-                || lower.contains("403")
-                || lower.contains("unauthorized")
-                || lower.contains("forbidden")
-                || lower.contains("expired")
-                || lower.contains("登录")
-                || lower.contains("认证");
     }
 
     private boolean shouldGenerateClientLinks(ShareLinkInfo shareLinkInfo) {
@@ -408,10 +284,8 @@ public class CacheServiceImpl implements CacheService {
         } catch (Exception e) {
             return Future.failedFuture(e);
         }
-        parserCreate.getShareLinkInfo().getOtherParam().putAll(otherParam.getMap());
-
         ParserCreate finalParserCreate = parserCreate;
-        return applyDonatedAccountFallback(finalParserCreate)
+        return ParserAuthUtil.applyAuthParamsAndDonatedFallback(finalParserCreate, otherParam, dbService)
                 .compose(v -> getAndSaveCachedShareLink(finalParserCreate));
     }
 
@@ -423,24 +297,8 @@ public class CacheServiceImpl implements CacheService {
         } catch (Exception e) {
             return Future.failedFuture(e);
         }
-        parserCreate.getShareLinkInfo().getOtherParam().putAll(otherParam.getMap());
-        
-        // 检查是否有临时认证参数
-        if (otherParam.containsKey("authType") || otherParam.containsKey("authToken")) {
-            log.debug("从otherParam中检测到临时认证参数");
-            URLParamUtil.addTempAuthParam(parserCreate, 
-                otherParam.getString("authType"),
-                otherParam.getString("authToken"),
-                otherParam.getString("authPassword"),
-                otherParam.getString("authInfo1"),
-                otherParam.getString("authInfo2"),
-                otherParam.getString("authInfo3"),
-                otherParam.getString("authInfo4"),
-                otherParam.getString("authInfo5"));
-        }
-
         ParserCreate finalParserCreate = parserCreate;
-        return applyDonatedAccountFallback(finalParserCreate)
+        return ParserAuthUtil.applyAuthParamsAndDonatedFallback(finalParserCreate, otherParam, dbService)
                 .compose(v -> getAndSaveCachedShareLink(finalParserCreate));
     }
 }

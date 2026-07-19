@@ -1,8 +1,7 @@
 package cn.qaiu.lz.web.controller;
 
-import cn.qaiu.lz.common.util.AuthParamCodec;
+import cn.qaiu.lz.common.util.ParserAuthUtil;
 import cn.qaiu.lz.common.util.URLParamUtil;
-import cn.qaiu.lz.web.model.AuthParam;
 import cn.qaiu.lz.web.model.CacheLinkInfo;
 import cn.qaiu.lz.web.service.CacheService;
 import cn.qaiu.lz.web.service.DbService;
@@ -29,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 @RouteHandler("/")
 public class ServerApi {
 
-    private static final String SKIP_CLIENT_LINKS = "_skipClientLinks";
+    private static final String SKIP_CLIENT_LINKS = ParserAuthUtil.SKIP_CLIENT_LINKS;
 
     private final CacheService cacheService = AsyncServiceUtil.getAsyncServiceInstance(CacheService.class);
     private final DbService dbService = AsyncServiceUtil.getAsyncServiceInstance(DbService.class);
@@ -47,7 +46,7 @@ public class ServerApi {
                         addCacheHeaders(response, res),
                                 res.getDirectLink(), promise))
                 .onFailure(t -> {
-                    recordDonatedAccountFailureIfNeeded(otherParam, t);
+                    ParserAuthUtil.recordDonatedAccountFailureIfNeeded(dbService, otherParam, t);
                     promise.tryFail(t);
                 });
         return promise.future();
@@ -58,14 +57,14 @@ public class ServerApi {
         String url = URLParamUtil.parserParams(request);
         JsonObject otherParam = buildOtherParam(request, auth);
         return cacheService.getCachedByShareUrlAndPwd(url, pwd, otherParam)
-                .onFailure(t -> recordDonatedAccountFailureIfNeeded(otherParam, t));
+            .onFailure(t -> ParserAuthUtil.recordDonatedAccountFailureIfNeeded(dbService, otherParam, t));
     }
 
     public Future<CacheLinkInfo> parseJsonForRedirect(HttpServerRequest request, String pwd, String auth) {
         String url = URLParamUtil.parserParams(request);
         JsonObject otherParam = buildOtherParam(request, auth, true);
         return cacheService.getCachedByShareUrlAndPwd(url, pwd, otherParam)
-                .onFailure(t -> recordDonatedAccountFailureIfNeeded(otherParam, t));
+            .onFailure(t -> ParserAuthUtil.recordDonatedAccountFailureIfNeeded(dbService, otherParam, t));
     }
 
     @RouteMapping(value = "/json/:type/:key", method = RouteMethod.GET)
@@ -146,66 +145,6 @@ public class ServerApi {
     }
 
     private JsonObject buildOtherParam(HttpServerRequest request, String auth, boolean skipClientLinks) {
-        JsonObject otherParam = JsonObject.of("UA", request.headers().get("user-agent"), "_requestOrigin", resolveOrigin(request));
-        if (skipClientLinks) {
-            otherParam.put(SKIP_CLIENT_LINKS, true);
-        }
-
-        // 解码认证参数
-        if (auth != null && !auth.isEmpty()) {
-            AuthParam authParam = AuthParamCodec.decode(auth);
-            if (authParam != null && authParam.hasValidAuth()) {
-                // 将认证参数放入 otherParam
-                otherParam.put("authType", authParam.getAuthType());
-                otherParam.put("authToken", authParam.getPrimaryCredential());
-                otherParam.put("authPassword", authParam.getPassword());
-                otherParam.put("authInfo1", authParam.getExt1());
-                otherParam.put("authInfo2", authParam.getExt2());
-                otherParam.put("authInfo3", authParam.getExt3());
-                otherParam.put("authInfo4", authParam.getExt4());
-                otherParam.put("authInfo5", authParam.getExt5());
-                if (authParam.getDonatedAccountToken() != null && !authParam.getDonatedAccountToken().isBlank()) {
-                    otherParam.put("donatedAccountToken", authParam.getDonatedAccountToken());
-                }
-                log.debug("已解码认证参数: authType={}", authParam.getAuthType());
-            }
-        }
-
-        return otherParam;
-    }
-
-    private void recordDonatedAccountFailureIfNeeded(JsonObject otherParam, Throwable cause) {
-        if (!isLikelyAuthFailure(cause)) {
-            return;
-        }
-        String donatedAccountToken = otherParam.getString("donatedAccountToken");
-        if (donatedAccountToken == null || donatedAccountToken.isBlank()) {
-            return;
-        }
-        dbService.recordDonatedAccountFailureByToken(donatedAccountToken)
-                .onFailure(e -> log.warn("记录捐赠账号失败次数失败", e));
-    }
-
-    private boolean isLikelyAuthFailure(Throwable cause) {
-        if (cause == null) {
-            return false;
-        }
-        String msg = cause.getMessage();
-        if (msg == null || msg.isBlank()) {
-            return false;
-        }
-        String lower = msg.toLowerCase();
-        return lower.contains("auth")
-                || lower.contains("token")
-                || lower.contains("cookie")
-                || lower.contains("password")
-                || lower.contains("credential")
-                || lower.contains("401")
-                || lower.contains("403")
-                || lower.contains("unauthorized")
-                || lower.contains("forbidden")
-                || lower.contains("expired")
-                || lower.contains("登录")
-                || lower.contains("认证");
+        return ParserAuthUtil.buildOtherParam(request, auth, resolveOrigin(request), skipClientLinks);
     }
 }

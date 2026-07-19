@@ -5,6 +5,7 @@ import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.lz.common.cache.CacheManager;
 import cn.qaiu.lz.common.util.AuthParamCodec;
+import cn.qaiu.lz.common.util.ParserAuthUtil;
 import cn.qaiu.lz.common.util.URLParamUtil;
 import cn.qaiu.lz.web.model.AuthParam;
 import cn.qaiu.lz.web.model.CacheLinkInfo;
@@ -159,7 +160,8 @@ public class ParserApi {
     }
 
     @RouteMapping("/getFileList")
-    public Future<List<FileInfo>> getFileList(HttpServerRequest request, String pwd, String dirId, String uuid) {
+    public Future<List<FileInfo>> getFileList(HttpServerRequest request, String pwd, String dirId, String uuid,
+                                             String auth) {
         String url = URLParamUtil.parserParams(request);
         ParserCreate parserCreate;
         try {
@@ -168,6 +170,7 @@ public class ParserApi {
             return Future.failedFuture(e);
         }
         String linkPrefix = getLinkPrefix(request);
+        JsonObject otherParam = ParserAuthUtil.buildOtherParam(request, auth, linkPrefix);
         parserCreate.getShareLinkInfo().getOtherParam().put("domainName", linkPrefix);
         parserCreate.getShareLinkInfo().getOtherParam().put("_requestOrigin", linkPrefix);
         if (StringUtils.isNotBlank(dirId)) {
@@ -176,13 +179,22 @@ public class ParserApi {
         if (StringUtils.isNotBlank(uuid)) {
             parserCreate.getShareLinkInfo().getOtherParam().put("uuid", uuid);
         }
-        IPanTool tool = parserCreate.createTool();
-        return IPanTool.closeAfter(tool, tool::parseFileList);
+        return ParserAuthUtil.applyAuthParamsAndDonatedFallback(parserCreate, otherParam, dbService)
+                .compose(v -> {
+                    URLParamUtil.addParam(parserCreate);
+                    IPanTool tool = parserCreate.createTool();
+                    return IPanTool.closeAfter(tool, tool::parseFileList)
+                            .onFailure(t -> {
+                                ParserAuthUtil.recordDonatedAccountFailureIfNeeded(dbService, otherParam, t);
+                                ParserAuthUtil.recordAutoDonatedFailureIfNeeded(dbService,
+                                        parserCreate.getShareLinkInfo(), t);
+                            });
+                });
     }
 
     // 目录解析下载文件
     // @RouteMapping("/getFileDownUrl/:type/:param")
-    public Future<String> getFileDownUrl(HttpServerRequest request, String type, String param) {
+    public Future<String> getFileDownUrl(HttpServerRequest request, String type, String param, String auth) {
         ParserCreate parserCreate = ParserCreate.fromType(type).shareKey("-") // shareKey not null
                 .setShareLinkInfoPwd("-");
 
@@ -198,17 +210,28 @@ public class ParserApi {
 
         // domainName
         String linkPrefix = getLinkPrefix(request);
+        JsonObject otherParam = ParserAuthUtil.buildOtherParam(request, auth, linkPrefix, true);
         shareLinkInfo.getOtherParam().put("domainName", linkPrefix);
         shareLinkInfo.getOtherParam().put("_requestOrigin", linkPrefix);
-        IPanTool tool = parserCreate.createTool();
-        return IPanTool.closeAfter(tool, tool::parseById);
+        return ParserAuthUtil.applyAuthParamsAndDonatedFallback(parserCreate, otherParam, dbService)
+                .compose(v -> {
+                    URLParamUtil.addParam(parserCreate);
+                    IPanTool tool = parserCreate.createTool();
+                    return IPanTool.closeAfter(tool, tool::parseById)
+                            .onFailure(t -> {
+                                ParserAuthUtil.recordDonatedAccountFailureIfNeeded(dbService, otherParam, t);
+                                ParserAuthUtil.recordAutoDonatedFailureIfNeeded(dbService,
+                                        parserCreate.getShareLinkInfo(), t);
+                            });
+                });
     }
 
     @RouteMapping("/redirectUrl/:type/:param")
-    public Future<Void> redirectUrl(HttpServerRequest request, HttpServerResponse response, String type, String param) {
+    public Future<Void> redirectUrl(HttpServerRequest request, HttpServerResponse response, String type, String param,
+                                    String auth) {
         Promise<Void> promise = Promise.promise();
 
-        getFileDownUrl(request, type, param)
+        getFileDownUrl(request, type, param, auth)
                 .onSuccess(res -> {
                     ResponseUtil.redirect(response, res, promise);
                 })
@@ -283,11 +306,12 @@ public class ParserApi {
 
 
     @RouteMapping("/viewUrl/:type/:param")
-    public Future<Void> viewUrl(HttpServerRequest request, HttpServerResponse response, String type, String param) {
+    public Future<Void> viewUrl(HttpServerRequest request, HttpServerResponse response, String type, String param,
+                                String auth) {
         Promise<Void> promise = Promise.promise();
 
         String viewPrefix = SharedDataUtil.getJsonConfig("server").getString("previewURL");
-        getFileDownUrl(request, type, param)
+        getFileDownUrl(request, type, param, auth)
                 .onSuccess(res -> {
                     String url = viewPrefix + URLEncoder.encode(res, StandardCharsets.UTF_8);
                     ResponseUtil.redirect(response, url, promise);

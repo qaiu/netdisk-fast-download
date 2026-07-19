@@ -641,7 +641,14 @@ public class Ye2Tool extends PanBase {
                 return;
             }
 
-            String normalizedShareKey = YeShareHostUtil.normalizeShareKey(shareLinkInfo.getShareKey());
+            String rawShareKey = paramJson.getString("shareKey");
+            if (StringUtils.isBlank(rawShareKey)) {
+                rawShareKey = paramJson.getString("ShareKey");
+            }
+            if (StringUtils.isBlank(rawShareKey)) {
+                rawShareKey = shareLinkInfo.getShareKey();
+            }
+            String normalizedShareKey = YeShareHostUtil.normalizeShareKey(rawShareKey);
             if (StringUtils.isNotEmpty(normalizedShareKey)) {
                 JsonObject v2Body = new JsonObject()
                         .put("ShareKey", normalizedShareKey)
