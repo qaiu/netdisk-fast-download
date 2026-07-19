@@ -158,37 +158,19 @@ jobs:
         path: web-service/target/package
 
     # ============================================================
-    # jdeps 分析 → 确定所需 JDK 模块
+    # 选择 JDK 模块
     # ============================================================
-    - name: 分析所需 JDK 模块（jdeps）
+    - name: 选择完整 JDK 模块集合
       run: |
-        MAIN_JAR="web-service/target/package/netdisk-fast-download.jar"
-        LIB_DIR="web-service/target/package/lib"
-
-        CP=""
-        for jar in "$LIB_DIR"/*.jar; do
-          CP="$CP${CP:+:}$jar"
-        done
-
-        RAW_MODULES=$(jdeps --print-module-deps --ignore-missing-deps --multi-release 17 \
-          --class-path "$CP" "$MAIN_JAR" 2>/dev/null | head -n 1 | tr -d '\r\n' || true)
-
-        if [ -z "$RAW_MODULES" ] || [[ "$RAW_MODULES" == *"Missing"* ]] || [[ "$RAW_MODULES" == *"Error"* ]]; then
-          # ⚠️ 回退列表：若项目新增了需要 java.* / jdk.* 模块的依赖，需同步更新此处
-          RAW_MODULES="java.base,java.logging,java.sql,java.naming,java.management,java.xml,java.scripting,jdk.unsupported,java.net.http,java.instrument,java.security.jgss,java.security.sasl,java.desktop,jdk.crypto.ec"
-          echo "jdeps 分析失败，使用回退模块列表"
-        else
-          # 补上 jdeps 无法检测的反射/SPI依赖
-          RAW_MODULES="$RAW_MODULES,java.desktop,java.scripting,jdk.crypto.ec"
-        fi
-
-        echo "detected modules: $RAW_MODULES"
-        printf 'JDK_MODULES=%s\n' "$RAW_MODULES" >> $GITHUB_ENV
+        # 123 网盘/自定义 JS 解析器会通过 javax.script、Nashorn 和 SPI/反射加载模块，
+        # jdeps 无法稳定识别这些运行时依赖。这里优先保证原生包可运行，使用完整
+        # JDK 模块集合生成运行时，避免 Windows 精简 JRE 缺 java.scripting/jdk.dynalink 等模块。
+        printf 'JDK_MODULES=ALL-MODULE-PATH\n' >> $GITHUB_ENV
 
     # ============================================================
-    # jlink 生成精简 JRE
+    # jlink 生成完整模块 JRE
     # ============================================================
-    - name: 生成精简 JRE（jlink）
+    - name: 生成完整模块 JRE（jlink）
       run: |
         jlink \
           --module-path "$JAVA_HOME/jmods" \
@@ -215,7 +197,10 @@ jobs:
           ls -la "$JRE_BIN"/*.dll 2>/dev/null || echo "(无 .dll 文件)"
         fi
 
+        echo "=== 关键 JDK 模块校验 ==="
         "native-package/netdisk-fast-download/jre/bin/java" --list-modules | grep -q '^java.scripting@'
+        "native-package/netdisk-fast-download/jre/bin/java" --list-modules | grep -q '^jdk.dynalink@'
+        "native-package/netdisk-fast-download/jre/bin/java" --list-modules | grep -q '^jdk.unsupported@'
 
     # ============================================================
     # 组装包目录
