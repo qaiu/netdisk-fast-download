@@ -43,6 +43,7 @@ public class CeTool extends PanBase {
         String pwd = shareLinkInfo.getSharePassword();
         try {
             URL url = new URL(shareLinkInfo.getShareUrl());
+            assertPublicHost(url);
             String baseUrl = url.getProtocol() + "://" + url.getHost();
             // 如果有端口，拼接上端口
             if (url.getPort() != -1) {
