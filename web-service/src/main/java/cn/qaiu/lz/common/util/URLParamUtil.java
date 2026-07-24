@@ -68,9 +68,9 @@ public class URLParamUtil {
         boolean firstParam = !decodedUrl.contains("?");
 
         for (String paramName : params.names()) {
-            // 忽略 "url", "pwd", "dirId", "uuid", "auth" 参数（这些参数单独处理，不应拼接到分享URL中）
+            // 忽略 "url", "pwd", "dirId", "uuid", "auth", "stoken" 参数（这些参数单独处理，不应拼接到分享URL中）
             if (!paramName.equals("url") && !paramName.equals("pwd") && !paramName.equals("dirId") 
-                    && !paramName.equals("uuid") && !paramName.equals("auth")) {
+                    && !paramName.equals("uuid") && !paramName.equals("auth") && !paramName.equals("stoken")) {
                 if (firstParam) {
                     urlBuilder.append("?");
                     firstParam = false;
