@@ -531,7 +531,13 @@ Core模块集成Vert.x实现类似spring的注解式路由API
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=qaiu/netdisk-fast-download&type=Date)](https://star-history.com/#qaiu/netdisk-fast-download&Date)
+<a href="https://www.star-history.com/?repos=qaiu%2Fnetdisk-fast-download&type=date&legend=bottom-right">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=qaiu/netdisk-fast-download&type=date&theme=dark&legend=bottom-right&sealed_token=dfQO_dJcTqcPkEnM7SfxRyHoFbV5Ah4LxoEhdlheMn4T2YLEV_WETxFZexeAbWN5OmNyYuycWan2d42PAFbw0CuU4oCTKgehfErFJ9eVl2CyVpP_4xrdQw" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=qaiu/netdisk-fast-download&type=date&legend=bottom-right&sealed_token=dfQO_dJcTqcPkEnM7SfxRyHoFbV5Ah4LxoEhdlheMn4T2YLEV_WETxFZexeAbWN5OmNyYuycWan2d42PAFbw0CuU4oCTKgehfErFJ9eVl2CyVpP_4xrdQw" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=qaiu/netdisk-fast-download&type=date&legend=bottom-right&sealed_token=dfQO_dJcTqcPkEnM7SfxRyHoFbV5Ah4LxoEhdlheMn4T2YLEV_WETxFZexeAbWN5OmNyYuycWan2d42PAFbw0CuU4oCTKgehfErFJ9eVl2CyVpP_4xrdQw" />
+ </picture>
+</a>
 
 ## **免责声明**  
    - 用户在使用本项目时，应自行承担风险，并确保其行为符合当地法律法规。开发者不对用户因使用本项目而导致的任何后果负责。
