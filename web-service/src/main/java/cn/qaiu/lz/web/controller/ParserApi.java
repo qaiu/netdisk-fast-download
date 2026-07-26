@@ -161,7 +161,7 @@ public class ParserApi {
 
     @RouteMapping("/getFileList")
     public Future<List<FileInfo>> getFileList(HttpServerRequest request, String pwd, String dirId, String uuid,
-                                             String auth) {
+                                             String stoken, String auth) {
         String url = URLParamUtil.parserParams(request);
         ParserCreate parserCreate;
         try {
@@ -175,6 +175,9 @@ public class ParserApi {
         parserCreate.getShareLinkInfo().getOtherParam().put("_requestOrigin", linkPrefix);
         if (StringUtils.isNotBlank(dirId)) {
             parserCreate.getShareLinkInfo().getOtherParam().put("dirId", dirId);
+        }
+        if (StringUtils.isNotBlank(stoken)) {
+            parserCreate.getShareLinkInfo().getOtherParam().put("stoken", stoken);
         }
         if (StringUtils.isNotBlank(uuid)) {
             parserCreate.getShareLinkInfo().getOtherParam().put("uuid", uuid);

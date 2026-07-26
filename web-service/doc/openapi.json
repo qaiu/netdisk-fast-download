@@ -386,6 +386,16 @@
               "type": "string",
               "example": "uuid123"
             }
+          },
+          {
+            "name": "stoken",
+            "in": "query",
+            "required": false,
+            "description": "分享 token，用于子目录解析时复用认证状态",
+            "schema": {
+              "type": "string",
+              "example": "OASBe5qM0pg2VvvyLM..."
+            }
           }
         ],
         "responses": {
