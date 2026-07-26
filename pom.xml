@@ -35,7 +35,7 @@
         <parserVersion>10.2.5</parserVersion>
         <jackson.version>2.18.6</jackson.version>
         <!-- Logback 最新稳定版 -->
-        <logback.version>1.5.32</logback.version>
+        <logback.version>1.5.33</logback.version>
         <junit.version>4.13.2</junit.version>
     </properties>
 
