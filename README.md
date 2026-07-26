@@ -20,7 +20,7 @@ QQ交流群：1017480890
 
 
 ## 介绍
-> netdisk-fast-download网盘直链解析可以把云盘分享链接转为直链，可广泛应用于各类下载站，资源站，个人博客，图床，APP下载更新，视频点播等领域。支持市面各大主流云盘的文件分享以及文件夹分享链接，已支持蓝奏云/蓝奏云优享/移动云云空间/小飞机盘/亿方云/123云盘/Cloudreve等，支持加密分享，以及部分网盘文件夹分享。  
+> netdisk-fast-download网盘直链解析可以把云盘分享链接转为直链，可广泛应用于各类下载站，资源站，个人博客，图床，APP下载更新，视频点播等领域。支持市面各大主流云盘的文件分享以及文件夹分享链接，已支持蓝奏云/蓝奏云优享/移动云云空间/小飞机盘/亿方云/123云盘/永硕E盘/Cloudreve等，支持加密分享，以及部分网盘文件夹分享。  
 
 [官方文档](https://nfd-parser.github.io/)  
 [API接入](https://nfdparser.apifox.cn/)  
@@ -76,6 +76,7 @@ https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.
 - [QQ邮箱云盘-qqw](https://mail.qq.com/)
 - [QQ闪传-qqsc](https://nutty.qq.com/nutty/ssr/26797.html)
 - [城通网盘-ct](https://www.ctfile.com)
+- [永硕E盘-ys](https://www.ysepan.com/)（空间分享，如 `https://xxx.ysepan.com/`，密码为空间访问密码；多文件请用文件列表接口）
 - [网易云音乐分享链接-mnes](https://music.163.com)
 - [酷狗音乐分享链接-mkgs](https://www.kugou.com)
 - [酷我音乐分享链接-mkws](https://kuwo.cn)
@@ -309,8 +310,11 @@ json返回数据格式示例:
     "timestamp": 1736489219402
 }
 ```
-#### 3. 文件夹解析(仅支持蓝奏云/蓝奏优享/小飞机网盘)
+#### 3. 文件夹解析(支持蓝奏云/蓝奏优享/小飞机/永硕E盘等)
 /v2/getFileList?url=分享链接&pwd=分享密码
+
+永硕E盘（`ys`）空间链接先返回目录列表，再带 `dirId` 获取目录内文件：
+`/v2/getFileList?url=https://xxx.ysepan.com/&pwd=空间密码&dirId=目录编号`
 
 ```json
 {
@@ -367,6 +371,7 @@ json返回数据格式示例:
 | 360亿方云      | √       | √        | 100G(须实名) | 不限大小            | 
 | 123云盘       | √       | √        | 2T        | 100G（>100M需要登录） | 
 | 文叔叔         | √       | √        | 10G       | 5GB             | 
+| 永硕E盘        | √       | √(空间密码) | 视套餐       | 视套餐            |
 | WPS云文档      | √       | X        | 5G(免费)   | 10M(免费)/2G(会员)  |
 | 夸克网盘        | x       | √        | 10G       | 不限大小            | 
 | UC网盘        | x       | √        | 10G       | 不限大小            | 

@@ -377,6 +377,13 @@ public enum PanDomainTemplate {
             MmgTool.class),
     // =====================私有盘解析==========================
 
+    // 永硕E盘空间分享：https://qaiu.ysepan.com/ （空间名即 shareKey，密码为空间访问密码）
+    YS("永硕E盘",
+            compile("https?://(?!(?:www|zy|ht|api|c\\d+|ys-[a-zA-Z0-9]+)\\.)(?<KEY>[a-zA-Z\\d-]+)\\.(?:ysepan|ys168)\\.com/?(?:\\?.*)?"),
+            "https://{shareKey}.ysepan.com/",
+            "https://www.ysepan.com/",
+            YsTool.class),
+
     // Cloudreve自定义域名解析, 解析器CeTool兜底策略, 即任意域名如果匹配不到对应的规则, 则由CeTool统一处理,
     // 如果不属于Cloudreve盘 则调用下一个自定义域名解析器, 若都处理不了则抛出异常, 这种匹配模式类似责任链
     // http(s)://pan.huang1111.cn/s/xxx
