@@ -111,7 +111,8 @@ public class Ce4Tool extends PanBase {
     private void requestShareDetail(String baseUrl, String key, String pwd, String path) {
         String shareApiUrl = baseUrl + SHARE_API_PATH + key;
         
-        HttpRequest<Buffer> httpRequest = clientSession.getAbs(shareApiUrl);
+        // 禁止跟随重定向：防止公网 host 302 到内网/元数据绕过 assertPublicHost
+        HttpRequest<Buffer> httpRequest = clientNoRedirects.getAbs(shareApiUrl);
         if (pwd != null && !pwd.isEmpty()) {
             httpRequest.addQueryParam("password", pwd);
         }
@@ -232,7 +233,7 @@ public class Ce4Tool extends PanBase {
                 .put("uris", new JsonArray().add(filePath))
                 .put("download", true);
         
-        clientSession.postAbs(fileUrlApi)
+        clientNoRedirects.postAbs(fileUrlApi)
                 .putHeader("Content-Type", "application/json")
                 .sendJsonObject(requestBody)
                 .onSuccess(res -> {
