@@ -356,6 +356,13 @@
             host: /(fast|drive)\.uc\.cn/,
             name: 'UC网盘'
         },
+        // 永硕E盘：主 ysepan.com/ys168.com，备 cccpan.com/ysupan.com/uupan.net/ysok.net
+        ysepan: {
+            reg: /https?:\/\/(?!(?:www|zy|ht|api|c\d+|ys-[a-zA-Z0-9]+)\.)[a-zA-Z\d-]+\.(?:ysepan\.com|ys168\.com|cccpan\.com|ysupan\.com|uupan\.net|ysok\.net)\/?/,
+            host: /[a-zA-Z\d-]+\.(?:ysepan\.com|ys168\.com|cccpan\.com|ysupan\.com|uupan\.net|ysok\.net)/,
+            name: '永硕E盘',
+            storage: 'hash'
+        },
 
         other: {
             reg: /https:\/\/([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\.)+[a-zA-Z]{2,}\/s\/.+/,

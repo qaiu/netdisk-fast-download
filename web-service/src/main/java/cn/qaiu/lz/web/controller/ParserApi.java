@@ -16,7 +16,9 @@ import cn.qaiu.lz.web.service.DbService;
 import cn.qaiu.parser.PanDomainTemplate;
 import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.ParserCreate;
+import cn.qaiu.parser.clientlink.ClientLinkGeneratorFactory;
 import cn.qaiu.parser.clientlink.ClientLinkType;
+import cn.qaiu.util.CommonUtils;
 import cn.qaiu.vx.core.annotaions.RouteHandler;
 import cn.qaiu.vx.core.annotaions.RouteMapping;
 import cn.qaiu.vx.core.enums.RouteMethod;
@@ -161,7 +163,7 @@ public class ParserApi {
 
     @RouteMapping("/getFileList")
     public Future<List<FileInfo>> getFileList(HttpServerRequest request, String pwd, String dirId, String uuid,
-                                             String stoken, String auth) {
+                                             String stoken, String zml, String auth) {
         String url = URLParamUtil.parserParams(request);
         ParserCreate parserCreate;
         try {
@@ -181,6 +183,9 @@ public class ParserApi {
         }
         if (StringUtils.isNotBlank(uuid)) {
             parserCreate.getShareLinkInfo().getOtherParam().put("uuid", uuid);
+        }
+        if (StringUtils.isNotBlank(zml)) {
+            parserCreate.getShareLinkInfo().getOtherParam().put("zml", zml);
         }
         return ParserAuthUtil.applyAuthParamsAndDonatedFallback(parserCreate, otherParam, dbService)
                 .compose(v -> {
@@ -207,7 +212,14 @@ public class ParserApi {
             return promise.future();
         }
 
-        String paramStr = new String(Base64.getDecoder().decode(param));
+        final String paramStr;
+        try {
+            paramStr = CommonUtils.urlBase64Decode(param);
+        } catch (Exception e) {
+            Promise<String> promise = Promise.promise();
+            promise.fail("下载参数解码失败: " + e.getMessage());
+            return promise.future();
+        }
         ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();
         shareLinkInfo.getOtherParam().put("paramJson", new JsonObject(paramStr));
 
@@ -240,6 +252,131 @@ public class ParserApi {
                 })
                 .onFailure(promise::tryFail);
         return promise.future();
+    }
+
+    /**
+     * 目录文件下载信息（供前端下载器使用）：返回直链、请求头及命令行
+     */
+    @RouteMapping("/getFileDownInfo/:type/:param")
+    public Future<JsonObject> getFileDownInfo(HttpServerRequest request, String type, String param, String auth) {
+        ParserCreate parserCreate;
+        try {
+            parserCreate = ParserCreate.fromType(type).shareKey("-").setShareLinkInfoPwd("-");
+        } catch (Exception e) {
+            return Future.failedFuture(e);
+        }
+
+        if (param == null || param.isEmpty()) {
+            return Future.failedFuture("下载参数为空");
+        }
+
+        final JsonObject paramJson;
+        try {
+            paramJson = new JsonObject(CommonUtils.urlBase64Decode(param));
+        } catch (Exception e) {
+            return Future.failedFuture("下载参数解码失败: " + e.getMessage());
+        }
+
+        ShareLinkInfo shareLinkInfo = parserCreate.getShareLinkInfo();
+        shareLinkInfo.getOtherParam().put("paramJson", paramJson);
+
+        String linkPrefix = getLinkPrefix(request);
+        JsonObject otherParam = ParserAuthUtil.buildOtherParam(request, auth, linkPrefix);
+        shareLinkInfo.getOtherParam().put("domainName", linkPrefix);
+        shareLinkInfo.getOtherParam().put("_requestOrigin", linkPrefix);
+
+        return ParserAuthUtil.applyAuthParamsAndDonatedFallback(parserCreate, otherParam, dbService)
+                .compose(v -> {
+                    URLParamUtil.addParam(parserCreate);
+                    IPanTool tool = parserCreate.createTool();
+                    return IPanTool.closeAfter(tool, tool::parseById)
+                            .onFailure(t -> {
+                                ParserAuthUtil.recordDonatedAccountFailureIfNeeded(dbService, otherParam, t);
+                                ParserAuthUtil.recordAutoDonatedFailureIfNeeded(dbService,
+                                        parserCreate.getShareLinkInfo(), t);
+                            })
+                            .map(downloadUrl -> buildFileDownInfo(shareLinkInfo, paramJson, downloadUrl));
+                });
+    }
+
+    @SuppressWarnings("unchecked")
+    private static JsonObject buildFileDownInfo(ShareLinkInfo shareLinkInfo, JsonObject paramJson, String downloadUrl) {
+        Map<String, String> downloadHeaders = new HashMap<>();
+        // 入口参数里可能已带 cookie（目录解析时写入），先作为底稿
+        mergeDownloadHeaders(downloadHeaders, paramJson.getJsonObject("downloadHeaders"));
+        // 解析器运行时生成的请求头优先覆盖（如刷新后的 cookie），但跳过 null
+        Object headersObj = shareLinkInfo.getOtherParam().get("downloadHeaders");
+        if (headersObj instanceof Map) {
+            mergeDownloadHeaders(downloadHeaders, (Map<?, ?>) headersObj);
+        }
+
+        String fileName = paramJson.getString("fileName", "");
+        if (StringUtils.isBlank(fileName)) {
+            Object fn = shareLinkInfo.getOtherParam().get("fileName");
+            if (fn != null) {
+                fileName = fn.toString();
+            }
+        }
+
+        boolean needDownloader = Boolean.TRUE.equals(paramJson.getBoolean("needDownloader"))
+                || !downloadHeaders.isEmpty();
+
+        shareLinkInfo.getOtherParam().put("downloadUrl", downloadUrl);
+        if (!downloadHeaders.isEmpty()) {
+            shareLinkInfo.getOtherParam().put("downloadHeaders", downloadHeaders);
+        }
+
+        JsonObject result = new JsonObject()
+                .put("downloadUrl", downloadUrl)
+                .put("fileName", fileName)
+                .put("needDownloader", needDownloader)
+                .put("downloadHeaders", downloadHeaders);
+
+        try {
+            Map<ClientLinkType, String> clientLinks = ClientLinkGeneratorFactory.generateAll(shareLinkInfo);
+            if (clientLinks.containsKey(ClientLinkType.CURL)) {
+                result.put("curlCommand", clientLinks.get(ClientLinkType.CURL));
+            }
+            if (clientLinks.containsKey(ClientLinkType.ARIA2)) {
+                result.put("aria2Command", clientLinks.get(ClientLinkType.ARIA2));
+            }
+            if (clientLinks.containsKey(ClientLinkType.THUNDER)) {
+                result.put("thunderLink", clientLinks.get(ClientLinkType.THUNDER));
+            }
+        } catch (Exception e) {
+            log.warn("生成下载命令失败: {}", e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * 合并下载请求头，忽略 null/空值，避免运行时 null 覆盖入口参数中的 cookie。
+     */
+    private static void mergeDownloadHeaders(Map<String, String> target, JsonObject source) {
+        if (source == null || source.isEmpty()) {
+            return;
+        }
+        for (String key : source.fieldNames()) {
+            Object val = source.getValue(key);
+            if (val != null && StringUtils.isNotBlank(val.toString())) {
+                target.put(key, val.toString());
+            }
+        }
+    }
+
+    private static void mergeDownloadHeaders(Map<String, String> target, Map<?, ?> source) {
+        if (source == null || source.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<?, ?> e : source.entrySet()) {
+            if (e.getKey() == null || e.getValue() == null) {
+                continue;
+            }
+            String val = e.getValue().toString();
+            if (StringUtils.isNotBlank(val)) {
+                target.put(e.getKey().toString(), val);
+            }
+        }
     }
 
 

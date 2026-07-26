@@ -265,13 +265,8 @@ public class UcTool extends PanBase {
                                                         return;
                                                     }
                                                     String downloadUrl = dataList.getJsonObject(0).getString("download_url");
-                                                    // UC网盘需要配合aria2下载，保存下载请求头
-                                                    Map<String, String> downloadHeaders = new HashMap<>();
-                                                    // 将header转换为Map 只需要包含cookie,user-agent,referer
-                                                    downloadHeaders.put(HttpHeaders.COOKIE.toString(), header.get(HttpHeaders.COOKIE));
-                                                    downloadHeaders.put(HttpHeaders.USER_AGENT.toString(), header.get(HttpHeaders.USER_AGENT));
-                                                    downloadHeaders.put(HttpHeaders.REFERER.toString(), "https://fast.uc.cn/");
-                                                    completeWithMeta(downloadUrl, downloadHeaders);
+                                                    // UC 需配合下载器（带 cookie），保存下载请求头
+                                                    completeWithMeta(downloadUrl, buildDownloadHeaders(null));
                                                 } catch (Exception e) {
                                                     fail("解析 UC 下载链接失败: " + e.getMessage());
                                                 }
@@ -466,29 +461,40 @@ public class UcTool extends PanBase {
                             if (shareFidToken != null) {
                                 extParams.put("share_fid_token", shareFidToken);
                             }
+                            extParams.put("needDownloader", true);
+                            Map<String, String> dlHeaders = new HashMap<>();
+                            String listCookie = header.get(HttpHeaders.COOKIE);
+                            if (listCookie != null && !listCookie.isEmpty()) {
+                                dlHeaders.put(HttpHeaders.COOKIE.toString(), listCookie);
+                            }
+                            dlHeaders.put(HttpHeaders.USER_AGENT.toString(), header.get(HttpHeaders.USER_AGENT));
+                            dlHeaders.put(HttpHeaders.REFERER.toString(), "https://fast.uc.cn/");
+                            extParams.put("downloadHeaders", dlHeaders);
                             fileInfo.setExtParameters(extParams);
                             // 设置解析URL（用于下载）
                             JsonObject paramJson = new JsonObject(extParams);
+                            paramJson.put("fileName", fileName);
                             String param = CommonUtils.urlBase64Encode(paramJson.encode());
-                            fileInfo.setParserUrl(String.format("%s/v2/redirectUrl/%s/%s", 
-                                    getDomainName(), shareLinkInfo.getType(), param));
+                            // 透传 auth，避免下载/转存时变成 guest
+                            fileInfo.setParserUrl(appendAuthQuery(String.format("%s/v2/redirectUrl/%s/%s",
+                                    getDomainName(), shareLinkInfo.getType(), param)));
                         } else {
                             // 文件夹
                             fileInfo.setFileType("folder");
                             fileInfo.setSize(0L);
                             fileInfo.setSizeStr("0B");
-                            // 设置目录解析URL（用于递归解析子目录）
-                            // 对 URL 参数进行编码，确保特殊字符正确传递
+                            // 递归子目录须透传 auth，否则会丢失认证
                             try {
                                 String encodedUrl = URLEncoder.encode(shareLinkInfo.getShareUrl(), StandardCharsets.UTF_8.toString());
                                 String encodedDirId = URLEncoder.encode(fid, StandardCharsets.UTF_8.toString());
                                 String encodedStoken = URLEncoder.encode(stoken, StandardCharsets.UTF_8.toString());
-                                fileInfo.setParserUrl(String.format("%s/v2/getFileList?url=%s&dirId=%s&stoken=%s", 
-                                        getDomainName(), encodedUrl, encodedDirId, encodedStoken));
+                                fileInfo.setParserUrl(appendAuthQuery(String.format(
+                                        "%s/v2/getFileList?url=%s&dirId=%s&stoken=%s",
+                                        getDomainName(), encodedUrl, encodedDirId, encodedStoken)));
                             } catch (Exception e) {
-                                // 如果编码失败，使用原始值
-                                fileInfo.setParserUrl(String.format("%s/v2/getFileList?url=%s&dirId=%s&stoken=%s", 
-                                        getDomainName(), shareLinkInfo.getShareUrl(), fid, stoken));
+                                fileInfo.setParserUrl(appendAuthQuery(String.format(
+                                        "%s/v2/getFileList?url=%s&dirId=%s&stoken=%s",
+                                        getDomainName(), shareLinkInfo.getShareUrl(), fid, stoken)));
                             }
                         }
                         
@@ -510,6 +516,9 @@ public class UcTool extends PanBase {
             promise.fail("缺少必要的参数");
             return promise.future();
         }
+
+        // 会话无 cookie 时，回退使用入口参数中已带的 cookie
+        ensureCookieFromParam(paramJson);
         
         String fid = paramJson.getString("fid");
         String pwdId = paramJson.getString("pwd_id");
@@ -554,6 +563,11 @@ public class UcTool extends PanBase {
                             promise.fail("未找到下载链接");
                             return;
                         }
+                        // 存储下载请求头，供目录解析 getFileDownInfo 接口使用
+                        // 优先用当前会话 cookie；缺失时回退入口参数中已带的 cookie
+                        Map<String, String> downloadHeaders = buildDownloadHeaders(paramJson);
+                        shareLinkInfo.getOtherParam().put("downloadHeaders", downloadHeaders);
+                        shareLinkInfo.getOtherParam().put("fileName", paramJson.getString("fileName", ""));
                         promise.complete(downloadUrl);
                     } catch (Exception e) {
                         promise.fail("解析 UC 下载链接失败: " + e.getMessage());
@@ -562,6 +576,53 @@ public class UcTool extends PanBase {
                 .onFailure(t -> promise.fail("请求下载链接失败: " + t.getMessage()));
         
         return promise.future();
+    }
+
+    /**
+     * 会话无 cookie 时，从入口参数 downloadHeaders 回填到请求头。
+     */
+    private void ensureCookieFromParam(JsonObject paramJson) {
+        String cookie = header.get(HttpHeaders.COOKIE);
+        if (cookie != null && !cookie.isEmpty()) {
+            return;
+        }
+        String paramCookie = extractCookieFromParam(paramJson);
+        if (paramCookie != null && !paramCookie.isEmpty()) {
+            header.set(HttpHeaders.COOKIE, CookieUtils.filterUcQuarkCookie(paramCookie));
+        }
+    }
+
+    private static String extractCookieFromParam(JsonObject paramJson) {
+        if (paramJson == null) {
+            return null;
+        }
+        JsonObject paramHeaders = paramJson.getJsonObject("downloadHeaders");
+        if (paramHeaders == null) {
+            return null;
+        }
+        String cookie = paramHeaders.getString("cookie");
+        return cookie != null ? cookie : paramHeaders.getString("Cookie");
+    }
+
+    /**
+     * 构建下载请求头：会话 cookie 优先，缺失时回退入口参数中的 downloadHeaders。
+     */
+    private Map<String, String> buildDownloadHeaders(JsonObject paramJson) {
+        Map<String, String> downloadHeaders = new HashMap<>();
+        String cookie = header.get(HttpHeaders.COOKIE);
+        if (cookie == null || cookie.isEmpty()) {
+            cookie = extractCookieFromParam(paramJson);
+        }
+        if (cookie != null && !cookie.isEmpty()) {
+            downloadHeaders.put(HttpHeaders.COOKIE.toString(), cookie);
+        }
+        String ua = header.get(HttpHeaders.USER_AGENT);
+        if (ua == null || ua.isEmpty()) {
+            ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+        }
+        downloadHeaders.put(HttpHeaders.USER_AGENT.toString(), ua);
+        downloadHeaders.put(HttpHeaders.REFERER.toString(), "https://fast.uc.cn/");
+        return downloadHeaders;
     }
 
 //    public static void main(String[] args) {

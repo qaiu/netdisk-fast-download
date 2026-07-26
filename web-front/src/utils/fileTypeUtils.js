@@ -5,6 +5,7 @@ const fileTypeUtils = {
   },
   getFileTypeClass(file) {
     if (file.fileType === 'folder') return 'folder'
+    if (file.fileType === 'url') return 'url'
     const ext = this.getFileExtension(file.fileName)
     const fileTypes = {
       'image': ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'],
@@ -23,6 +24,8 @@ const fileTypeUtils = {
   },
   getFileIcon(file) {
     if (file.fileType === 'folder') return 'fas fa-folder'
+    // 永硕等网盘的外链/公告条目
+    if (file.fileType === 'url') return 'fas fa-link'
     const ext = this.getFileExtension(file.fileName)
     const iconMap = {
       'jpg': 'fas fa-file-image', 'jpeg': 'fas fa-file-image', 'png': 'fas fa-file-image',

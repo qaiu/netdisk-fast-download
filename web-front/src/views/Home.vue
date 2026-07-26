@@ -131,10 +131,15 @@
                   <div style="display: flex; align-items: center; justify-content: space-between;">
                     <span>下载链接</span>
                     <div style="display: flex; gap: 8px;">
-                      <el-button @click="openUrl(downloadUrl)" type="primary" size="small">
-                        <el-icon style="margin-right: 4px;"><Download /></el-icon> 下载
-                      </el-button>
-                      <el-button @click="openUrl(getPreviewLink())" type="default" size="small">
+                      <el-tooltip :disabled="!needsDownloader"
+                        content="该网盘需使用下载器下载" placement="top">
+                        <el-button @click="openUrl(downloadUrl)" type="primary" size="small"
+                          :disabled="needsDownloader">
+                          <el-icon style="margin-right: 4px;"><Download /></el-icon> 下载
+                        </el-button>
+                      </el-tooltip>
+                      <el-button @click="openUrl(getPreviewLink())" type="default" size="small"
+                        :disabled="needsDownloader">
                         <el-icon style="margin-right: 4px;"><View /></el-icon> 预览
                       </el-button>
                       <el-tooltip :disabled="aria2Connected"
@@ -150,10 +155,14 @@
                 </template>
                 <el-input :value="downloadUrl" readonly>
                   <template #append>
-                    <el-button v-clipboard:copy="downloadUrl" v-clipboard:success="onCopy"
-                      v-clipboard:error="onError" style="padding: 0 14px;">
-                      <el-icon><CopyDocument/></el-icon>
-                    </el-button>
+                    <el-tooltip :disabled="!needsDownloader"
+                      content="该网盘需使用下载器，无法直接复制直链" placement="top">
+                      <el-button v-clipboard:copy="downloadUrl" v-clipboard:success="onCopy"
+                        v-clipboard:error="onError" style="padding: 0 14px;"
+                        :disabled="needsDownloader">
+                        <el-icon><CopyDocument/></el-icon>
+                      </el-button>
+                    </el-tooltip>
                   </template>
                 </el-input>
                 <!-- 文件元信息 -->
@@ -417,6 +426,7 @@
               :file-list="directoryData" 
               :share-url="link"
               :password="password"
+              :auth="directoryAuth"
               :view-mode="directoryViewMode"
               @file-click="handleFileClick"
             />
@@ -649,6 +659,7 @@ export default {
       // 目录树
       showDirectoryTree: false,
       directoryData: [],
+      directoryAuth: '', // 目录解析时的加密 auth，透传给子目录/下载
       
       // 统计信息
       node1Info: {},
@@ -760,6 +771,16 @@ export default {
         thunder: '迅雷'
       }
       return map[this.aria2ConfigForm.downloaderType] || 'Aria2'
+    },
+    // 需要下载器（带 cookie 等特殊头）时禁用浏览器下载/复制直链；UC/夸克始终需要
+    needsDownloader() {
+      const pan = (this.getCurrentPanType() || '').toLowerCase()
+      if (pan === 'uc' || pan === 'qk') return true
+      const data = this.parseResult?.data
+      if (!data) return false
+      if (data.needDownloader || data.otherParam?.needDownloader) return true
+      const headers = data.downloadHeaders || data.otherParam?.downloadHeaders
+      return !!(headers && (headers.cookie || headers.Cookie))
     }
   },
   methods: {
@@ -1168,6 +1189,7 @@ export default {
       this.statisticsData = {}
       this.showDirectoryTree = false
       this.directoryData = []
+      this.directoryAuth = ''
     },
 
     // 统一API调用（自动添加认证参数）
@@ -1176,10 +1198,12 @@ export default {
       this.errorBadgeVisible = false
       try {
         this.isLoading = true
-        // 添加认证参数（异步获取）
-        const authParam = await this.generateAuthParam()
-        if (authParam) {
-          params.auth = authParam
+        // 添加认证参数（已有则不覆盖，便于目录树透传同一份 auth）
+        if (!params.auth) {
+          const authParam = await this.generateAuthParam()
+          if (authParam) {
+            params.auth = authParam
+          }
         }
         const response = await axios.get(`${this.baseAPI}${endpoint}`, { params })
 
@@ -1267,11 +1291,13 @@ export default {
         // 更新智能直链（包含认证参数）
         this.updateDirectLink()
         // 如果需要下载器（含特殊头），弹出下载器对话框
-        if (result.data?.needDownloader) {
+        const needDownloader = !!(result.data?.needDownloader || otherParam.needDownloader
+          || otherParam.downloadHeaders?.cookie || otherParam.downloadHeaders?.Cookie)
+        if (needDownloader) {
           this.downloadDialogInfo = {
             downloadUrl: result.data.directLink,
-            fileName: result.data.fileName || '',
-            downloadHeaders: result.data.downloadHeaders || {},
+            fileName: result.data.fileInfo?.fileName || result.data.fileName || '',
+            downloadHeaders: result.data.downloadHeaders || otherParam.downloadHeaders || {},
             aria2Command: this.aria2Command,
             curlCommand: this.curlCommand,
             aria2JsonRpc: this.aria2JsonRpc,
@@ -1291,6 +1317,11 @@ export default {
         this.validateInput()
         const params = { url: this.link }
         if (this.password) params.pwd = this.password
+        // 预先生成 auth，既给本次请求用，也透传给 DirectoryTree 子目录/下载
+        this.directoryAuth = await this.generateAuthParam()
+        if (this.directoryAuth) {
+          params.auth = this.directoryAuth
+        }
         
         // 直接调用 getFileList，让后端返回错误（不做客户端类型检查）
         const directoryResult = await this.callAPI('/v2/getFileList', params)

@@ -24,7 +24,7 @@
             :class="[getFileTypeClass(file), { 'selected': batchMode && isFileSelected(file) }]"
             @click="batchMode ? onBatchClick(file) : handleFileClick(file)"
           >
-            <div v-if="batchMode && file.fileType !== 'folder'" class="batch-checkbox" @click.stop="toggleFileSelect(file)">
+            <div v-if="batchMode && isDownloadableFile(file)" class="batch-checkbox" @click.stop="toggleFileSelect(file)">
               <i :class="isFileSelected(file) ? 'fas fa-check-square' : 'far fa-square'" 
                  :style="{ color: isFileSelected(file) ? '#409eff' : '#c0c4cc' }"></i>
             </div>
@@ -52,9 +52,10 @@
           <div class="batch-right">
             <el-button 
               type="primary" size="small"
-              :disabled="selectedFiles.length === 0"
+              :disabled="selectedFiles.length === 0 || batchBrowserDownloadDisabled"
               :loading="batchDownloading"
               @click="batchBrowserDownload"
+              :title="batchBrowserDownloadDisabled ? '所选文件需使用下载器下载' : ''"
             >
               <i class="fas fa-download"></i> 浏览器下载
             </el-button>
@@ -127,9 +128,10 @@
                     <el-button
                       type="primary"
                       size="small"
-                      :disabled="selectedFiles.length === 0 || batchDownloading"
+                      :disabled="selectedFiles.length === 0 || batchDownloading || batchBrowserDownloadDisabled"
                       :loading="batchDownloading"
                       @click="batchBrowserDownload"
+                      :title="batchBrowserDownloadDisabled ? '所选文件需使用下载器下载' : ''"
                     >
                       浏览器下载
                     </el-button>
@@ -166,25 +168,41 @@
                   </div>
                   <h4 class="file-detail-name">{{ selectedNode.fileName }}</h4>
                   <div v-if="selectedNode.fileType !== 'folder'" class="file-detail-meta">
-                    <p>类型: {{ getFileTypeClass(selectedNode) }}</p>
-                    <p>大小: {{ selectedNode.sizeStr || '0B' }}</p>
+                    <p>类型: {{ selectedNode.fileType === 'url' ? '超链接' : getFileTypeClass(selectedNode) }}</p>
+                    <p v-if="selectedNode.fileType !== 'url'">大小: {{ selectedNode.sizeStr || '0B' }}</p>
+                    <p v-if="selectedNode.fileType === 'url' && selectedNode.previewUrl" class="file-detail-link">
+                      链接: {{ selectedNode.previewUrl }}
+                    </p>
                     <p v-if="formatDate(selectedNode.createTime)">创建时间: {{ formatDate(selectedNode.createTime) }}</p>
                     <p v-if="formatDate(selectedNode.updateTime)">更新时间: {{ formatDate(selectedNode.updateTime) }}</p>
                   </div>
                   <div class="file-detail-actions">
-                    <el-button v-if="selectedNode.parserUrl" size="small" @click="previewFile(selectedNode)">
+                    <el-button
+                      v-if="selectedNode.fileType === 'url' && selectedNode.previewUrl"
+                      type="primary" size="small"
+                      @click="openExternalLink(selectedNode)"
+                    >
+                      <i class="fas fa-external-link-alt"></i> 打开链接
+                    </el-button>
+                    <el-button
+                      v-else-if="selectedNode.parserUrl || selectedNode.previewUrl"
+                      size="small"
+                      @click="previewFile(selectedNode)"
+                    >
                       <i class="fas fa-external-link-alt"></i> 打开
                     </el-button>
                     <el-button
-                      v-if="selectedNode.parserUrl && selectedNode.fileType !== 'folder'"
+                      v-if="isDownloadableFile(selectedNode)"
                       type="success" size="small"
                       @click="handleDownload(selectedNode)"
                       :loading="downloadLoading"
+                      :disabled="needsDownloader(selectedNode)"
+                      :title="needsDownloader(selectedNode) ? '该网盘需使用下载器下载' : ''"
                     >
                       <i class="fas fa-download"></i> 下载
                     </el-button>
                     <el-button
-                      v-if="selectedNode.parserUrl && selectedNode.fileType !== 'folder'"
+                      v-if="isDownloadableFile(selectedNode)"
                       type="primary" size="small"
                       @click="sendSingleToDownloader(selectedNode)"
                       :loading="singleSendLoading"
@@ -192,10 +210,12 @@
                       <i class="fas fa-paper-plane"></i> 发送到下载器
                     </el-button>
                     <el-button
-                      v-if="selectedNode.parserUrl"
+                      v-if="isDownloadableFile(selectedNode)"
                       size="small"
                       @click="copyDirectLink(selectedNode)"
                       :loading="copyLinkLoading"
+                      :disabled="needsDownloader(selectedNode)"
+                      :title="needsDownloader(selectedNode) ? '该网盘需使用下载器，无法直接复制直链' : ''"
                     >
                       <i class="fas fa-link"></i> 复制直链
                     </el-button>
@@ -243,25 +263,41 @@
                 </div>
                 <h4 class="file-detail-name">{{ selectedNode.fileName }}</h4>
                 <div v-if="selectedNode.fileType !== 'folder'" class="file-detail-meta">
-                  <p>类型: {{ getFileTypeClass(selectedNode) }}</p>
-                  <p>大小: {{ selectedNode.sizeStr || '0B' }}</p>
+                  <p>类型: {{ selectedNode.fileType === 'url' ? '超链接' : getFileTypeClass(selectedNode) }}</p>
+                  <p v-if="selectedNode.fileType !== 'url'">大小: {{ selectedNode.sizeStr || '0B' }}</p>
+                  <p v-if="selectedNode.fileType === 'url' && selectedNode.previewUrl" class="file-detail-link">
+                    链接: {{ selectedNode.previewUrl }}
+                  </p>
                   <p v-if="formatDate(selectedNode.createTime)">创建时间: {{ formatDate(selectedNode.createTime) }}</p>
                   <p v-if="formatDate(selectedNode.updateTime)">更新时间: {{ formatDate(selectedNode.updateTime) }}</p>
                 </div>
                 <div class="file-detail-actions">
-                  <el-button v-if="selectedNode.parserUrl" size="small" @click="previewFile(selectedNode)">
+                  <el-button
+                    v-if="selectedNode.fileType === 'url' && selectedNode.previewUrl"
+                    type="primary" size="small"
+                    @click="openExternalLink(selectedNode)"
+                  >
+                    <i class="fas fa-external-link-alt"></i> 打开链接
+                  </el-button>
+                  <el-button
+                    v-else-if="selectedNode.parserUrl || selectedNode.previewUrl"
+                    size="small"
+                    @click="previewFile(selectedNode)"
+                  >
                     <i class="fas fa-external-link-alt"></i> 打开
                   </el-button>
                   <el-button
-                    v-if="selectedNode.parserUrl && selectedNode.fileType !== 'folder'"
+                    v-if="isDownloadableFile(selectedNode)"
                     type="success" size="small"
                     @click="handleDownload(selectedNode)"
                     :loading="downloadLoading"
+                    :disabled="needsDownloader(selectedNode)"
+                    :title="needsDownloader(selectedNode) ? '该网盘需使用下载器下载' : ''"
                   >
                     <i class="fas fa-download"></i> 下载
                   </el-button>
                   <el-button
-                    v-if="selectedNode.parserUrl && selectedNode.fileType !== 'folder'"
+                    v-if="isDownloadableFile(selectedNode)"
                     type="primary" size="small"
                     @click="sendSingleToDownloader(selectedNode)"
                     :loading="singleSendLoading"
@@ -269,10 +305,12 @@
                     <i class="fas fa-paper-plane"></i> 发送到下载器
                   </el-button>
                   <el-button
-                    v-if="selectedNode.parserUrl"
+                    v-if="isDownloadableFile(selectedNode)"
                     size="small"
                     @click="copyDirectLink(selectedNode)"
                     :loading="copyLinkLoading"
+                    :disabled="needsDownloader(selectedNode)"
+                    :title="needsDownloader(selectedNode) ? '该网盘需使用下载器，无法直接复制直链' : ''"
                   >
                     <i class="fas fa-link"></i> 复制直链
                   </el-button>
@@ -290,7 +328,7 @@
               <div v-if="batchMode" class="mobile-batch-footer">
                 <span class="tree-sidebar-count">已勾选 {{ selectedFiles.length }} 个文件</span>
                 <div class="tree-sidebar-actions">
-                  <el-button type="primary" size="small" :disabled="selectedFiles.length === 0 || batchDownloading" :loading="batchDownloading" @click="batchBrowserDownload">浏览器下载</el-button>
+                  <el-button type="primary" size="small" :disabled="selectedFiles.length === 0 || batchDownloading || batchBrowserDownloadDisabled" :loading="batchDownloading" @click="batchBrowserDownload" :title="batchBrowserDownloadDisabled ? '所选文件需使用下载器下载' : ''">浏览器下载</el-button>
                   <el-button type="success" size="small" :disabled="selectedFiles.length === 0 || batchDownloading" :loading="batchDownloading" @click="batchSendToDownloader">发送到下载器</el-button>
                   <el-button size="small" @click="toggleBatchMode">取消</el-button>
                 </div>
@@ -323,19 +361,22 @@
         </div>
         
         <span slot="footer" class="dialog-footer">
-          <el-button type="primary" @click="previewFile(selectedFile)">打开</el-button>
-          <!-- 弹窗下载按钮 -->
+          <el-button type="primary" @click="previewFile(selectedFile)">
+            {{ selectedFile?.fileType === 'url' ? '打开链接' : '打开' }}
+          </el-button>
           <el-button
-            v-if="selectedFile && selectedFile.parserUrl"
+            v-if="isDownloadableFile(selectedFile)"
             type="success"
             @click="handleDownload(selectedFile)"
             style="margin-left: 8px;"
             :loading="downloadLoading"
+            :disabled="needsDownloader(selectedFile)"
+            :title="needsDownloader(selectedFile) ? '该网盘需使用下载器下载' : ''"
           >
             下载
           </el-button>
           <el-button
-            v-if="selectedFile && selectedFile.parserUrl"
+            v-if="isDownloadableFile(selectedFile)"
             type="primary"
             @click="sendSingleToDownloader(selectedFile)"
             style="margin-left: 8px;"
@@ -344,10 +385,12 @@
             发送到下载器
           </el-button>
           <el-button
-            v-if="selectedFile && selectedFile.parserUrl"
+            v-if="isDownloadableFile(selectedFile)"
             @click="copyDirectLink(selectedFile)"
             style="margin-left: 8px;"
             :loading="copyLinkLoading"
+            :disabled="needsDownloader(selectedFile)"
+            :title="needsDownloader(selectedFile) ? '该网盘需使用下载器，无法直接复制直链' : ''"
           >
             复制直链
           </el-button>
@@ -391,6 +434,11 @@ export default {
       required: true
     },
     password: {
+      type: String,
+      default: ''
+    },
+    // 加密 auth，用于子目录/下载请求透传（后端未带上时前端补齐）
+    auth: {
       type: String,
       default: ''
     },
@@ -460,6 +508,11 @@ export default {
         lines.push(`更新时间: ${updateTime}`)
       }
       return lines
+    },
+    // 所选文件全部需要下载器时，禁用浏览器批量下载
+    batchBrowserDownloadDisabled() {
+      return this.selectedFiles.length > 0
+        && this.selectedFiles.every(f => this.needsDownloader(f))
     }
   },
   watch: {
@@ -493,6 +546,13 @@ export default {
       }
       return headers
     },
+    // 子目录/下载链接透传 auth，避免进入子目录变成 guest
+    // 注意：auth 可能已 encodeURIComponent，直接拼接，避免 searchParams 再编一层
+    withAuth(url) {
+      if (!url || !this.auth) return url
+      if (/[?&]auth=/.test(url)) return url
+      return url + (url.includes('?') ? '&' : '?') + 'auth=' + this.auth
+    },
     buildApiUrl() {
       const baseUrl = `${window.location.origin}/v2/getFileList`
       const params = new URLSearchParams({
@@ -501,14 +561,14 @@ export default {
       if (this.password) {
         params.append('pwd', this.password)
       }
-      return `${baseUrl}?${params.toString()}`
+      return this.withAuth(`${baseUrl}?${params.toString()}`)
     },
     // 懒加载子节点
     loadNode(node, resolve) {
       if (node.level === 0) {
         resolve(this.treeData[0].children)
       } else if (node.data.fileType === 'folder' && node.data.parserUrl) {
-        axios.get(node.data.parserUrl, { headers: this.apiKeyHeaders() }).then(res => {
+        axios.get(this.withAuth(node.data.parserUrl), { headers: this.apiKeyHeaders() }).then(res => {
           if (res.data.code === 200) {
             const children = (res.data.data || []).map(item => ({
               ...item,
@@ -535,6 +595,8 @@ export default {
     handleFileClick(file) {
       if (file.fileType === 'folder') {
         this.enterFolder(file)
+      } else if (file.fileType === 'url') {
+        this.openExternalLink(file)
       } else if (this.viewMode === 'pane') {
         this.selectedFile = file
         this.fileDialogVisible = true
@@ -548,10 +610,11 @@ export default {
       }
       try {
         this.loading = true
-        const response = await axios.get(folder.parserUrl, { headers: this.apiKeyHeaders() })
+        const folderUrl = this.withAuth(folder.parserUrl)
+        const response = await axios.get(folderUrl, { headers: this.apiKeyHeaders() })
         if (response.data.code === 200) {
           const newDir = {
-            url: folder.parserUrl,
+            url: folderUrl,
             name: folder.fileName || '未命名文件夹'
           }
           this.pathStack.push(newDir)
@@ -585,7 +648,7 @@ export default {
       }
       try {
         this.loading = true
-        const response = await axios.get(currentDir.url, { headers: this.apiKeyHeaders() })
+        const response = await axios.get(this.withAuth(currentDir.url), { headers: this.apiKeyHeaders() })
         if (response.data.code === 200) {
           this.currentFileList = response.data.data || []
         } else {
@@ -599,8 +662,32 @@ export default {
         this.loading = false
       }
     },
+    isDownloadableFile(file) {
+      return !!(file && file.parserUrl && file.fileType !== 'folder' && file.fileType !== 'url')
+    },
+    // 需要下载器（带 cookie 等特殊头）时，浏览器直连/复制直链不可用
+    // UC/夸克目录文件始终走下载器
+    needsDownloader(file) {
+      if (!file) return false
+      if (file.extParameters && file.extParameters.needDownloader) return true
+      const pan = (file.panType || '').toLowerCase()
+      return pan === 'uc' || pan === 'qk'
+    },
+    openExternalLink(file) {
+      const link = file?.previewUrl || file?.description
+      if (!link) {
+        this.$message.warning('该条目暂无外链')
+        return
+      }
+      window.open(link, '_blank', 'noopener,noreferrer')
+      this.closeFileDialog()
+    },
     // 预览文件
     previewFile(file) {
+      if (file?.fileType === 'url') {
+        this.openExternalLink(file)
+        return
+      }
       if (file?.previewUrl || file?.parserUrl) {
         this.previewUrl = this.appendToken(file.previewUrl || file.parserUrl)
         this.isPreviewing = true
@@ -650,25 +737,18 @@ export default {
       // 需要下载器，调用 getFileDownInfo 接口获取下载信息
       this.downloadLoading = true
       try {
-        // 从 parserUrl 提取 type 和 param
-        // parserUrl 格式: /v2/redirectUrl/{type}/{param} 或 完整URL
-        const url = new URL(file.parserUrl, window.location.origin)
-        const pathParts = url.pathname.split('/')
-        // 找到 redirectUrl 后面的部分
-        const redirectIdx = pathParts.indexOf('redirectUrl')
-        if (redirectIdx === -1 || redirectIdx + 2 >= pathParts.length) {
+        const tp = this.extractTypeParam(file)
+        if (!tp) {
           this.$message.error('无法解析下载参数')
           return
         }
-        const type = pathParts[redirectIdx + 1]
-        const param = pathParts[redirectIdx + 2]
         
         const headers = {}
         const apiKey = localStorage.getItem('nfd_user_api_key')
         if (apiKey) {
           headers['X-API-Key'] = apiKey
         }
-        const response = await axios.get(`${window.location.origin}/v2/getFileDownInfo/${type}/${param}`, { headers })
+        const response = await axios.get(this.buildFileDownInfoUrl(tp.type, tp.param), { headers })
         if (response.data.code === 200 && response.data.data) {
           const info = response.data.data
           if (info.needDownloader) {
@@ -759,10 +839,7 @@ export default {
         const tp = this.extractTypeParam(file)
         if (tp && file.extParameters && file.extParameters.needDownloader) {
           const headers = this.apiKeyHeaders()
-          const resp = await axios.get(
-            `${window.location.origin}/v2/getFileDownInfo/${tp.type}/${tp.param}`,
-            { headers }
-          )
+          const resp = await axios.get(this.buildFileDownInfoUrl(tp.type, tp.param), { headers })
           const info = resp.data.data || resp.data
           if (info && info.downloadUrl) {
             await addDownload(info.downloadUrl, info.downloadHeaders || {}, file.fileName)
@@ -870,7 +947,9 @@ export default {
     },
     fileMetaText(file) {
       const parts = []
-      if (file.fileType !== 'folder') {
+      if (file.fileType === 'url') {
+        parts.push('超链接')
+      } else if (file.fileType !== 'folder') {
         parts.push(file.sizeStr || '0B')
       }
       const timeText = this.formatDate(file.createTime)
@@ -916,7 +995,7 @@ export default {
       this.toggleFileSelect(file)
     },
     selectAll() {
-      this.selectedFiles = this.currentFileList.filter(f => f.fileType !== 'folder' && f.parserUrl)
+      this.selectedFiles = this.currentFileList.filter(f => this.isDownloadableFile(f))
     },
     deselectAll() {
       this.selectedFiles = []
@@ -924,25 +1003,41 @@ export default {
     onTreeCheckChange() {
       if (!this.$refs.fileTree) return
       const checked = this.$refs.fileTree.getCheckedNodes()
-      this.selectedFiles = checked.filter(n => n.fileType !== 'folder' && n.parserUrl)
+      this.selectedFiles = checked.filter(n => this.isDownloadableFile(n))
     },
     extractTypeParam(file) {
       if (!file.parserUrl) return null
       try {
+        // pathname 已是解码后的 path；后端现用 URL-Safe Base64（无 %），可直接使用
         const url = new URL(file.parserUrl, window.location.origin)
-        const parts = url.pathname.split('/')
-        const idx = parts.indexOf('redirectUrl')
-        if (idx === -1 || idx + 2 >= parts.length) return null
-        return { type: parts[idx + 1], param: parts[idx + 2] }
+        const m = url.pathname.match(/\/redirectUrl\/([^/]+)\/(.+)$/)
+        if (!m) return null
+        let param = m[2]
+        // 兼容历史「标准 Base64 + URLEncode」旧链接
+        if (/%[0-9A-Fa-f]{2}/.test(param)) {
+          try { param = decodeURIComponent(param) } catch { /* ignore */ }
+        }
+        return { type: m[1], param }
       } catch {
         return null
       }
     },
+    // URL-Safe Base64 本身可进 path；encodeURIComponent 对 - _ 无影响，只 encode 一次
+    buildFileDownInfoUrl(type, param) {
+      return this.withAuth(
+        `${window.location.origin}/v2/getFileDownInfo/${type}/${encodeURIComponent(param)}`
+      )
+    },
     async batchBrowserDownload() {
       if (this.selectedFiles.length === 0) return
+      const files = this.selectedFiles.filter(f => !this.needsDownloader(f))
+      if (files.length === 0) {
+        this.$message.warning('所选文件需使用「发送到下载器」下载')
+        return
+      }
       this.batchDownloading = true
-      this.batchProgress = { current: 0, total: this.selectedFiles.length, failed: 0 }
-      for (const file of this.selectedFiles) {
+      this.batchProgress = { current: 0, total: files.length, failed: 0 }
+      for (const file of files) {
         try {
           const a = document.createElement('a')
           const rawUrl = file.parserUrl.startsWith('http') ? file.parserUrl : (window.location.origin + file.parserUrl)
@@ -975,13 +1070,32 @@ export default {
       const total = this.selectedFiles.length
       this.batchProgress = { current: 0, total, failed: 0 }
 
-      // 所有文件统一发 parserUrl(302) + downloadHeaders 给下载器
+      // needDownloader 文件走 getFileDownInfo 拿直链+cookie；其余发 parserUrl + headers
       const downloadTasks = []
+      const apiHeaders = this.apiKeyHeaders()
       for (const file of this.selectedFiles) {
-        const rawUrl = file.parserUrl.startsWith('http') ? file.parserUrl : (window.location.origin + file.parserUrl)
-        const url = this.appendToken(rawUrl)
-        const headers = (file.extParameters && file.extParameters.downloadHeaders) || {}
-        downloadTasks.push({ url, headers, fileName: file.fileName })
+        try {
+          if (this.needsDownloader(file)) {
+            const tp = this.extractTypeParam(file)
+            if (!tp) throw new Error('无法解析下载参数')
+            const resp = await axios.get(this.buildFileDownInfoUrl(tp.type, tp.param), { headers: apiHeaders })
+            const info = resp.data.data || resp.data
+            if (!info?.downloadUrl) throw new Error('获取下载信息失败')
+            downloadTasks.push({
+              url: info.downloadUrl,
+              headers: info.downloadHeaders || {},
+              fileName: file.fileName
+            })
+          } else {
+            const rawUrl = file.parserUrl.startsWith('http') ? file.parserUrl : (window.location.origin + file.parserUrl)
+            const url = this.appendToken(rawUrl)
+            const headers = (file.extParameters && file.extParameters.downloadHeaders) || {}
+            downloadTasks.push({ url, headers, fileName: file.fileName })
+          }
+        } catch (e) {
+          console.error('准备下载任务失败:', file.fileName, e)
+          this.batchProgress.failed++
+        }
         this.batchProgress.current++
       }
 
@@ -1005,14 +1119,18 @@ export default {
     },
     renderContent(h, { node, data, store }) {
       const isFolder = data.fileType === 'folder'
+      const isUrl = data.fileType === 'url'
       return h('div', {
         class: 'custom-tree-node'
       }, [
         h('i', {
-          class: [this.getFileIcon(data), { 'folder-icon': isFolder, 'file-icon': !isFolder }]
+          class: [
+            this.getFileIcon(data),
+            { 'folder-icon': isFolder, 'url-icon': isUrl, 'file-icon': !isFolder && !isUrl }
+          ]
         }),
         h('span', {
-          class: ['node-label', { 'folder-text': isFolder, 'file-text': !isFolder }]
+          class: ['node-label', { 'folder-text': isFolder, 'url-text': isUrl, 'file-text': !isFolder && !isUrl }]
         }, node.label)
       ])
     }
@@ -1191,6 +1309,10 @@ html, body, #app, .main-container, .directory-tree, .content-card {
 
 .code .file-icon {
   color: #27ae60;
+}
+
+.url .file-icon {
+  color: #1a73e8;
 }
 
 .file-name {
@@ -1436,6 +1558,22 @@ html, body, #app, .main-container, .directory-tree, .content-card {
 
 .dark-theme .custom-tree-node .folder-icon {
   color: #4a9eff !important;
+}
+
+.custom-tree-node .url-icon {
+  color: #1a73e8 !important;
+}
+
+.dark-theme .custom-tree-node .url-icon {
+  color: #8ab4f8 !important;
+}
+
+.custom-tree-node .url-text {
+  color: #1a73e8 !important;
+}
+
+.dark-theme .custom-tree-node .url-text {
+  color: #8ab4f8 !important;
 }
 
 .custom-tree-node .folder-text {

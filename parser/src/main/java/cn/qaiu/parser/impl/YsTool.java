@@ -24,7 +24,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 永硕E盘 (ysepan.com / ys168.com)
+ * 永硕E盘（主 ysepan.com / ys168.com，备 cccpan.com / ysupan.com / uupan.net / ysok.net）
  * <p>
  * 空间分享形如 https://{space}.ysepan.com/ ，需空间访问密码时通过 sharePassword 传入。
  */
@@ -42,6 +42,8 @@ public class YsTool extends PanBase {
             Pattern.compile("jwttk_[^=]+=([^;\\s]+)");
 
     private static final String PARAM_DIR_ID = "dirId";
+    /** 永硕目录内的子目录名（API 字段 zml），用于二级层级 */
+    private static final String PARAM_ZML = "zml";
 
     public YsTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
@@ -88,9 +90,10 @@ public class YsTool extends PanBase {
             Object dirIdObj = shareLinkInfo.getOtherParam().get(PARAM_DIR_ID);
             if (dirIdObj != null && StringUtils.isNotBlank(dirIdObj.toString())) {
                 int dirId = Integer.parseInt(dirIdObj.toString());
+                String zmlFilter = currentZmlFilter();
                 fetchFiles(session, dirId).onSuccess(filesResp -> {
                     try {
-                        listPromise.complete(mapFiles(session, dirId, filesResp));
+                        listPromise.complete(mapFiles(session, dirId, filesResp, zmlFilter));
                     } catch (Exception e) {
                         listPromise.fail(baseMsg() + " - 解析文件列表失败: " + e.getMessage());
                     }
@@ -132,7 +135,7 @@ public class YsTool extends PanBase {
             fail("下载参数不完整: {}", paramJson);
             return promise.future();
         }
-        String url = buildDownloadUrl(space, xzpz, pz, fwq, fileName, true);
+        String url = buildDownloadUrl(space, xzpz, pz, fwq, fileName);
         completeWithMeta(url, downloadHeaders(paramJson.getString("referer", spaceOrigin())));
         return promise.future();
     }
@@ -375,36 +378,94 @@ public class YsTool extends PanBase {
         return result;
     }
 
-    private List<FileInfo> mapFiles(Session session, int dirId, JsonObject filesResp) {
+    /**
+     * 将目录内文件按 zml（子目录）分层。
+     * <ul>
+     *   <li>zmlFilter 为空：返回子目录（folder）+ 根级文件</li>
+     *   <li>zmlFilter 非空：仅返回该子目录下的文件/链接</li>
+     * </ul>
+     */
+    private List<FileInfo> mapFiles(Session session, int dirId, JsonObject filesResp, String zmlFilter) {
         List<FileInfo> result = new ArrayList<>();
         String xzpz = filesResp.getJsonObject("ml", new JsonObject()).getString("xzpz", "");
         JsonArray lb = filesResp.getJsonArray("lb", new JsonArray());
+        boolean listingSubdir = StringUtils.isNotBlank(zmlFilter);
+
+        // 未进入子目录时，先按出现顺序收集 zml 作为二级文件夹
+        if (!listingSubdir) {
+            java.util.LinkedHashSet<String> subdirs = new java.util.LinkedHashSet<>();
+            for (int i = 0; i < lb.size(); i++) {
+                JsonObject item = lb.getJsonObject(i);
+                if (item == null) {
+                    continue;
+                }
+                String zml = StringUtils.defaultString(item.getString("zml")).trim();
+                if (StringUtils.isNotBlank(zml)) {
+                    subdirs.add(zml);
+                }
+            }
+            for (String zml : subdirs) {
+                result.add(new FileInfo()
+                        .setFileName(zml)
+                        .setFileId(dirId + ":" + zml)
+                        .setFileType("folder")
+                        .setSize(0L)
+                        .setSizeStr("0B")
+                        .setFilePath(zml)
+                        .setPanType(shareLinkInfo.getType())
+                        .setParserUrl(String.format("%s/v2/getFileList?url=%s&dirId=%s&zml=%s&pwd=%s",
+                                getDomainName(),
+                                urlEncode(shareLinkInfo.getShareUrl()),
+                                dirId,
+                                urlEncode(zml),
+                                urlEncode(StringUtils.defaultString(shareLinkInfo.getSharePassword())))));
+            }
+        }
+
         for (int i = 0; i < lb.size(); i++) {
             JsonObject item = lb.getJsonObject(i);
             if (item == null) {
                 continue;
             }
-            String wjlx = item.getString("wjlx", "");
+            String itemZml = StringUtils.defaultString(item.getString("zml")).trim();
+            if (listingSubdir) {
+                if (!zmlFilter.equals(itemZml)) {
+                    continue;
+                }
+            } else if (StringUtils.isNotBlank(itemZml)) {
+                // 根级列表只展示无 zml 的条目，有 zml 的归入子目录
+                continue;
+            }
+
             Integer bh = item.getInteger("bh");
             if (bh == null) {
                 continue;
             }
+            String wjlx = item.getString("wjlx", "");
 
             // URL / 公告条目
             if ("url".equalsIgnoreCase(wjlx)) {
-                String title = StringUtils.defaultIfBlank(item.getString("bt"), item.getString("wjm", "链接"));
-                String link = item.getString("wjm", "");
+                String link = StringUtils.defaultString(item.getString("wjm")).trim();
+                String title = StringUtils.defaultString(item.getString("bt")).trim();
+                // 空占位（标题和链接都空）跳过，与官网展示一致
+                if (StringUtils.isAllBlank(title, link)) {
+                    continue;
+                }
+                if (StringUtils.isBlank(title)) {
+                    title = StringUtils.defaultIfBlank(link, "链接");
+                }
                 FileInfo urlInfo = new FileInfo()
                         .setFileName(title)
                         .setFileId(bh.toString())
                         .setFileType("url")
                         .setSize(0L)
                         .setSizeStr("0B")
-                        .setFilePath(item.getString("zml", ""))
+                        .setFilePath(itemZml)
                         .setCreateTime(normalizeTime(item.getString("sj")))
                         .setPanType(shareLinkInfo.getType())
                         .setPreviewUrl(link)
                         .setDescription(link);
+                // parserUrl 置空，避免前端误走下载；打开走 previewUrl
                 result.add(urlInfo);
                 continue;
             }
@@ -417,7 +478,7 @@ public class YsTool extends PanBase {
             }
 
             long size = item.getLong("dx", 0L);
-            String downloadUrl = buildDownloadUrl(session.space, xzpz, pz, fwq, fileName, true);
+            String downloadUrl = buildDownloadUrl(session.space, xzpz, pz, fwq, fileName);
             JsonObject param = new JsonObject()
                     .put("space", session.space)
                     .put("xzpz", xzpz)
@@ -436,7 +497,7 @@ public class YsTool extends PanBase {
                     .setFileType("file")
                     .setSize(size)
                     .setSizeStr(FileSizeConverter.convertToReadableSize(size))
-                    .setFilePath(item.getString("zml", ""))
+                    .setFilePath(itemZml)
                     .setCreateTime(normalizeTime(item.getString("sj")))
                     .setPanType(shareLinkInfo.getType())
                     .setParserUrl(String.format("%s/v2/redirectUrl/%s/%s",
@@ -446,6 +507,18 @@ public class YsTool extends PanBase {
             result.add(fileInfo);
         }
         return result;
+    }
+
+    private String currentZmlFilter() {
+        Object zml = shareLinkInfo.getOtherParam().get(PARAM_ZML);
+        if (zml == null) {
+            return "";
+        }
+        try {
+            return java.net.URLDecoder.decode(zml.toString(), StandardCharsets.UTF_8).trim();
+        } catch (Exception e) {
+            return zml.toString().trim();
+        }
     }
 
     private List<JsonObject> downloadableFiles(JsonObject filesResp) {
@@ -474,7 +547,7 @@ public class YsTool extends PanBase {
     private void completeDownload(Session session, JsonObject filesResp, JsonObject file) {
         String xzpz = filesResp.getJsonObject("ml", new JsonObject()).getString("xzpz");
         String url = buildDownloadUrl(session.space, xzpz, file.getString("pz"),
-                file.getString("fwq"), file.getString("wjm"), true);
+                file.getString("fwq"), file.getString("wjm"));
 
         FileInfo fileInfo = new FileInfo()
                 .setFileName(file.getString("wjm"))
@@ -489,15 +562,16 @@ public class YsTool extends PanBase {
         completeWithMeta(url, downloadHeaders(session.origin + "/"));
     }
 
-    static String buildDownloadUrl(String space, String xzpz, String pz, String fwq,
-                                   String fileName, boolean forceDownload) {
-        String token = forceDownload ? "_" + xzpz : xzpz;
+    /**
+     * 拼装直链。注意：不要在 xzpz 前加 "_"，官方页面直链无此前缀，加了会 404。
+     */
+    static String buildDownloadUrl(String space, String xzpz, String pz, String fwq, String fileName) {
         String host = "X".equalsIgnoreCase(fwq)
                 ? "y.ys168.com:8000"
                 : "ys-" + fwq.toLowerCase() + ".ysepan.com";
         return "https://" + host + "/wap/"
                 + encodePathSegment(space) + "/"
-                + encodePathSegment(token) + "/"
+                + encodePathSegment(xzpz) + "/"
                 + encodePathSegment(pz) + "/"
                 + encodePathSegment(fileName);
     }

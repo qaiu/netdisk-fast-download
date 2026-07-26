@@ -324,6 +324,63 @@ public class PanDomainTemplateTest {
     }
 
     @Test
+    public void testYsPatternMatching() {
+        Pattern ysPattern = PanDomainTemplate.YS.getPattern();
+
+        // 主域名
+        Matcher m1 = ysPattern.matcher("https://qaiu.ysepan.com/");
+        assertTrue("YS should match ysepan.com", m1.matches());
+        assertEquals("qaiu", m1.group("KEY"));
+
+        Matcher m2 = ysPattern.matcher("http://sohehe4.ys168.com");
+        assertTrue("YS should match ys168.com", m2.matches());
+        assertEquals("sohehe4", m2.group("KEY"));
+
+        // 备用域名
+        Matcher m3 = ysPattern.matcher("https://demo.cccpan.com/");
+        assertTrue("YS should match cccpan.com", m3.matches());
+        assertEquals("demo", m3.group("KEY"));
+
+        Matcher m4 = ysPattern.matcher("https://space.ysupan.com");
+        assertTrue("YS should match ysupan.com", m4.matches());
+        assertEquals("space", m4.group("KEY"));
+
+        Matcher m5 = ysPattern.matcher("https://user.uupan.net/");
+        assertTrue("YS should match uupan.net", m5.matches());
+        assertEquals("user", m5.group("KEY"));
+
+        Matcher m6 = ysPattern.matcher("https://ok.ysok.net");
+        assertTrue("YS should match ysok.net", m6.matches());
+        assertEquals("ok", m6.group("KEY"));
+
+        // 非空间子域 / 非白名单域名
+        assertFalse("YS should NOT match www.ysepan.com",
+                ysPattern.matcher("https://www.ysepan.com/").matches());
+        assertFalse("YS should NOT match api host c6.ysepan.com",
+                ysPattern.matcher("https://c6.ysepan.com/api/ml/mldq").matches());
+        assertFalse("YS should NOT match CDN ys-c.ysepan.com",
+                ysPattern.matcher("https://ys-c.ysepan.com/wap/qaiu/x").matches());
+        assertFalse("YS should NOT match unrelated domain",
+                ysPattern.matcher("https://qaiu.evil.com/").matches());
+        assertFalse("YS should NOT match ysepan.com without space subdomain",
+                ysPattern.matcher("https://ysepan.com/").matches());
+    }
+
+    @Test
+    public void testYsFromShareUrl() {
+        ParserCreate parserCreate = ParserCreate.fromShareUrl("https://qaiu.ysepan.com/");
+        ShareLinkInfo info = parserCreate.getShareLinkInfo();
+        assertNotNull(info);
+        assertEquals("ys", info.getType());
+        assertEquals("永硕E盘", info.getPanName());
+        assertEquals("qaiu", info.getShareKey());
+
+        ParserCreate backup = ParserCreate.fromShareUrl("https://demo.cccpan.com/");
+        assertEquals("ys", backup.getShareLinkInfo().getType());
+        assertEquals("demo", backup.getShareLinkInfo().getShareKey());
+    }
+
+    @Test
     public void testFsFromShareUrl() {
         // 测试文件链接解析
         String fileUrl = "https://kcncuknojm60.feishu.cn/file/VnCxbt35KoowKoxldO3c3C7VnMc?from=from_copylink";

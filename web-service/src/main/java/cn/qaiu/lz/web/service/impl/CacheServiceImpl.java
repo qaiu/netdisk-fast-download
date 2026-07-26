@@ -186,6 +186,11 @@ public class CacheServiceImpl implements CacheService {
             // 传递 downloadHeaders 到两个对象
             cacheLinkInfo.getOtherParam().put("downloadHeaders", downloadHeaders);
             result.getOtherParam().put("downloadHeaders", downloadHeaders);
+            // 有特殊下载头时标记需要下载器（浏览器无法带 cookie 直连）
+            if (!downloadHeaders.isEmpty()) {
+                cacheLinkInfo.getOtherParam().put("needDownloader", true);
+                result.getOtherParam().put("needDownloader", true);
+            }
             
             // 使用已有的工具类生成下载命令
             generateCommandsFromShareLinkInfo(shareLinkInfo, cacheLinkInfo, result);

@@ -77,32 +77,57 @@ public class CommonUtils {
     }
 
     /**
-     * urlEncode -> deBase64 -> string
-     * @param encoded 编码后的字符串
-     * @return 解码后的字符串
+     * 解码路径参数中的 Base64。
+     * <p>优先按 URL-Safe Base64 解；兼容历史「标准 Base64 + URLEncode」以及重复 encode。</p>
      */
     public static String urlBase64Decode(String encoded) {
-        try {
-            String urlDecoded = java.net.URLDecoder.decode(encoded, StandardCharsets.UTF_8);
-            byte[] base64DecodedBytes = java.util.Base64.getDecoder().decode(urlDecoded);
-            return new String(base64DecodedBytes, java.nio.charset.StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            throw new RuntimeException("URL Base64 解码失败", e);
+        if (encoded == null || encoded.isEmpty()) {
+            throw new RuntimeException("URL Base64 解码失败: empty");
         }
+        String s = encoded.trim().replace(' ', '+');
+        // 兼容历史 URLEncode / 误二次 encode：有 % 则解到不再变化
+        for (int i = 0; i < 3 && s.contains("%"); i++) {
+            try {
+                String next = java.net.URLDecoder.decode(s, StandardCharsets.UTF_8);
+                if (next.equals(s)) {
+                    break;
+                }
+                s = next;
+            } catch (Exception e) {
+                break;
+            }
+        }
+        Exception last = null;
+        for (String candidate : new String[]{s, padBase64(s)}) {
+            try {
+                return new String(java.util.Base64.getUrlDecoder().decode(candidate), StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                last = e;
+            }
+            try {
+                return new String(java.util.Base64.getDecoder().decode(candidate), StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                last = e;
+            }
+        }
+        throw new RuntimeException("URL Base64 解码失败", last);
     }
-    
+
     /**
-     *  string -> base64Encode -> urlEncode
-     * @param str 原始字符串
-     * @return 编码后的字符串
+     * 编码为可直接放进 URL path 的 Base64（URL-Safe，无 padding）。
+     * <p>不再做 URLEncoder，避免前端/代理再 encode 时变成 %253D。</p>
      */
     public static String urlBase64Encode(String str) {
-        try {
-            byte[] base64EncodedBytes = java.util.Base64.getEncoder().encode(str.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            String base64Encoded = new String(base64EncodedBytes, java.nio.charset.StandardCharsets.UTF_8);
-            return java.net.URLEncoder.encode(base64Encoded, StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            throw new RuntimeException("URL Base64 编码失败", e);
+        return java.util.Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(str.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static String padBase64(String s) {
+        int mod = s.length() % 4;
+        if (mod == 0) {
+            return s;
         }
+        return s + "====".substring(mod);
     }
 }

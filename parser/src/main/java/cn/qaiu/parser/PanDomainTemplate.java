@@ -378,8 +378,11 @@ public enum PanDomainTemplate {
     // =====================私有盘解析==========================
 
     // 永硕E盘空间分享：https://qaiu.ysepan.com/ （空间名即 shareKey，密码为空间访问密码）
+    // 主域名 ysepan.com / ys168.com；备用 cccpan.com / ysupan.com / uupan.net / ysok.net
     YS("永硕E盘",
-            compile("https?://(?!(?:www|zy|ht|api|c\\d+|ys-[a-zA-Z0-9]+)\\.)(?<KEY>[a-zA-Z\\d-]+)\\.(?:ysepan|ys168)\\.com/?(?:\\?.*)?"),
+            compile("https?://(?!(?:www|zy|ht|api|c\\d+|ys-[a-zA-Z0-9]+)\\.)(?<KEY>[a-zA-Z\\d-]+)\\."
+                    + "(?:ysepan\\.com|ys168\\.com|cccpan\\.com|ysupan\\.com|uupan\\.net|ysok\\.net)"
+                    + "/?(?:\\?.*)?"),
             "https://{shareKey}.ysepan.com/",
             "https://www.ysepan.com/",
             YsTool.class),

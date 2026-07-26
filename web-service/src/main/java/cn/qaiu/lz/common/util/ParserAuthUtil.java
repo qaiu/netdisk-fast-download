@@ -22,6 +22,8 @@ public class ParserAuthUtil {
     public static final String SKIP_CLIENT_LINKS = "_skipClientLinks";
     public static final String TEMP_AUTH_ADDED = "__TEMP_AUTH_ADDED";
     public static final String DONATED_ACCOUNT_TOKEN = "__AUTO_DONATED_ACCOUNT_TOKEN";
+    /** 原始加密 auth 查询串，供目录子链透传（避免进入子目录丢失认证） */
+    public static final String AUTH_QUERY = "_authQuery";
 
     private ParserAuthUtil() {
     }
@@ -41,6 +43,8 @@ public class ParserAuthUtil {
         }
 
         if (StringUtils.isNotBlank(auth)) {
+            // 保留原始 auth，供 getFileList 子目录 parserUrl 透传
+            otherParam.put(AUTH_QUERY, auth);
             AuthParam authParam = AuthParamCodec.decode(auth);
             if (authParam != null && authParam.hasValidAuth()) {
                 otherParam.put("authType", authParam.getAuthType());

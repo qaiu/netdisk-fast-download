@@ -414,7 +414,18 @@ public abstract class PanBase implements IPanTool, Closeable {
     protected void completeWithMeta(String url, Map<String, String> headers) {
         shareLinkInfo.getOtherParam().put("downloadUrl", url);
         if (headers != null && !headers.isEmpty()) {
-            shareLinkInfo.getOtherParam().put("downloadHeaders", headers);
+            // 过滤 null/空值，避免 cookie:null 覆盖入口参数或污染 curl 命令
+            Map<String, String> clean = new HashMap<>();
+            headers.forEach((k, v) -> {
+                if (k != null && v != null && !v.isBlank()) {
+                    clean.put(k, v);
+                }
+            });
+            if (!clean.isEmpty()) {
+                shareLinkInfo.getOtherParam().put("downloadHeaders", clean);
+                // UC/夸克等需带 cookie 的直链，标记前端走下载器
+                shareLinkInfo.getOtherParam().put("needDownloader", true);
+            }
         }
         promise.complete(url);
     }
@@ -520,6 +531,34 @@ public abstract class PanBase implements IPanTool, Closeable {
 
     protected String getDomainName(){
         return shareLinkInfo.getOtherParam().getOrDefault("domainName", "").toString();
+    }
+
+    /**
+     * 将入口请求中的加密 auth 透传到子目录/下载链接，避免进入子目录后丢失认证。
+     * otherParam 中的 key 为 {@code _authQuery}（由 web 层写入）。
+     */
+    protected String appendAuthQuery(String url) {
+        if (StringUtils.isBlank(url) || shareLinkInfo == null || shareLinkInfo.getOtherParam() == null) {
+            return url;
+        }
+        Object authObj = shareLinkInfo.getOtherParam().get("_authQuery");
+        if (authObj == null) {
+            return url;
+        }
+        String auth = authObj.toString();
+        if (StringUtils.isBlank(auth)) {
+            return url;
+        }
+        // 已带 auth 则不再追加
+        if (url.contains("auth=")) {
+            return url;
+        }
+        try {
+            String encoded = java.net.URLEncoder.encode(auth, StandardCharsets.UTF_8);
+            return url + (url.contains("?") ? "&" : "?") + "auth=" + encoded;
+        } catch (Exception e) {
+            return url + (url.contains("?") ? "&" : "?") + "auth=" + auth;
+        }
     }
 
     @Override
