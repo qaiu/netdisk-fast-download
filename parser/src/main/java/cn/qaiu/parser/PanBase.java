@@ -392,6 +392,28 @@ public abstract class PanBase implements IPanTool, Closeable {
     }
 
     /**
+     * 尝试将响应体解析为 JsonObject，失败时静默返回 null（不调用 fail()）。
+     * 适用于版本探测等场景：响应可能是 HTML，此时不应立即终止解析流程。
+     *
+     * @param res HttpResponse
+     * @return JsonObject，若响应体不是合法 JSON 则返回 null
+     */
+    protected JsonObject tryParseJson(HttpResponse<?> res) {
+        String contentEncoding = res.getHeader("Content-Encoding");
+        try {
+            if ("gzip".equalsIgnoreCase(contentEncoding)) {
+                String decompressed = decompressGzip((Buffer) res.body());
+                return new JsonObject(decompressed);
+            } else {
+                return res.bodyAsJsonObject();
+            }
+        } catch (Exception e) {
+            log.debug("响应体不是合法JSON，跳过: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * body To text的封装, 会自动处理异常, 会自动解压gzip
      * @param res HttpResponse
      * @return String
