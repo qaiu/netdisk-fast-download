@@ -377,16 +377,13 @@ public abstract class PanBase implements IPanTool, Closeable {
             }
 
         } catch (Exception e) {
+            // 上游响应体可能来自内网探测目标或非JSON内容，仅写日志，避免经 HTTP 500 回传给调用方
             if ("gzip".equalsIgnoreCase(contentEncoding)) {
-                // gzip解压失败，记录错误
-                log.error("响应gzip解压或JSON解析失败: {}", e.getMessage());
-                fail("响应gzip解压或JSON解析失败: {}", e.getMessage());
+                log.error("上游响应gzip解压或JSON解析失败: {}", e.getMessage());
             } else {
-                // 上游响应体可能来自内网探测目标，仅写日志，避免经 HTTP 500 回传给调用方
-                String bodyPreview = responseBodyPreview(res);
-                log.error("解析失败: json格式异常: {}", bodyPreview);
-                fail("解析失败: json格式异常");
+                log.error("上游响应格式异常(非JSON): {}", responseBodyPreview(res));
             }
+            fail("上游响应格式异常");
             return JsonObject.of();
         }
     }
