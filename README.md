@@ -455,8 +455,8 @@ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock containrrr/watchtow
 > 注意: netdisk-fast-download.service中的ExecStart的路径改为实际路径
 ```shell
 cd ~
-wget -O netdisk-fast-download.zip https://github.com/qaiu/netdisk-fast-download/releases/download/v3.0.2/netdisk-fast-download-bin.zip
-unzip netdisk-fast-download-bin.zip
+wget -O netdisk-fast-download.zip https://github.com/qaiu/netdisk-fast-download/releases/download/v0.4.2/netdisk-fast-download-linux-amd64.zip
+unzip netdisk-fast-download.zip
 cd netdisk-fast-download
 bash service-install.sh
 ```
