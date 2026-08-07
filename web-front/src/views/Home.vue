@@ -1156,7 +1156,6 @@ export default {
           this.password = shortInfo.pwd
         }
         this.$message.success(`已识别短格式并自动转换，网盘类型: ${shortInfo.name}`)
-        this.updateDirectLink()
         return
       }
 
@@ -1169,7 +1168,6 @@ export default {
           this.password = pwd
         }
         this.$message.success(`已从文本中识别到 ${linkInfo.name} 分享链接`)
-        this.updateDirectLink()
       }
     },
 
@@ -1184,6 +1182,7 @@ export default {
     clearResults() {
       this.parseResult = {}
       this.downloadUrl = null
+      this.directLink = ''
       this.markdownText = ''
       this.showQRCode = false
       this.statisticsData = {}
@@ -1327,8 +1326,10 @@ export default {
         const directoryResult = await this.callAPI('/v2/getFileList', params)
         this.directoryData = directoryResult.data || []
         this.showDirectoryTree = true
-        // 自动赋值分享链接
-        this.showListLink = `${this.baseUrl}/showList?url=${encodeURIComponent(this.link)}`
+        // 目录解析成功后，将目录落地页作为智能直链
+        const listUrl = `${this.baseUrl}/showList?url=${encodeURIComponent(this.link)}`
+        this.showListLink = listUrl
+        this.directLink = listUrl
 
         this.$message.success(`目录解析成功！共找到 ${this.directoryData.length} 个文件/文件夹`)
       } catch (error) {
@@ -1427,7 +1428,6 @@ export default {
           if (shortInfo.link !== this.link || shortInfo.pwd !== this.password) {
             this.password = shortInfo.pwd
             this.link = shortInfo.link
-            this.updateDirectLink()
             if (!this.hasClipboardSuccessTip) {
               this.$message.success(`自动识别分享成功, 网盘类型: ${shortInfo.name}; 分享URL ${this.link}; 分享密码: ${this.password || '空'}`)
               this.hasClipboardSuccessTip = true
@@ -1446,8 +1446,6 @@ export default {
           if (linkInfo.link !== this.link || pwd !== this.password) {
             this.password = pwd
             this.link = linkInfo.link
-            // 更新智能直链（包含认证参数）
-            this.updateDirectLink()
             // 聚焦期间只提示一次
             if (!this.hasClipboardSuccessTip) {
               this.$message.success(`自动识别分享成功, 网盘类型: ${linkInfo.name}; 分享URL ${this.link}; 分享密码: ${this.password || '空'}`)
