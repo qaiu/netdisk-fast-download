@@ -121,9 +121,9 @@ public enum PanDomainTemplate {
             "https://lecloud.lenovo.com/share/{shareKey}",
             LeTool.class),
 
-    // https://v2.fangcloud.com/s/
+    // https://v2.fangcloud.com/s/  https://v2.fangcloud.cn/h5/share/ (移动端H5落地页)
     FC("亿方云",
-            compile("https://v2\\.fangcloud\\.(com|cn)/(s|share|sharing)/(?<KEY>.+)"),
+            compile("https://v2\\.fangcloud\\.(com|cn)/(?:h5/)?(s|share|sharing)/(?<KEY>.+)"),
             "https://v2.fangcloud.com/s/{shareKey}",
             "https://www.fangcloud.com/",
             FcTool.class),
