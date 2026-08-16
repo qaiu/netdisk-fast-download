@@ -49,7 +49,7 @@ wget -O v01 "https://lz.qaiu.top/parser?url=https%3A%2F%2Fwww.ecpan.cn%2Fweb%2F%
 | 用途 | 地址 |
 | --- | --- |
 | 下载 | `https://lz.qaiu.top/ec/70017ece572737b12b30709b7f029308eJD0@1234` |
-| 在线预览 | [点击访问](https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.top%2Fec%2F70017ece572737b12b30709b7f029308eJD0%401234&name=v01&ext=1234) |
+| 在线预览 | [点击访问](https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.top%2Fec%2F70017ece572737b12b30709b7f029308eJD0%401234&name=v01&ext=mp4) |
 
 > 无提取码时去掉 `&pwd=1234` / `@1234` 即可；预览页 `src` 需编码（`@` → `%40`），用短链可避免二次编码。
 
