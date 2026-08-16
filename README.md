@@ -28,24 +28,30 @@ QQ交流群：1017480890
 [公益解析，lz0站](https://lz0.qaiu.top)  
 [专业版](https://189.qaiu.top)  
   
-
 ## 快速开始
-命令行下载分享文件：  
-```shell
-curl -LOJ "https://lz.qaiu.top/parser?url=https://share.feijipan.com/s/Tk1F2kGQ&pwd=1234"  
-```
-或者使用wget:  
-```shell
-wget -O bilibili.mp4 "https://lz.qaiu.top/parser?url=https://share.feijipan.com/s/Tk1F2kGQ&pwd=1234"
-```
-或者使用浏览器[直接访问](https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.top%2Fparser%3Furl%3Dhttps%3A%2F%2Fwww.ilanzou.com%2Fs%2FCDx6xKbT&name=bilibili.mp4&ext=mp4):
-```
-### 调用演示站下载：
-https://lz.qaiu.top/parser?url=https://www.ilanzou.com/s/CDx6xKbT&pwd=1234  
-### 调用演示站预览：
-https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.top%2Fparser%3Furl%3Dhttps%3A%2F%2Fwww.ilanzou.com%2Fs%2FCDx6xKbT&name=bilibili.mp4&ext=mp4  
 
+以带提取码的分享链接为例（提取码 `1234`），链接中含 `#`、`&`，作为 `url` 参数传入前必须做 URL 编码：
+
+`https://www.ecpan.cn/web/#/yunpanProxy?path=%2F%23%2Fdrive%2Foutside&data=70017ece572737b12b30709b7f029308eJD0&isShare=1`
+
+**命令行下载**
+
+```shell
+# curl
+curl -LOJ "https://lz.qaiu.top/parser?url=https%3A%2F%2Fwww.ecpan.cn%2Fweb%2F%23%2FyunpanProxy%3Fpath%3D%252F%2523%252Fdrive%252Foutside%26data%3D70017ece572737b12b30709b7f029308eJD0%26isShare%3D1&pwd=1234"
+
+# wget
+wget -O v01 "https://lz.qaiu.top/parser?url=https%3A%2F%2Fwww.ecpan.cn%2Fweb%2F%23%2FyunpanProxy%3Fpath%3D%252F%2523%252Fdrive%252Foutside%26data%3D70017ece572737b12b30709b7f029308eJD0%26isShare%3D1&pwd=1234"
 ```
+
+**短链方式**（key 取分享链接的 `data` 参数，提取码用 `@` 拼接）
+
+| 用途 | 地址 |
+| --- | --- |
+| 下载 | `https://lz.qaiu.top/ec/70017ece572737b12b30709b7f029308eJD0@1234` |
+| 在线预览 | [点击访问](https://nfd-parser.github.io/nfd-preview/preview.html?src=https%3A%2F%2Flz.qaiu.top%2Fec%2F70017ece572737b12b30709b7f029308eJD0%401234&name=v01&ext=1234) |
+
+> 无提取码时去掉 `&pwd=1234` / `@1234` 即可；预览页 `src` 需编码（`@` → `%40`），用短链可避免二次编码。
 
 **解析器模块文档：** [parser/README.md](parser/README.md)
 
@@ -133,6 +139,7 @@ GET /json/parser?url={分享链接}&pwd={密码}
 ```
 GET /json/{网盘标识}/{分享key}@{密码}
 ```
+注意： 移动云云空间的 `分享key` 取分享链接中的 `data` 参数值
 
 #### 3. 文件夹解析（v0.1.8fixed3+）
 
@@ -229,11 +236,6 @@ auths:
 > ⚠️ 注意：YAML 中 key 后面不写值（如 `authorization:` 空着）等同于没配置，不会生效，必须填入真实的账号密码或 token 内容。
 
 如果只是临时调用一次，不想改动服务端配置，也可以用上面提到的 `auth` 参数临时传递（`authType` 可选 `password`/`accesstoken`/`authorization`），无需重启服务，仅本次请求生效。
-
-### 特殊说明
-
-- 移动云云空间的 `分享key` 取分享链接中的 `data` 参数值
-- 移动云云空间、小飞机网盘的加密分享可忽略密码参数
 
 ### 示例
 
