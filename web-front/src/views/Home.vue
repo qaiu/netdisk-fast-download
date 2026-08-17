@@ -90,7 +90,7 @@
             <!-- 开关按钮，控制是否自动读取剪切板 -->
             <el-switch v-model="autoReadClipboard" active-text="自动识别剪切板"></el-switch>
 
-            <el-input placeholder="请粘贴分享链接(http://或https://)" v-model="link" id="url" @paste="onPaste">
+            <el-input placeholder="请粘贴分享链接(http://或https://)" v-model="link" id="url" @paste="onPaste" @blur="normalizeShortcutInput">
               <template #prepend>分享链接</template>
               <template #append v-if="!autoReadClipboard">
                 <el-button @click="getPaste(true)">读取剪切板</el-button>
@@ -1143,10 +1143,24 @@ export default {
     normalizeShortcutInput() {
       if (!this.link) return
       const trimmed = this.link.trim()
-      if (!trimmed) return
+      if (!trimmed) {
+        this.link = ''
+        return
+      }
+      this.link = trimmed
 
-      // 已经是直接链接，跳过
-      if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return
+      // 已经是直接链接：仍尝试从整段文本中抽出标准分享地址
+      if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+        const linkInfo = parserUrl.parseLink(trimmed)
+        if (linkInfo.link) {
+          this.link = linkInfo.link
+          const pwd = parserUrl.parsePwd(trimmed)
+          if (!this.password && pwd) {
+            this.password = pwd
+          }
+        }
+        return
+      }
 
       // 尝试短格式
       const shortInfo = this.expandShortFormat(trimmed)
@@ -1420,7 +1434,7 @@ export default {
     // 获取剪切板内容
     async getPaste(isManual = false) {
       try {
-        const text = await navigator.clipboard.readText()
+        const text = (await navigator.clipboard.readText() || '').trim()
 
         const shortInfo = this.expandShortFormat(text)
         if (shortInfo) {

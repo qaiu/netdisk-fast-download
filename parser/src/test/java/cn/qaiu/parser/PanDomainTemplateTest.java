@@ -170,6 +170,10 @@ public class PanDomainTemplateTest {
                 assertTrue("YE should match redirected mshare URL", redirectedUrl.find());
                 assertEquals("lN7UVv-pbYJ", redirectedUrl.group("KEY"));
 
+                Matcher shareUrl = yePattern.matcher("https://1815268665.share.123pan.cn/123pan/iaKtVv-r4aCd");
+                assertTrue("YE should match uid.share.123pan.cn URL", shareUrl.find());
+                assertEquals("iaKtVv-r4aCd", shareUrl.group("KEY"));
+
                 Matcher htmlUrl = yePattern.matcher("https://www.123278.com/s/lN7UVv-pbYJ.html?pwd=abcd");
                 assertTrue("YE should match html URL with query", htmlUrl.find());
                 assertEquals("lN7UVv-pbYJ", htmlUrl.group("KEY"));

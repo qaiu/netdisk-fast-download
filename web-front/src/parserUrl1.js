@@ -246,8 +246,8 @@
             storage: 'hash'
         },
         '123pan': {
-            reg: /((?:https?:\/\/)?www\.(123pan|123865|123684)\.com\/s\/[\w-]{6,})/,
-            host: /www\.123pan\.com/,
+            reg: /((?:https?:\/\/)?(?:[a-zA-Z\d-]+\.(?:m?share)\.123pan\.cn\/123pan\/[\w-]+|(?:www\.)?(?:123panpay|123pan|123\d{3})\.(?:com|cn)\/s\/[\w-]{6,}(?:\.html)?)(?:\?[^#\s]*)?)/i,
+            host: /(?:[a-zA-Z\d-]+\.(?:m?share)\.123pan\.cn|(?:www\.)?(?:123panpay|123pan|123\d{3})\.(?:com|cn))/i,
             input: ['.ca-fot input', ".appinput .appinput"],
             button: ['.ca-fot button', ".appinput button"],
             name: '123云盘',
@@ -377,6 +377,7 @@
         parseLink(text = '') {
             let obj = {name: '', link: '', storage: '', storagePwdName: ''};
             if (text) {
+                text = String(text).trim();
                 try {
                     text = decodeURIComponent(text);
                 } catch {
@@ -390,6 +391,9 @@
                         let matches = text.match(val.reg);
                         obj.name = val.name;
                         obj.link = matches[0];
+                        if (obj.link && !/^https?:\/\//i.test(obj.link)) {
+                            obj.link = 'https://' + obj.link.replace(/^\/\//, '');
+                        }
                         obj.storage = val.storage;
                         obj.storagePwdName = val.storagePwdName || null;
                         if (val.replaceHost) {
