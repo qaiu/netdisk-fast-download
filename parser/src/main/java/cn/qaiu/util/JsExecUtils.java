@@ -50,19 +50,45 @@ public class JsExecUtils {
      */
     public static ScriptObjectMirror executeDynamicJs(String jsText, String funName) throws ScriptException,
             NoSuchMethodException {
-        ScriptEngine engine = ENGINE_MANAGER.getEngineByName("JavaScript"); // 得到脚本引擎
+        return executeDynamicJs(jsText, funName, null);
+    }
+
+    /**
+     * @param pwd 分享密码，写入伪 DOM（#pwd / getElementById('pwd')），供新版页面取值
+     */
+    public static ScriptObjectMirror executeDynamicJs(String jsText, String funName, String pwd) throws ScriptException,
+            NoSuchMethodException {
+        ScriptEngine engine = ENGINE_MANAGER.getEngineByName("JavaScript");
         try {
-            engine.eval(JsContent.lz + "\n" + jsText);
+            engine.eval(JsContent.lz);
             Invocable inv = (Invocable) engine;
-            //调用js中的函数
-            if (StringUtils.isNotEmpty(funName)) {
-                inv.invokeFunction(funName);
+            if (pwd != null) {
+                inv.invokeFunction("__lzSetPwd", pwd);
             }
-            return (ScriptObjectMirror) engine.get("signObj");
+            try {
+                engine.eval(jsText);
+                if (StringUtils.isNotEmpty(funName)) {
+                    inv.invokeFunction(funName);
+                }
+            } catch (ScriptException | NoSuchMethodException | RuntimeException e) {
+                ScriptObjectMirror captured = asSignObj(engine.get("signObj"));
+                if (captured != null) {
+                    return captured;
+                }
+                throw e;
+            }
+            return asSignObj(engine.get("signObj"));
         } finally {
-            // 清理引擎持有的引用，帮助 GC 回收
             clearEngineBindings(engine);
         }
+    }
+
+    private static ScriptObjectMirror asSignObj(Object sign) {
+        if (sign instanceof ScriptObjectMirror mirror
+                && (mirror.get("url") != null || mirror.get("data") != null)) {
+            return mirror;
+        }
+        return null;
     }
 
 

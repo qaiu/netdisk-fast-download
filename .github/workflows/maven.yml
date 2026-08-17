@@ -262,9 +262,27 @@ jobs:
         name: ${{ matrix.artifact-name }}
         path: ${{ matrix.artifact-name }}.zip
 
-    - name: 上传到 Release
+  # ================================================================
+  # 阶段三：创建 GitHub Release（只跑一次，避免矩阵任务重复拼接更新日志）
+  # ================================================================
+  publish-release:
+    name: 发布 GitHub Release
+    needs: native-package
+    if: github.event_name != 'pull_request' && github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    steps:
+    - name: 下载原生安装包
+      uses: actions/download-artifact@v4
+      with:
+        pattern: netdisk-fast-download-*
+        merge-multiple: true
+
+    - name: 创建 Release
       uses: softprops/action-gh-release@v2
       with:
-        files: ${{ matrix.artifact-name }}.zip
+        files: |
+          netdisk-fast-download-linux-amd64.zip
+          netdisk-fast-download-windows-amd64.zip
         tag_name: ${{ github.ref_name }}
         generate_release_notes: true
+        fail_on_unmatched_files: true
