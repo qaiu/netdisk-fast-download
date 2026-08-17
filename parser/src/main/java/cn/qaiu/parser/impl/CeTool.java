@@ -78,7 +78,8 @@ public class CeTool extends PanBase {
     private void tryV4Ping(String baseUrl, String key, String pwd) {
         String pingUrlV4 = baseUrl + PING_API_V4_PATH;
         
-        clientSession.getAbs(pingUrlV4).send().onSuccess(res -> {
+        // 禁止跟随重定向：assertPublicHost 只校验初始 host，自动 30x 会绕过 SSRF 防护
+        clientNoRedirects.getAbs(pingUrlV4).send().onSuccess(res -> {
             if (res.statusCode() == 200) {
                 try {
                     JsonObject json = asJson(res);
@@ -108,7 +109,7 @@ public class CeTool extends PanBase {
     private void tryV3Ping(String baseUrl, String key, String pwd) {
         String pingUrlV3 = baseUrl + PING_API_V3_PATH;
         
-        clientSession.getAbs(pingUrlV3).send().onSuccess(res -> {
+        clientNoRedirects.getAbs(pingUrlV3).send().onSuccess(res -> {
             if (res.statusCode() == 200) {
                 try {
                     JsonObject json = asJson(res);
@@ -139,7 +140,7 @@ public class CeTool extends PanBase {
      */
     private void verifyV3AndParse(String baseUrl, String key, String pwd) {
         String shareApiUrl = baseUrl + SHARE_API_PATH + key;
-        HttpRequest<Buffer> httpRequest = clientSession.getAbs(shareApiUrl);
+        HttpRequest<Buffer> httpRequest = clientNoRedirects.getAbs(shareApiUrl);
         if (pwd != null && !pwd.isEmpty()) {
             httpRequest.addQueryParam("password", pwd);
         }
@@ -175,7 +176,7 @@ public class CeTool extends PanBase {
      */
     private void tryV4ShareApi(String baseUrl, String key, String pwd) {
         String shareApiUrl = baseUrl + "/api/v4/share/info/" + key;
-        HttpRequest<Buffer> httpRequest = clientSession.getAbs(shareApiUrl);
+        HttpRequest<Buffer> httpRequest = clientNoRedirects.getAbs(shareApiUrl);
         if (pwd != null && !pwd.isEmpty()) {
             httpRequest.addQueryParam("password", pwd);
         }
@@ -291,7 +292,8 @@ public class CeTool extends PanBase {
     }
 
     private void getDownURL(String shareApiUrl) {
-        clientSession.putAbs(shareApiUrl)
+        // PUT 默认不跟随重定向，但仍统一使用 no-redirect 客户端避免配置漂移
+        clientNoRedirects.putAbs(shareApiUrl)
                 .putHeader("Referer", shareLinkInfo.getShareUrl())
                 .send().onSuccess(res -> {
             JsonObject jsonObject = asJson(res);

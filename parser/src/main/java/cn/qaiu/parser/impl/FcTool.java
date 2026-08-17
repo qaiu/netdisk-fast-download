@@ -22,6 +22,7 @@ public class FcTool extends PanBase {
 
     public static final String SHARE_URL_PREFIX = "https://v2.fangcloud.com/sharing/";
     public static final String SHARE_URL_PREFIX2 = "https://v2.fangcloud.cn/sharing/";
+    private static final String SHARE_INFO_URL = "https://v2.fangcloud.cn/apps/share_links/info/";
     private static final String DOWN_REQUEST_URL = "https://v2.fangcloud.cn/apps/files/download?file_id={fid}" +
             "&scenario=share&unique_name={uname}";
 
@@ -38,6 +39,25 @@ public class FcTool extends PanBase {
         final String dataKey = shareLinkInfo.getShareKey();
         final String pwd = shareLinkInfo.getSharePassword();
         WebClientSession sClient = WebClientSession.create(client);
+        // 先查询分享有效性, 避免分享已失效/已过期时仍去解析HTML, 报出令人困惑的技术错误
+        sClient.getAbs(SHARE_INFO_URL + dataKey).send().onSuccess(infoRes -> {
+            JsonObject infoJson = asJson(infoRes);
+            if (promise.future().isComplete()) {
+                return;
+            }
+            JsonObject process = infoJson.getJsonObject("process");
+            boolean isClosed = process != null && Boolean.TRUE.equals(process.getBoolean("is_closed"));
+            boolean isExpired = process != null && Boolean.TRUE.equals(process.getBoolean("is_expired"));
+            if (process == null || isClosed || isExpired) {
+                fail("分享已失效或不存在");
+                return;
+            }
+            doParse(dataKey, pwd, sClient);
+        }).onFailure(handleFail(SHARE_INFO_URL + dataKey));
+        return promise.future();
+    }
+
+    private void doParse(String dataKey, String pwd, WebClientSession sClient) {
         // 第一次请求 自动重定向
         sClient.getAbs(SHARE_URL_PREFIX + dataKey).send().onSuccess(res -> {
 
@@ -67,7 +87,6 @@ public class FcTool extends PanBase {
             }
             getDownURL(dataKey, promise, res, sClient);
         }).onFailure(handleFail(SHARE_URL_PREFIX + dataKey));
-        return promise.future();
     }
 
     private void getDownURL(String dataKey, Promise<String> promise, HttpResponse<Buffer> res,
