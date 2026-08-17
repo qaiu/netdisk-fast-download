@@ -463,11 +463,14 @@ public class ParserApi {
     // 获取版本号
     @RouteMapping("/build-version")
     public String getVersion() {
-        return CommonUtil.getAppVersion()
+        String version = CommonUtil.getAppVersion();
+        if (version == null || version.isBlank()) {
+            return "unknown";
+        }
+        return version
         .replace("-", "")
         .replace("Z", "")
         .replace("T", "_")
-        .replace("-", "")
         .replace(":", "");
     }
 

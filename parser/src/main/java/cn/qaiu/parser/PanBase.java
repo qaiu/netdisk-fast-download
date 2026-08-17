@@ -368,9 +368,12 @@ public abstract class PanBase implements IPanTool, Closeable {
         // 检查响应头中的Content-Encoding是否为gzip
         String contentEncoding = res.getHeader("Content-Encoding");
         try {
-            if ("gzip".equalsIgnoreCase(contentEncoding)) {
+            if ("gzip".equalsIgnoreCase(contentEncoding) && res.body() instanceof Buffer gzipBody
+                    && gzipBody.length() >= 2
+                    && (gzipBody.getByte(0) & 0xff) == 0x1f
+                    && (gzipBody.getByte(1) & 0xff) == 0x8b) {
                 // 如果是gzip压缩的响应体，解压（只解压一次，缓存结果）
-                String decompressed = decompressGzip((Buffer) res.body());
+                String decompressed = decompressGzip(gzipBody);
                 return new JsonObject(decompressed);
             } else {
                 return res.bodyAsJsonObject();

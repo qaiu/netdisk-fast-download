@@ -162,12 +162,17 @@ public class CommonUtil {
             try (var is = CommonUtil.class.getClassLoader().getResourceAsStream("app.properties")) {
                 if (is != null) {
                     properties.load(is);
-                    if (!properties.isEmpty()) {
-                        appVersion = properties.getProperty("app.version") + "build" + properties.getProperty("build");
+                    String version = properties.getProperty("app.version");
+                    String build = properties.getProperty("build");
+                    if (version != null && !version.contains("${")) {
+                        appVersion = version + "build" + (build == null || build.contains("${") ? "" : build);
                     }
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 LOGGER.error("读取app.properties失败", e);
+            }
+            if (appVersion == null) {
+                appVersion = "unknown";
             }
         }
         return appVersion;

@@ -119,8 +119,18 @@ public class HttpResponseHelper {
         };
     }
 
+    private static boolean looksLikeGzip(Buffer compressed) {
+        return compressed != null && compressed.length() >= 2
+                && (compressed.getByte(0) & 0xff) == 0x1f
+                && (compressed.getByte(1) & 0xff) == 0x8b;
+    }
+
     // -------------------- gzip --------------------
     private static String decompressGzip(Buffer compressed) throws IOException {
+        // Vert.x 可能已解压但仍带 Content-Encoding: gzip，再走 GZIPInputStream 会变成 ZipException
+        if (!looksLikeGzip(compressed)) {
+            return compressed.toString(StandardCharsets.UTF_8);
+        }
         try (ByteArrayInputStream bais = new ByteArrayInputStream(compressed.getBytes());
              GZIPInputStream gzis = new GZIPInputStream(bais);
              InputStreamReader isr = new InputStreamReader(gzis, StandardCharsets.UTF_8);
