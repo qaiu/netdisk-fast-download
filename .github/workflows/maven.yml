@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - '*'
+      - 'v*'
     branches-ignore:
       - '*'
     paths-ignore:
