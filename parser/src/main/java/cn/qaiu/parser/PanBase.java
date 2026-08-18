@@ -380,17 +380,36 @@ public abstract class PanBase implements IPanTool, Closeable {
             }
 
         } catch (Exception e) {
+            // 上游响应体可能来自内网探测目标或非JSON内容，仅写日志，避免经 HTTP 500 回传给调用方
             if ("gzip".equalsIgnoreCase(contentEncoding)) {
-                // gzip解压失败，记录错误
-                log.error("响应gzip解压或JSON解析失败: {}", e.getMessage());
-                fail("响应gzip解压或JSON解析失败: {}", e.getMessage());
+                log.error("上游响应gzip解压或JSON解析失败: {}", e.getMessage());
             } else {
-                // 上游响应体可能来自内网探测目标，仅写日志，避免经 HTTP 500 回传给调用方
-                String bodyPreview = responseBodyPreview(res);
-                log.error("解析失败: json格式异常: {}", bodyPreview);
-                fail("解析失败: json格式异常");
+                log.error("上游响应格式异常(非JSON): {}", responseBodyPreview(res));
             }
+            fail("上游响应格式异常");
             return JsonObject.of();
+        }
+    }
+
+    /**
+     * 尝试将响应体解析为 JsonObject，失败时静默返回 null（不调用 fail()）。
+     * 适用于版本探测等场景：响应可能是 HTML，此时不应立即终止解析流程。
+     *
+     * @param res HttpResponse
+     * @return JsonObject，若响应体不是合法 JSON 则返回 null
+     */
+    protected JsonObject tryParseJson(HttpResponse<?> res) {
+        String contentEncoding = res.getHeader("Content-Encoding");
+        try {
+            if ("gzip".equalsIgnoreCase(contentEncoding)) {
+                String decompressed = decompressGzip((Buffer) res.body());
+                return new JsonObject(decompressed);
+            } else {
+                return res.bodyAsJsonObject();
+            }
+        } catch (Exception e) {
+            log.debug("响应体不是合法JSON，跳过: {}", e.getMessage());
+            return null;
         }
     }
 
