@@ -99,7 +99,8 @@ wget -O v01 "https://lz.qaiu.top/parser?url=https%3A%2F%2Fwww.ecpan.cn%2Fweb%2F%
 - Dropbox-pdp
 - iCloud-pic
 ### 专业版提供
-- 迅雷网盘-xl
+- 百度网盘开放平台-bd
+- 迅雷网盘开放平台-xl
 - [夸克云盘-qk](https://pan.quark.cn/)
 - [UC云盘-uc](https://fast.uc.cn/)
 - [移动云盘-p139](https://yun.139.com/)
