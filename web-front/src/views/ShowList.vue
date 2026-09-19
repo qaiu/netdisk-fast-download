@@ -8,10 +8,12 @@
     </div>
     <div style="text-align:right;margin-bottom:12px;">
       <DarkMode @theme-change="toggleTheme" style="float: left;"/>
-      <el-radio-group v-model="viewMode" size="small" style="margin-left:20px;">
-        <el-radio-button label="pane">窗格</el-radio-button>
-        <el-radio-button label="tree">目录树</el-radio-button>
-      </el-radio-group>
+      <ViewModeSwitch
+        v-model="viewMode"
+        pane-label="窗格"
+        tree-label="目录树"
+        style="margin-left:20px;"
+      />
     </div>
     <div v-if="loading" style="text-align:center;margin-top:40px;">加载中...</div>
     <div v-else-if="error" style="color:red;text-align:center;margin-top:40px;">{{ error }}</div>
@@ -29,11 +31,12 @@
 <script>
 import axios from 'axios'
 import DirectoryTree from '@/components/DirectoryTree'
+import ViewModeSwitch from '@/components/ViewModeSwitch'
 import DarkMode from '@/components/DarkMode'
 
 export default {
   name: 'ShowList',
-  components: { DirectoryTree, DarkMode },
+  components: { DirectoryTree, ViewModeSwitch, DarkMode },
   data() {
     return {
       loading: true,

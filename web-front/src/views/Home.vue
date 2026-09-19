@@ -417,10 +417,7 @@
           <!-- 目录树组件 -->
           <div v-if="showDirectoryTree" class="directory-tree-container">
             <div style="margin-bottom: 10px; text-align: right;">
-              <el-radio-group v-model="directoryViewMode" size="small">
-                <el-radio-button label="pane">窗格</el-radio-button>
-                <el-radio-button label="tree">文件树</el-radio-button>
-              </el-radio-group>
+              <ViewModeSwitch v-model="directoryViewMode" pane-label="窗格" tree-label="文件树" />
             </div>
             <DirectoryTree 
               :file-list="directoryData" 
@@ -619,6 +616,7 @@ import axios from 'axios'
 import QRCode from 'qrcode'
 import DarkMode from '@/components/DarkMode'
 import DirectoryTree from '@/components/DirectoryTree'
+import ViewModeSwitch from '@/components/ViewModeSwitch'
 import DownloadDialog from '@/components/DownloadDialog'
 import parserUrl from '../parserUrl1'
 import fileTypeUtils from '@/utils/fileTypeUtils'
@@ -629,7 +627,7 @@ import { PREVIEW_BASE_URL } from '@/utils/constants'
 
 export default {
   name: 'Home',
-  components: { DarkMode, DirectoryTree, DownloadDialog },
+  components: { DarkMode, DirectoryTree, ViewModeSwitch, DownloadDialog },
   mixins: [fileTypeUtils],
   data() {
     return {
