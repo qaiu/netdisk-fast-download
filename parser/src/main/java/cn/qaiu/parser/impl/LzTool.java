@@ -101,6 +101,13 @@ public class LzTool extends PanBase {
         User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36
         """);
 
+    /**
+     * 目录分享移动端身份。桌面 Chrome 拉目录页常返回 off0 空壳（~665B，空 title，无 filemoreajax）；
+     * 仅 parseFileList 抽出列表参数失败时才用这个 UA 重试首屏，单文件 parse() 仍走 PAGE_HEADERS。
+     */
+    private static final String FOLDER_MOBILE_UA = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 "
+            + "(KHTML, like Gecko) Chrome/111.0.0.0 Mobile Safari/537.36";
+
     private static final String DOWN_AJAX_HEADERS = """
             Accept: application/json, text/javascript, */*; q=0.01
             Accept-Encoding: identity
@@ -412,7 +419,7 @@ public class LzTool extends PanBase {
     }
 
     /** 页面里提取出的 ajax 调用：相对路径 + 表单参数。 */
-    private record AjaxCall(String path, Map<String, String> form) {
+    record AjaxCall(String path, Map<String, String> form) {
         MultiMap toForm() {
             MultiMap m = MultiMap.caseInsensitiveMultiMap();
             form.forEach(m::set);
@@ -485,7 +492,7 @@ public class LzTool extends PanBase {
         return new AjaxCall("/" + ajaxPath, data);
     }
 
-    private static AjaxCall extractFolderAjax(String html, String pwd) {
+    static AjaxCall extractFolderAjax(String html, String pwd) {
         if (html == null || html.isEmpty()) {
             return null;
         }
@@ -871,18 +878,68 @@ public class LzTool extends PanBase {
         complete(downloadUrl);
     }
 
-    /** 目录列表 filemoreajax.php 用移动端 UA。 */
-    private static MultiMap folderListHeaders(String referer) {
+    /** 目录列表 filemoreajax.php 与失败重试首屏共用移动端身份。 */
+    private static MultiMap folderMobileIdentity() {
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-        headers.set("User-Agent", "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 "
-                + "(KHTML, like Gecko) Chrome/111.0.0.0 Mobile Safari/537.36");
-        headers.set("referer", referer);
+        headers.set("User-Agent", FOLDER_MOBILE_UA);
         headers.set("sec-ch-ua-platform", "Android");
         headers.set("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
         headers.set("sec-ch-ua-mobile", "?1");
         return headers;
     }
 
+    /** 目录页失败重试用的移动端导航头（与 folderListHeaders 同一 UA）。 */
+    static MultiMap folderPageHeaders(String referer) {
+        MultiMap headers = folderMobileIdentity();
+        headers.set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+        headers.set("Accept-Encoding", "identity");
+        headers.set("Upgrade-Insecure-Requests", "1");
+        if (referer != null && !referer.isBlank()) {
+            headers.set("referer", referer);
+        }
+        return headers;
+    }
+
+    static MultiMap folderListHeaders(String referer) {
+        MultiMap headers = folderMobileIdentity();
+        headers.set("referer", referer);
+        return headers;
+    }
+
+    static String desktopPageUserAgent() {
+        return PAGE_HEADERS.get("User-Agent");
+    }
+
+    static String folderMobileUserAgent() {
+        return FOLDER_MOBILE_UA;
+    }
+
+    /**
+     * 桌面 UA 目录页抽不出 filemoreajax（常见是 off0 空壳）时，再用移动 UA 拉一次。
+     * 已是真实单文件页则不重试，避免多余请求。
+     */
+    static boolean shouldRetryFolderPageWithMobileUa(String html, String shareUrl) {
+        if (isLzOfflineStub(html)) {
+            return true;
+        }
+        if (isLzFolderUrl(shareUrl)) {
+            return true;
+        }
+        return isLzFolderHtml(html);
+    }
+
+    /** 蓝奏 off0 / off1 下线空壳：桌面 UA 拉目录页时常只有这个，没有 filemoreajax。 */
+    static boolean isLzOfflineStub(String html) {
+        if (html == null || html.isBlank()) {
+            return true;
+        }
+        if (html.contains("class=\"off0\"") || html.contains("class='off0'")
+                || html.contains("id=\"off0\"") || html.contains("id='off0'")
+                || html.contains("class=\"off1\"") || html.contains("class='off1'")) {
+            return true;
+        }
+        return P_OFF_MSG.matcher(html).find();
+    }
 
     @Override
     public Future<List<FileInfo>> parseFileList() {
@@ -891,35 +948,64 @@ public class LzTool extends PanBase {
         final String sUrl = resolveShareUrl();
         final String pwd = shareLinkInfo.getSharePassword();
 
+        // 成功路径仍用桌面 PAGE_HEADERS；抽不出目录参数再换移动 UA 重拉首屏。
         getWithArg1Retry(sUrl, PAGE_HEADERS)
-                .onSuccess(html -> handleFileListParse(html, pwd, sUrl, listPromise))
+                .compose(html -> {
+                    AjaxCall call = tryExtractFolderAjaxCall(html, pwd, sUrl);
+                    if (call != null) {
+                        return postFolderList(sUrl, call);
+                    }
+                    if (!shouldRetryFolderPageWithMobileUa(html, sUrl)
+                            && !isLzFolderShare(sUrl, html)) {
+                        return Future.failedFuture(baseMsg() + "该链接为蓝奏云文件分享，请使用文件解析接口");
+                    }
+                    log.warn("蓝奏目录页桌面 UA 未抽出列表参数，改用移动 UA 重试");
+                    return getWithArg1Retry(sUrl, folderPageHeaders(sUrl))
+                            .compose(mobileHtml -> {
+                                AjaxCall mobileCall = tryExtractFolderAjaxCall(mobileHtml, pwd, sUrl);
+                                if (mobileCall == null) {
+                                    if (!isLzFolderShare(sUrl, mobileHtml)) {
+                                        return Future.failedFuture(
+                                                baseMsg() + "该链接为蓝奏云文件分享，请使用文件解析接口");
+                                    }
+                                    return Future.failedFuture(baseMsg() + "获取失败1, 可能分享已失效");
+                                }
+                                return postFolderList(sUrl, mobileCall);
+                            });
+                })
+                .onSuccess(listPromise::complete)
                 .onFailure(listPromise::fail);
         return listPromise.future();
     }
 
-    private void handleFileListParse(String html, String pwd, String sUrl, Promise<List<FileInfo>> listPromise) {
-        if (!isLzFolderShare(sUrl, html)) {
-            listPromise.fail(baseMsg() + "该链接为蓝奏云文件分享，请使用文件解析接口");
-            return;
+    private AjaxCall tryExtractFolderAjaxCall(String html, String pwd, String sUrl) {
+        String webpage = extractWebpage(sUrl, html);
+        if (webpage != null) {
+            shareLinkInfo.getOtherParam().put("webpage", webpage);
+        }
+        AjaxCall call = extractFolderAjax(html, pwd);
+        if (call != null) {
+            return call;
+        }
+        if (!isLzFolderShare(sUrl, html) && !isLzFolderHtml(html)) {
+            return null;
         }
         try {
-            String webpage = extractWebpage(sUrl, html);
-            if (webpage != null) {
-                shareLinkInfo.getOtherParam().put("webpage", webpage);
-            }
-            AjaxCall call = extractFolderAjax(html, pwd);
-            if (call == null) {
-                call = folderAjaxFromJs(html, pwd);
-            }
-            log.debug("解析参数: {}", call.form());
-
-            String url = joinUrl(originOf(sUrl, SHARE_ORIGIN) + "/", call.path());
-            postFormWithArg1Retry(url, folderListHeaders(sUrl), call.toForm())
-                    .onSuccess(body -> handleFileListResponse(body, listPromise))
-                    .onFailure(listPromise::fail);
+            return folderAjaxFromJs(html, pwd);
         } catch (ScriptException | NoSuchMethodException | RuntimeException e) {
-            listPromise.fail(e);
+            log.debug("目录页 JS 提取失败: {}", e.getMessage());
+            return null;
         }
+    }
+
+    private Future<List<FileInfo>> postFolderList(String sUrl, AjaxCall call) {
+        log.debug("解析参数: {}", call.form());
+        Promise<List<FileInfo>> listPromise = Promise.promise();
+        String url = joinUrl(originOf(sUrl, SHARE_ORIGIN) + "/", call.path());
+        postFormWithArg1Retry(url, folderListHeaders(sUrl), call.toForm())
+                .onSuccess(body -> handleFileListResponse(body, listPromise))
+                .onFailure(listPromise::fail);
+        return listPromise.future();
     }
 
     /** 正则匹配不到 filemoreajax 块时，回退到执行页面 JS 取参数。 */
@@ -958,7 +1044,7 @@ public class LzTool extends PanBase {
         return path.charAt(0) == 'b' || path.charAt(0) == 'B';
     }
 
-    private static boolean isLzFolderHtml(String html) {
+    static boolean isLzFolderHtml(String html) {
         if (html == null || html.isBlank()) {
             return false;
         }
