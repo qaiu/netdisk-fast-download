@@ -4,12 +4,12 @@
  * Depth convention (checked folder = depth 0):
  * - 用户勾选的文件夹为第 0 层。
  * - 其直接子项为第 1 层。
- * - 当 depth < maxDepth 时继续展开子文件夹；默认 maxDepth = 4，
- *   即最多再向下展开 4 层（第 0/1/2/3 层会 load，第 4 层文件夹不再展开）。
+ * - 当 depth < maxDepth 时继续展开子文件夹；默认 maxDepth = 5，
+ *   即最多再向下展开 5 层（第 0/1/2/3/4 层会 load，第 5 层文件夹不再展开）。
  * - 触及上限时若仍有未加载/剩余子文件夹，标记 depthExceeded，由 UI 提示跳过。
  */
 
-const DEFAULT_BATCH_MAX_DEPTH = 4
+const DEFAULT_BATCH_MAX_DEPTH = 5
 
 function getTreeNodeId(item) {
   if (!item) return ''
@@ -104,8 +104,13 @@ async function collectFolderFiles(opts) {
   if (!node) return ctx
 
   if (depth >= maxDepth) {
-    collectAlreadyLoadedFiles(node, isDownloadable, ctx)
-    if (hasUnexploredFolders(node)) {
+    // 未 load 的节点在真实 el-tree 中没有 childNodes，不能把预置子项算进去
+    if (node.loaded) {
+      collectAlreadyLoadedFiles(node, isDownloadable, ctx)
+      if (hasUnexploredFolders(node)) {
+        ctx.depthExceeded = true
+      }
+    } else if (isFolderNode(node.data)) {
       ctx.depthExceeded = true
     }
     return ctx

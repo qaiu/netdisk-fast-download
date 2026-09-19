@@ -71,8 +71,8 @@ function createStore(rootNode) {
 }
 
 describe('batchTreeCollect helpers', () => {
-  it('uses checked folder as depth 0 and defaults max depth to 4', () => {
-    assert.equal(DEFAULT_BATCH_MAX_DEPTH, 4)
+  it('uses checked folder as depth 0 and defaults max depth to 5', () => {
+    assert.equal(DEFAULT_BATCH_MAX_DEPTH, 5)
     assert.equal(getTreeNodeId({ id: 'root' }), 'root')
     assert.equal(normalizeTreeItem({ fileId: 'abc', fileType: 'folder' }).id, 'fid:abc')
     assert.equal(normalizeTreeItem({ fileId: 'abc', fileType: 'folder' }).isLeaf, false)
@@ -105,12 +105,55 @@ describe('batchTreeCollect helpers', () => {
     assert.deepEqual(ctx.files.map((f) => f.fileName).sort(), ['a.txt', 'b.txt'])
   })
 
+  it('default depth 5 expands four descendant folders then stops', async () => {
+    // depth 0 root → 1 d1 → 2 d2 → 3 d3 → 4 d4 → 5 d5 (cap, still has leftover folder)
+    const skipped = file('skipped.txt')
+    const capFile = file('cap.txt')
+    const d5 = folder('d5')
+    const d4 = folder('d4')
+    const d3 = folder('d3')
+    const d2 = folder('d2')
+    const d1 = folder('d1')
+    const root = folder('root')
+    const tree = makeNode(root, [
+      makeNode(d1, [
+        makeNode(d2, [
+          makeNode(d3, [
+            makeNode(d4, [
+              makeNode(d5, [
+                makeNode(capFile),
+                makeNode(folder('d6'), [makeNode(skipped)], { loaded: false, expanded: false })
+              ], { loaded: true })
+            ])
+          ])
+        ])
+      ])
+    ])
+    const store = createStore(tree)
+    const loadedIds = []
+    const ctx = await collectFolderFiles({
+      folderData: root,
+      maxDepth: DEFAULT_BATCH_MAX_DEPTH,
+      getNode: store.getNode,
+      ensureLoaded: async (node) => {
+        loadedIds.push(node.data.fileName)
+        return store.ensureLoaded(node)
+      },
+      isDownloadable: store.isDownloadable
+    })
+    assert.equal(ctx.depthExceeded, true)
+    assert.deepEqual(ctx.files.map((f) => f.fileName), ['cap.txt'])
+    assert.ok(!ctx.files.some((f) => f.fileName === 'skipped.txt'))
+    assert.ok(loadedIds.includes('d4'))
+    assert.ok(!loadedIds.includes('d5'))
+  })
+
   it('stops expanding at maxDepth and warns when remaining folders exist', async () => {
     // depth 0: root
     // depth 1: d1
     // depth 2: d2
     // depth 3: d3
-    // depth 4: d4 (cap) — still has child folder d5
+    // depth 4: d4 (cap when maxDepth=4) — still has child folder d5
     const deepFile = file('deep.txt')
     const skipped = file('skipped.txt')
     const d5 = folder('d5')

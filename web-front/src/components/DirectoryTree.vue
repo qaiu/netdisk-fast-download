@@ -489,7 +489,7 @@ export default {
       type: String,
       default: 'pane' // 'pane' or 'tree'
     },
-    // 树批量勾选文件夹时的最大展开深度；用户勾选的文件夹为第 0 层，默认 4
+    // 树批量勾选文件夹时的最大展开深度；用户勾选的文件夹为第 0 层，默认 5
     batchMaxDepth: {
       type: Number,
       default: DEFAULT_BATCH_MAX_DEPTH
