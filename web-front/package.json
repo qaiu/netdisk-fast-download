@@ -7,7 +7,8 @@
     "dev": "vue-cli-service serve",
     "build": "node scripts/sync-version.js && vue-cli-service build && node scripts/compress-vs.js",
     "build:no-compress": "node scripts/sync-version.js && vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "lint": "vue-cli-service lint",
+    "test": "node --test src/utils/batchTreeCollect.spec.js"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",

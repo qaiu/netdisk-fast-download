@@ -103,7 +103,23 @@
           <splitpanes v-if="!isMobile" class="split-theme custom-splitpanes" style="height:100%;">
             <pane>
               <div class="tree-sidebar">
-                <div class="tree-scroll-wrap">
+                <div class="tree-toolbar">
+                  <span class="tree-toolbar-title">
+                    <i class="fas fa-sitemap" aria-hidden="true"></i> 文件树
+                  </span>
+                  <el-button
+                    v-if="!batchMode"
+                    type="warning"
+                    size="small"
+                    @click="toggleBatchMode"
+                  >
+                    <i class="fas fa-check-double"></i> 批量下载
+                  </el-button>
+                  <span v-else class="tree-toolbar-hint">
+                    {{ treeExpanding ? '正在展开并收集文件…' : `勾选文件夹将自动展开（最多 ${effectiveBatchMaxDepth} 层）` }}
+                  </span>
+                </div>
+                <div class="tree-scroll-wrap" v-loading="treeExpanding">
                   <el-tree
                     ref="fileTree"
                     :data="treeData"
@@ -115,6 +131,7 @@
                     :show-checkbox="batchMode"
                     :check-strictly="false"
                     @node-click="onNodeClick"
+                    @check="onTreeCheck"
                     @check-change="onTreeCheckChange"
                     :default-expand-all="false"
                     :default-expanded-keys="['root']"
@@ -128,7 +145,7 @@
                     <el-button
                       type="primary"
                       size="small"
-                      :disabled="selectedFiles.length === 0 || batchDownloading || batchBrowserDownloadDisabled"
+                      :disabled="selectedFiles.length === 0 || batchDownloading || treeExpanding || batchBrowserDownloadDisabled"
                       :loading="batchDownloading"
                       @click="batchBrowserDownload"
                       :title="batchBrowserDownloadDisabled ? '所选文件需使用下载器下载' : ''"
@@ -138,7 +155,7 @@
                     <el-button
                       type="success"
                       size="small"
-                      :disabled="selectedFiles.length === 0 || batchDownloading"
+                      :disabled="selectedFiles.length === 0 || batchDownloading || treeExpanding"
                       :loading="batchDownloading"
                       @click="batchSendToDownloader"
                     >
@@ -236,7 +253,23 @@
           <!-- 移动端：上下布局 -->
           <template v-else>
             <div class="mobile-tree-top">
-              <div class="tree-scroll-wrap">
+              <div class="tree-toolbar">
+                <span class="tree-toolbar-title">
+                  <i class="fas fa-sitemap" aria-hidden="true"></i> 文件树
+                </span>
+                <el-button
+                  v-if="!batchMode"
+                  type="warning"
+                  size="small"
+                  @click="toggleBatchMode"
+                >
+                  <i class="fas fa-check-double"></i> 批量下载
+                </el-button>
+                <span v-else class="tree-toolbar-hint">
+                  {{ treeExpanding ? '正在展开并收集文件…' : `勾选文件夹将自动展开（最多 ${effectiveBatchMaxDepth} 层）` }}
+                </span>
+              </div>
+              <div class="tree-scroll-wrap" v-loading="treeExpanding">
                 <el-tree
                   ref="fileTree"
                   :data="treeData"
@@ -248,6 +281,7 @@
                   :show-checkbox="batchMode"
                   :check-strictly="false"
                   @node-click="onNodeClick"
+                  @check="onTreeCheck"
                   @check-change="onTreeCheckChange"
                   :default-expand-all="false"
                   :default-expanded-keys="['root']"
@@ -328,8 +362,8 @@
               <div v-if="batchMode" class="mobile-batch-footer">
                 <span class="tree-sidebar-count">已勾选 {{ selectedFiles.length }} 个文件</span>
                 <div class="tree-sidebar-actions">
-                  <el-button type="primary" size="small" :disabled="selectedFiles.length === 0 || batchDownloading || batchBrowserDownloadDisabled" :loading="batchDownloading" @click="batchBrowserDownload" :title="batchBrowserDownloadDisabled ? '所选文件需使用下载器下载' : ''">浏览器下载</el-button>
-                  <el-button type="success" size="small" :disabled="selectedFiles.length === 0 || batchDownloading" :loading="batchDownloading" @click="batchSendToDownloader">发送到下载器</el-button>
+                  <el-button type="primary" size="small" :disabled="selectedFiles.length === 0 || batchDownloading || treeExpanding || batchBrowserDownloadDisabled" :loading="batchDownloading" @click="batchBrowserDownload" :title="batchBrowserDownloadDisabled ? '所选文件需使用下载器下载' : ''">浏览器下载</el-button>
+                  <el-button type="success" size="small" :disabled="selectedFiles.length === 0 || batchDownloading || treeExpanding" :loading="batchDownloading" @click="batchSendToDownloader">发送到下载器</el-button>
                   <el-button size="small" @click="toggleBatchMode">取消</el-button>
                 </div>
                 <div v-if="batchDownloading" class="batch-progress-info">
@@ -420,6 +454,15 @@ import 'splitpanes/dist/splitpanes.css'
 import fileTypeUtils from '@/utils/fileTypeUtils'
 import DownloadDialog from '@/components/DownloadDialog.vue'
 import { testConnection, autoDetect, addDownload, batchAddDownload, getConfig, saveConfig } from '@/utils/downloaderService'
+import batchTreeCollect from '@/utils/batchTreeCollect'
+
+const {
+  DEFAULT_BATCH_MAX_DEPTH,
+  getTreeNodeId,
+  normalizeTreeItem,
+  uniqueFiles,
+  collectFolderFiles
+} = batchTreeCollect
 
 export default {
   name: 'DirectoryTree',
@@ -445,6 +488,11 @@ export default {
     viewMode: {
       type: String,
       default: 'pane' // 'pane' or 'tree'
+    },
+    // 树批量勾选文件夹时的最大展开深度；用户勾选的文件夹为第 0 层，默认 5
+    batchMaxDepth: {
+      type: Number,
+      default: DEFAULT_BATCH_MAX_DEPTH
     }
   },
   data() {
@@ -477,7 +525,8 @@ export default {
       batchMode: false,
       selectedFiles: [],
       batchDownloading: false,
-      batchProgress: { current: 0, total: 0, failed: 0 }
+      batchProgress: { current: 0, total: 0, failed: 0 },
+      treeExpanding: false
     }
   },
   computed: {
@@ -513,6 +562,10 @@ export default {
     batchBrowserDownloadDisabled() {
       return this.selectedFiles.length > 0
         && this.selectedFiles.every(f => this.needsDownloader(f))
+    },
+    effectiveBatchMaxDepth() {
+      const depth = Number(this.batchMaxDepth)
+      return Number.isFinite(depth) && depth >= 0 ? depth : DEFAULT_BATCH_MAX_DEPTH
     }
   },
   watch: {
@@ -525,16 +578,16 @@ export default {
             id: 'root',
             fileName: '全部文件',
             fileType: 'folder',
-            children: (newList || []).map(item => ({
-              ...item,
-              isLeaf: item.fileType !== 'folder'
-            })),
+            children: (newList || []).map(item => normalizeTreeItem(item)),
             isLeaf: false
           }
         ]
         this.currentFileList = newList
       }
     }
+  },
+  created() {
+    this.resetTreeCollectState()
   },
   methods: {
     ...fileTypeUtils,
@@ -563,17 +616,14 @@ export default {
       }
       return this.withAuth(`${baseUrl}?${params.toString()}`)
     },
-    // 懒加载子节点
+    // 懒加载子节点（批量勾选文件夹时会通过 node.expand → store.load 复用此方法）
     loadNode(node, resolve) {
       if (node.level === 0) {
-        resolve(this.treeData[0].children)
+        resolve((this.treeData[0]?.children || []).map(item => normalizeTreeItem(item)))
       } else if (node.data.fileType === 'folder' && node.data.parserUrl) {
         axios.get(this.withAuth(node.data.parserUrl), { headers: this.apiKeyHeaders() }).then(res => {
           if (res.data.code === 200) {
-            const children = (res.data.data || []).map(item => ({
-              ...item,
-              isLeaf: item.fileType !== 'folder'
-            }))
+            const children = (res.data.data || []).map(item => normalizeTreeItem(item))
             resolve(children)
           } else {
             this.$message.error(res.data.msg || '获取子节点失败')
@@ -970,9 +1020,156 @@ export default {
       this.selectedFiles = []
       this.batchDownloading = false
       this.batchProgress = { current: 0, total: 0, failed: 0 }
-      // tree 模式下清除勾选
-      if (this.$refs.fileTree) {
-        this.$refs.fileTree.setCheckedKeys([])
+      this.treeExpanding = false
+      this.resetTreeCollectState()
+      const tree = this.getFileTree()
+      if (tree) {
+        tree.setCheckedKeys([])
+      }
+    },
+    resetTreeCollectState() {
+      this._folderCheckQueue = []
+      this._queuedFolderKeys = new Set()
+      this._visitedInCollect = new Set()
+      this._folderLoadPromises = new Map()
+      this._treeCollecting = false
+    },
+    getFileTree() {
+      const ref = this.$refs.fileTree
+      if (!ref) return null
+      return Array.isArray(ref) ? ref[0] : ref
+    },
+    findTreeNode(data) {
+      const tree = this.getFileTree()
+      if (!tree || !data) return null
+      const key = getTreeNodeId(data)
+      if (key) {
+        const byKey = tree.getNode(key)
+        if (byKey) return byKey
+      }
+      const byData = tree.getNode(data)
+      if (byData) return byData
+      const nodesMap = tree.store?.nodesMap
+      if (nodesMap) {
+        return Object.values(nodesMap).find(node => getTreeNodeId(node.data) === key) || null
+      }
+      return null
+    },
+    ensureTreeNodeLoaded(node) {
+      if (!node) return Promise.resolve(null)
+      const key = getTreeNodeId(node.data)
+      if (key && this._folderLoadPromises.has(key)) {
+        return this._folderLoadPromises.get(key)
+      }
+      const promise = new Promise((resolve) => {
+        if (node.loaded && node.expanded) {
+          resolve(node)
+          return
+        }
+        let settled = false
+        const finish = () => {
+          if (settled) return
+          settled = true
+          resolve(node)
+        }
+        const timer = setTimeout(finish, 20000)
+        const expandNow = () => {
+          if (node.loaded && node.expanded) {
+            clearTimeout(timer)
+            finish()
+            return
+          }
+          try {
+            node.expand(() => {
+              clearTimeout(timer)
+              finish()
+            })
+          } catch (e) {
+            clearTimeout(timer)
+            finish()
+          }
+        }
+        if (node.loading) {
+          const started = Date.now()
+          const poll = () => {
+            if (!node.loading || Date.now() - started > 20000) {
+              expandNow()
+              return
+            }
+            setTimeout(poll, 50)
+          }
+          poll()
+          return
+        }
+        expandNow()
+      })
+      if (key) this._folderLoadPromises.set(key, promise)
+      return promise
+    },
+    isCheckedInInfo(data, info) {
+      if (!info) return false
+      const key = getTreeNodeId(data)
+      if (key && (info.checkedKeys || []).map(String).includes(key)) return true
+      return (info.checkedNodes || []).some(n => getTreeNodeId(n) === key)
+    },
+    syncSelectedFilesFromTree(extraFiles = []) {
+      const tree = this.getFileTree()
+      const fromTree = tree
+        ? tree.getCheckedNodes().filter(n => this.isDownloadableFile(n))
+        : []
+      this.selectedFiles = uniqueFiles([...fromTree, ...extraFiles])
+    },
+    enqueueFolderCollect(folderData) {
+      const key = getTreeNodeId(folderData)
+      if (!key || this._queuedFolderKeys.has(key) || this._visitedInCollect.has(key)) return
+      this._queuedFolderKeys.add(key)
+      this._folderCheckQueue.push(folderData)
+      this.drainFolderCollectQueue()
+    },
+    async drainFolderCollectQueue() {
+      if (this._treeCollecting) return
+      this._treeCollecting = true
+      this.treeExpanding = true
+      try {
+        while (this._folderCheckQueue.length) {
+          const next = this._folderCheckQueue.shift()
+          this._queuedFolderKeys.delete(getTreeNodeId(next))
+          await this.handleFolderCheck(next)
+        }
+      } finally {
+        this._treeCollecting = false
+        this.treeExpanding = false
+        this._visitedInCollect.clear()
+      }
+    },
+    async handleFolderCheck(folderData) {
+      try {
+        const ctx = await collectFolderFiles({
+          folderData,
+          depth: 0,
+          maxDepth: this.effectiveBatchMaxDepth,
+          getNode: (data) => this.findTreeNode(data),
+          ensureLoaded: (node) => this.ensureTreeNodeLoaded(node),
+          isDownloadable: (data) => this.isDownloadableFile(data),
+          visitedKeys: this._visitedInCollect
+        })
+        this.syncSelectedFilesFromTree(ctx.files)
+        if (ctx.depthExceeded) {
+          this.$message.warning(
+            `已达到最大展开深度（${this.effectiveBatchMaxDepth} 层），部分深层文件未勾选`
+          )
+        }
+      } catch (e) {
+        console.error('批量展开文件夹失败:', e)
+        this.$message.error('展开文件夹失败，已跳过部分内容')
+        this.syncSelectedFilesFromTree()
+      }
+    },
+    // 用户点击复选框（不含级联），文件夹勾选时触发递归展开
+    onTreeCheck(data, info) {
+      if (!this.batchMode || !data || data.fileType !== 'folder') return
+      if (this.isCheckedInInfo(data, info)) {
+        this.enqueueFolderCollect(data)
       }
     },
     isFileSelected(file) {
@@ -988,6 +1185,8 @@ export default {
       }
     },
     onBatchClick(file) {
+      // 窗格批量：点击文件夹仍进入该目录（避免破坏现有导航）。
+      // 仅收集当前目录文件；递归展开只在树模式勾选文件夹时进行。
       if (file.fileType === 'folder') {
         this.enterFolder(file)
         return
@@ -1001,9 +1200,8 @@ export default {
       this.selectedFiles = []
     },
     onTreeCheckChange() {
-      if (!this.$refs.fileTree) return
-      const checked = this.$refs.fileTree.getCheckedNodes()
-      this.selectedFiles = checked.filter(n => this.isDownloadableFile(n))
+      if (!this.batchMode || this._treeCollecting) return
+      this.syncSelectedFilesFromTree()
     },
     extractTypeParam(file) {
       if (!file.parserUrl) return null
@@ -1760,6 +1958,48 @@ html, body, #app, .main-container, .directory-tree, .content-card {
   overflow: hidden;
   background: #f8f9fa;
   border-right: 1px solid #eaeaea;
+}
+
+.tree-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border-bottom: 1px solid #eaeaea;
+  background: #f8f9fa;
+}
+
+.dark-theme .tree-toolbar {
+  border-bottom-color: #404040;
+  background: #232323;
+}
+
+.tree-toolbar-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.dark-theme .tree-toolbar-title {
+  color: #e1e1e1;
+}
+
+.tree-toolbar-hint {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.4;
+}
+
+.dark-theme .tree-toolbar-hint {
+  color: #bdc3c7;
 }
 
 .tree-content {
