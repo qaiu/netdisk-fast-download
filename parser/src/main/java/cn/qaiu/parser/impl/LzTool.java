@@ -82,31 +82,31 @@ public class LzTool extends PanBase {
             Pattern.compile("(?s)文件描述：</span><br>(.*?)</td>|class=\"n_box_des\">(.*?)</div>");
     private static final Pattern P_FI_ID = Pattern.compile("\\?f=(.*?)&|fid = (.*?);");
     private static final Pattern P_FI_TIME = Pattern.compile(">上传时间：</span>(.*?)<");
-    /** 分享页导航头，只读共享；需要改写时先 addAll 到新 MultiMap。 */
-    private static final MultiMap PAGE_HEADERS = HeaderUtils.parseHeaders("""
+    /**
+     * 蓝奏全部对外 HTTP 共用的移动端身份。
+     * 桌面 Chrome UA 拉分享页常返回 off0 下线空壳（~665B，空 title，无 filemoreajax）。
+     */
+    private static final String MOBILE_UA = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 "
+            + "(KHTML, like Gecko) Chrome/111.0.0.0 Mobile Safari/537.36";
+
+    /** 分享页 / iframe / 下载域导航头，只读共享；需要改写时先 addAll 到新 MultiMap。 */
+    private static final MultiMap PAGE_HEADERS = applyMobileIdentity(HeaderUtils.parseHeaders("""
         Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
         Accept-Encoding: identity
         Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
         Cache-Control: max-age=0
         DNT: 1
         Priority: u=0, i
-        Sec-CH-UA: "Chromium";v="134", "Not:A-Brand";v="24", "Google Chrome";v="134"
-        Sec-CH-UA-Mobile: ?0
-        Sec-CH-UA-Platform: "Windows"
+        Sec-CH-UA: "Chromium";v="111", "Not:A-Brand";v="24", "Google Chrome";v="111"
+        Sec-CH-UA-Mobile: ?1
+        Sec-CH-UA-Platform: "Android"
         Sec-Fetch-Dest: document
         Sec-Fetch-Mode: navigate
         Sec-Fetch-Site: cross-site
         Sec-Fetch-User: ?1
         Upgrade-Insecure-Requests: 1
-        User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36
-        """);
-
-    /**
-     * 目录分享移动端身份。桌面 Chrome 拉目录页常返回 off0 空壳（~665B，空 title，无 filemoreajax）；
-     * 仅 parseFileList 抽出列表参数失败时才用这个 UA 重试首屏，单文件 parse() 仍走 PAGE_HEADERS。
-     */
-    private static final String FOLDER_MOBILE_UA = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 "
-            + "(KHTML, like Gecko) Chrome/111.0.0.0 Mobile Safari/537.36";
+        User-Agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Mobile Safari/537.36
+        """));
 
     private static final String DOWN_AJAX_HEADERS = """
             Accept: application/json, text/javascript, */*; q=0.01
@@ -118,11 +118,7 @@ public class LzTool extends PanBase {
             Sec-Fetch-Dest: empty
             Sec-Fetch-Mode: cors
             Sec-Fetch-Site: same-origin
-            User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36
             X-Requested-With: XMLHttpRequest
-            sec-ch-ua: "Chromium";v="134", "Not:A-Brand";v="24", "Google Chrome";v="134"
-            sec-ch-ua-mobile: ?0
-            sec-ch-ua-platform: "Windows"
             """;
 
     private static final String VERIFY_AJAX_HEADERS = """
@@ -582,7 +578,7 @@ public class LzTool extends PanBase {
     }
 
     private void getDownURL(String referer, AjaxCall call) {
-        MultiMap headers = HeaderUtils.parseHeaders(DOWN_AJAX_HEADERS);
+        MultiMap headers = applyMobileIdentity(HeaderUtils.parseHeaders(DOWN_AJAX_HEADERS));
         // 个性域名 ajaxfile.php 会立刻 inf=已超时；POST 必须打 wwww。iframe 请求 Referer 用 iframe 地址。
         headers.set("referer", referer != null && !referer.isBlank() ? referer : resolveShareUrl());
         String url = joinUrl(SHARE_ORIGIN + "/", call.path());
@@ -623,7 +619,7 @@ public class LzTool extends PanBase {
 
     /**
      * 中间链：部分出口仍 302；多数（含机房 IP）固定出「验证并下载」页。
-     * dmpdmp 等下载域仍会出 arg1 挑战（Windows UA 更常见），必须算 acw_sc__v2 再请求。
+     * dmpdmp 等下载域仍会出 arg1 挑战，必须算 acw_sc__v2 再请求。
      * 必须等约 2s 后 POST /file/ajax.php el=2 拿 CDN 直链；立刻 POST 会 ?SignError。
      * 中间页不能当成功结果返回——用户侧裸打开永远是验证 HTML。
      */
@@ -755,20 +751,17 @@ public class LzTool extends PanBase {
     }
 
     /** 最后一步 GET 用完整浏览器导航头，裸 curl / 无 UA 会固定落到验证页。 */
-    private static MultiMap lanrarPageHeaders(String referer) {
+    static MultiMap lanrarPageHeaders(String referer) {
         MultiMap h = MultiMap.caseInsensitiveMultiMap();
         h.addAll(PAGE_HEADERS);
         h.set("referer", referer);
         return h;
     }
 
-    private static MultiMap lanrarAjaxHeaders(String referer) {
-        MultiMap h = HeaderUtils.parseHeaders(VERIFY_AJAX_HEADERS);
+    static MultiMap lanrarAjaxHeaders(String referer) {
+        MultiMap h = applyMobileIdentity(HeaderUtils.parseHeaders(VERIFY_AJAX_HEADERS));
         h.set("referer", referer);
-        copyHeader(h, "User-Agent", "User-Agent");
         copyHeader(h, "Sec-CH-UA", "sec-ch-ua");
-        copyHeader(h, "Sec-CH-UA-Mobile", "sec-ch-ua-mobile");
-        copyHeader(h, "Sec-CH-UA-Platform", "sec-ch-ua-platform");
         return h;
     }
 
@@ -878,57 +871,34 @@ public class LzTool extends PanBase {
         complete(downloadUrl);
     }
 
-    /** 目录列表 filemoreajax.php 与失败重试首屏共用移动端身份。 */
-    private static MultiMap folderMobileIdentity() {
-        MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-        headers.set("User-Agent", FOLDER_MOBILE_UA);
-        headers.set("sec-ch-ua-platform", "Android");
-        headers.set("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
-        headers.set("sec-ch-ua-mobile", "?1");
-        return headers;
-    }
-
-    /** 目录页失败重试用的移动端导航头（与 folderListHeaders 同一 UA）。 */
-    static MultiMap folderPageHeaders(String referer) {
-        MultiMap headers = folderMobileIdentity();
-        headers.set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-        headers.set("Accept-Encoding", "identity");
-        headers.set("Upgrade-Insecure-Requests", "1");
-        if (referer != null && !referer.isBlank()) {
-            headers.set("referer", referer);
-        }
+    /** 蓝奏对外请求统一写成 Android Mobile，避免桌面 UA 落到 off0 空壳。 */
+    static MultiMap applyMobileIdentity(MultiMap headers) {
+        headers.set("User-Agent", MOBILE_UA);
+        headers.set("Sec-CH-UA-Mobile", "?1");
+        headers.set("Sec-CH-UA-Platform", "\"Android\"");
         return headers;
     }
 
     static MultiMap folderListHeaders(String referer) {
-        MultiMap headers = folderMobileIdentity();
+        MultiMap headers = applyMobileIdentity(MultiMap.caseInsensitiveMultiMap());
+        headers.set("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
         headers.set("referer", referer);
         return headers;
     }
 
-    static String desktopPageUserAgent() {
-        return PAGE_HEADERS.get("User-Agent");
+    static String mobileUserAgent() {
+        return MOBILE_UA;
     }
 
-    static String folderMobileUserAgent() {
-        return FOLDER_MOBILE_UA;
+    static MultiMap sharePageHeaders() {
+        return PAGE_HEADERS;
     }
 
-    /**
-     * 桌面 UA 目录页抽不出 filemoreajax（常见是 off0 空壳）时，再用移动 UA 拉一次。
-     * 已是真实单文件页则不重试，避免多余请求。
-     */
-    static boolean shouldRetryFolderPageWithMobileUa(String html, String shareUrl) {
-        if (isLzOfflineStub(html)) {
-            return true;
-        }
-        if (isLzFolderUrl(shareUrl)) {
-            return true;
-        }
-        return isLzFolderHtml(html);
+    static MultiMap downAjaxHeaders() {
+        return applyMobileIdentity(HeaderUtils.parseHeaders(DOWN_AJAX_HEADERS));
     }
 
-    /** 蓝奏 off0 / off1 下线空壳：桌面 UA 拉目录页时常只有这个，没有 filemoreajax。 */
+    /** 蓝奏 off0 / off1 下线空壳：桌面 UA 拉分享页时常只有这个，没有 filemoreajax。 */
     static boolean isLzOfflineStub(String html) {
         if (html == null || html.isBlank()) {
             return true;
@@ -948,64 +918,35 @@ public class LzTool extends PanBase {
         final String sUrl = resolveShareUrl();
         final String pwd = shareLinkInfo.getSharePassword();
 
-        // 成功路径仍用桌面 PAGE_HEADERS；抽不出目录参数再换移动 UA 重拉首屏。
         getWithArg1Retry(sUrl, PAGE_HEADERS)
-                .compose(html -> {
-                    AjaxCall call = tryExtractFolderAjaxCall(html, pwd, sUrl);
-                    if (call != null) {
-                        return postFolderList(sUrl, call);
-                    }
-                    if (!shouldRetryFolderPageWithMobileUa(html, sUrl)
-                            && !isLzFolderShare(sUrl, html)) {
-                        return Future.failedFuture(baseMsg() + "该链接为蓝奏云文件分享，请使用文件解析接口");
-                    }
-                    log.warn("蓝奏目录页桌面 UA 未抽出列表参数，改用移动 UA 重试");
-                    return getWithArg1Retry(sUrl, folderPageHeaders(sUrl))
-                            .compose(mobileHtml -> {
-                                AjaxCall mobileCall = tryExtractFolderAjaxCall(mobileHtml, pwd, sUrl);
-                                if (mobileCall == null) {
-                                    if (!isLzFolderShare(sUrl, mobileHtml)) {
-                                        return Future.failedFuture(
-                                                baseMsg() + "该链接为蓝奏云文件分享，请使用文件解析接口");
-                                    }
-                                    return Future.failedFuture(baseMsg() + "获取失败1, 可能分享已失效");
-                                }
-                                return postFolderList(sUrl, mobileCall);
-                            });
-                })
-                .onSuccess(listPromise::complete)
+                .onSuccess(html -> handleFileListParse(html, pwd, sUrl, listPromise))
                 .onFailure(listPromise::fail);
         return listPromise.future();
     }
 
-    private AjaxCall tryExtractFolderAjaxCall(String html, String pwd, String sUrl) {
-        String webpage = extractWebpage(sUrl, html);
-        if (webpage != null) {
-            shareLinkInfo.getOtherParam().put("webpage", webpage);
-        }
-        AjaxCall call = extractFolderAjax(html, pwd);
-        if (call != null) {
-            return call;
-        }
-        if (!isLzFolderShare(sUrl, html) && !isLzFolderHtml(html)) {
-            return null;
+    private void handleFileListParse(String html, String pwd, String sUrl, Promise<List<FileInfo>> listPromise) {
+        if (!isLzFolderShare(sUrl, html)) {
+            listPromise.fail(baseMsg() + "该链接为蓝奏云文件分享，请使用文件解析接口");
+            return;
         }
         try {
-            return folderAjaxFromJs(html, pwd);
-        } catch (ScriptException | NoSuchMethodException | RuntimeException e) {
-            log.debug("目录页 JS 提取失败: {}", e.getMessage());
-            return null;
-        }
-    }
+            String webpage = extractWebpage(sUrl, html);
+            if (webpage != null) {
+                shareLinkInfo.getOtherParam().put("webpage", webpage);
+            }
+            AjaxCall call = extractFolderAjax(html, pwd);
+            if (call == null) {
+                call = folderAjaxFromJs(html, pwd);
+            }
+            log.debug("解析参数: {}", call.form());
 
-    private Future<List<FileInfo>> postFolderList(String sUrl, AjaxCall call) {
-        log.debug("解析参数: {}", call.form());
-        Promise<List<FileInfo>> listPromise = Promise.promise();
-        String url = joinUrl(originOf(sUrl, SHARE_ORIGIN) + "/", call.path());
-        postFormWithArg1Retry(url, folderListHeaders(sUrl), call.toForm())
-                .onSuccess(body -> handleFileListResponse(body, listPromise))
-                .onFailure(listPromise::fail);
-        return listPromise.future();
+            String url = joinUrl(originOf(sUrl, SHARE_ORIGIN) + "/", call.path());
+            postFormWithArg1Retry(url, folderListHeaders(sUrl), call.toForm())
+                    .onSuccess(body -> handleFileListResponse(body, listPromise))
+                    .onFailure(listPromise::fail);
+        } catch (ScriptException | NoSuchMethodException | RuntimeException e) {
+            listPromise.fail(e);
+        }
     }
 
     /** 正则匹配不到 filemoreajax 块时，回退到执行页面 JS 取参数。 */

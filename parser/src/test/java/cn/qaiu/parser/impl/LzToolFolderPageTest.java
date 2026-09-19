@@ -3,11 +3,13 @@ package cn.qaiu.parser.impl;
 import io.vertx.core.MultiMap;
 import org.junit.Test;
 
+import java.util.List;
+
 import static org.junit.Assert.*;
 
 /**
- * 蓝奏目录首屏：桌面 UA 易返回 off0 空壳；抽出 filemoreajax 失败后再用移动 UA 重试。
- * 不访问真实蓝奏，只回归请求头选择与空壳/目录页识别。
+ * 蓝奏 LzTool 对外请求一律移动 UA：桌面 Chrome 会触发 off0 下线空壳。
+ * 不访问真实蓝奏，只回归请求头与空壳/目录页识别。
  */
 public class LzToolFolderPageTest {
 
@@ -57,51 +59,45 @@ public class LzToolFolderPageTest {
             </html>
             """;
 
-    private static final String FILE_HTML = """
-            <title>demo.apk</title>
-            <iframe src="/fn?abc"></iframe>
-            <script>var wp_sign='SIGN';</script>
-            """;
-
     @Test
-    public void testFolderRetryHeadersUseMobileUaNotDesktop() {
-        String desktopUa = LzTool.desktopPageUserAgent();
-        String mobileUa = LzTool.folderMobileUserAgent();
-
-        assertTrue("单文件页仍是桌面 Chrome", desktopUa.contains("Windows NT 10.0"));
-        assertFalse("单文件页不能改成 Mobile", desktopUa.contains("Mobile"));
-        assertTrue("目录重试 UA 是 Android Mobile", mobileUa.contains("Android"));
+    public void testAllOutboundHeadersUseAndroidMobileUa() {
+        String mobileUa = LzTool.mobileUserAgent();
+        assertTrue(mobileUa.contains("Android"));
         assertTrue(mobileUa.contains("Mobile Safari"));
-        assertNotEquals(desktopUa, mobileUa);
+        assertFalse("蓝奏路径不应再带桌面 Chrome UA", mobileUa.contains("Windows NT"));
 
-        MultiMap page = LzTool.folderPageHeaders(FOLDER_URL);
-        MultiMap ajax = LzTool.folderListHeaders(FOLDER_URL);
-        assertEquals(mobileUa, page.get("User-Agent"));
-        assertEquals(mobileUa, ajax.get("User-Agent"));
-        assertEquals("?1", page.get("sec-ch-ua-mobile"));
-        assertEquals("Android", page.get("sec-ch-ua-platform"));
-        assertEquals(FOLDER_URL, page.get("referer"));
+        List<MultiMap> outbound = List.of(
+                LzTool.sharePageHeaders(),
+                LzTool.folderListHeaders(FOLDER_URL),
+                LzTool.downAjaxHeaders(),
+                LzTool.lanrarPageHeaders("https://developer2.lanrar.com"),
+                LzTool.lanrarAjaxHeaders(FILE_URL)
+        );
+        for (MultiMap headers : outbound) {
+            assertEquals(mobileUa, headers.get("User-Agent"));
+            assertEquals("?1", headers.get("Sec-CH-UA-Mobile"));
+            assertFalse(String.valueOf(headers.get("User-Agent")).contains("Windows NT"));
+            assertFalse("?0".equals(headers.get("Sec-CH-UA-Mobile")));
+        }
+        assertEquals("\"Android\"", LzTool.sharePageHeaders().get("Sec-CH-UA-Platform"));
     }
 
     @Test
-    public void testOff0StubDetectedAndTriggersMobileRetry() {
+    public void testOff0StubDetectedWithoutFilemoreajax() {
         assertTrue(LzTool.isLzOfflineStub(OFF0_STUB));
         assertTrue(LzTool.isLzOfflineStub(""));
         assertTrue(LzTool.isLzOfflineStub(null));
         assertFalse(LzTool.isLzOfflineStub(FOLDER_HTML));
         assertFalse(LzTool.isLzFolderHtml(OFF0_STUB));
         assertNull(LzTool.extractFolderAjax(OFF0_STUB, null));
-
-        assertTrue("off0 空壳应触发移动 UA 重试",
-                LzTool.shouldRetryFolderPageWithMobileUa(OFF0_STUB, FOLDER_URL));
-        assertTrue("文件链接到空壳也值得重试一次",
-                LzTool.shouldRetryFolderPageWithMobileUa(OFF0_STUB, FILE_URL));
     }
 
     @Test
     public void testRealFolderHtmlExtractsFilemoreajax() {
         assertTrue(LzTool.isLzFolderHtml(FOLDER_HTML));
         assertFalse(LzTool.isLzOfflineStub(FOLDER_HTML));
+        assertTrue(LzTool.isLzFolderUrl(FOLDER_URL));
+        assertFalse(LzTool.isLzFolderUrl(FILE_URL));
 
         LzTool.AjaxCall call = LzTool.extractFolderAjax(FOLDER_HTML, "pwd1");
         assertNotNull(call);
@@ -110,15 +106,5 @@ public class LzToolFolderPageTest {
         assertEquals("TIME_TOKEN", call.form().get("t"));
         assertEquals("KEY_TOKEN", call.form().get("k"));
         assertEquals("pwd1", call.form().get("pwd"));
-    }
-
-    @Test
-    public void testRealFilePageDoesNotRetryMobileUa() {
-        assertFalse(LzTool.isLzFolderUrl(FILE_URL));
-        assertFalse(LzTool.isLzFolderHtml(FILE_HTML));
-        assertFalse(LzTool.isLzOfflineStub(FILE_HTML));
-        assertFalse("真实单文件页不要为了目录去换移动 UA",
-                LzTool.shouldRetryFolderPageWithMobileUa(FILE_HTML, FILE_URL));
-        assertTrue(LzTool.isLzFolderUrl(FOLDER_URL));
     }
 }
