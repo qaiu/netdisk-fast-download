@@ -18,8 +18,8 @@ QQ交流群：1017480890
 ![alt text](web-front/img/image.png)
 
 
->本平台所有音乐解析工具不再维护，请移步[Sonder播放器](https://sodecode.qaiu.top)
->需要百度，迅雷，UC，夸克的完整支持请使用[专业版](https://189.qaiu.top)  
+> 本平台所有音乐解析工具不再维护，请移步[Sonder播放器](https://sodecode.qaiu.top)  
+> 需要百度，迅雷，UC，夸克的完整支持请使用[专业版](https://189.qaiu.top)  
 
 ## 介绍
 > netdisk-fast-download网盘直链解析可以把云盘分享链接转为直链，可广泛应用于各类下载站，资源站，个人博客，图床，APP下载更新，视频点播等领域。支持市面各大主流云盘的文件分享以及文件夹分享链接，已支持蓝奏云/蓝奏云优享/移动云云空间/小飞机盘/亿方云/123云盘/永硕E盘/Cloudreve等，支持加密分享，以及部分网盘文件夹分享。  
