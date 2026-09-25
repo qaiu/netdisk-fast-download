@@ -116,4 +116,63 @@ public class LzToolShareUrlTest {
                 LzTool.sharePageHostBase("https://w1.lanzn.com/-", "https://w1.lanzn.com/-"));
         assertFalse(LzTool.sharePageHostBase("https://a.lanzouw.com/b123", null).contains("wwww"));
     }
+
+    @Test
+    public void absoluteAjaxUrlIsKeptAndTriedFirst() {
+        String html = """
+                url : 'https://apifile.lanzouw.com/ajaxfile.php?file=320665771',
+                data : { 'action':'downprocess','sign':isngis,'kd':kdns,'p':pwd, },
+                """;
+        String target = LzTool.fileAjaxTarget(html);
+        assertEquals("https://apifile.lanzouw.com/ajaxfile.php?file=320665771", target);
+
+        List<String> origins = LzTool.fileAjaxOrigins(
+                "https://wwaqg.lanzouu.com/iqouM49vy9ib", target);
+        assertEquals("https://apifile.lanzouw.com", origins.get(0));
+        assertTrue(origins.contains("https://wwaqg.lanzouu.com"));
+        assertEquals("https://wwww.lanzoux.com", origins.get(origins.size() - 1));
+        assertTrue(origins.indexOf("https://apifile.lanzouw.com")
+                < origins.indexOf("https://wwaqg.lanzouu.com"));
+        assertTrue(origins.indexOf("https://wwww.lanzoux.com")
+                > origins.indexOf("https://w1.lanzn.com"));
+        assertEquals(1, origins.stream().filter("https://apifile.lanzouw.com"::equals).count());
+    }
+
+    @Test
+    public void protocolRelativeAjaxBecomesHttps() {
+        String html = "url : '//apifile.lanzouw.com/ajaxfile.php?file=9',";
+        assertEquals("https://apifile.lanzouw.com/ajaxfile.php?file=9", LzTool.fileAjaxTarget(html));
+    }
+
+    @Test
+    public void absoluteAjaxWinsOverRelativePathInSamePage() {
+        String html = """
+                //data : { url : '/ajaxfile.php?file=1' }
+                url : "https://apifile.lanzouw.com/ajaxm.php?file=42",
+                """;
+        assertEquals("https://apifile.lanzouw.com/ajaxm.php?file=42", LzTool.fileAjaxTarget(html));
+    }
+
+    @Test
+    public void relativeFileAjaxFallsThroughToApifileBeforeWwww() {
+        String html = "url : '/ajaxfile.php?file=150233466',";
+        assertEquals("/ajaxfile.php?file=150233466", LzTool.fileAjaxTarget(html));
+
+        List<String> origins = LzTool.fileAjaxOrigins("https://a.lanzouw.com/xxx", LzTool.fileAjaxTarget(html));
+        assertEquals("https://a.lanzouw.com", origins.get(0));
+        assertEquals("https://apifile.lanzouw.com", origins.get(1));
+        assertEquals("https://wwww.lanzoux.com", origins.get(origins.size() - 1));
+        assertTrue(origins.indexOf("https://apifile.lanzouw.com")
+                < origins.indexOf("https://wwww.lanzoux.com"));
+        assertFalse(LzTool.ajaxOrigins("https://a.lanzouw.com/xxx").contains("https://apifile.lanzouw.com"));
+    }
+
+    @Test
+    public void missingAjaxTargetStillPutsApifileBeforeWwww() {
+        List<String> origins = LzTool.fileAjaxOrigins("https://www.lanzoux.com/ihLkw1gezutg", null);
+        assertEquals("https://www.lanzoux.com", origins.get(0));
+        assertEquals("https://apifile.lanzouw.com", origins.get(1));
+        assertEquals("https://wwww.lanzoux.com", origins.get(origins.size() - 1));
+        assertFalse(origins.get(0).contains("wwww"));
+    }
 }

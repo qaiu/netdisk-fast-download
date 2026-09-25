@@ -51,10 +51,24 @@ public class LzTool extends PanBase {
     /** 页面 URL 解析失败时的源站兜底，与 {@link #SHARE_URL_PREFIX} 同主机。 */
     private static final String SHARE_ORIGIN = "https://w1.lanzn.com";
     /**
-     * 个性域名上 ajaxfile.php / filemoreajax.php 会立刻返回「已超时」。
-     * POST 失败后按这个顺序换稳定下载域，wwww 只放最后，避免单一主机超时直接失败。
+     * 目录 filemoreajax.php 换域顺序。个性域名上会立刻返回「已超时」。
+     * wwww 只放最后，避免单一主机超时直接失败。
+     * 文件 ajax 走 {@link #FILE_AJAX_FALLBACK_ORIGINS}，不要把 apifile 混进目录列表。
      */
     static final List<String> AJAX_FALLBACK_ORIGINS = List.of(
+            "https://w1.lanzn.com",
+            "https://www.lanzoux.com",
+            "https://wwww.lanzoux.com"
+    );
+    /**
+     * 文件页 iframe / 密码页里的 ajaxfile.php 经常是绝对地址
+     * {@code https://apifile.lanzouw.com/ajaxfile.php?file=…}。
+     * 相对路径打到页面源站或 w1/www 会空响应。apifile 放在文件 ajax 兜底的最前，
+     * 页面源站空响应后立刻换过去，不在四 w 上耗光超时。
+     */
+    static final String APIFILE_ORIGIN = "https://apifile.lanzouw.com";
+    static final List<String> FILE_AJAX_FALLBACK_ORIGINS = List.of(
+            APIFILE_ORIGIN,
             "https://w1.lanzn.com",
             "https://www.lanzoux.com",
             "https://wwww.lanzoux.com"
@@ -69,6 +83,10 @@ public class LzTool extends PanBase {
     private static final Pattern P_AJAXDATA = Pattern.compile("ajaxdata\\s*=\\s*'([^']+)'");
     private static final Pattern P_WEBSIGN = Pattern.compile("'websign'\\s*:\\s*'([^']*)'");
     private static final Pattern P_WEBPAGE = Pattern.compile("[?&]webpage=([^&\"'\\s#]+)");
+    /** 页面脚本里的绝对 ajax，例如 https://apifile.lanzouw.com/ajaxfile.php?file=123 */
+    private static final Pattern P_AJAX_ABSOLUTE = Pattern.compile(
+            "['\"]((?:https?:)?//[^'\"\\s<>]+/ajax(?:m|file)\\.php\\?file=\\d+)['\"]",
+            Pattern.CASE_INSENSITIVE);
     private static final Pattern P_AJAX_PATH = Pattern.compile("(?:['\"/]|^)(ajax(?:m|file)\\.php\\?file=\\d+)");
     private static final Pattern P_SIGN = Pattern.compile("'sign'\\s*:\\s*'([^']+)'");
     private static final Pattern P_ISNGIS = Pattern.compile("var\\s+isngis\\s*=\\s*'([^']+)'");
@@ -335,21 +353,71 @@ public class LzTool extends PanBase {
     }
 
     /**
-     * ajax / filemore 的 POST 主机顺序：分享页源站优先（普通节点通常可用），
+     * 目录 filemore 的 POST 主机顺序：分享页源站优先（普通节点通常可用），
      * 然后是稳定下载域。wwww.lanzoux.com 固定排在最后。
      */
     static List<String> ajaxOrigins(String pageUrl) {
         List<String> origins = new ArrayList<>();
-        String pageOrigin = normalizeOrigin(originOf(pageUrl, ""));
-        if (pageOrigin.contains("://")) {
-            origins.add(pageOrigin);
-        }
+        addAjaxOrigin(origins, normalizeOrigin(originOf(pageUrl, "")));
         for (String candidate : AJAX_FALLBACK_ORIGINS) {
-            if (!origins.contains(candidate)) {
-                origins.add(candidate);
-            }
+            addAjaxOrigin(origins, candidate);
         }
         return origins;
+    }
+
+    /**
+     * 文件 ajax 主机顺序。页面里若写出绝对 ajax URL，该主机最先尝试；
+     * 否则先打页面源站。空响应后再试 {@link #APIFILE_ORIGIN}，四 w 仍在最后。
+     *
+     * @param ajaxTarget {@link #fileAjaxTarget} 的返回值，绝对 URL 或相对路径；可为 null
+     */
+    static List<String> fileAjaxOrigins(String pageUrl, String ajaxTarget) {
+        List<String> origins = new ArrayList<>();
+        addAjaxOrigin(origins, originFromAjaxTarget(ajaxTarget));
+        addAjaxOrigin(origins, normalizeOrigin(originOf(pageUrl, "")));
+        for (String candidate : FILE_AJAX_FALLBACK_ORIGINS) {
+            addAjaxOrigin(origins, candidate);
+        }
+        return origins;
+    }
+
+    /**
+     * 从分享页或 iframe HTML 取出文件 ajax 地址。
+     * 绝对 URL（含协议相对 {@code //host/...}）原样返回；否则返回以 {@code /} 开头的相对路径。
+     */
+    static String fileAjaxTarget(String html) {
+        if (html == null || html.isEmpty()) {
+            return null;
+        }
+        Matcher abs = P_AJAX_ABSOLUTE.matcher(html);
+        if (abs.find()) {
+            String url = abs.group(1);
+            if (url.startsWith("//")) {
+                url = "https:" + url;
+            }
+            return url;
+        }
+        Matcher ajax = P_AJAX_PATH.matcher(html);
+        if (!ajax.find()) {
+            return null;
+        }
+        return "/" + ajax.group(1);
+    }
+
+    private static void addAjaxOrigin(List<String> origins, String origin) {
+        if (origin != null && origin.contains("://") && !origins.contains(origin)) {
+            origins.add(origin);
+        }
+    }
+
+    private static String originFromAjaxTarget(String ajaxTarget) {
+        if (ajaxTarget == null) {
+            return "";
+        }
+        if (ajaxTarget.startsWith("http://") || ajaxTarget.startsWith("https://")) {
+            return normalizeOrigin(originOf(ajaxTarget, ""));
+        }
+        return "";
     }
 
     private static String normalizeOrigin(String origin) {
@@ -532,8 +600,12 @@ public class LzTool extends PanBase {
         return true;
     }
 
-    /** 页面里提取出的 ajax 调用：相对路径 + 表单参数。 */
-    private record AjaxCall(String path, Map<String, String> form) {
+    /** 页面里提取出的 ajax 调用。absoluteUrl 非空时优先打该主机。 */
+    private record AjaxCall(String path, Map<String, String> form, String absoluteUrl) {
+        private AjaxCall(String path, Map<String, String> form) {
+            this(path, form, null);
+        }
+
         MultiMap toForm() {
             MultiMap m = MultiMap.caseInsensitiveMultiMap();
             form.forEach(m::set);
@@ -545,11 +617,12 @@ public class LzTool extends PanBase {
         if (html == null || html.isEmpty()) {
             return null;
         }
-        Matcher ajax = P_AJAX_PATH.matcher(html);
-        if (!ajax.find()) {
+        String target = fileAjaxTarget(html);
+        if (target == null) {
             return null;
         }
-        String ajaxPath = ajax.group(1);
+        String absolute = target.startsWith("http://") || target.startsWith("https://") ? target : null;
+        String ajaxPath = absolute == null ? target : pathOfAbsolute(absolute);
         Map<String, String> data = new LinkedHashMap<>();
         data.put("action", "downprocess");
         Matcher wp = P_WP_SIGN.matcher(html);
@@ -603,7 +676,23 @@ public class LzTool extends PanBase {
                 data.put("signs", ad2.group(1));
             }
         }
-        return new AjaxCall("/" + ajaxPath, data);
+        return new AjaxCall(ajaxPath, data, absolute);
+    }
+
+    private static String pathOfAbsolute(String url) {
+        try {
+            URL u = new URL(url);
+            String path = u.getPath() == null ? "" : u.getPath();
+            if (u.getQuery() != null && !u.getQuery().isEmpty()) {
+                path = path + "?" + u.getQuery();
+            }
+            if (!path.startsWith("/")) {
+                path = "/" + path;
+            }
+            return path;
+        } catch (Exception e) {
+            return url;
+        }
     }
 
     private static AjaxCall extractFolderAjax(String html, String pwd) {
@@ -697,11 +786,13 @@ public class LzTool extends PanBase {
 
     private void getDownURL(String referer, AjaxCall call) {
         MultiMap headers = HeaderUtils.parseHeaders(DOWN_AJAX_HEADERS);
-        // 个性域名 ajaxfile.php 会立刻 inf=已超时。先打页面源站，失败再换稳定下载域。
-        // iframe 的 Referer 仍用 iframe 地址，不把页面 GET 改写到 wwww。
+        // 文件 ajax 优先用页面里的绝对地址（常见 apifile.lanzouw.com）。
+        // 页面源站空响应再换 FILE_AJAX_FALLBACK_ORIGINS，wwww 仍在最后。
+        // iframe / 分享页的 Referer 保持原主机，不把页面 GET 改写到 wwww。
         String page = referer != null && !referer.isBlank() ? referer : resolveShareUrl();
         headers.set("referer", page);
-        postAjaxWithFallback(page, call, headers, this::handleAjaxDownResponse, null);
+        String target = call.absoluteUrl() != null ? call.absoluteUrl() : call.path();
+        postAjaxAt(fileAjaxOrigins(page, target), 0, call, headers, this::handleAjaxDownResponse, null);
     }
 
     /**
