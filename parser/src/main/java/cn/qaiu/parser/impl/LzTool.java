@@ -7,6 +7,7 @@ import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.*;
 import io.netty.handler.codec.http.cookie.DefaultCookie;
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
@@ -41,9 +42,37 @@ public class LzTool extends PanBase {
 
     private final WebClientSession webClientSession;
 
-    /** 实测服务器出口 IP 上 wwww.lanzoux.com 可用，且个性域名目录内文件 ID 也能打开。 */
-    public static final String SHARE_URL_PREFIX = "https://wwww.lanzoux.com/";
-    private static final String SHARE_ORIGIN = "https://wwww.lanzoux.com";
+    /**
+     * 没有原始分享页主机时才使用（目录内文件 ID、shareKey 占位）。
+     * 与 PanDomainTemplate.LZ 标准模板一致：{@code https://w1.lanzn.com/{shareKey}}。
+     * 已有分享页不要改写到 wwww.lanzoux.com，部分出口连四个 w 的域名会超时。
+     */
+    public static final String SHARE_URL_PREFIX = "https://w1.lanzn.com/";
+    /** 页面 URL 解析失败时的源站兜底，与 {@link #SHARE_URL_PREFIX} 同主机。 */
+    private static final String SHARE_ORIGIN = "https://w1.lanzn.com";
+    /**
+     * 目录 filemoreajax.php 换域顺序。个性域名上会立刻返回「已超时」。
+     * wwww 只放最后，避免单一主机超时直接失败。
+     * 文件 ajax 走 {@link #FILE_AJAX_FALLBACK_ORIGINS}，不要把 apifile 混进目录列表。
+     */
+    static final List<String> AJAX_FALLBACK_ORIGINS = List.of(
+            "https://w1.lanzn.com",
+            "https://www.lanzoux.com",
+            "https://wwww.lanzoux.com"
+    );
+    /**
+     * 文件页 iframe / 密码页里的 ajaxfile.php 经常是绝对地址
+     * {@code https://apifile.lanzouw.com/ajaxfile.php?file=…}。
+     * 相对路径打到页面源站或 w1/www 会空响应。apifile 放在文件 ajax 兜底的最前，
+     * 页面源站空响应后立刻换过去，不在四 w 上耗光超时。
+     */
+    static final String APIFILE_ORIGIN = "https://apifile.lanzouw.com";
+    static final List<String> FILE_AJAX_FALLBACK_ORIGINS = List.of(
+            APIFILE_ORIGIN,
+            "https://w1.lanzn.com",
+            "https://www.lanzoux.com",
+            "https://wwww.lanzoux.com"
+    );
     /** 分享页 / ajax 请求超时 */
     private static final long REQUEST_TIMEOUT = 8000;
     /** 下载域跳转与二次验证超时，链路更长 */
@@ -54,6 +83,10 @@ public class LzTool extends PanBase {
     private static final Pattern P_AJAXDATA = Pattern.compile("ajaxdata\\s*=\\s*'([^']+)'");
     private static final Pattern P_WEBSIGN = Pattern.compile("'websign'\\s*:\\s*'([^']*)'");
     private static final Pattern P_WEBPAGE = Pattern.compile("[?&]webpage=([^&\"'\\s#]+)");
+    /** 页面脚本里的绝对 ajax，例如 https://apifile.lanzouw.com/ajaxfile.php?file=123 */
+    private static final Pattern P_AJAX_ABSOLUTE = Pattern.compile(
+            "['\"]((?:https?:)?//[^'\"\\s<>]+/ajax(?:m|file)\\.php\\?file=\\d+)['\"]",
+            Pattern.CASE_INSENSITIVE);
     private static final Pattern P_AJAX_PATH = Pattern.compile("(?:['\"/]|^)(ajax(?:m|file)\\.php\\?file=\\d+)");
     private static final Pattern P_SIGN = Pattern.compile("'sign'\\s*:\\s*'([^']+)'");
     private static final Pattern P_ISNGIS = Pattern.compile("var\\s+isngis\\s*=\\s*'([^']+)'");
@@ -259,18 +292,17 @@ public class LzTool extends PanBase {
         return path.isEmpty() || "-".equals(path);
     }
 
-    /** 统一改写到 {@link #SHARE_URL_PREFIX}，只保留分享路径。 */
-    private String resolveShareUrl() {
-        String u = shareLinkInfo.getShareUrl();
+    /**
+     * 分享页 / 目录页 GET 保留原始主机和路径。
+     * 只有分享路径缺失（空链接、shareKey 占位）时才落到 {@link #SHARE_URL_PREFIX}。
+     */
+    static String resolveSharePageUrl(String shareUrl, String standardUrl, String shareKey) {
+        String u = shareUrl;
         if (isPlaceholderShare(u)) {
-            u = shareLinkInfo.getStandardUrl();
+            u = standardUrl;
         }
         if (isPlaceholderShare(u)) {
-            String key = shareLinkInfo.getShareKey();
-            if (key == null || key.isBlank() || "-".equals(key)) {
-                return SHARE_URL_PREFIX;
-            }
-            return SHARE_URL_PREFIX + key;
+            return canonicalShareUrl(shareKey, null);
         }
         int q = u.indexOf('?');
         String query = null;
@@ -284,10 +316,167 @@ public class LzTool extends PanBase {
         }
         int pathStart = u.indexOf('/', schemeEnd + 3);
         if (pathStart < 0) {
-            String key = shareLinkInfo.getShareKey();
-            return appendWebpage(SHARE_URL_PREFIX + (key == null ? "" : key), query);
+            String base = u.endsWith("/") ? u : u + "/";
+            if (shareKey == null || shareKey.isBlank() || "-".equals(shareKey)) {
+                return appendWebpage(base, query);
+            }
+            return appendWebpage(base + shareKey, query);
         }
-        return appendWebpage(SHARE_ORIGIN + u.substring(pathStart), query);
+        return appendWebpage(u, query);
+    }
+
+    private String resolveShareUrl() {
+        return resolveSharePageUrl(
+                shareLinkInfo.getShareUrl(),
+                shareLinkInfo.getStandardUrl(),
+                shareLinkInfo.getShareKey());
+    }
+
+    /** 无原始主机时用标准下载域拼分享路径，不再写死 wwww.lanzoux.com。 */
+    private static String canonicalShareUrl(String shareKey, String query) {
+        if (shareKey == null || shareKey.isBlank() || "-".equals(shareKey)) {
+            return appendWebpage(SHARE_URL_PREFIX, query);
+        }
+        return appendWebpage(SHARE_URL_PREFIX + shareKey, query);
+    }
+
+    /**
+     * 目录内文件页主机：沿用已有分享主机，否则用 {@link #SHARE_URL_PREFIX}。
+     */
+    static String sharePageHostBase(String shareUrl, String standardUrl) {
+        String u = !isPlaceholderShare(shareUrl) ? shareUrl : standardUrl;
+        if (!isPlaceholderShare(u)) {
+            String origin = normalizeOrigin(originOf(u, SHARE_ORIGIN));
+            return origin + "/";
+        }
+        return SHARE_URL_PREFIX;
+    }
+
+    /**
+     * 目录 filemore 的 POST 主机顺序：分享页源站优先（普通节点通常可用），
+     * 然后是稳定下载域。wwww.lanzoux.com 固定排在最后。
+     */
+    static List<String> ajaxOrigins(String pageUrl) {
+        List<String> origins = new ArrayList<>();
+        addAjaxOrigin(origins, normalizeOrigin(originOf(pageUrl, "")));
+        for (String candidate : AJAX_FALLBACK_ORIGINS) {
+            addAjaxOrigin(origins, candidate);
+        }
+        return origins;
+    }
+
+    /**
+     * 文件 ajax 主机顺序。页面里若写出绝对 ajax URL，该主机最先尝试；
+     * 否则先打页面源站。空响应后再试 {@link #APIFILE_ORIGIN}，四 w 仍在最后。
+     *
+     * @param ajaxTarget {@link #fileAjaxTarget} 的返回值，绝对 URL 或相对路径；可为 null
+     */
+    static List<String> fileAjaxOrigins(String pageUrl, String ajaxTarget) {
+        List<String> origins = new ArrayList<>();
+        addAjaxOrigin(origins, originFromAjaxTarget(ajaxTarget));
+        addAjaxOrigin(origins, normalizeOrigin(originOf(pageUrl, "")));
+        for (String candidate : FILE_AJAX_FALLBACK_ORIGINS) {
+            addAjaxOrigin(origins, candidate);
+        }
+        return origins;
+    }
+
+    /**
+     * 从分享页或 iframe HTML 取出文件 ajax 地址。
+     * 绝对 URL（含协议相对 {@code //host/...}）原样返回；否则返回以 {@code /} 开头的相对路径。
+     */
+    static String fileAjaxTarget(String html) {
+        if (html == null || html.isEmpty()) {
+            return null;
+        }
+        Matcher abs = P_AJAX_ABSOLUTE.matcher(html);
+        if (abs.find()) {
+            String url = abs.group(1);
+            if (url.startsWith("//")) {
+                url = "https:" + url;
+            }
+            return url;
+        }
+        Matcher ajax = P_AJAX_PATH.matcher(html);
+        if (!ajax.find()) {
+            return null;
+        }
+        return "/" + ajax.group(1);
+    }
+
+    private static void addAjaxOrigin(List<String> origins, String origin) {
+        if (origin != null && origin.contains("://") && !origins.contains(origin)) {
+            origins.add(origin);
+        }
+    }
+
+    private static String originFromAjaxTarget(String ajaxTarget) {
+        if (ajaxTarget == null) {
+            return "";
+        }
+        if (ajaxTarget.startsWith("http://") || ajaxTarget.startsWith("https://")) {
+            return normalizeOrigin(originOf(ajaxTarget, ""));
+        }
+        return "";
+    }
+
+    private static String normalizeOrigin(String origin) {
+        if (origin == null) {
+            return "";
+        }
+        String o = origin.trim();
+        while (o.endsWith("/")) {
+            o = o.substring(0, o.length() - 1);
+        }
+        return o;
+    }
+
+    /**
+     * 个性域名常见 {@code inf=已超时}，或响应根本不是 JSON。这类结果说明当前主机不可用，应换下一个域名。
+     * 密码错误、分享失效等业务错误不换域名。
+     */
+    static boolean ajaxResponseShouldFallback(String text) {
+        if (text == null || text.isBlank()) {
+            return true;
+        }
+        JsonObject json = parseLzJson(text);
+        if (json == null) {
+            return true;
+        }
+        Integer zt = jsonInt(json, "zt");
+        if (zt != null && zt == 1) {
+            return false;
+        }
+        String info = ajaxInfoText(json);
+        return info != null && info.contains("超时");
+    }
+
+    private static Integer jsonInt(JsonObject json, String key) {
+        Object v = json.getValue(key);
+        if (v instanceof Number n) {
+            return n.intValue();
+        }
+        if (v instanceof CharSequence) {
+            try {
+                return Integer.parseInt(v.toString().trim());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static String ajaxInfoText(JsonObject json) {
+        for (String key : new String[]{"inf", "info"}) {
+            Object v = json.getValue(key);
+            if (v instanceof CharSequence) {
+                String s = v.toString().trim();
+                if (!s.isEmpty() && !"null".equalsIgnoreCase(s)) {
+                    return s;
+                }
+            }
+        }
+        return null;
     }
 
     /** 目录文件 ID 可能带 webpage=，必须保留；pwd 走独立字段，不拼进 URL。 */
@@ -411,8 +600,12 @@ public class LzTool extends PanBase {
         return true;
     }
 
-    /** 页面里提取出的 ajax 调用：相对路径 + 表单参数。 */
-    private record AjaxCall(String path, Map<String, String> form) {
+    /** 页面里提取出的 ajax 调用。absoluteUrl 非空时优先打该主机。 */
+    private record AjaxCall(String path, Map<String, String> form, String absoluteUrl) {
+        private AjaxCall(String path, Map<String, String> form) {
+            this(path, form, null);
+        }
+
         MultiMap toForm() {
             MultiMap m = MultiMap.caseInsensitiveMultiMap();
             form.forEach(m::set);
@@ -424,11 +617,12 @@ public class LzTool extends PanBase {
         if (html == null || html.isEmpty()) {
             return null;
         }
-        Matcher ajax = P_AJAX_PATH.matcher(html);
-        if (!ajax.find()) {
+        String target = fileAjaxTarget(html);
+        if (target == null) {
             return null;
         }
-        String ajaxPath = ajax.group(1);
+        String absolute = target.startsWith("http://") || target.startsWith("https://") ? target : null;
+        String ajaxPath = absolute == null ? target : pathOfAbsolute(absolute);
         Map<String, String> data = new LinkedHashMap<>();
         data.put("action", "downprocess");
         Matcher wp = P_WP_SIGN.matcher(html);
@@ -482,7 +676,23 @@ public class LzTool extends PanBase {
                 data.put("signs", ad2.group(1));
             }
         }
-        return new AjaxCall("/" + ajaxPath, data);
+        return new AjaxCall(ajaxPath, data, absolute);
+    }
+
+    private static String pathOfAbsolute(String url) {
+        try {
+            URL u = new URL(url);
+            String path = u.getPath() == null ? "" : u.getPath();
+            if (u.getQuery() != null && !u.getQuery().isEmpty()) {
+                path = path + "?" + u.getQuery();
+            }
+            if (!path.startsWith("/")) {
+                path = "/" + path;
+            }
+            return path;
+        } catch (Exception e) {
+            return url;
+        }
     }
 
     private static AjaxCall extractFolderAjax(String html, String pwd) {
@@ -576,12 +786,58 @@ public class LzTool extends PanBase {
 
     private void getDownURL(String referer, AjaxCall call) {
         MultiMap headers = HeaderUtils.parseHeaders(DOWN_AJAX_HEADERS);
-        // 个性域名 ajaxfile.php 会立刻 inf=已超时；POST 必须打 wwww。iframe 请求 Referer 用 iframe 地址。
-        headers.set("referer", referer != null && !referer.isBlank() ? referer : resolveShareUrl());
-        String url = joinUrl(SHARE_ORIGIN + "/", call.path());
+        // 文件 ajax 优先用页面里的绝对地址（常见 apifile.lanzouw.com）。
+        // 页面源站空响应再换 FILE_AJAX_FALLBACK_ORIGINS，wwww 仍在最后。
+        // iframe / 分享页的 Referer 保持原主机，不把页面 GET 改写到 wwww。
+        String page = referer != null && !referer.isBlank() ? referer : resolveShareUrl();
+        headers.set("referer", page);
+        String target = call.absoluteUrl() != null ? call.absoluteUrl() : call.path();
+        postAjaxAt(fileAjaxOrigins(page, target), 0, call, headers, this::handleAjaxDownResponse, null);
+    }
+
+    /**
+     * 依次向 {@link #ajaxOrigins} 发 POST。连接失败或「已超时」换下一个主机；
+     * wwww.lanzoux.com 只在最后尝试。业务错误（密码、失效）立即返回。
+     */
+    private void postAjaxWithFallback(String pageUrl, AjaxCall call, MultiMap headers,
+                                       Handler<String> onBody, Handler<Throwable> onFailure) {
+        postAjaxAt(ajaxOrigins(pageUrl), 0, call, headers, onBody, onFailure);
+    }
+
+    private void postAjaxAt(List<String> origins, int index, AjaxCall call, MultiMap headers,
+                             Handler<String> onBody, Handler<Throwable> onFailure) {
+        if (index >= origins.size()) {
+            String msg = "蓝奏 ajax 全部域名均失败";
+            if (onFailure != null) {
+                onFailure.handle(new RuntimeException(msg));
+            } else {
+                fail(msg);
+            }
+            return;
+        }
+        String url = joinUrl(origins.get(index) + "/", call.path());
+        boolean hasNext = index + 1 < origins.size();
         postFormWithArg1Retry(url, headers, call.toForm())
-                .onSuccess(this::handleAjaxDownResponse)
-                .onFailure(handleFail(url));
+                .onSuccess(text -> {
+                    if (hasNext && ajaxResponseShouldFallback(text)) {
+                        log.warn("蓝奏 ajax {} 不可用，改试下一域名", url);
+                        postAjaxAt(origins, index + 1, call, headers, onBody, onFailure);
+                        return;
+                    }
+                    onBody.handle(text);
+                })
+                .onFailure(err -> {
+                    if (hasNext) {
+                        log.warn("蓝奏 ajax {} 请求失败: {}，改试下一域名", url, err.getMessage());
+                        postAjaxAt(origins, index + 1, call, headers, onBody, onFailure);
+                        return;
+                    }
+                    if (onFailure != null) {
+                        onFailure.handle(err);
+                    } else {
+                        handleFail(url).handle(err);
+                    }
+                });
     }
 
     private void handleAjaxDownResponse(String text) {
@@ -913,10 +1169,9 @@ public class LzTool extends PanBase {
             }
             log.debug("解析参数: {}", call.form());
 
-            String url = joinUrl(originOf(sUrl, SHARE_ORIGIN) + "/", call.path());
-            postFormWithArg1Retry(url, folderListHeaders(sUrl), call.toForm())
-                    .onSuccess(body -> handleFileListResponse(body, listPromise))
-                    .onFailure(listPromise::fail);
+            postAjaxWithFallback(sUrl, call, folderListHeaders(sUrl),
+                    body -> handleFileListResponse(body, listPromise),
+                    listPromise::fail);
         } catch (ScriptException | NoSuchMethodException | RuntimeException e) {
             listPromise.fail(e);
         }
@@ -1069,7 +1324,7 @@ public class LzTool extends PanBase {
         if (webpage == null || webpage.isBlank()) {
             webpage = extractWebpage(shareLinkInfo.getShareUrl(), null);
         }
-        String fileUrl = SHARE_URL_PREFIX + id;
+        String fileUrl = sharePageHostBase(shareLinkInfo.getShareUrl(), shareLinkInfo.getStandardUrl()) + id;
         if (webpage != null && !webpage.isBlank()) {
             fileUrl = fileUrl + "?webpage=" + webpage;
         }
