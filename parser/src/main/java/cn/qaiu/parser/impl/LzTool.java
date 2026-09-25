@@ -82,24 +82,31 @@ public class LzTool extends PanBase {
             Pattern.compile("(?s)文件描述：</span><br>(.*?)</td>|class=\"n_box_des\">(.*?)</div>");
     private static final Pattern P_FI_ID = Pattern.compile("\\?f=(.*?)&|fid = (.*?);");
     private static final Pattern P_FI_TIME = Pattern.compile(">上传时间：</span>(.*?)<");
-    /** 分享页导航头，只读共享；需要改写时先 addAll 到新 MultiMap。 */
-    private static final MultiMap PAGE_HEADERS = HeaderUtils.parseHeaders("""
+    /**
+     * 蓝奏全部对外 HTTP 共用的移动端身份。
+     * 桌面 Chrome UA 拉分享页常返回 off0 下线空壳（~665B，空 title，无 filemoreajax）。
+     */
+    private static final String MOBILE_UA = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 "
+            + "(KHTML, like Gecko) Chrome/111.0.0.0 Mobile Safari/537.36";
+
+    /** 分享页 / iframe / 下载域导航头，只读共享；需要改写时先 addAll 到新 MultiMap。 */
+    private static final MultiMap PAGE_HEADERS = applyMobileIdentity(HeaderUtils.parseHeaders("""
         Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
         Accept-Encoding: identity
         Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
         Cache-Control: max-age=0
         DNT: 1
         Priority: u=0, i
-        Sec-CH-UA: "Chromium";v="134", "Not:A-Brand";v="24", "Google Chrome";v="134"
-        Sec-CH-UA-Mobile: ?0
-        Sec-CH-UA-Platform: "Windows"
+        Sec-CH-UA: "Chromium";v="111", "Not:A-Brand";v="24", "Google Chrome";v="111"
+        Sec-CH-UA-Mobile: ?1
+        Sec-CH-UA-Platform: "Android"
         Sec-Fetch-Dest: document
         Sec-Fetch-Mode: navigate
         Sec-Fetch-Site: cross-site
         Sec-Fetch-User: ?1
         Upgrade-Insecure-Requests: 1
-        User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36
-        """);
+        User-Agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Mobile Safari/537.36
+        """));
 
     private static final String DOWN_AJAX_HEADERS = """
             Accept: application/json, text/javascript, */*; q=0.01
@@ -111,11 +118,7 @@ public class LzTool extends PanBase {
             Sec-Fetch-Dest: empty
             Sec-Fetch-Mode: cors
             Sec-Fetch-Site: same-origin
-            User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36
             X-Requested-With: XMLHttpRequest
-            sec-ch-ua: "Chromium";v="134", "Not:A-Brand";v="24", "Google Chrome";v="134"
-            sec-ch-ua-mobile: ?0
-            sec-ch-ua-platform: "Windows"
             """;
 
     private static final String VERIFY_AJAX_HEADERS = """
@@ -412,7 +415,7 @@ public class LzTool extends PanBase {
     }
 
     /** 页面里提取出的 ajax 调用：相对路径 + 表单参数。 */
-    private record AjaxCall(String path, Map<String, String> form) {
+    record AjaxCall(String path, Map<String, String> form) {
         MultiMap toForm() {
             MultiMap m = MultiMap.caseInsensitiveMultiMap();
             form.forEach(m::set);
@@ -485,7 +488,7 @@ public class LzTool extends PanBase {
         return new AjaxCall("/" + ajaxPath, data);
     }
 
-    private static AjaxCall extractFolderAjax(String html, String pwd) {
+    static AjaxCall extractFolderAjax(String html, String pwd) {
         if (html == null || html.isEmpty()) {
             return null;
         }
@@ -575,7 +578,7 @@ public class LzTool extends PanBase {
     }
 
     private void getDownURL(String referer, AjaxCall call) {
-        MultiMap headers = HeaderUtils.parseHeaders(DOWN_AJAX_HEADERS);
+        MultiMap headers = applyMobileIdentity(HeaderUtils.parseHeaders(DOWN_AJAX_HEADERS));
         // 个性域名 ajaxfile.php 会立刻 inf=已超时；POST 必须打 wwww。iframe 请求 Referer 用 iframe 地址。
         headers.set("referer", referer != null && !referer.isBlank() ? referer : resolveShareUrl());
         String url = joinUrl(SHARE_ORIGIN + "/", call.path());
@@ -616,7 +619,7 @@ public class LzTool extends PanBase {
 
     /**
      * 中间链：部分出口仍 302；多数（含机房 IP）固定出「验证并下载」页。
-     * dmpdmp 等下载域仍会出 arg1 挑战（Windows UA 更常见），必须算 acw_sc__v2 再请求。
+     * dmpdmp 等下载域仍会出 arg1 挑战，必须算 acw_sc__v2 再请求。
      * 必须等约 2s 后 POST /file/ajax.php el=2 拿 CDN 直链；立刻 POST 会 ?SignError。
      * 中间页不能当成功结果返回——用户侧裸打开永远是验证 HTML。
      */
@@ -748,20 +751,17 @@ public class LzTool extends PanBase {
     }
 
     /** 最后一步 GET 用完整浏览器导航头，裸 curl / 无 UA 会固定落到验证页。 */
-    private static MultiMap lanrarPageHeaders(String referer) {
+    static MultiMap lanrarPageHeaders(String referer) {
         MultiMap h = MultiMap.caseInsensitiveMultiMap();
         h.addAll(PAGE_HEADERS);
         h.set("referer", referer);
         return h;
     }
 
-    private static MultiMap lanrarAjaxHeaders(String referer) {
-        MultiMap h = HeaderUtils.parseHeaders(VERIFY_AJAX_HEADERS);
+    static MultiMap lanrarAjaxHeaders(String referer) {
+        MultiMap h = applyMobileIdentity(HeaderUtils.parseHeaders(VERIFY_AJAX_HEADERS));
         h.set("referer", referer);
-        copyHeader(h, "User-Agent", "User-Agent");
         copyHeader(h, "Sec-CH-UA", "sec-ch-ua");
-        copyHeader(h, "Sec-CH-UA-Mobile", "sec-ch-ua-mobile");
-        copyHeader(h, "Sec-CH-UA-Platform", "sec-ch-ua-platform");
         return h;
     }
 
@@ -871,18 +871,45 @@ public class LzTool extends PanBase {
         complete(downloadUrl);
     }
 
-    /** 目录列表 filemoreajax.php 用移动端 UA。 */
-    private static MultiMap folderListHeaders(String referer) {
-        MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-        headers.set("User-Agent", "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 "
-                + "(KHTML, like Gecko) Chrome/111.0.0.0 Mobile Safari/537.36");
-        headers.set("referer", referer);
-        headers.set("sec-ch-ua-platform", "Android");
-        headers.set("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
-        headers.set("sec-ch-ua-mobile", "?1");
+    /** 蓝奏对外请求统一写成 Android Mobile，避免桌面 UA 落到 off0 空壳。 */
+    static MultiMap applyMobileIdentity(MultiMap headers) {
+        headers.set("User-Agent", MOBILE_UA);
+        headers.set("Sec-CH-UA-Mobile", "?1");
+        headers.set("Sec-CH-UA-Platform", "\"Android\"");
         return headers;
     }
 
+    static MultiMap folderListHeaders(String referer) {
+        MultiMap headers = applyMobileIdentity(MultiMap.caseInsensitiveMultiMap());
+        headers.set("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
+        headers.set("referer", referer);
+        return headers;
+    }
+
+    static String mobileUserAgent() {
+        return MOBILE_UA;
+    }
+
+    static MultiMap sharePageHeaders() {
+        return PAGE_HEADERS;
+    }
+
+    static MultiMap downAjaxHeaders() {
+        return applyMobileIdentity(HeaderUtils.parseHeaders(DOWN_AJAX_HEADERS));
+    }
+
+    /** 蓝奏 off0 / off1 下线空壳：桌面 UA 拉分享页时常只有这个，没有 filemoreajax。 */
+    static boolean isLzOfflineStub(String html) {
+        if (html == null || html.isBlank()) {
+            return true;
+        }
+        if (html.contains("class=\"off0\"") || html.contains("class='off0'")
+                || html.contains("id=\"off0\"") || html.contains("id='off0'")
+                || html.contains("class=\"off1\"") || html.contains("class='off1'")) {
+            return true;
+        }
+        return P_OFF_MSG.matcher(html).find();
+    }
 
     @Override
     public Future<List<FileInfo>> parseFileList() {
@@ -958,7 +985,7 @@ public class LzTool extends PanBase {
         return path.charAt(0) == 'b' || path.charAt(0) == 'B';
     }
 
-    private static boolean isLzFolderHtml(String html) {
+    static boolean isLzFolderHtml(String html) {
         if (html == null || html.isBlank()) {
             return false;
         }
