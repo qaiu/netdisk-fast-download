@@ -55,8 +55,50 @@ def encode123(url, way, version, timestamp):
     # 返回加密后的URL参数
     return f"?{y}={time_long}-{a}-{final_crc}"
 
+# 与 parser PasswordLoginRisk 保持一致：验证码/风控只提示改用 Authorization，不求解、不重试。
+_RISK_KEYWORDS = (
+    "验证码", "风控", "安全风险", "安全验证", "安全校验", "滑块", "滑动验证",
+    "拼图验证", "短信验证", "微信登录", "微信进行登录", "境外登录", "需要验证", "请验证",
+    "请你验证", "进行验证", "完成验证", "二次验证", "人机验证", "操作频繁", "请求过于频繁",
+    "请求频繁", "captcha", "recaptcha", "risk control",
+)
+_AUTH_HINT = (
+    "账号密码登录触发了验证码/风控，已停止用户名密码登录（不会尝试验证码）。"
+    "请改为配置 Authorization（浏览器登录后的 Bearer token / JWT，"
+    "例如 localStorage 的 authorToken、请求头 authorization 或 Cookie 的 sso-token）。"
+    "静态配置写在 app-dev.yml 的 auths.ye.authorization（与 auths.ye.token 等价）；"
+    "临时请求使用 authType=authorization 或 authType=accesstoken，token 填该令牌（不要重复带 Bearer 前缀）。"
+    "说明见 parser/doc/auth-param/。"
+)
+
+
+def format_login_failure(result):
+    """把 123 登录失败响应转成用户可见说明。"""
+    if not isinstance(result, dict):
+        return "登录失败"
+    message = result.get("message") or result.get("msg") or ""
+    data = result.get("data") if isinstance(result.get("data"), dict) else {}
+    data_message = data.get("message") or data.get("msg") or ""
+    blob = f"{message} {data_message}".lower()
+    risk_field = any(
+        key.lower().find(flag) >= 0 and data.get(key) not in (None, False, 0, "", "false", "0")
+        for key in data
+        for flag in ("captcha", "vcode", "risk", "needverify", "need_verify", "slideverify", "verifycode", "verify_code")
+    )
+    if risk_field or any(keyword.lower() in blob for keyword in _RISK_KEYWORDS):
+        code = result.get("code")
+        upstream = message or data_message
+        extra = f"code={code}" if code is not None else ""
+        if upstream:
+            extra = f"{extra}, message={upstream}" if extra else f"message={upstream}"
+        return f"{_AUTH_HINT} 上游返回：{extra}" if extra else _AUTH_HINT
+    if result.get("code") == 200:
+        return "未获取到token"
+    return f"登录失败: {message}" if message else "登录失败"
+
+
 def login_123pan(username, password):
-    """登录123盘获取token"""
+    """登录123盘获取token。成功返回 token，失败返回 None（错误已打印）。"""
     print(f"🔐 正在登录账号: {username}")
     
     login_data = {
@@ -73,16 +115,18 @@ def login_123pan(username, password):
         )
         result = response.json()
         
-        if result.get('code') == 200:
+        if result.get('code') == 200 and result.get('data', {}).get('token'):
             token = result.get('data', {}).get('token', '')
             print(f"✅ 登录成功！")
             return token
         else:
-            error_msg = result.get('message', '未知错误')
-            print(f"❌ 登录失败: {error_msg}")
+            error_msg = format_login_failure(result)
+            login_123pan.last_error = error_msg
+            print(f"❌ {error_msg}")
             return None
     except Exception as e:
-        print(f"❌ 登录请求失败: {e}")
+        login_123pan.last_error = f"登录请求失败: {e}"
+        print(f"❌ {login_123pan.last_error}")
         return None
 
 def get_share_info(share_key, password=''):
@@ -189,7 +233,7 @@ def start(link, password='', username='', user_password=''):
         if not token:
             return {
                 "code": 201,
-                "message": "登录失败"
+                "message": getattr(login_123pan, "last_error", None) or "登录失败"
             }
     else:
         print("⚠️  未提供登录信息，某些文件可能无法下载")

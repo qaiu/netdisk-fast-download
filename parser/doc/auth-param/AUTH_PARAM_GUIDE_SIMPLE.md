@@ -57,6 +57,8 @@
 }
 ```
 
+> 123云盘（`ye`）账号密码登录触发验证码/风控时，请改用 `authType=authorization` 或 `accesstoken`（`token` 填浏览器中的 Bearer token / JWT），或在 `app-dev.yml` 配置 `auths.ye.authorization`。解析不会尝试验证码。
+
 ### 自定义认证
 ```json
 {
