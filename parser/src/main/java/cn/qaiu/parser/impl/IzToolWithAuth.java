@@ -84,6 +84,7 @@ public class IzToolWithAuth extends PanBase {
     }
     public IzToolWithAuth(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
+        IzXffHeader.apply(header);
     }
 
     String uuid = UUID.randomUUID().toString().toLowerCase(); // 也可以使用 UUID.randomUUID().toString()
@@ -213,8 +214,8 @@ public class IzToolWithAuth extends PanBase {
                 if (token == null) {
                     // 执行登录
                     login(tsEncode2, auths).onFailure(failRes-> {
-                        log.warn("登录失败: {}", failRes.getMessage());
-                        fail(failRes.getMessage());
+                        log.warn("登录失败，回退免登录: {}", failRes.getMessage());
+                        downloadAnonymous(fidEncode, tsEncode2, auth, dataKey);
                     }).onSuccess(r-> {
                         httpRequest.setTemplateParam("appToken", token)
                                 .putHeaders(header);
@@ -229,8 +230,8 @@ public class IzToolWithAuth extends PanBase {
                                 // log.info("res: {}",asJson(res));
                                 if (asJson(res).getInteger("code") != 200) {
                                     login(tsEncode2, auths).onFailure(failRes -> {
-                                        log.warn("重新登录失败: {}", failRes.getMessage());
-                                        fail(failRes.getMessage());
+                                        log.warn("重新登录失败，回退免登录: {}", failRes.getMessage());
+                                        downloadAnonymous(fidEncode, tsEncode2, auth, dataKey);
                                     }).onSuccess(r-> {
                                         httpRequest.setTemplateParam("appToken", token)
                                                 .putHeaders(header);
@@ -246,27 +247,25 @@ public class IzToolWithAuth extends PanBase {
             } else {
                 // authFlag 为 false，使用免登录解析
                 log.debug("authFlag=false，使用免登录解析");
-                webClientSession.getAbs(UriTemplate.of(SECOND_REQUEST_URL))
-                        .putHeaders(header)
-                        .setTemplateParam("fidEncode", fidEncode)
-                        .setTemplateParam("uuid", uuid)
-                        .setTemplateParam("ts", tsEncode2)
-                        .setTemplateParam("auth", auth)
-                        .setTemplateParam("dataKey", dataKey).send()
-                        .onSuccess(this::down).onFailure(handleFail("请求2"));
+                downloadAnonymous(fidEncode, tsEncode2, auth, dataKey);
             }
         } else {
             // 没有认证信息，使用免登录解析
             log.debug("无认证信息，使用免登录解析");
-            webClientSession.getAbs(UriTemplate.of(SECOND_REQUEST_URL))
-                    .putHeaders(header)
-                    .setTemplateParam("fidEncode", fidEncode)
-                    .setTemplateParam("uuid", uuid)
-                    .setTemplateParam("ts", tsEncode2)
-                    .setTemplateParam("auth", auth)
-                    .setTemplateParam("dataKey", dataKey).send()
-                    .onSuccess(this::down).onFailure(handleFail("请求2"));
+            downloadAnonymous(fidEncode, tsEncode2, auth, dataKey);
         }
+    }
+
+    private void downloadAnonymous(String fidEncode, String tsEncode2, String auth, String dataKey) {
+        log.debug("使用免登录解析");
+        webClientSession.getAbs(UriTemplate.of(SECOND_REQUEST_URL))
+                .putHeaders(header)
+                .setTemplateParam("fidEncode", fidEncode)
+                .setTemplateParam("uuid", uuid)
+                .setTemplateParam("ts", tsEncode2)
+                .setTemplateParam("auth", auth)
+                .setTemplateParam("dataKey", dataKey).send()
+                .onSuccess(this::down).onFailure(handleFail("请求2"));
     }
 
     private Future<Void> login(String tsEncode2, MultiMap auths) {
