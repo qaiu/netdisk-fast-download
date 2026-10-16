@@ -109,6 +109,8 @@ URL解码 → Base64解码 → AES解密 → JSON对象
 }
 ```
 
+> 123云盘（`ye`）账号密码登录如果返回验证码或风控，解析会直接失败，并提示改用 Authorization，不会尝试验证码。请在浏览器登录后复制 `authorToken` / 请求头 `authorization` / Cookie `sso-token`，用 `authType=authorization` 或 `accesstoken` 传入，或写入 `app-dev.yml` 的 `auths.ye.authorization`。
+
 #### 4. 自定义认证
 ```json
 {
@@ -339,3 +341,4 @@ server:
 ## 更新日志
 
 - **2026-02-05**: 初始版本，支持 accesstoken、cookie、password、custom 认证类型
+- **2026-09-27**: 补充 123云盘账号密码登录触发验证码/风控时改用 Authorization 的说明

@@ -3,6 +3,7 @@ package cn.qaiu.parser.impl;
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
+import cn.qaiu.parser.PasswordLoginRisk;
 import cn.qaiu.parser.TokenCache;
 import cn.qaiu.util.CommonUtils;
 import cn.qaiu.util.FileSizeConverter;
@@ -272,24 +273,27 @@ public class Ye2Tool extends PanBase {
                 .putHeader("platform", "web")
                 .sendJsonObject(loginBody)
                 .onSuccess(res -> {
-                    JsonObject json = res.bodyAsJsonObject();
+                    JsonObject json;
+                    try {
+                        json = res.bodyAsJsonObject();
+                    } catch (Exception e) {
+                        promise.fail(PasswordLoginRisk.nonJsonLoginFailure(res.bodyAsString()));
+                        return;
+                    }
                     if (json == null) {
-                        promise.fail("登录响应格式异常: " + res.bodyAsString());
+                        promise.fail(PasswordLoginRisk.nonJsonLoginFailure(res.bodyAsString()));
                         return;
                     }
                     if (!json.containsKey("code")) {
                         promise.fail("登录响应格式异常: " + res.bodyAsString());
                         return;
                     }
-                    if (json.getInteger("code") != 200) {
-                        promise.fail("登录失败: " + json.getString("message"));
+                    // 验证码/风控只提示改用 Authorization，不求解、不重试。
+                    if (!PasswordLoginRisk.isLoginSuccess(json)) {
+                        promise.fail(PasswordLoginRisk.describeLoginFailure(json));
                         return;
                     }
                     JsonObject data = json.getJsonObject("data");
-                    if (data == null || !data.containsKey("token")) {
-                        promise.fail("未获取到token");
-                        return;
-                    }
                     String ssoToken = data.getString("token");
                     String expireStr = data.getString("expire");
                     long expireMs;
