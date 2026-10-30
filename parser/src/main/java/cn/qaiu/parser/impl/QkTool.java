@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +49,22 @@ public class QkTool extends PanBase {
     // 多账号隔离：用 TokenCache 代替 static cookie 缓存
     // __puus 有效期，默认 55 分钟（服务器实际 1 小时过期，提前 5 分钟刷新）
     private static final long PUUS_TTL_MS = 55 * 60 * 1000L;
+
+    /** 根目录经常只有一层文件夹，继续向下找文件。#275 这类分享要再进一层。 */
+    static final int MAX_FOLDER_DEPTH = 4;
+    /** 同一层最多进入的文件夹数，避免把整棵目录树都请求一遍。 */
+    static final int MAX_FOLDERS_PER_LEVEL = 12;
+    /** 访客直链失败（23018）后，按体积从小到大再试几个文件。 */
+    static final int MAX_GUEST_DOWNLOAD_ATTEMPTS = 6;
+
+    static final String EMPTY_SHARE_MSG = "分享目录为空，或只包含空文件夹。解析已经进入子目录查找。";
+    static final String GUEST_OVERSIZE_MSG =
+            "夸克访客只能免登录下载小文件，当前文件超过访客大小限制（上游 23018 download file size limit）。"
+                    + "请在本机配置夸克 Cookie：auths.qk.cookie，或在解析请求中携带 auth。"
+                    + "未配置 Cookie 时不会转存。大文件需要绑定账号后交给下载器，浏览器里直接打开也经常失败。";
+    static final String GUEST_LOGIN_MSG =
+            "夸克要求登录后才能下载。请配置 Cookie（auths.qk.cookie，或请求参数 auth）。"
+                    + "小文件可以免登录直链；这个报错表示当前文件需要账号，请到 Cookie/auth 配置里补登录态。";
     
     // 静态变量：缓存已转存的文件 (分享key -> 转存文件ID)
     private static final Map<String, String> savedFileCache = new java.util.concurrent.ConcurrentHashMap<>();
@@ -216,8 +233,8 @@ public class QkTool extends PanBase {
                     log.debug("第一阶段响应: {}", res.bodyAsString());
                     JsonObject resJson = asJson(res);
                     
-                    if (resJson.getInteger("code") != 0) {
-                        fail(TOKEN_URL + " 返回异常: " + resJson);
+                    if (resJson.getInteger("code") == null || resJson.getInteger("code") != 0) {
+                        fail(quarkApiFailure(TOKEN_URL, resJson));
                         return;
                     }
                     
@@ -228,104 +245,302 @@ public class QkTool extends PanBase {
                     }
                     
                     log.debug("成功获取 stoken: {}", stoken);
-                    
-                    // 第二步：获取文件列表
-                    client.getAbs(DETAIL_URL)
-                            .addQueryParam("pr", "ucpro")
-                            .addQueryParam("fr", "pc")
-                            .addQueryParam("pwd_id", pwdId)
-                            .addQueryParam("stoken", stoken)
-                            .addQueryParam("pdir_fid", "0")
-                            .addQueryParam("force", "0")
-                            .addQueryParam("_page", "1")
-                            .addQueryParam("_size", "50")
-                            .addQueryParam("_fetch_banner", "1")
-                            .addQueryParam("_fetch_share", "1")
-                            .addQueryParam("_fetch_total", "1")
-                            .addQueryParam("_sort", "file_type:asc,updated_at:desc")
-                            .putHeaders(header)
-                            .send()
-                            .onSuccess(res2 -> {
-                                log.debug("第二阶段响应: {}", res2.bodyAsString());
-                                JsonObject resJson2 = asJson(res2);
-                                
-                                if (resJson2.getInteger("code") != 0) {
-                                    fail(DETAIL_URL + " 返回异常: " + resJson2);
-                                    return;
-                                }
-                                
-                                JsonArray fileList = resJson2.getJsonObject("data").getJsonArray("list");
-                                if (fileList == null || fileList.isEmpty()) {
-                                    fail("未找到文件");
-                                    return;
-                                }
-                                
-                                // 过滤出文件（排除文件夹）
-                                List<JsonObject> files = new ArrayList<>();
-                                for (int i = 0; i < fileList.size(); i++) {
-                                    JsonObject item = fileList.getJsonObject(i);
-                                    // 判断是否为文件：file=true 或 obj_category 不为空
-                                    if (item.getBoolean("file", false) || 
-                                        (item.getString("obj_category") != null && !item.getString("obj_category").isEmpty())) {
-                                        files.add(item);
-                                    }
-                                }
-                                
-                                if (files.isEmpty()) {
-                                    fail("没有可下载的文件（可能都是文件夹）");
-                                    return;
-                                }
-                                
-                                log.debug("找到 {} 个文件", files.size());
-                                
-                                // 提取第一个文件的信息并保存到 otherParam
-                                try {
-                                    JsonObject firstFile = files.get(0);
-                                    FileInfo fileInfo = new FileInfo();
-                                    fileInfo.setFileId(firstFile.getString("fid"))
-                                            .setFileName(firstFile.getString("file_name"))
-                                            .setSize(firstFile.getLong("size", 0L))
-                                            .setSizeStr(FileSizeConverter.convertToReadableSize(firstFile.getLong("size", 0L)))
-                                            .setFileType(firstFile.getBoolean("file", true) ? "file" : "folder")
-                                            .setCreateTime(formatEpochMs(firstFile.getLong("updated_at", 0L)))
-                                            .setUpdateTime(formatEpochMs(firstFile.getLong("updated_at", 0L)))
-                                            .setPanType(shareLinkInfo.getType());
-                                    
-                                    // 保存到 otherParam，供 CacheServiceImpl 使用
-                                    shareLinkInfo.getOtherParam().put("fileInfo", fileInfo);
-                                    log.debug("夸克提取文件信息: {}", fileInfo.getFileName());
-                                } catch (Exception e) {
-                                    log.warn("夸克提取文件信息失败，继续解析: {}", e.getMessage());
-                                }
-                                
-                                // 提取文件ID列表
-                                List<String> fileIds = new ArrayList<>();
-                                for (JsonObject file : files) {
-                                    String fid = file.getString("fid");
-                                    if (fid != null && !fid.isEmpty()) {
-                                        fileIds.add(fid);
-                                    }
-                                }
-                                
-                                if (fileIds.isEmpty()) {
-                                    fail("无法提取文件ID");
-                                    return;
-                                }
-                                
-                                // 第三步：解析下载链接（先直链，必要时才转存）
-                                JsonObject firstFileForDownload = files.get(0);
-                                String firstFid = firstFileForDownload.getString("fid");
-                                String firstShareFidToken = firstFileForDownload.getString("share_fid_token");
 
-                                resolveDownloadUrl(firstFid, pwdId, stoken, firstShareFidToken)
-                                        .onSuccess(downloadUrl -> completeWithMeta(downloadUrl, buildDownloadHeaders(null)))
-                                        .onFailure(handleFail("获取下载链接"));
-                                
-                            }).onFailure(handleFail(DETAIL_URL));
+                    // 根目录可能只是文件夹（#282）。先列出再进入，找到文件后再取直链。
+                    findDownloadableFiles(pwdId, stoken, "0", 0)
+                            .compose(files -> resolveListedFiles(files, pwdId, stoken))
+                            .onSuccess(downloadUrl -> completeWithMeta(downloadUrl, buildDownloadHeaders(null)))
+                            .onFailure(t -> fail(t.getMessage() == null ? "解析失败" : t.getMessage()));
                 })
                 .onFailure(handleFail(TOKEN_URL));
         
         return promise.future();
+    }
+
+    private Future<String> resolveListedFiles(List<JsonObject> files, String pwdId, String stoken) {
+        if (files == null || files.isEmpty()) {
+            return Future.failedFuture(EMPTY_SHARE_MSG);
+        }
+        if (hasQuarkCookie()) {
+            JsonObject first = files.get(0);
+            rememberFile(first);
+            return resolveDownloadUrl(first.getString("fid"), pwdId, stoken, first.getString("share_fid_token"));
+        }
+        return resolveGuestDownloads(orderGuestCandidates(files), pwdId, stoken, 0, 0);
+    }
+
+    /**
+     * 访客没有 Cookie，不能转存。先试接口排序下的第一个文件；
+     * 若夸克返回 23018，再按体积从小到大试同目录里的其他文件。
+     */
+    private Future<String> resolveGuestDownloads(List<JsonObject> files, String pwdId, String stoken,
+                                                 int index, int attempts) {
+        if (index >= files.size() || attempts >= MAX_GUEST_DOWNLOAD_ATTEMPTS) {
+            return Future.failedFuture(GUEST_OVERSIZE_MSG);
+        }
+        JsonObject file = files.get(index);
+        String fid = file.getString("fid");
+        if (fid == null || fid.isEmpty()) {
+            return resolveGuestDownloads(files, pwdId, stoken, index + 1, attempts);
+        }
+        return getShareDownloadLink(fid, pwdId, stoken, file.getString("share_fid_token"))
+                .compose(url -> {
+                    rememberFile(file);
+                    return Future.succeededFuture(url);
+                })
+                .recover(err -> {
+                    if (needsTransferFallback(err)) {
+                        log.info("夸克访客跳过超过大小限制的文件 {} ({} bytes)",
+                                file.getString("file_name"), fileSize(file));
+                        return resolveGuestDownloads(files, pwdId, stoken, index + 1, attempts + 1);
+                    }
+                    if (isGuestAuthError(err)) {
+                        return Future.failedFuture(GUEST_LOGIN_MSG);
+                    }
+                    return Future.failedFuture(err);
+                });
+    }
+
+    private Future<List<JsonObject>> findDownloadableFiles(String pwdId, String stoken, String pdirFid, int depth) {
+        return fetchShareList(pwdId, stoken, pdirFid).compose(list -> {
+            List<JsonObject> files = new ArrayList<>();
+            List<JsonObject> folders = new ArrayList<>();
+            for (int i = 0; i < list.size(); i++) {
+                JsonObject item = list.getJsonObject(i);
+                if (isQuarkFile(item)) {
+                    files.add(item);
+                } else if (isQuarkFolder(item)) {
+                    folders.add(item);
+                }
+            }
+            if (hasPositiveSize(files) || folders.isEmpty() || depth >= MAX_FOLDER_DEPTH) {
+                return Future.succeededFuture(preferSizedFiles(files));
+            }
+            int limit = Math.min(folders.size(), MAX_FOLDERS_PER_LEVEL);
+            List<JsonObject> placeholders = files;
+            return firstFolderWithFiles(pwdId, stoken, folders.subList(0, limit), 0, depth + 1)
+                    .compose(nested -> {
+                        if (nested != null && !nested.isEmpty()) {
+                            return Future.succeededFuture(nested);
+                        }
+                        return Future.succeededFuture(placeholders);
+                    });
+        });
+    }
+
+    private Future<List<JsonObject>> firstFolderWithFiles(String pwdId, String stoken, List<JsonObject> folders,
+                                                          int index, int depth) {
+        if (index >= folders.size()) {
+            return Future.succeededFuture(new ArrayList<>());
+        }
+        JsonObject folder = folders.get(index);
+        String fid = folder.getString("fid");
+        if (fid == null || fid.isEmpty()) {
+            return firstFolderWithFiles(pwdId, stoken, folders, index + 1, depth);
+        }
+        log.debug("夸克进入子目录 depth={} name={}", depth, folder.getString("file_name"));
+        return findDownloadableFiles(pwdId, stoken, fid, depth).compose(files -> {
+            if (hasPositiveSize(files)) {
+                return Future.succeededFuture(files);
+            }
+            return firstFolderWithFiles(pwdId, stoken, folders, index + 1, depth).compose(later -> {
+                if (later != null && !later.isEmpty()) {
+                    return Future.succeededFuture(later);
+                }
+                return Future.succeededFuture(files == null ? new ArrayList<>() : files);
+            });
+        });
+    }
+
+    private Future<JsonArray> fetchShareList(String pwdId, String stoken, String pdirFid) {
+        Promise<JsonArray> listPromise = Promise.promise();
+        client.getAbs(DETAIL_URL)
+                .addQueryParam("pr", "ucpro")
+                .addQueryParam("fr", "pc")
+                .addQueryParam("pwd_id", pwdId)
+                .addQueryParam("stoken", stoken)
+                .addQueryParam("pdir_fid", pdirFid == null || pdirFid.isEmpty() ? "0" : pdirFid)
+                .addQueryParam("force", "0")
+                .addQueryParam("_page", "1")
+                .addQueryParam("_size", "50")
+                .addQueryParam("_fetch_banner", "0")
+                .addQueryParam("_fetch_share", "1")
+                .addQueryParam("_fetch_total", "1")
+                .addQueryParam("_sort", "file_type:asc,updated_at:desc")
+                .putHeaders(header)
+                .send()
+                .onSuccess(res -> {
+                    JsonObject json = asJson(res);
+                    if (json.getInteger("code") == null || json.getInteger("code") != 0) {
+                        listPromise.fail(quarkApiFailure(DETAIL_URL, json));
+                        return;
+                    }
+                    JsonObject data = json.getJsonObject("data");
+                    JsonArray list = data == null ? null : data.getJsonArray("list");
+                    listPromise.complete(list == null ? new JsonArray() : list);
+                })
+                .onFailure(t -> listPromise.fail("获取分享目录失败: " + t.getMessage()));
+        return listPromise.future();
+    }
+
+    private void rememberFile(JsonObject file) {
+        try {
+            long size = fileSize(file);
+            if (size == Long.MAX_VALUE) {
+                size = 0L;
+            }
+            FileInfo fileInfo = new FileInfo()
+                    .setFileId(file.getString("fid"))
+                    .setFileName(file.getString("file_name"))
+                    .setSize(size)
+                    .setSizeStr(FileSizeConverter.convertToReadableSize(size))
+                    .setFileType("file")
+                    .setCreateTime(formatEpochMs(epochMs(file, "updated_at")))
+                    .setUpdateTime(formatEpochMs(epochMs(file, "updated_at")))
+                    .setPanType(shareLinkInfo.getType());
+            shareLinkInfo.getOtherParam().put("fileInfo", fileInfo);
+            log.debug("夸克提取文件信息: {}", fileInfo.getFileName());
+        } catch (Exception e) {
+            log.warn("夸克提取文件信息失败，继续解析: {}", e.getMessage());
+        }
+    }
+
+    private boolean hasQuarkCookie() {
+        String cookie = header.get(HttpHeaders.COOKIE);
+        return cookie != null && !cookie.isBlank();
+    }
+
+    /**
+     * 访客候选：保留接口返回的第一个文件，其余按体积从小到大。
+     * 这样小文件分享仍先下最新文件；文件夹里最新文件超限时，再改下同目录的小文件。
+     */
+    static List<JsonObject> orderGuestCandidates(List<JsonObject> files) {
+        List<JsonObject> ordered = new ArrayList<>();
+        if (files == null || files.isEmpty()) {
+            return ordered;
+        }
+        ordered.add(files.get(0));
+        if (files.size() == 1) {
+            return ordered;
+        }
+        List<JsonObject> rest = new ArrayList<>(files.subList(1, files.size()));
+        rest.sort(Comparator.comparingLong(QkTool::fileSize));
+        ordered.addAll(rest);
+        return ordered;
+    }
+
+    static boolean isQuarkFolder(JsonObject item) {
+        if (item == null) {
+            return false;
+        }
+        if (quarkFlag(item, "dir")) {
+            return true;
+        }
+        Integer fileType = intValue(item, "file_type");
+        return fileType != null && fileType == 0 && !quarkFlag(item, "file");
+    }
+
+    static boolean isQuarkFile(JsonObject item) {
+        if (item == null || isQuarkFolder(item)) {
+            return false;
+        }
+        if (quarkFlag(item, "file")) {
+            return true;
+        }
+        Integer fileType = intValue(item, "file_type");
+        if (fileType != null && fileType > 0) {
+            return true;
+        }
+        String category = item.getString("obj_category");
+        return category != null && !category.isEmpty();
+    }
+
+    static boolean isGuestAuthError(Throwable t) {
+        String msg = t == null || t.getMessage() == null ? "" : t.getMessage();
+        return msg.contains("31001")
+                || msg.contains("未登录")
+                || msg.contains("require login")
+                || msg.contains("Cookie 已失效");
+    }
+
+    static String quarkApiFailure(String url, JsonObject json) {
+        Integer code = json == null ? null : intValue(json, "code");
+        String message = json == null ? null : json.getString("message");
+        if ((code != null && code == 41010) || (message != null && message.contains("违规"))) {
+            return "夸克判定该分享涉及违规内容，无法解析（上游 code=" + code
+                    + (message == null ? "" : "，" + message)
+                    + "）。请让分享者更换资源，本项目不能绕过网盘审核。";
+        }
+        return url + " 返回异常: " + json;
+    }
+
+    private static boolean quarkFlag(JsonObject item, String key) {
+        Object value = item.getValue(key);
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).intValue() != 0;
+        }
+        if (value instanceof String) {
+            return "true".equalsIgnoreCase((String) value) || "1".equals(value);
+        }
+        return false;
+    }
+
+    private static Integer intValue(JsonObject item, String key) {
+        Object value = item.getValue(key);
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        return null;
+    }
+
+    static boolean hasPositiveSize(List<JsonObject> files) {
+        if (files == null) {
+            return false;
+        }
+        for (JsonObject file : files) {
+            long size = fileSize(file);
+            if (size > 0 && size != Long.MAX_VALUE) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 同一目录里有正常文件时，忽略 0 字节占位文件。 */
+    static List<JsonObject> preferSizedFiles(List<JsonObject> files) {
+        List<JsonObject> sized = new ArrayList<>();
+        if (files == null) {
+            return sized;
+        }
+        for (JsonObject file : files) {
+            long size = fileSize(file);
+            if (size > 0 && size != Long.MAX_VALUE) {
+                sized.add(file);
+            }
+        }
+        return sized.isEmpty() ? new ArrayList<>(files) : sized;
+    }
+
+    static long fileSize(JsonObject item) {
+        if (item == null) {
+            return Long.MAX_VALUE;
+        }
+        Object value = item.getValue("size");
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        return Long.MAX_VALUE;
+    }
+
+    private static long epochMs(JsonObject item, String key) {
+        Object value = item.getValue(key);
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        return 0L;
     }
 
     /**
@@ -353,7 +568,7 @@ public class QkTool extends PanBase {
      * 是否属于「必须转存」类错误。
      * 典型：code 23018 download file size limit（分享直链有大小限制）。
      */
-    private static boolean needsTransferFallback(Throwable t) {
+    static boolean needsTransferFallback(Throwable t) {
         String msg = t == null || t.getMessage() == null ? "" : t.getMessage();
         return msg.contains("23018")
                 || msg.contains("size limit")
@@ -538,8 +753,7 @@ public class QkTool extends PanBase {
                                 .setUpdateTime(updatedAt)
                                 .setPanType(shareLinkInfo.getType());
                         
-                        // 判断是否为文件：file=true 或 obj_category 不为空
-                        if (isFile || (objCategory != null && !objCategory.isEmpty())) {
+                        if (isQuarkFile(item)) {
                             // 文件
                             fileInfo.setFileType("file");
                             // 保存必要的参数用于后续下载
@@ -788,8 +1002,13 @@ public class QkTool extends PanBase {
                 .send()
                 .onSuccess(res -> {
                     JsonObject resJson = asJson(res);
-                    if (resJson.getInteger("code") != 0) {
-                        promise.fail("获取转存目录失败: " + resJson.getString("message"));
+                    if (resJson.getInteger("code") == null || resJson.getInteger("code") != 0) {
+                        String message = resJson.getString("message");
+                        if (message != null && (message.contains("require login") || message.contains("guest"))) {
+                            promise.fail(GUEST_LOGIN_MSG);
+                            return;
+                        }
+                        promise.fail("获取转存目录失败: " + message);
                         return;
                     }
 

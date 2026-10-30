@@ -77,7 +77,7 @@ wget -O v01 "https://lz.qaiu.top/parser?url=https%3A%2F%2Fwww.ecpan.cn%2Fweb%2F%
 - [移动云云空间-ec](https://www.ecpan.cn/web)
 - [小飞机网盘-fj](https://www.feijipan.com/)
 - [亿方云-fc](https://www.fangcloud.com/)
-- [123云盘-ye](https://www.123pan.com/) ⚠️仅建议本地部署使用，需登录认证，公共/云端服务器风控严格建议自行部署（Windows 可直接用 run.bat 一键运行）
+- [123云盘-ye](https://www.123pan.com/) ⚠️仅建议本地部署使用。公共云解析没有共享 123 账号；下载返回 5112 / 请登录后下载时，在本机配置 `auths.ye.authorization`（Windows 可直接用 run.bat）
 - ~[115网盘(失效)-p115](https://115.com/)~
 - [文叔叔-ws](https://www.wenshushu.cn/)
 - [联想乐云-le](https://lecloud.lenovo.com/)
@@ -160,7 +160,7 @@ GET /json/getFileList?url={分享链接}&pwd={密码}
 
 ### 认证参数（v0.2.1+）
 [可以使用在线认证参数加密](https://qaiu.top/nfd-auth.html)
-部分网盘（如夸克、UC）需要登录后的 Cookie 才能解析和下载。可通过 `auth` 参数传递认证信息：
+部分网盘需要登录后的 Cookie 或 Authorization 才能下载。可通过 `auth` 参数传递认证信息：
 
 **参数格式**：`auth` 参数值为 AES 加密后的 JSON 字符串，经过 Base64 编码和 URL 编码
 
@@ -184,11 +184,11 @@ GET /json/getFileList?url={分享链接}&pwd={密码}
 **网盘认证要求**：
 | 网盘 | 认证要求 | 说明 |
 |------|---------|------|
-| 夸克网盘(QK) | **必须** | 必须配置 Cookie 才能解析 |
-| UC网盘(UC) | **必须** | 必须配置 Cookie 才能解析 |
+| 夸克网盘(QK) | 小文件可免登录 | 小文件走访客直链。文件夹会先列目录再进入。超过访客大小限制（上游 23018，本次核对约 90MB 失败、约 12MB–27MB 成功）必须配置 `auths.qk.cookie` 或请求 `auth`。未配置 Cookie 时不会转存 |
+| UC网盘(UC) | **必须** | 不能免登录，必须配置 Cookie |
 | 小飞机网盘(FJ) | 可选 | 大文件（>100MB）需要认证 |
 | 蓝奏优享(IZ) | 可选 | 大文件需要认证 |
-| 123网盘(YE) | 可选 | 需要下载大文件/需要登录的分享时才需要认证，支持账号密码或 token/authorization |
+| 123网盘(YE) | 下载通常需要 | 分享列表经常可以不登录读取。下载接口常见 5112 / 请登录后下载 / 您需要注册登录或付费后下载，请在**本机**配置 `auths.ye.authorization`（与 `token` 等价）或账号密码。公共云解析没有共享 123 账号。约 10MB 小文件有时可以直链，大文件和风控必须用你自己的账号。短链：`ye:分享key@提取码`；`#` 片段会去掉；`yun.123pan.com`、`www.123pan.com`、`*.share.123pan.cn` 同一类 |
 
 **使用示例**：
 ```
@@ -240,6 +240,8 @@ auths:
 > ⚠️ 注意：YAML 中 key 后面不写值（如 `authorization:` 空着）等同于没配置，不会生效，必须填入真实的账号密码或 token 内容。
 >
 > 若 123 云盘账号密码登录触发验证码或风控，解析会直接失败并提示改用 Authorization，不会尝试验证码。请改填上面的 `authorization` / `token`（浏览器 localStorage 的 `authorToken`，或请求头 `authorization` / Cookie `sso-token` 里的 JWT）。
+>
+> 公共解析站（例如别人搭的在线解析）不能替你登录 123。看到「请登录后下载」「5112」「您需要注册登录或付费后下载」时，把服务跑在自己的机器上并填入自己的 Authorization。这是 123 的登录和风控要求。链接写法：`/d/ye/分享key@提取码`；浏览器地址栏里 `#` 后面的片段不参与解析；`yun.123pan.com` 与 `www.123pan.com`、`数字.share.123pan.cn` 是同一种分享。
 
 如果只是临时调用一次，不想改动服务端配置，也可以用上面提到的 `auth` 参数临时传递（`authType` 可选 `password`/`accesstoken`/`authorization`），无需重启服务，仅本次请求生效。
 
@@ -377,13 +379,18 @@ json返回数据格式示例:
 | 移动云云空间(个人版) | √       | √(密码可忽略) | 5G(个人)    | 不限大小            |
 | 小飞机网盘       | √       | √        | 10G       | 不限大小            | 
 | 360亿方云      | √       | √        | 100G(须实名) | 不限大小            | 
-| 123云盘       | √       | √        | 2T        | 100G（>100M需要登录） | 
+| 123云盘       | 小文件有时可以 | √        | 2T        | 大文件/风控需要本机登录 |
 | 文叔叔         | √       | √        | 10G       | 5GB             | 
 | 永硕E盘        | √       | √(空间密码) | 视套餐       | 视套餐            |
 | WPS云文档      | √       | X        | 5G(免费)   | 10M(免费)/2G(会员)  |
-| 夸克网盘        | x       | √        | 10G       | 不限大小            | 
+| 夸克网盘        | 小文件    | √        | 10G       | 访客有大小限制（23018） |
 | UC网盘        | x       | √        | 10G       | 不限大小            | 
 | 飞书云盘        | √       | X        | 15G       | 不限大小            |
+
+免登录边界（阈值由网盘决定，不是本项目写死的）：
+
+- **夸克**：小文件可以不登录。本次核对约 12MB–27MB 的访客直链成功，约 90MB 返回 `23018`。分享根目录如果只是文件夹，解析会继续进入子目录。超过限制时配置 `auths.qk.cookie`。UC 不能免登录。百度大约 100MB 以内有直链，属于专业版，这次没有改解析器。
+- **123**：分享目录经常可以不登录看。下载则经常要登录。请本机配置 Authorization，不要依赖公共云解析的共享账号。约 10MB 的小文件有时能直链。
 
 # 打包部署
 
@@ -520,7 +527,7 @@ nfd-proxy搭建http代理服务器
 参考https://github.com/nfd-parser/nfd-proxy
 
 ### 认证信息配置说明
-部分网盘（如123）解析大文件时需要登录认证，可以在配置文件中添加认证信息。
+夸克小文件可以不登录；大文件要本机 Cookie。123 的下载在公共解析站上基本都要你自己的 Authorization，云端没有共用账号。
 
 修改配置文件：
 app-dev.yml
@@ -528,13 +535,15 @@ app-dev.yml
 ```yaml
 ### 解析认证相关
 auths:
-  # 123：配置用户名密码
+  # 夸克大文件：auths.qk.cookie
+  # qk:
+  #   cookie: 浏览器里夸克网盘的 Cookie
+  # 123：优先填 authorization。账号密码若触发验证码会失败，本项目不处理验证码。
   ye:
     username: 你的用户名
     password: 你的密码
+    # authorization: 浏览器登录后的 authorToken / sso-token
 ```
-
-**注意：** 目前仅支持 123（ye）的认证配置。
 
 
 **技术栈:**
