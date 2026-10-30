@@ -3,6 +3,7 @@ package cn.qaiu.parser.impl;
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
+import cn.qaiu.parser.TokenCache;
 import cn.qaiu.util.AESUtils;
 import cn.qaiu.util.AcwScV2Generator;
 import cn.qaiu.util.CommonUtils;
@@ -85,12 +86,31 @@ public class IzTool extends PanBase {
     }
     public IzTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
+        IzXffHeader.apply(header);
+        String accountId = "_default";
+        if (shareLinkInfo.getOtherParam().containsKey("auths")) {
+            MultiMap auths = (MultiMap) shareLinkInfo.getOtherParam().get("auths");
+            if (auths.contains("_configId")) {
+                accountId = auths.get("_configId");
+            } else if (auths.contains("username")) {
+                accountId = auths.get("username");
+            }
+        }
+        this.cacheKey = TokenCache.key("iz", accountId);
     }
 
     String uuid = UUID.randomUUID().toString().toLowerCase(); // 也可以使用 UUID.randomUUID().toString()
 
-    public static volatile String token = null;
-    public static volatile boolean authFlag = true;
+    // 多账号隔离：用 TokenCache 代替 static 变量
+    private final String cacheKey;
+
+    private String token() {
+        return TokenCache.getToken(cacheKey);
+    }
+
+    private boolean authFlag() {
+        return TokenCache.getFlag(cacheKey, true);
+    }
 
     public Future<String> parse() {
 
@@ -101,22 +121,21 @@ public class IzTool extends PanBase {
         // 检查并输出认证状态
         if (shareLinkInfo.getOtherParam().containsKey("auths")) {
             boolean isTempAuth = shareLinkInfo.getOtherParam().containsKey("__TEMP_AUTH_ADDED");
+            String token = token();
             log.info("文件解析检测到认证信息: isTempAuth={}, authFlag={}, token={}",
-                    isTempAuth, authFlag, token != null ? "已登录(" + token.substring(0, Math.min(8, token.length())) + "...)" : "未登录");
+                    isTempAuth, authFlag(), token != null ? "已登录(" + token.substring(0, Math.min(8, token.length())) + "...)" : "未登录");
             
             // 如果需要认证但还没有token，先执行登录
-            if ((isTempAuth || authFlag) && token == null) {
+            if ((isTempAuth || authFlag()) && token == null) {
                 log.info("文件解析需要登录，开始执行登录流程...");
                 MultiMap auths = (MultiMap) shareLinkInfo.getOtherParam().get("auths");
                 return login(tsEncode, auths)
-                        .compose(v -> {
-                            log.info("文件解析预登录成功，继续解析流程");
-                            return parseWithAuth(shareId, tsEncode);
+                        .recover(err -> {
+                            // 预登录失败不终止解析，继续走免登录
+                            log.warn("文件解析预登录失败: {}，使用免登录模式", err.getMessage());
+                            return Future.succeededFuture();
                         })
-                        .onFailure(err -> {
-                            log.warn("文件解析预登录失败: {}，尝试使用免登录模式", err.getMessage());
-                            // 登录失败，继续使用免登录模式
-                        });
+                        .compose(v -> parseWithAuth(shareId, tsEncode));
             } else if (token != null) {
                 log.info("文件解析使用已有token: {}...", token.substring(0, Math.min(8, token.length())));
             }
@@ -231,8 +250,8 @@ public class IzTool extends PanBase {
             // 检查是否为临时认证（临时认证每次都尝试登录）
             boolean isTempAuth = shareLinkInfo.getOtherParam().containsKey("__TEMP_AUTH_ADDED");
             // 如果是临时认证，或者是后台配置且authFlag为true，则尝试使用认证
-            if (isTempAuth || authFlag) {
-                log.debug("尝试使用认证信息解析, isTempAuth={}, authFlag={}", isTempAuth, authFlag);
+            if (isTempAuth || authFlag()) {
+                log.debug("尝试使用认证信息解析, isTempAuth={}, authFlag={}", isTempAuth, authFlag());
                 HttpRequest<Buffer> httpRequest =
                         webClientSession.getAbs(UriTemplate.of(SECOND_REQUEST_URL_VIP))
                                 .setTemplateParam("fidEncode", fidEncode)
@@ -241,18 +260,19 @@ public class IzTool extends PanBase {
                                 .setTemplateParam("auth", auth)
                                 .setTemplateParam("dataKey", dataKey);
                 MultiMap auths = (MultiMap) shareLinkInfo.getOtherParam().get("auths");
-                if (token == null) {
-                    // 执行登录
+                if (token() == null) {
+                    // 执行登录，失败则回退免登录
                     login(tsEncode2, auths).onFailure(failRes-> {
-                        log.warn("登录失败: {}", failRes.getMessage());
-                        fail(failRes.getMessage());
+                        log.warn("登录失败，回退免登录: {}", failRes.getMessage());
+                        downloadAnonymous(fidEncode, tsEncode2, auth, dataKey);
                     }).onSuccess(r-> {
-                        httpRequest.setTemplateParam("appToken", token)
+                        httpRequest.setTemplateParam("appToken", token())
                                 .putHeaders(header);
                         httpRequest.send().onSuccess(this::down).onFailure(handleFail("请求2"));
                     });
                 } else {
-                    // 验证token
+                    // 验证token — 先从缓存恢复到 header
+                    header.set("appToken", token());
                     webClientSession.postAbs(UriTemplate.of(TOKEN_VERIFY_URL))
                             .setTemplateParam("uuid", uuid)
                             .setTemplateParam("ts", tsEncode2)
@@ -260,15 +280,15 @@ public class IzTool extends PanBase {
                                 // log.info("res: {}",asJson(res));
                                 if (asJson(res).getInteger("code") != 200) {
                                     login(tsEncode2, auths).onFailure(failRes -> {
-                                        log.warn("重新登录失败: {}", failRes.getMessage());
-                                        fail(failRes.getMessage());
+                                        log.warn("重新登录失败，回退免登录: {}", failRes.getMessage());
+                                        downloadAnonymous(fidEncode, tsEncode2, auth, dataKey);
                                     }).onSuccess(r-> {
-                                        httpRequest.setTemplateParam("appToken", token)
+                                        httpRequest.setTemplateParam("appToken", token())
                                                 .putHeaders(header);
                                         httpRequest.send().onSuccess(this::down).onFailure(handleFail("请求2"));
                                     });
                                 } else {
-                                    httpRequest.setTemplateParam("appToken", token)
+                                    httpRequest.setTemplateParam("appToken", token())
                                             .putHeaders(header);
                                     httpRequest.send().onSuccess(this::down).onFailure(handleFail("请求2"));
                                 }
@@ -277,27 +297,25 @@ public class IzTool extends PanBase {
             } else {
                 // authFlag 为 false，使用免登录解析
                 log.debug("authFlag=false，使用免登录解析");
-                webClientSession.getAbs(UriTemplate.of(SECOND_REQUEST_URL))
-                        .putHeaders(header)
-                        .setTemplateParam("fidEncode", fidEncode)
-                        .setTemplateParam("uuid", uuid)
-                        .setTemplateParam("ts", tsEncode2)
-                        .setTemplateParam("auth", auth)
-                        .setTemplateParam("dataKey", dataKey).send()
-                        .onSuccess(this::down).onFailure(handleFail("请求2"));
+                downloadAnonymous(fidEncode, tsEncode2, auth, dataKey);
             }
         } else {
             // 没有认证信息，使用免登录解析
             log.debug("无认证信息，使用免登录解析");
-            webClientSession.getAbs(UriTemplate.of(SECOND_REQUEST_URL))
-                    .putHeaders(header)
-                    .setTemplateParam("fidEncode", fidEncode)
-                    .setTemplateParam("uuid", uuid)
-                    .setTemplateParam("ts", tsEncode2)
-                    .setTemplateParam("auth", auth)
-                    .setTemplateParam("dataKey", dataKey).send()
-                    .onSuccess(this::down).onFailure(handleFail("请求2"));
+            downloadAnonymous(fidEncode, tsEncode2, auth, dataKey);
         }
+    }
+
+    private void downloadAnonymous(String fidEncode, String tsEncode2, String auth, String dataKey) {
+        log.debug("使用免登录解析");
+        webClientSession.getAbs(UriTemplate.of(SECOND_REQUEST_URL))
+                .putHeaders(header)
+                .setTemplateParam("fidEncode", fidEncode)
+                .setTemplateParam("uuid", uuid)
+                .setTemplateParam("ts", tsEncode2)
+                .setTemplateParam("auth", auth)
+                .setTemplateParam("dataKey", dataKey).send()
+                .onSuccess(this::down).onFailure(handleFail("请求2"));
     }
 
     private Future<Void> login(String tsEncode2, MultiMap auths) {
@@ -310,8 +328,13 @@ public class IzTool extends PanBase {
                 .onSuccess(res2->{
                     JsonObject json = asJson(res2);
                     if (json.getInteger("code") == 200) {
-                        token = json.getJsonObject("data").getString("appToken");
-                        log.info("登录成功 token: {}...", token != null ? token.substring(0, Math.min(8, token.length())) : "null");
+                        String loginToken = json.getJsonObject("data").getString("appToken");
+                        TokenCache.putToken(cacheKey, loginToken);
+                        TokenCache.queueCachedTokenPersist(cacheKey, loginToken, System.currentTimeMillis() + 24 * 60 * 60 * 1000L);
+                        if (loginToken != null) {
+                            header.set("appToken", loginToken);
+                        }
+                        log.info("登录成功 token: {}...", loginToken != null ? loginToken.substring(0, Math.min(8, loginToken.length())) : "null");
                         promise1.complete();
                     } else {
                         // 检查是否为临时认证
@@ -323,7 +346,7 @@ public class IzTool extends PanBase {
                         } else {
                             // 后台配置的认证失败，设置authFlag并返回失败，让下次请求使用免登陆解析
                             log.warn("后台配置认证失败: {}, authFlag将设为false，请重新解析", json.getString("msg"));
-                            authFlag = false;
+                            TokenCache.putFlag(cacheKey, false);
                             promise1.fail("认证失败: " + json.getString("msg") + ", 请重新解析将使用免登陆模式");
                         }
                     }
@@ -691,7 +714,6 @@ public class IzTool extends PanBase {
     }
 
     public static void resetToken() {
-        token = null;
-        authFlag = true;
+        TokenCache.removeByDiskType("iz");
     }
 }
