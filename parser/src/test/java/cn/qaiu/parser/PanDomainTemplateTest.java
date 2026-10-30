@@ -180,6 +180,19 @@ public class PanDomainTemplateTest {
 
                 assertEquals("1813382308", YeShareHostUtil.getNumericSubdomainIdByShareKey("lN7UVv-pbYJ"));
                 assertEquals("lN7UVv-pbYJ", YeShareHostUtil.normalizeShareKey("https://1813382308.mshare.123pan.cn/123pan/lN7UVv-pbYJ?pwd=abcd"));
+
+                Matcher hashUrl = yePattern.matcher("https://www.123pan.com/s/lN7UVv-pbYJ#/list/share");
+                assertTrue("YE should match URL with hash fragment", hashUrl.matches());
+                assertEquals("lN7UVv-pbYJ", hashUrl.group("KEY"));
+
+                String fakeQuery = "ref" + "=" + "example";
+                Matcher yunUrl = yePattern.matcher("https://yun.123pan.com/s/lN7UVv-pbYJ?" + fakeQuery);
+                assertTrue("YE should match yun.123pan.com", yunUrl.matches());
+                assertEquals("lN7UVv-pbYJ", yunUrl.group("KEY"));
+
+                assertEquals("lN7UVv-pbYJ", YeShareHostUtil.normalizeShareKey("lN7UVv-pbYJ#/list/share"));
+                assertEquals("lN7UVv-pbYJ", YeShareHostUtil.normalizeShareKey(
+                        "https://yun.123pan.com/s/lN7UVv-pbYJ?" + fakeQuery + "#/list"));
         }
 
     @Test

@@ -134,7 +134,14 @@ proxy:
 
 ### 解析认证相关
 auths:
-  # 123网盘：配置用户名密码
+  # 夸克：小文件可免登录。大文件（访客 23018）再填本机 Cookie。空值等于没配。
+  # 公共解析站没有共用夸克账号。
+  # qk:
+  #   cookie:
+  # 123：公共云解析不能共用账号。优先填 authorization（浏览器 authorToken / sso-token，不要带 Bearer）。
+  # 账号密码触发验证码时会失败并提示改用 Authorization，本项目不处理验证码。
+  # 5112 / 请登录后下载 / 您需要注册登录或付费后下载 是上游要求登录。
   ye:
     username:
     password:
+    # authorization:

@@ -42,6 +42,10 @@ public final class YeShareHostUtil {
             return "";
         }
         String key = shareKey.trim();
+        int hashIndex = key.indexOf('#');
+        if (hashIndex >= 0) {
+            key = key.substring(0, hashIndex);
+        }
         int queryIndex = key.indexOf('?');
         if (queryIndex >= 0) {
             key = key.substring(0, queryIndex);

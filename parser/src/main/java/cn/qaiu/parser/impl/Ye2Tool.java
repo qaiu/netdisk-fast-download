@@ -189,7 +189,12 @@ public class Ye2Tool extends PanBase {
                     .onSuccess(res -> {
                         JsonObject shareInfoJson = asJson(res);
                         if (shareInfoJson.getInteger("code") != 0) {
-                            fail("获取分享信息失败: " + shareInfoJson.getString("message"));
+                            String message = shareInfoJson.getString("message");
+                            if (isYeLoginRequired(shareInfoJson.getInteger("code"), message)) {
+                                fail(loginRequiredDownloadMessage(!"nologin".equals(token), message));
+                                return;
+                            }
+                            fail("获取分享信息失败: " + message);
                             return;
                         }
 
@@ -206,7 +211,7 @@ public class Ye2Tool extends PanBase {
 
                         JsonObject fileInfo = data.getJsonArray("InfoList").getJsonObject(0);
                         if (token.equals("nologin")) {
-                            fail("该分享需要登录才能下载，请配置认证信息");
+                            fail(loginRequiredDownloadMessage(false, null));
                             return;
                         }
 
@@ -442,9 +447,47 @@ public class Ye2Tool extends PanBase {
                 .onFailure(err -> fail("文件夹打包下载接口失败: " + err.getMessage()));
     }
 
+    /**
+     * 123 下载接口要求登录时的说明。分享列表本身经常可以匿名读取，
+     * 真正拦下载的是 5112 / 请登录后下载，需要调用方自己的 Authorization。
+     */
+    static String loginRequiredDownloadMessage(boolean authConfigured, String upstream) {
+        String msg = authConfigured
+                ? "123网盘仍要求登录或触发了风控。请在本机检查 auths.ye.authorization（与 auths.ye.token 等价）"
+                + "或账号密码是否仍然有效。公共云解析没有共享 123 账号。"
+                + "上游常见返回：5112、请登录后下载、您需要注册登录或付费后下载。"
+                : "123网盘这个分享需要登录后才能下载。请在本机部署，并配置 auths.ye.authorization"
+                + "（与 auths.ye.token 等价；浏览器登录后的 authorToken、请求头 authorization 或 Cookie sso-token，不要重复带 Bearer），"
+                + "或配置 auths.ye.username 与 password。公共云解析没有共享 123 账号，不能代登。"
+                + "约 10MB 的小文件有时可以直链，大文件、文件夹打包以及 5112/请登录后下载必须使用你自己的 Authorization。"
+                + "短链格式是 ye:分享key@提取码；链接里的 # 片段会去掉。"
+                + "yun.123pan.com、www.123pan.com 和 *.share.123pan.cn 都是同一类分享。";
+        if (StringUtils.isNotBlank(upstream)) {
+            String brief = upstream.length() > 180 ? upstream.substring(0, 180) : upstream;
+            msg = msg + " 上游信息: " + brief;
+        }
+        return msg;
+    }
+
+    static boolean isYeLoginRequired(Integer code, String message) {
+        if (code != null && (code == 5112 || code == 401)) {
+            return true;
+        }
+        if (message == null) {
+            return false;
+        }
+        return message.contains("请登录") || message.contains("需要登录") || message.contains("注册登录");
+    }
+
     private void handleDownloadUrlResponse(WebClient client, JsonObject downURLJson, String failPrefix) {
         try {
-            if (downURLJson.getInteger("code") != 0) {
+            Integer code = downURLJson.getInteger("code");
+            if (code != 0) {
+                String message = downURLJson.getString("message");
+                if (isYeLoginRequired(code, message)) {
+                    fail(loginRequiredDownloadMessage(true, message));
+                    return;
+                }
                 fail(failPrefix + "返回值异常->" + downURLJson);
                 return;
             }
@@ -546,27 +589,35 @@ public class Ye2Tool extends PanBase {
         Future<String> tokenFuture = resolveTokenFuture();
         String finalParentFileId = parentFileId;
         tokenFuture.onSuccess(token -> {
-            if (token.equals("nologin")) {
-                promise.fail("该分享需要登录才能访问，请配置认证信息");
-                return;
+            // 分享列表接口可以不登录。下载才经常返回 5112。
+            boolean loggedIn = StringUtils.isNotEmpty(token) && !"nologin".equals(token);
+            if (loggedIn) {
+                header.set("Authorization", "Bearer " + token);
             }
 
             String normalizedShareKey = YeShareHostUtil.normalizeShareKey(shareKey);
             String shareOrigin = resolveYeShareOrigin(normalizedShareKey);
             String shareReferer = buildShareReferer(shareOrigin, normalizedShareKey, pwd);
 
-            client.getAbs(UriTemplate.of(GET_SHARE_INFO_URL))
+            HttpRequest<Buffer> request = client.getAbs(UriTemplate.of(GET_SHARE_INFO_URL))
                     .setTemplateParam("shareKey", shareKey)
                     .setTemplateParam("pwd", StringUtils.isEmpty(pwd) ? "" : pwd)
                     .setTemplateParam("ParentFileId", finalParentFileId)
-                    .putHeader("Authorization", "Bearer " + token)
                     .putHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
                     .putHeader("Referer", shareReferer)
-                    .putHeader("Origin", shareOrigin)
-                    .send().onSuccess(res -> {
+                    .putHeader("Origin", shareOrigin);
+            if (loggedIn) {
+                request.putHeader("Authorization", "Bearer " + token);
+            }
+            request.send().onSuccess(res -> {
                         JsonObject response = asJson(res);
                         if (response.getInteger("code") != 0) {
-                            promise.fail("API错误: " + response.getString("message"));
+                            String message = response.getString("message");
+                            if (isYeLoginRequired(response.getInteger("code"), message)) {
+                                promise.fail(loginRequiredDownloadMessage(loggedIn, message));
+                                return;
+                            }
+                            promise.fail("API错误: " + message);
                             return;
                         }
 
@@ -641,7 +692,7 @@ public class Ye2Tool extends PanBase {
 
         tokenFuture.onSuccess(token -> {
             if (token.equals("nologin")) {
-                fail("该分享需要登录才能下载，请配置认证信息");
+                fail(loginRequiredDownloadMessage(false, null));
                 return;
             }
 
