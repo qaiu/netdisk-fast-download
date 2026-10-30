@@ -238,6 +238,8 @@ auths:
 ```
 
 > ⚠️ 注意：YAML 中 key 后面不写值（如 `authorization:` 空着）等同于没配置，不会生效，必须填入真实的账号密码或 token 内容。
+>
+> 若 123 云盘账号密码登录触发验证码或风控，解析会直接失败并提示改用 Authorization，不会尝试验证码。请改填上面的 `authorization` / `token`（浏览器 localStorage 的 `authorToken`，或请求头 `authorization` / Cookie `sso-token` 里的 JWT）。
 
 如果只是临时调用一次，不想改动服务端配置，也可以用上面提到的 `auth` 参数临时传递（`authType` 可选 `password`/`accesstoken`/`authorization`），无需重启服务，仅本次请求生效。
 
