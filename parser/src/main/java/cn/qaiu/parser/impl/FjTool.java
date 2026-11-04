@@ -129,8 +129,6 @@ public class FjTool extends PanBase {
             if (auths.contains("userId")) {
                 FjTool.userId = auths.get("userId");
                 log.info("已配置用户ID: {}", FjTool.userId);
-            } else {
-                log.warn("未配置用户ID, 可能会导致解析失败");
             }
         }
 
@@ -199,7 +197,7 @@ public class FjTool extends PanBase {
         // 其他参数
         long nowTs2 = System.currentTimeMillis();
         String tsEncode2 = AESUtils.encrypt2Hex(Long.toString(nowTs2));
-        String fidEncode = AESUtils.encrypt2Hex(fileId + "|" + FjTool.userId);
+        String fidEncode = AESUtils.encrypt2Hex(fileId + "|" + userId);
         String auth = AESUtils.encrypt2Hex(fileId + "|" + nowTs2);
 
         // 检查是否有认证信息
@@ -223,7 +221,7 @@ public class FjTool extends PanBase {
                         log.warn("登录失败: {}", failRes.getMessage());
                         fail(failRes.getMessage());
                     }).onSuccess(r-> {
-                        httpRequest.setTemplateParam("fidEncode", AESUtils.encrypt2Hex(fileId + "|" + FjTool.userId))
+                        httpRequest.setTemplateParam("fidEncode", AESUtils.encrypt2Hex(fileId + "|" + userId))
                                 .putHeaders(header);
                         httpRequest.send().onSuccess(this::down).onFailure(handleFail("请求2"));
                     });
@@ -245,7 +243,7 @@ public class FjTool extends PanBase {
                                     });
                                 } else {
                                     httpRequest
-                                            .setTemplateParam("fidEncode", AESUtils.encrypt2Hex(fileId + "|" + FjTool.userId))
+                                            .setTemplateParam("fidEncode", AESUtils.encrypt2Hex(fileId + "|" + userId))
                                             .putHeaders(header);
                                     httpRequest.send().onSuccess(this::down).onFailure(handleFail("请求2"));
                                 }
@@ -444,8 +442,8 @@ public class FjTool extends PanBase {
 
     private void down(HttpResponse<Buffer> res2) {
         MultiMap headers = res2.headers();
-        if (!headers.contains("Location") || headers.get("Location") == null) {
-            fail("找不到下载链接可能服务器已被禁止或者配置的认证信息有误: " + res2.bodyAsString());
+        if (StringUtils.isBlank(headers.get("Location"))) {
+            fail("{}", FjDownloadParams.missingLocation(res2.statusCode(), asText(res2)));
             return;
         }
         promise.complete(headers.get("Location"));
@@ -523,7 +521,7 @@ public class FjTool extends PanBase {
                         // 其他参数
                         long nowTs2 = System.currentTimeMillis();
                         String tsEncode2 = AESUtils.encrypt2Hex(Long.toString(nowTs2));
-                        String fidEncode = AESUtils.encrypt2Hex(fileId + "|" + FjTool.userId);
+                        String fidEncode = AESUtils.encrypt2Hex(fileId + "|" + userId);
                         String auth = AESUtils.encrypt2Hex(fileId + "|" + nowTs2);
 
                         // 回传用到的参数
@@ -533,6 +531,8 @@ public class FjTool extends PanBase {
                         //"auth", paramJson.getString("auth"))
                         //"shareId", paramJson.getString("shareId"))
                         JsonObject entries = JsonObject.of(
+                                "fileId", fileId,
+                                "userId", userId,
                                 "fidEncode", fidEncode,
                                 "uuid", uuid,
                                 "ts", tsEncode2,
@@ -590,20 +590,24 @@ public class FjTool extends PanBase {
             promise.fail("缺少 paramJson 参数");
             return promise.future();
         }
-        clientNoRedirects.getAbs(UriTemplate.of(SECOND_REQUEST_URL_VIP))
-                .setTemplateParam("fidEncode", paramJson.getString("fidEncode"))
-                .setTemplateParam("uuid", paramJson.getString("uuid"))
-                .setTemplateParam("ts", paramJson.getString("ts"))
-                .setTemplateParam("auth", paramJson.getString("auth"))
-                .setTemplateParam("dataKey", paramJson.getString("shareId"))
-                .putHeaders(header).send().onSuccess(res2 -> {
-                    MultiMap headers = res2.headers();
-                    if (!headers.contains("Location")) {
-                        fail(SECOND_REQUEST_URL_VIP + " 未找到重定向URL: \n" + res2.headers());
-                        return;
-                    }
-                    promise.complete(headers.get("Location"));
-                }).onFailure(handleFail(SECOND_REQUEST_URL_VIP));
+        try {
+            String ownerId = FjDownloadParams.ownerId(paramJson);
+            if (StringUtils.isBlank(ownerId) || "null".equals(ownerId)) {
+                fail("目录下载参数缺少分享者 userId，请刷新文件列表后重试");
+                return promise.future();
+            }
+            JsonObject params = FjDownloadParams.create(FjDownloadParams.fileId(paramJson), ownerId,
+                    paramJson.getString("uuid"), paramJson.getString("shareId"), System.currentTimeMillis());
+            clientNoRedirects.getAbs(UriTemplate.of(SECOND_REQUEST_URL_VIP))
+                    .setTemplateParam("fidEncode", params.getString("fidEncode"))
+                    .setTemplateParam("uuid", params.getString("uuid"))
+                    .setTemplateParam("ts", params.getString("ts"))
+                    .setTemplateParam("auth", params.getString("auth"))
+                    .setTemplateParam("dataKey", params.getString("shareId"))
+                    .putHeaders(header).send().onSuccess(this::down).onFailure(handleFail("下载请求"));
+        } catch (Exception e) {
+            fail(e, "下载参数无效");
+        }
         return promise.future();
     }
 
