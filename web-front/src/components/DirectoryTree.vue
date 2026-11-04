@@ -139,113 +139,114 @@
                     style="background:transparent;"
                   />
                 </div>
-                <div v-if="batchMode" class="tree-sidebar-footer">
-                  <span class="tree-sidebar-count">已勾选 {{ selectedFiles.length }} 个文件</span>
-                  <div class="tree-sidebar-actions">
-                    <el-button
-                      type="primary"
-                      size="small"
-                      :disabled="selectedFiles.length === 0 || batchDownloading || treeExpanding || batchBrowserDownloadDisabled"
-                      :loading="batchDownloading"
-                      @click="batchBrowserDownload"
-                      :title="batchBrowserDownloadDisabled ? '所选文件需使用下载器下载' : ''"
-                    >
-                      浏览器下载
-                    </el-button>
-                    <el-button
-                      type="success"
-                      size="small"
-                      :disabled="selectedFiles.length === 0 || batchDownloading || treeExpanding"
-                      :loading="batchDownloading"
-                      @click="batchSendToDownloader"
-                    >
-                      发送到下载器
-                    </el-button>
-                    <el-button
-                      size="small"
-                      @click="toggleBatchMode"
-                    >
-                      取消
-                    </el-button>
-                  </div>
-                  <div v-if="batchDownloading" class="batch-progress-info">
-                    <el-progress :percentage="batchProgressPercent" :status="batchProgressStatus" />
-                    <p>{{ batchProgress.current }} / {{ batchProgress.total }}
-                      <span v-if="batchProgress.failed > 0" style="color:#f56c6c;"> ({{ batchProgress.failed }} 失败)</span>
-                    </p>
-                  </div>
-                </div>
+                <TreeBatchActionBar
+                  v-if="batchMode"
+                  class="tree-sidebar-footer"
+                  v-bind="treeBatchBarBind"
+                  @browser-download="batchBrowserDownload"
+                  @send-downloader="batchSendToDownloader"
+                  @cancel="toggleBatchMode"
+                />
               </div>
             </pane>
             <pane>
               <div class="tree-content">
-                <div v-if="selectedNode" class="file-detail-panel">
-                  <div class="file-detail-icon-wrap">
-                    <i :class="getFileIcon(selectedNode)" class="file-detail-icon"></i>
-                  </div>
-                  <h4 class="file-detail-name">{{ selectedNode.fileName }}</h4>
-                  <div v-if="selectedNode.fileType !== 'folder'" class="file-detail-meta">
-                    <p>类型: {{ selectedNode.fileType === 'url' ? '超链接' : getFileTypeClass(selectedNode) }}</p>
-                    <p v-if="selectedNode.fileType !== 'url'">大小: {{ selectedNode.sizeStr || '0B' }}</p>
-                    <p v-if="selectedNode.fileType === 'url' && selectedNode.previewUrl" class="file-detail-link">
-                      链接: {{ selectedNode.previewUrl }}
-                    </p>
-                    <p v-if="formatDate(selectedNode.createTime)">创建时间: {{ formatDate(selectedNode.createTime) }}</p>
-                    <p v-if="formatDate(selectedNode.updateTime)">更新时间: {{ formatDate(selectedNode.updateTime) }}</p>
-                  </div>
-                  <div class="file-detail-actions">
-                    <el-button
-                      v-if="selectedNode.fileType === 'url' && selectedNode.previewUrl"
-                      type="primary" size="small"
-                      @click="openExternalLink(selectedNode)"
-                    >
-                      <i class="fas fa-external-link-alt"></i> 打开链接
-                    </el-button>
-                    <el-button
-                      v-else-if="selectedNode.parserUrl || selectedNode.previewUrl"
-                      size="small"
-                      @click="previewFile(selectedNode)"
-                    >
-                      <i class="fas fa-external-link-alt"></i> 打开
-                    </el-button>
-                    <el-button
-                      v-if="isDownloadableFile(selectedNode)"
-                      type="success" size="small"
-                      @click="handleDownload(selectedNode)"
-                      :loading="downloadLoading"
-                      :disabled="needsDownloader(selectedNode)"
-                      :title="needsDownloader(selectedNode) ? '该网盘需使用下载器下载' : ''"
-                    >
-                      <i class="fas fa-download"></i> 下载
-                    </el-button>
-                    <el-button
-                      v-if="isDownloadableFile(selectedNode)"
-                      type="primary" size="small"
-                      @click="sendSingleToDownloader(selectedNode)"
-                      :loading="singleSendLoading"
-                    >
-                      <i class="fas fa-paper-plane"></i> 发送到下载器
-                    </el-button>
-                    <el-button
-                      v-if="isDownloadableFile(selectedNode)"
-                      size="small"
-                      @click="copyDirectLink(selectedNode)"
-                      :loading="copyLinkLoading"
-                      :disabled="needsDownloader(selectedNode)"
-                      :title="needsDownloader(selectedNode) ? '该网盘需使用下载器，无法直接复制直链' : ''"
-                    >
-                      <i class="fas fa-link"></i> 复制直链
-                    </el-button>
-                  </div>
-                </div>
-                <div v-else class="file-detail-empty">
-                  <i class="fas fa-hand-pointer" style="font-size:32px;color:#bbb;margin-bottom:12px;"></i>
-                  <p>请在左侧选择文件查看详情</p>
-                </div>
-                <div v-if="!batchMode" class="tree-batch-trigger">
-                  <el-button type="warning" size="small" @click="toggleBatchMode">
+                <div class="tree-toolbar tree-content-toolbar">
+                  <span class="tree-toolbar-title">
+                    <i class="fas fa-file-alt" aria-hidden="true"></i> 详情
+                  </span>
+                  <el-button
+                    v-if="!batchMode"
+                    type="warning"
+                    size="small"
+                    @click="toggleBatchMode"
+                  >
                     <i class="fas fa-check-double"></i> 批量下载
                   </el-button>
+                  <span v-else class="tree-toolbar-hint">
+                    {{ treeExpanding ? '正在展开并收集文件…' : `勾选左侧文件夹将自动展开（最多 ${effectiveBatchMaxDepth} 层）` }}
+                  </span>
+                </div>
+                <div class="tree-content-body">
+                  <div v-if="selectedNode" class="file-detail-panel">
+                    <div class="file-detail-icon-wrap">
+                      <i :class="getFileIcon(selectedNode)" class="file-detail-icon"></i>
+                    </div>
+                    <h4 class="file-detail-name">{{ selectedNode.fileName }}</h4>
+                    <div v-if="selectedNode.fileType !== 'folder'" class="file-detail-meta">
+                      <p>类型: {{ selectedNode.fileType === 'url' ? '超链接' : getFileTypeClass(selectedNode) }}</p>
+                      <p v-if="selectedNode.fileType !== 'url'">大小: {{ selectedNode.sizeStr || '0B' }}</p>
+                      <p v-if="selectedNode.fileType === 'url' && selectedNode.previewUrl" class="file-detail-link">
+                        链接: {{ selectedNode.previewUrl }}
+                      </p>
+                      <p v-if="formatDate(selectedNode.createTime)">创建时间: {{ formatDate(selectedNode.createTime) }}</p>
+                      <p v-if="formatDate(selectedNode.updateTime)">更新时间: {{ formatDate(selectedNode.updateTime) }}</p>
+                    </div>
+                    <div class="file-detail-actions">
+                      <el-button
+                        v-if="selectedNode.fileType === 'url' && selectedNode.previewUrl"
+                        type="primary" size="small"
+                        @click="openExternalLink(selectedNode)"
+                      >
+                        <i class="fas fa-external-link-alt"></i> 打开链接
+                      </el-button>
+                      <el-button
+                        v-else-if="selectedNode.parserUrl || selectedNode.previewUrl"
+                        size="small"
+                        @click="previewFile(selectedNode)"
+                      >
+                        <i class="fas fa-external-link-alt"></i> 打开
+                      </el-button>
+                      <el-button
+                        v-if="isDownloadableFile(selectedNode)"
+                        type="success" size="small"
+                        @click="handleDownload(selectedNode)"
+                        :loading="downloadLoading"
+                        :disabled="needsDownloader(selectedNode)"
+                        :title="needsDownloader(selectedNode) ? '该网盘需使用下载器下载' : ''"
+                      >
+                        <i class="fas fa-download"></i> 下载
+                      </el-button>
+                      <el-button
+                        v-if="isDownloadableFile(selectedNode)"
+                        type="primary" size="small"
+                        @click="sendSingleToDownloader(selectedNode)"
+                        :loading="singleSendLoading"
+                      >
+                        <i class="fas fa-paper-plane"></i> 发送到下载器
+                      </el-button>
+                      <el-button
+                        v-if="isDownloadableFile(selectedNode)"
+                        size="small"
+                        @click="copyDirectLink(selectedNode)"
+                        :loading="copyLinkLoading"
+                        :disabled="needsDownloader(selectedNode)"
+                        :title="needsDownloader(selectedNode) ? '该网盘需使用下载器，无法直接复制直链' : ''"
+                      >
+                        <i class="fas fa-link"></i> 复制直链
+                      </el-button>
+                    </div>
+                  </div>
+                  <div v-else class="file-detail-empty">
+                    <i class="fas fa-hand-pointer" style="font-size:32px;color:#bbb;margin-bottom:12px;"></i>
+                    <p>请在左侧选择文件查看详情</p>
+                    <p v-if="!batchMode" class="file-detail-empty-hint">或直接点击「批量下载」勾选多个文件</p>
+                  </div>
+                </div>
+                <div class="tree-content-footer" :class="{ 'is-batch': batchMode }">
+                  <template v-if="!batchMode">
+                    <span class="tree-content-footer-hint">可直接勾选多个文件下载</span>
+                    <el-button type="warning" size="small" @click="toggleBatchMode">
+                      <i class="fas fa-check-double"></i> 批量下载
+                    </el-button>
+                  </template>
+                  <TreeBatchActionBar
+                    v-else
+                    v-bind="treeBatchBarBind"
+                    @browser-download="batchBrowserDownload"
+                    @send-downloader="batchSendToDownloader"
+                    @cancel="toggleBatchMode"
+                  />
                 </div>
               </div>
             </pane>
@@ -353,26 +354,21 @@
               <div v-else class="file-detail-empty">
                 <i class="fas fa-hand-pointer" style="font-size:24px;color:#bbb;margin-bottom:8px;"></i>
                 <p>请在上方选择文件查看详情</p>
+                <p v-if="!batchMode" class="file-detail-empty-hint">或直接点击「批量下载」勾选多个文件</p>
               </div>
               <div v-if="!batchMode" class="mobile-batch-trigger">
                 <el-button type="warning" size="small" @click="toggleBatchMode">
                   <i class="fas fa-check-double"></i> 批量下载
                 </el-button>
               </div>
-              <div v-if="batchMode" class="mobile-batch-footer">
-                <span class="tree-sidebar-count">已勾选 {{ selectedFiles.length }} 个文件</span>
-                <div class="tree-sidebar-actions">
-                  <el-button type="primary" size="small" :disabled="selectedFiles.length === 0 || batchDownloading || treeExpanding || batchBrowserDownloadDisabled" :loading="batchDownloading" @click="batchBrowserDownload" :title="batchBrowserDownloadDisabled ? '所选文件需使用下载器下载' : ''">浏览器下载</el-button>
-                  <el-button type="success" size="small" :disabled="selectedFiles.length === 0 || batchDownloading || treeExpanding" :loading="batchDownloading" @click="batchSendToDownloader">发送到下载器</el-button>
-                  <el-button size="small" @click="toggleBatchMode">取消</el-button>
-                </div>
-                <div v-if="batchDownloading" class="batch-progress-info">
-                  <el-progress :percentage="batchProgressPercent" :status="batchProgressStatus" />
-                  <p>{{ batchProgress.current }} / {{ batchProgress.total }}
-                    <span v-if="batchProgress.failed > 0" style="color:#f56c6c;"> ({{ batchProgress.failed }} 失败)</span>
-                  </p>
-                </div>
-              </div>
+              <TreeBatchActionBar
+                v-if="batchMode"
+                class="mobile-batch-footer"
+                v-bind="treeBatchBarBind"
+                @browser-download="batchBrowserDownload"
+                @send-downloader="batchSendToDownloader"
+                @cancel="toggleBatchMode"
+              />
             </div>
           </template>
         </div>
@@ -453,6 +449,7 @@ import { Splitpanes, Pane } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
 import fileTypeUtils from '@/utils/fileTypeUtils'
 import DownloadDialog from '@/components/DownloadDialog.vue'
+import TreeBatchActionBar from '@/components/TreeBatchActionBar.vue'
 import { testConnection, autoDetect, addDownload, batchAddDownload, getConfig, saveConfig } from '@/utils/downloaderService'
 import batchTreeCollect from '@/utils/batchTreeCollect'
 
@@ -466,7 +463,7 @@ const {
 
 export default {
   name: 'DirectoryTree',
-  components: { ElTree, Splitpanes, Pane, DownloadDialog },
+  components: { ElTree, Splitpanes, Pane, DownloadDialog, TreeBatchActionBar },
   props: {
     fileList: {
       type: Array,
@@ -566,6 +563,19 @@ export default {
     effectiveBatchMaxDepth() {
       const depth = Number(this.batchMaxDepth)
       return Number.isFinite(depth) && depth >= 0 ? depth : DEFAULT_BATCH_MAX_DEPTH
+    },
+    treeBatchBarBind() {
+      return {
+        selectedCount: this.selectedFiles.length,
+        batchDownloading: this.batchDownloading,
+        treeExpanding: this.treeExpanding,
+        browserDisabled: this.batchBrowserDownloadDisabled,
+        progressPercent: this.batchProgressPercent,
+        progressStatus: this.batchProgressStatus,
+        progressCurrent: this.batchProgress.current,
+        progressTotal: this.batchProgress.total,
+        progressFailed: this.batchProgress.failed
+      }
     }
   },
   watch: {
@@ -1640,10 +1650,21 @@ html, body, #app, .main-container, .directory-tree, .content-card {
 .batch-progress-info {
   margin-top: 12px;
 }
-.tree-batch-trigger {
-  position: absolute;
-  bottom: 12px;
-  right: 12px;
+.tree-content-footer-hint {
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.4;
+}
+.dark-theme .tree-content-footer-hint {
+  color: #bdc3c7;
+}
+.file-detail-empty-hint {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #909399;
+}
+.dark-theme .file-detail-empty-hint {
+  color: #bdc3c7;
 }
 
 .stats {
@@ -1714,8 +1735,7 @@ html, body, #app, .main-container, .directory-tree, .content-card {
 }
 .tree-content {
   flex: 1;
-  padding: 16px;
-  overflow-y: auto;
+  min-height: 0;
   position: relative;
 }
 
@@ -2008,10 +2028,46 @@ html, body, #app, .main-container, .directory-tree, .content-card {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: auto;
-  padding: 24px 16px 16px 16px;
-  align-items: center;
+  overflow: hidden;
+  padding: 0;
+  align-items: stretch;
   position: relative;
+}
+
+.tree-content-toolbar {
+  width: 100%;
+}
+
+.tree-content-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px 16px;
+}
+
+.tree-content-footer {
+  flex-shrink: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-top: 1px solid #eaeaea;
+  background: #f8f9fa;
+}
+
+.tree-content-footer.is-batch {
+  display: block;
+}
+
+.dark-theme .tree-content-footer {
+  border-top-color: #404040;
+  background: #232323;
 }
 
 .file-detail-panel {
