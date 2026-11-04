@@ -578,8 +578,13 @@ Core模块集成Vert.x实现类似spring的注解式路由API
 ## 赞助该项目
 开源不易，用爱发电。本项目长期维护，如果觉得有帮助，欢迎赞助开发者，感谢支持。
 
-- **支付宝 / 微信**：[赞助页](https://blog.qaiu.top/archives/da-shang-zhuan-yong)
-- **国际赞助（PayPal）**：[paypal.me/futianshun](https://paypal.me/futianshun)
+<p align="center">
+<a href="https://blog.qaiu.top/archives/da-shang-zhuan-yong"><img alt="微信" src="https://api.iconify.design/simple-icons/wechat.svg?color=%2307C160" width="44" height="44"></a>
+&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="https://blog.qaiu.top/archives/da-shang-zhuan-yong"><img alt="支付宝" src="https://api.iconify.design/simple-icons/alipay.svg?color=%231677FF" width="44" height="44"></a>
+&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="https://paypal.me/futianshun"><img alt="PayPal" src="https://api.iconify.design/simple-icons/paypal.svg?color=%2300457C" width="44" height="44"></a>
+</p>
 
 本项目的服务器由林枫云提供赞助
 
