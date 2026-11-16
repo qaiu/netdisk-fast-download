@@ -443,7 +443,14 @@ public class FjTool extends PanBase {
     private void down(HttpResponse<Buffer> res2) {
         MultiMap headers = res2.headers();
         if (StringUtils.isBlank(headers.get("Location"))) {
-            fail("{}", FjDownloadParams.missingLocation(res2.statusCode(), asText(res2)));
+            String body;
+            try {
+                body = asText(res2);
+            } catch (IllegalArgumentException | UnsupportedOperationException e) {
+                fail(e, "读取下载错误响应失败, HTTP {}", res2.statusCode());
+                return;
+            }
+            fail("{}", FjDownloadParams.missingLocation(res2.statusCode(), body));
             return;
         }
         promise.complete(headers.get("Location"));

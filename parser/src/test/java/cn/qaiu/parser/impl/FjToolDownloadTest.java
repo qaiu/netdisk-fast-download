@@ -29,6 +29,7 @@ public class FjToolDownloadTest {
     private final AtomicInteger downloads = new AtomicInteger();
     private String identity;
     private String businessError;
+    private String contentEncoding;
 
     @Before
     public void setup() throws Exception {
@@ -49,6 +50,9 @@ public class FjToolDownloadTest {
                     assertEquals(AESUtils.encrypt2Hex("123|" + timestamp), req.getParam("auth"));
                     assertEquals("share", req.getParam("shareId"));
                     if (businessError != null) {
+                        if (contentEncoding != null) {
+                            req.response().putHeader("Content-Encoding", contentEncoding);
+                        }
                         req.response().end(businessError);
                     } else {
                         req.response().setStatusCode(302).putHeader("Location", "https://download.example/file").end();
@@ -101,6 +105,28 @@ public class FjToolDownloadTest {
         } catch (ExecutionException e) {
             assertTrue(e.getCause().getMessage().contains("需要会员"));
             assertTrue(e.getCause().getMessage().contains("code=403"));
+        }
+    }
+
+    @Test
+    public void unsupportedErrorEncodingFailsWithoutLeavingFuturePending() throws Exception {
+        contentEncoding = "zstd";
+        businessError = "upstream error";
+        assertErrorBodyFailure("zstd");
+    }
+
+    @Test
+    public void oversizedErrorBodyFailsWithoutLeavingFuturePending() throws Exception {
+        businessError = "x".repeat(8 * 1024 * 1024 + 1);
+        assertErrorBodyFailure("响应体过大");
+    }
+
+    private void assertErrorBodyFailure(String expectedReason) throws Exception {
+        try {
+            tool(info()).parseById().toCompletionStage().toCompletableFuture().get(3, TimeUnit.SECONDS);
+            fail("Expected response decoding error");
+        } catch (ExecutionException e) {
+            assertTrue(e.getCause().getMessage(), e.getCause().getMessage().contains(expectedReason));
         }
     }
 
