@@ -1,4 +1,5 @@
-FROM eclipse-temurin:17-jre
+ARG JAVA_RUNTIME_IMAGE=eclipse-temurin:17-jre
+FROM ${JAVA_RUNTIME_IMAGE}
 
 WORKDIR /app
 

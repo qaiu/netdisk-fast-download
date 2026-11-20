@@ -1,5 +1,7 @@
 package cn.qaiu.lz.web.service.impl;
 
+import cn.qaiu.util.Base64Encoder;
+import cn.qaiu.util.Base64Decoder;
 import cn.qaiu.db.pool.JDBCPoolInit;
 import cn.qaiu.lz.common.model.UserInfo;
 import cn.qaiu.lz.web.model.StatisticsInfo;
@@ -21,7 +23,6 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 
@@ -457,9 +458,9 @@ public class DbServiceImpl implements DbService {
             long issuedAt = System.currentTimeMillis();
             String payload = accountId + ":" + issuedAt;
             String signature = hmacSha256(payload);
-            String token = Base64.getUrlEncoder().withoutPadding().encodeToString(payload.getBytes(StandardCharsets.UTF_8))
+            String token = Base64Encoder.encodeUrlWithoutPadding(payload.getBytes(StandardCharsets.UTF_8))
                     + "."
-                    + Base64.getUrlEncoder().withoutPadding().encodeToString(signature.getBytes(StandardCharsets.UTF_8));
+                    + Base64Encoder.encodeUrlWithoutPadding(signature.getBytes(StandardCharsets.UTF_8));
             return Future.succeededFuture(token);
         } catch (Exception e) {
             return Future.failedFuture(e);
@@ -526,7 +527,7 @@ public class DbServiceImpl implements DbService {
 
     private boolean isLikelyEncrypted(String value) {
         try {
-            byte[] decoded = Base64.getDecoder().decode(value);
+            byte[] decoded = Base64Decoder.decode(value);
             return decoded.length > 16;
         } catch (Exception e) {
             return false;
@@ -538,8 +539,8 @@ public class DbServiceImpl implements DbService {
             throw new IllegalArgumentException("invalid donated account token");
         }
         String[] parts = token.split("\\.", 2);
-        String payload = new String(Base64.getUrlDecoder().decode(parts[0]), StandardCharsets.UTF_8);
-        String signature = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
+        String payload = new String(Base64Decoder.decodeUrl(parts[0]), StandardCharsets.UTF_8);
+        String signature = new String(Base64Decoder.decodeUrl(parts[1]), StandardCharsets.UTF_8);
         String expected = hmacSha256(payload);
         if (!expected.equals(signature)) {
             throw new IllegalArgumentException("donated account token signature invalid");
@@ -562,7 +563,7 @@ public class DbServiceImpl implements DbService {
         Mac mac = Mac.getInstance(HMAC_ALGORITHM);
         mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), HMAC_ALGORITHM));
         byte[] digest = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
-        return Base64.getEncoder().encodeToString(digest);
+        return Base64Encoder.encode(digest);
     }
 
     private String getDonatedAccountFailureTokenSignKey() {

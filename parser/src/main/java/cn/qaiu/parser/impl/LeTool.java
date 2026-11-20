@@ -1,5 +1,6 @@
 package cn.qaiu.parser.impl;
 
+import cn.qaiu.util.Base64Encoder;
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo; 
 import cn.qaiu.parser.PanBase;
@@ -13,7 +14,6 @@ import io.vertx.core.json.JsonObject;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -232,7 +232,7 @@ public class LeTool extends PanBase {
                         "shareId", shareId,
                         "fileId", fileId
                 );
-                String paramBase64 = Base64.getEncoder().encodeToString(paramJson.encode().getBytes());
+                String paramBase64 = Base64Encoder.encode(paramJson.encode().getBytes());
                 
                 // 设置解析URL和预览URL
                 fileInfo.setParserUrl(String.format("%s/v2/redirectUrl/%s/%s", 

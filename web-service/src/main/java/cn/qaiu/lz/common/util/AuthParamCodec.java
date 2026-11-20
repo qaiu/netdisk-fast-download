@@ -2,6 +2,7 @@ package cn.qaiu.lz.common.util;
 
 import cn.qaiu.lz.web.model.AuthParam;
 import cn.qaiu.util.AESUtils;
+import cn.qaiu.util.Base64Decoder;
 import cn.qaiu.vx.core.util.SharedDataUtil;
 import io.vertx.core.json.JsonObject;
 import lombok.extern.slf4j.Slf4j;
@@ -9,7 +10,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
 /**
  * 认证参数编解码工具类
@@ -88,7 +88,7 @@ public class AuthParamCodec {
             log.debug("认证参数规范化结果: {}", normalized);
 
             // Step 2: Base64解码
-            byte[] base64Decoded = Base64.getDecoder().decode(normalized);
+            byte[] base64Decoded = Base64Decoder.decode(normalized);
             log.debug("Base64解码成功，长度: {}", base64Decoded.length);
 
             // Step 3: AES解密

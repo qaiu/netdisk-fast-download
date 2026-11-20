@@ -52,6 +52,24 @@ jobs:
     - name: Maven 编译打包
       run: mvn -B package -DskipTests --file pom.xml
 
+    - name: Base64 兼容性回归测试
+      if: github.event_name == 'pull_request'
+      run: >-
+        mvn -B test -DskipTests=false
+        -Dtest=Base64DecoderTest,HttpProxyBase64Test,Base64CompatibilityTest
+        -Dsurefire.failIfNoSpecifiedTests=false
+        -DargLine=-XX:-UseBASE64Intrinsics
+        --file pom.xml
+
+    - name: Base64 SIMD 兼容性回归测试
+      if: github.event_name == 'pull_request'
+      run: >-
+        mvn -B test -DskipTests=false
+        -Dtest=Base64DecoderTest,HttpProxyBase64Test,Base64CompatibilityTest
+        -Dsurefire.failIfNoSpecifiedTests=false
+        "-DargLine=--add-modules=jdk.incubator.vector -XX:-UseBASE64Intrinsics -Dnfd.test.requireVector=true"
+        --file pom.xml
+
     - name: 更新依赖图谱
       uses: advanced-security/maven-dependency-submission-action@v3
       if: github.event_name != 'pull_request'

@@ -1,5 +1,7 @@
 package cn.qaiu.lz.common.util;
 
+import cn.qaiu.util.Base64Encoder;
+import cn.qaiu.util.Base64Decoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -39,8 +41,8 @@ public class PasswordUtil {
             byte[] hashedPassword = md.digest(plainPassword.getBytes(StandardCharsets.UTF_8));
 
             // 将盐和哈希值编码为Base64并拼接
-            String saltBase64 = Base64.getEncoder().encodeToString(salt);
-            String hashBase64 = Base64.getEncoder().encodeToString(hashedPassword);
+            String saltBase64 = Base64Encoder.encode(salt);
+            String hashBase64 = Base64Encoder.encode(hashedPassword);
 
             // 返回格式：salt:hash
             return saltBase64 + DELIMITER + hashBase64;
@@ -72,13 +74,13 @@ public class PasswordUtil {
             String hashBase64 = parts[1];
 
             // 解码盐
-            byte[] salt = Base64.getDecoder().decode(saltBase64);
+            byte[] salt = Base64Decoder.decode(saltBase64);
 
             // 使用相同的盐计算哈希值
             MessageDigest md = MessageDigest.getInstance(ALGORITHM);
             md.update(salt);
             byte[] calculatedHash = md.digest(plainPassword.getBytes(StandardCharsets.UTF_8));
-            String calculatedHashBase64 = Base64.getEncoder().encodeToString(calculatedHash);
+            String calculatedHashBase64 = Base64Encoder.encode(calculatedHash);
 
             // 比较计算出的哈希值和存储的哈希值（使用常量时间比较防止时序攻击）
             return MessageDigest.isEqual(

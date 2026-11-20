@@ -1,5 +1,6 @@
 package cn.qaiu.parser.impl;
 
+import cn.qaiu.util.Base64Encoder;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
 import io.netty.handler.codec.http.cookie.Cookie;
@@ -14,7 +15,6 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,7 +48,7 @@ public class GenShortUrl extends PanBase {
     public Future<String> parse() {
         String longUrl = shareLinkInfo.getShareUrl();
 
-        String url = WRAPPER_URL + Base64.getEncoder().encodeToString(longUrl.getBytes());
+        String url = WRAPPER_URL + Base64Encoder.encode(longUrl.getBytes());
 
         String payload = "mid=" + MID + "&content=" + URLEncoder.encode(url, StandardCharsets.UTF_8);
         clientSession.cookieStore().put(cookie);

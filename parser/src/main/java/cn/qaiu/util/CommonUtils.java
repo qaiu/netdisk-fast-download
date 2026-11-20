@@ -100,12 +100,12 @@ public class CommonUtils {
         Exception last = null;
         for (String candidate : new String[]{s, padBase64(s)}) {
             try {
-                return new String(java.util.Base64.getUrlDecoder().decode(candidate), StandardCharsets.UTF_8);
+                return new String(Base64Decoder.decodeUrl(candidate), StandardCharsets.UTF_8);
             } catch (Exception e) {
                 last = e;
             }
             try {
-                return new String(java.util.Base64.getDecoder().decode(candidate), StandardCharsets.UTF_8);
+                return new String(Base64Decoder.decode(candidate), StandardCharsets.UTF_8);
             } catch (Exception e) {
                 last = e;
             }
@@ -118,9 +118,7 @@ public class CommonUtils {
      * <p>不再做 URLEncoder，避免前端/代理再 encode 时变成 %253D。</p>
      */
     public static String urlBase64Encode(String str) {
-        return java.util.Base64.getUrlEncoder()
-                .withoutPadding()
-                .encodeToString(str.getBytes(StandardCharsets.UTF_8));
+        return Base64Encoder.encodeUrlWithoutPadding(str.getBytes(StandardCharsets.UTF_8));
     }
 
     private static String padBase64(String s) {

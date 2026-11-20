@@ -36,6 +36,7 @@
         <jackson.version>2.18.9</jackson.version>
         <!-- Logback 最新稳定版 -->
         <logback.version>1.5.34</logback.version>
+        <skipTests>true</skipTests>
         <junit.version>4.13.2</junit.version>
     </properties>
 
@@ -97,7 +98,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.22.2</version>
                 <configuration>
-                     <skipTests>true</skipTests>
+                     <skipTests>${skipTests}</skipTests>
                 </configuration>
             </plugin>
             <plugin>
