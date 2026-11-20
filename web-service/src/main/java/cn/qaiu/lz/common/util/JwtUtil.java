@@ -1,5 +1,6 @@
 package cn.qaiu.lz.common.util;
 
+import cn.qaiu.util.Base64Decoder;
 import cn.qaiu.lz.web.model.SysUser;
 import io.vertx.core.json.JsonObject;
 
@@ -102,7 +103,7 @@ public class JwtUtil {
             }
 
             // 验证过期时间
-            String payload = new String(Base64.getUrlDecoder().decode(encodedPayload), StandardCharsets.UTF_8);
+            String payload = new String(Base64Decoder.decodeUrl(encodedPayload), StandardCharsets.UTF_8);
             JsonObject payloadJson = new JsonObject(payload);
             long expTime = payloadJson.getLong("exp", 0L);
 
@@ -125,7 +126,7 @@ public class JwtUtil {
         }
 
         // Base64解码
-        String payload = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
+        String payload = new String(Base64Decoder.decodeUrl(parts[1]), StandardCharsets.UTF_8);
         JsonObject jsonObject = new JsonObject(payload);
         return jsonObject.getString("id");
     }
@@ -143,7 +144,7 @@ public class JwtUtil {
         }
 
         // Base64解码
-        String payload = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
+        String payload = new String(Base64Decoder.decodeUrl(parts[1]), StandardCharsets.UTF_8);
         JsonObject jsonObject = new JsonObject(payload);
         return jsonObject.getString("username");
     }
@@ -161,7 +162,7 @@ public class JwtUtil {
         }
 
         // Base64解码
-        String payload = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
+        String payload = new String(Base64Decoder.decodeUrl(parts[1]), StandardCharsets.UTF_8);
         JsonObject jsonObject = new JsonObject(payload);
         return jsonObject.getString("role");
     }

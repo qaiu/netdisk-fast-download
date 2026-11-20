@@ -100,12 +100,12 @@ public class CommonUtils {
         Exception last = null;
         for (String candidate : new String[]{s, padBase64(s)}) {
             try {
-                return new String(java.util.Base64.getUrlDecoder().decode(candidate), StandardCharsets.UTF_8);
+                return new String(Base64Decoder.decodeUrl(candidate), StandardCharsets.UTF_8);
             } catch (Exception e) {
                 last = e;
             }
             try {
-                return new String(java.util.Base64.getDecoder().decode(candidate), StandardCharsets.UTF_8);
+                return new String(Base64Decoder.decode(candidate), StandardCharsets.UTF_8);
             } catch (Exception e) {
                 last = e;
             }

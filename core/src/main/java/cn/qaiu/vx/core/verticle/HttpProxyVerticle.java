@@ -13,7 +13,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 import static cn.qaiu.vx.core.util.ConfigConstant.GLOBAL_CONFIG;
@@ -24,6 +27,20 @@ import static cn.qaiu.vx.core.util.ConfigConstant.LOCAL;
  */
 public class HttpProxyVerticle extends AbstractVerticle {
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpProxyVerticle.class);
+
+    static byte[] decodeProxyAuthorization(String encoded) {
+        var source = new ByteArrayInputStream(encoded.getBytes(StandardCharsets.ISO_8859_1));
+        // The streaming decoder uses scalar Java code and does not call the bulk intrinsic.
+        try (var decoder = Base64.getDecoder().wrap(source)) {
+            byte[] decoded = decoder.readAllBytes();
+            if (source.available() != 0) {
+                throw new IllegalArgumentException("Unexpected data after Base64 padding");
+            }
+            return decoded;
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Invalid Base64 proxy credentials", e);
+        }
+    }
 
     private HttpClient httpClient;
     private NetClient netClient;
@@ -164,7 +181,7 @@ public class HttpProxyVerticle extends AbstractVerticle {
             }
             String[] split;
             try {
-                split = new String(Base64.getDecoder().decode(s.replace("Basic ", ""))).split(":");
+                split = new String(decodeProxyAuthorization(s.replace("Basic ", ""))).split(":");
             } catch (IllegalArgumentException e) {
                 LOGGER.warn("Proxy-Authorization header is not valid Base64");
                 failClientResponse(clientRequest.response(), 403, null);

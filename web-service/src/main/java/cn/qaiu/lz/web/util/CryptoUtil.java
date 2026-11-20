@@ -1,5 +1,6 @@
 package cn.qaiu.lz.web.util;
 
+import cn.qaiu.util.Base64Decoder;
 import cn.qaiu.vx.core.util.ConfigUtil;
 import cn.qaiu.vx.core.util.VertxHolder;
 import io.vertx.core.Future;
@@ -81,7 +82,7 @@ public class CryptoUtil {
         }
         return secretKeyFuture.compose(secretKey -> {
             try {
-                byte[] decodedBytes = Base64.getDecoder().decode(strToDecrypt);
+                byte[] decodedBytes = Base64Decoder.decode(strToDecrypt);
 
                 // Extract IV from the beginning of the decoded bytes
                 ByteBuffer byteBuffer = ByteBuffer.wrap(decodedBytes);

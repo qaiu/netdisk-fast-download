@@ -10,4 +10,5 @@ DEFAULT_JVM_OPTS="-Xmx${JVM_XMX:-512M} -Xss${JVM_XSS:-512k} -XX:MaxDirectMemoryS
 if [ -n "${JVM_MAX_METASPACE:-}" ]; then
   DEFAULT_JVM_OPTS="$DEFAULT_JVM_OPTS -XX:MaxMetaspaceSize=$JVM_MAX_METASPACE"
 fi
-exec java ${DEFAULT_JVM_OPTS} ${JVM_OPTS} -Duser.timezone=${TZ:-Asia/Shanghai} -jar /app/netdisk-fast-download.jar
+# Keep this after JVM_OPTS to disable the intrinsic even with an older base image.
+exec java ${DEFAULT_JVM_OPTS} ${JVM_OPTS} -XX:-UseBASE64Intrinsics -Duser.timezone=${TZ:-Asia/Shanghai} -jar /app/netdisk-fast-download.jar

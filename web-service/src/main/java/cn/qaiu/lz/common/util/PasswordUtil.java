@@ -1,5 +1,6 @@
 package cn.qaiu.lz.common.util;
 
+import cn.qaiu.util.Base64Decoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -72,7 +73,7 @@ public class PasswordUtil {
             String hashBase64 = parts[1];
 
             // 解码盐
-            byte[] salt = Base64.getDecoder().decode(saltBase64);
+            byte[] salt = Base64Decoder.decode(saltBase64);
 
             // 使用相同的盐计算哈希值
             MessageDigest md = MessageDigest.getInstance(ALGORITHM);

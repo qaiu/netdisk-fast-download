@@ -219,12 +219,12 @@ public class AESUtils {
      */
     public static String decryptByBase64AES(String encrypted, String keyString) throws IllegalBlockSizeException,
             BadPaddingException, InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException {
-        return decryptByAES(Base64.getDecoder().decode(encrypted), keyString);
+        return decryptByAES(Base64Decoder.decode(encrypted), keyString);
     }
 
     public static String decryptByBase64AES(String encrypted, Key key) throws IllegalBlockSizeException,
             BadPaddingException, InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException {
-        return decryptByAES(Base64.getDecoder().decode(encrypted), key);
+        return decryptByAES(Base64Decoder.decode(encrypted), key);
     }
 
     // ================================飞机盘Id解密========================================== //

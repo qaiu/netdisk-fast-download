@@ -6,6 +6,7 @@ import cn.qaiu.parser.PanBase;
 import cn.qaiu.parser.PasswordLoginRisk;
 import cn.qaiu.parser.TokenCache;
 import cn.qaiu.util.CommonUtils;
+import cn.qaiu.util.Base64Decoder;
 import cn.qaiu.util.FileSizeConverter;
 import cn.qaiu.util.YeShareHostUtil;
 import io.vertx.core.Future;
@@ -23,7 +24,6 @@ import java.net.MalformedURLException;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -514,7 +514,7 @@ public class Ye2Tool extends PanBase {
                 return;
             }
 
-            byte[] decodeByte = Base64.getDecoder().decode(params);
+            byte[] decodeByte = Base64Decoder.decode(params);
             String downUrl2 = new String(decodeByte);
 
             clientNoRedirects.getAbs(downUrl2).putHeaders(header).send().onSuccess(res3 -> {

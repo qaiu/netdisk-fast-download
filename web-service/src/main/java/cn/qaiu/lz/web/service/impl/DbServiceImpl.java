@@ -1,5 +1,6 @@
 package cn.qaiu.lz.web.service.impl;
 
+import cn.qaiu.util.Base64Decoder;
 import cn.qaiu.db.pool.JDBCPoolInit;
 import cn.qaiu.lz.common.model.UserInfo;
 import cn.qaiu.lz.web.model.StatisticsInfo;
@@ -526,7 +527,7 @@ public class DbServiceImpl implements DbService {
 
     private boolean isLikelyEncrypted(String value) {
         try {
-            byte[] decoded = Base64.getDecoder().decode(value);
+            byte[] decoded = Base64Decoder.decode(value);
             return decoded.length > 16;
         } catch (Exception e) {
             return false;
@@ -538,8 +539,8 @@ public class DbServiceImpl implements DbService {
             throw new IllegalArgumentException("invalid donated account token");
         }
         String[] parts = token.split("\\.", 2);
-        String payload = new String(Base64.getUrlDecoder().decode(parts[0]), StandardCharsets.UTF_8);
-        String signature = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
+        String payload = new String(Base64Decoder.decodeUrl(parts[0]), StandardCharsets.UTF_8);
+        String signature = new String(Base64Decoder.decodeUrl(parts[1]), StandardCharsets.UTF_8);
         String expected = hmacSha256(payload);
         if (!expected.equals(signature)) {
             throw new IllegalArgumentException("donated account token signature invalid");

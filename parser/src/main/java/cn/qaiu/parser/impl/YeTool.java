@@ -4,6 +4,7 @@ import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.CommonUtils;
+import cn.qaiu.util.Base64Decoder;
 import cn.qaiu.util.FileSizeConverter;
 import cn.qaiu.util.JsExecUtils;
 import io.vertx.core.Future;
@@ -166,7 +167,7 @@ public class YeTool extends PanBase {
                     try {
                         Map<String, String> urlParams = CommonUtils.getURLParams(downURL);
                         String params = urlParams.get("params");
-                        byte[] decodeByte = Base64.getDecoder().decode(params);
+                        byte[] decodeByte = Base64Decoder.decode(params);
                         String downUrl2 = new String(decodeByte);
 
                         // 获取直链
