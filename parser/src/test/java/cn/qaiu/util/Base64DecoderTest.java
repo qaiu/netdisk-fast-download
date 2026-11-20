@@ -17,12 +17,31 @@ public class Base64DecoderTest {
     public void matchesJdkForStandardAndUrlSafeEncodings() {
         Random random = new Random(114938);
         for (int length = 0; length <= 512; length++) {
-            byte[] value = new byte[length];
-            random.nextBytes(value);
-            assertArrayEquals(value, Base64Decoder.decode(Base64.getEncoder().encodeToString(value)));
-            assertArrayEquals(value, Base64Decoder.decode(Base64.getEncoder().withoutPadding().encodeToString(value)));
-            assertArrayEquals(value, Base64Decoder.decodeUrl(Base64.getUrlEncoder().encodeToString(value)));
-            assertArrayEquals(value, Base64Decoder.decodeUrl(Base64.getUrlEncoder().withoutPadding().encodeToString(value)));
+            assertRoundTrip(random, length);
+        }
+    }
+
+    @Test
+    public void decodesCompleteGroupsAndEveryTailAcrossLargeInputs() {
+        Random random = new Random(20261120);
+        for (int boundary : new int[]{1024, 8192, 65536}) {
+            for (int offset = -2; offset <= 2; offset++) {
+                assertRoundTrip(random, boundary + offset);
+            }
+        }
+    }
+
+    @Test
+    public void matchesJdkForInvalidCharactersAtGroupAndTailBoundaries() {
+        for (int length : new int[]{4, 6, 7, 8}) {
+            String valid = "A".repeat(length);
+            for (int i = 0; i < length; i++) {
+                for (String invalid : new String[]{"!", "=", "\u0141", "\ud83d\ude00"}) {
+                    String value = valid.substring(0, i) + invalid + valid.substring(i + 1);
+                    assertCompatible(value, Base64.getDecoder(), Base64Decoder::decode);
+                    assertCompatible(value, Base64.getUrlDecoder(), Base64Decoder::decodeUrl);
+                }
+            }
         }
     }
 
@@ -45,6 +64,15 @@ public class Base64DecoderTest {
         assertEquals(value, CommonUtils.urlBase64Decode(escaped));
         assertEquals(value, CommonUtils.urlBase64Decode(URLEncoder.encode(escaped, StandardCharsets.UTF_8)));
         assertEquals("f", CommonUtils.urlBase64Decode("Zg="));
+    }
+
+    private static void assertRoundTrip(Random random, int length) {
+        byte[] value = new byte[length];
+        random.nextBytes(value);
+        assertArrayEquals(value, Base64Decoder.decode(Base64.getEncoder().encodeToString(value)));
+        assertArrayEquals(value, Base64Decoder.decode(Base64.getEncoder().withoutPadding().encodeToString(value)));
+        assertArrayEquals(value, Base64Decoder.decodeUrl(Base64.getUrlEncoder().encodeToString(value)));
+        assertArrayEquals(value, Base64Decoder.decodeUrl(Base64.getUrlEncoder().withoutPadding().encodeToString(value)));
     }
 
     private static void assertCompatible(String value, Base64.Decoder jdk, Function<String, byte[]> replacement) {
