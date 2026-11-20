@@ -28,7 +28,7 @@
           <el-icon :size="50"><WarningFilled /></el-icon>
         </div>
         <div class="auth-title">演练场功能已禁用</div>
-        <div class="auth-subtitle">请联系管理员启用演练场功能</div>
+        <div class="auth-subtitle">请联系管理员检查演练场开关与服务日志。私有模式需要先设置实例专属的访问密码。</div>
         <el-button type="primary" size="large" @click="goHome" class="auth-button">
           <span>返回首页</span>
         </el-button>

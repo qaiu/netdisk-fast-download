@@ -261,39 +261,11 @@ var methods = systemClass.getDeclaredMethods();
 
 Nashorn引擎默认允许JavaScript访问所有Java类，这是一个严重的安全隐患。以下是建议的安全措施：
 
-### 1. 使用ClassFilter限制类访问 🔒 必须
+### 1. 演练场与已注册解析器的类访问限制
 
-```java
-import jdk.nashorn.api.scripting.ClassFilter;
-import jdk.nashorn.api.scripting.NashornScriptEngineFactory;
+两个入口都通过 `ParserScriptEngine.create()` 创建 Nashorn 引擎。引擎使用 `--no-java`，类过滤器拒绝按名称解析 Java 类。引擎在执行解析器代码前禁用包入口、脚本加载函数和脚本上下文全局变量。解析器仍可使用项目显式注入的分享信息、HTTP、Fetch 和日志接口。
 
-public class SecurityClassFilter implements ClassFilter {
-    @Override
-    public boolean exposeToScripts(String className) {
-        // 黑名单：禁止访问危险类
-        if (className.startsWith("java.lang.Runtime") ||
-            className.startsWith("java.lang.ProcessBuilder") ||
-            className.startsWith("java.io.File") ||
-            className.startsWith("java.nio.file") ||
-            className.startsWith("java.lang.System") ||
-            className.startsWith("java.lang.Class") ||
-            className.startsWith("java.lang.reflect") ||
-            className.startsWith("java.net.Socket") ||
-            className.startsWith("java.net.URL")) {
-            return false;
-        }
-        
-        // 白名单：只允许特定的类
-        // return className.startsWith("允许的包名");
-        
-        return false; // 默认拒绝所有
-    }
-}
-
-// 使用ClassFilter创建引擎
-NashornScriptEngineFactory factory = new NashornScriptEngineFactory();
-ScriptEngine engine = factory.getScriptEngine(new SecurityClassFilter());
-```
+`ParserScriptEngineTest` 检查受限全局变量的属性，并通过两个执行入口验证普通解析器的行为。
 
 ### 2. 设置执行超时 ⏱️ 强烈推荐
 
