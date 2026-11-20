@@ -11,7 +11,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.Base64;
 import java.util.Date;
 import java.util.HexFormat;
 import java.util.regex.Matcher;
@@ -131,13 +130,13 @@ public class AESUtils {
     public static String encryptBase64ByAES(String source, String keyString) throws NoSuchPaddingException,
             NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
         byte[] encrypted = encryptByAES(source, keyString);
-        return Base64.getEncoder().encodeToString(encrypted);
+        return Base64Encoder.encode(encrypted);
     }
 
     public static String encryptBase64ByAES(String source, Key key) throws NoSuchPaddingException,
             NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
         byte[] encrypted = encryptByAES(source, key);
-        return Base64.getEncoder().encodeToString(encrypted);
+        return Base64Encoder.encode(encrypted);
     }
 
     /**

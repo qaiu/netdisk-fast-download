@@ -1,5 +1,6 @@
 package cn.qaiu.lz.common.util;
 
+import cn.qaiu.util.Base64Encoder;
 import cn.qaiu.util.Base64Decoder;
 import cn.qaiu.lz.web.model.SysUser;
 import io.vertx.core.json.JsonObject;
@@ -13,7 +14,6 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Base64;
 import java.util.Date;
 
 /**
@@ -49,8 +49,8 @@ public class JwtUtil {
                 .put("iss", "netdisk-fast-download");
 
         // Base64 encode header and payload
-        String encodedHeader = Base64.getUrlEncoder().withoutPadding().encodeToString(header.encode().getBytes(StandardCharsets.UTF_8));
-        String encodedPayload = Base64.getUrlEncoder().withoutPadding().encodeToString(payload.encode().getBytes(StandardCharsets.UTF_8));
+        String encodedHeader = Base64Encoder.encodeUrlWithoutPadding(header.encode().getBytes(StandardCharsets.UTF_8));
+        String encodedPayload = Base64Encoder.encodeUrlWithoutPadding(payload.encode().getBytes(StandardCharsets.UTF_8));
 
         // Create signature
         String signature = hmacSha256(encodedHeader + "." + encodedPayload, SECRET_KEY);
@@ -72,7 +72,7 @@ public class JwtUtil {
             SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), ALGORITHM);
             sha256Hmac.init(secretKey);
             byte[] signedBytes = sha256Hmac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-            return Base64.getUrlEncoder().withoutPadding().encodeToString(signedBytes);
+            return Base64Encoder.encodeUrlWithoutPadding(signedBytes);
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             throw new RuntimeException("Error creating HMAC SHA256 signature", e);
         }

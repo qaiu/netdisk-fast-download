@@ -11,4 +11,8 @@ if [ -n "${JVM_MAX_METASPACE:-}" ]; then
   DEFAULT_JVM_OPTS="$DEFAULT_JVM_OPTS -XX:MaxMetaspaceSize=$JVM_MAX_METASPACE"
 fi
 # Keep this after JVM_OPTS to disable the intrinsic even with an older base image.
-exec java ${DEFAULT_JVM_OPTS} ${JVM_OPTS} -XX:-UseBASE64Intrinsics -Duser.timezone=${TZ:-Asia/Shanghai} -jar /app/netdisk-fast-download.jar
+VECTOR_MODULE_OPT=
+if java --list-modules 2>/dev/null | grep -q '^jdk.incubator.vector@'; then
+  VECTOR_MODULE_OPT=--add-modules=jdk.incubator.vector
+fi
+exec java ${VECTOR_MODULE_OPT} ${DEFAULT_JVM_OPTS} ${JVM_OPTS} -XX:-UseBASE64Intrinsics -Duser.timezone=${TZ:-Asia/Shanghai} -jar /app/netdisk-fast-download.jar

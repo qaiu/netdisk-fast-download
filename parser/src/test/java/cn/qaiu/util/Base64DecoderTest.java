@@ -66,6 +66,40 @@ public class Base64DecoderTest {
         assertEquals("f", CommonUtils.urlBase64Decode("Zg="));
     }
 
+    @Test
+    public void matchesJdkAcrossSimdBlocksAndThreshold() {
+        if (Boolean.getBoolean("nfd.test.requireVector")) {
+            assertEquals(true, Base64Encoder.useVectors(4096));
+        }
+        Random random = new Random(114938);
+        for (int boundary : new int[]{768, 1024, 4096}) {
+            for (int offset = -65; offset <= 65; offset++) {
+                byte[] plain = new byte[boundary + offset];
+                random.nextBytes(plain);
+                String standard = Base64.getEncoder().encodeToString(plain);
+                String url = Base64.getUrlEncoder().withoutPadding().encodeToString(plain);
+                assertEquals(standard, Base64Encoder.encode(plain));
+                assertEquals(url, Base64Encoder.encodeUrlWithoutPadding(plain));
+                assertArrayEquals(Base64.getEncoder().encode(plain), Base64Encoder.encodeBytes(plain));
+                assertArrayEquals(plain, Base64Decoder.decode(standard));
+                assertArrayEquals(plain, Base64Decoder.decodeUrl(url));
+            }
+        }
+    }
+
+    @Test
+    public void validatesBothAlphabetsInsideVectorBlocks() {
+        char[] input = "A".repeat(2048).toCharArray();
+        for (int ch = 0; ch < 256; ch++) {
+            int position = 128 + ch % 64;
+            input[position] = (char) ch;
+            String encoded = new String(input);
+            assertCompatible(encoded, Base64.getDecoder(), Base64Decoder::decode);
+            assertCompatible(encoded, Base64.getUrlDecoder(), Base64Decoder::decodeUrl);
+            input[position] = 'A';
+        }
+    }
+
     private static void assertRoundTrip(Random random, int length) {
         byte[] value = new byte[length];
         random.nextBytes(value);

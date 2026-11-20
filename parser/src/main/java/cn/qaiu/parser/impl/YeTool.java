@@ -1,5 +1,6 @@
 package cn.qaiu.parser.impl;
 
+import cn.qaiu.util.Base64Encoder;
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
@@ -22,7 +23,6 @@ import java.net.MalformedURLException;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -262,7 +262,7 @@ public class YeTool extends PanBase {
                                 .put("Size", item.getLong("Size"))
                                 .put("Etag", item.getString("Etag"));
 
-                        byte[] encode = Base64.getEncoder().encode(postData.encode().getBytes());
+                        byte[] encode = Base64Encoder.encodeBytes(postData.encode().getBytes());
                         String param = new String(encode);
 
                         if (item.getInteger("Type") == 0) { // 文件

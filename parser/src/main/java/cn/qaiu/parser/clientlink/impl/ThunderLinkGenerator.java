@@ -1,11 +1,11 @@
 package cn.qaiu.parser.clientlink.impl;
 
+import cn.qaiu.util.Base64Encoder;
 import cn.qaiu.parser.clientlink.ClientLinkGenerator;
 import cn.qaiu.parser.clientlink.ClientLinkType;
 import cn.qaiu.parser.clientlink.DownloadLinkMeta;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
 /**
  * 迅雷协议链接生成器
@@ -27,7 +27,7 @@ public class ThunderLinkGenerator implements ClientLinkGenerator {
             String thunderUrl = "AA" + originalUrl + "ZZ";
             
             // Base64编码
-            String encodedUrl = Base64.getEncoder().encodeToString(
+            String encodedUrl = Base64Encoder.encode(
                 thunderUrl.getBytes(StandardCharsets.UTF_8)
             );
             

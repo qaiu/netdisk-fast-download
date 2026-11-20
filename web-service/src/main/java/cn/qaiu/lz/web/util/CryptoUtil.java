@@ -1,5 +1,6 @@
 package cn.qaiu.lz.web.util;
 
+import cn.qaiu.util.Base64Encoder;
 import cn.qaiu.util.Base64Decoder;
 import cn.qaiu.vx.core.util.ConfigUtil;
 import cn.qaiu.vx.core.util.VertxHolder;
@@ -14,7 +15,6 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
-import java.util.Base64;
 
 public class CryptoUtil {
 
@@ -69,7 +69,7 @@ public class CryptoUtil {
                 byteBuffer.put(iv);
                 byteBuffer.put(cipherText);
 
-                return Future.succeededFuture(Base64.getEncoder().encodeToString(byteBuffer.array()));
+                return Future.succeededFuture(Base64Encoder.encode(byteBuffer.array()));
             } catch (Exception e) {
                 return Future.failedFuture(new CryptoException("Encryption failed", e));
             }

@@ -165,6 +165,10 @@
                 <version>3.13.0</version>
                 <configuration>
                     <release>${maven.compiler.source}</release>
+                    <compilerArgs>
+                        <arg>--add-modules</arg>
+                        <arg>jdk.incubator.vector</arg>
+                    </compilerArgs>
                     <encoding>${project.build.sourceEncoding}</encoding>
                 </configuration>
             </plugin>
@@ -200,7 +204,11 @@
                             <!-- 忽略 Javadoc 错误 -->
                             <failOnError>false</failOnError>
                             <!-- 禁用 doclint（新版参数名改为 additionalOptions） -->
-                            <additionalOptions>-Xdoclint:none</additionalOptions>
+                            <additionalOptions>
+                                <additionalOption>-Xdoclint:none</additionalOption>
+                                <additionalOption>--add-modules</additionalOption>
+                                <additionalOption>jdk.incubator.vector</additionalOption>
+                            </additionalOptions>
                             <!-- 如果项目源码中几乎没有 Javadoc，可设 true -->
                             <quiet>true</quiet>
                         </configuration>

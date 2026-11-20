@@ -41,9 +41,11 @@ public final class Base64Decoder {
 
         int groupEnd = dataLength - remainder;
         byte[] decoded = new byte[(groupEnd / 4) * 3 + (remainder == 0 ? 0 : remainder - 1)];
-        int outputIndex = 0;
+        int start = Base64Encoder.useVectors(groupEnd)
+                ? VectorBase64.decode(input, groupEnd, decoded, alphabet == URL_SAFE) : 0;
+        int outputIndex = start / 4 * 3;
         // Each complete group consumes exactly four characters and writes exactly three bytes.
-        for (int i = 0; i < groupEnd; i += 4) {
+        for (int i = start; i < groupEnd; i += 4) {
             int a = alphabet[input[i] & 0xff];
             int b = alphabet[input[i + 1] & 0xff];
             int c = alphabet[input[i + 2] & 0xff];
