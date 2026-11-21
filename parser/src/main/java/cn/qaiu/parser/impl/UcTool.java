@@ -1,13 +1,16 @@
 package cn.qaiu.parser.impl;
 
+import cn.qaiu.WebClientVertxInit;
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
+import cn.qaiu.parser.TokenCache;
 import cn.qaiu.util.CommonUtils;
 import cn.qaiu.util.CookieUtils;
 import cn.qaiu.util.DateTimeUtils;
 import cn.qaiu.util.FileSizeConverter;
 import cn.qaiu.util.HeaderUtils;
+import cn.qaiu.util.QuarkAccountScope;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
@@ -28,10 +31,7 @@ import java.util.Map;
  */
 public class UcTool extends PanBase {
     private static final String API_URL_PREFIX = "https://pc-api.uc.cn/1/clouddrive/";
-    
-    // 静态变量：缓存 __puus cookie 和过期时间
-    private static volatile String cachedPuus = null;
-    private static volatile long puusExpireTime = 0;
+
     // __puus 有效期，默认 55 分钟（服务器实际 1 小时过期，提前 5 分钟刷新）
     private static final long PUUS_TTL_MS = 55 * 60 * 1000L;
 
@@ -67,9 +67,17 @@ public class UcTool extends PanBase {
 
     // 保存 auths 引用，用于更新 cookie
     private MultiMap auths;
+    private final String cacheKey;
+    /** 本次解析得到的是不带账号的公开文件地址。UC 大文件没有这条地址时不能当成免登录成功。 */
+    private boolean publicDirectLink;
 
     public UcTool(ShareLinkInfo shareLinkInfo) {
         super(shareLinkInfo);
+        String accountId = QuarkAccountScope.suffix(shareLinkInfo.getOtherParam());
+        if (accountId == null) {
+            accountId = "_default";
+        }
+        this.cacheKey = TokenCache.key("uc", accountId);
         // 参考其它网盘实现，从认证配置中取 cookie 放到请求头
         if (shareLinkInfo.getOtherParam() != null && shareLinkInfo.getOtherParam().containsKey("auths")) {
             auths = (MultiMap) shareLinkInfo.getOtherParam().get("auths");
@@ -77,18 +85,20 @@ public class UcTool extends PanBase {
             if (cookie != null && !cookie.isEmpty()) {
                 // 过滤出 UC 网盘所需的 cookie 字段
                 cookie = CookieUtils.filterUcQuarkCookie(cookie);
-                
-                // 如果有缓存的 __puus 且未过期，使用缓存的值更新 cookie
-                if (cachedPuus != null && System.currentTimeMillis() < puusExpireTime) {
+
+                // 按账号读取 __puus，避免把别的账号的会话写进当前请求
+                String cachedPuus = TokenCache.getToken(cacheKey);
+                long puusExpire = TokenCache.getExpire(cacheKey);
+                if (cachedPuus != null && System.currentTimeMillis() < puusExpire) {
                     cookie = CookieUtils.updateCookieValue(cookie, "__puus", cachedPuus);
-                    log.debug("UC: 使用缓存的 __puus (剩余有效期: {}s)", (puusExpireTime - System.currentTimeMillis()) / 1000);
+                    log.debug("UC: 使用缓存的 __puus (剩余有效期: {}s)", (puusExpire - System.currentTimeMillis()) / 1000);
                 }
                 header.set(HttpHeaders.COOKIE, cookie);
                 // 同步更新 auths
                 auths.set("cookie", cookie);
             }
         }
-        
+
         // 如果 __puus 已过期或不存在，触发异步刷新
         if (needRefreshPuus()) {
             log.debug("UC: __puus 需要刷新，触发异步刷新");
@@ -110,7 +120,7 @@ public class UcTool extends PanBase {
             return false;
         }
         // 缓存过期或不存在时需要刷新
-        return cachedPuus == null || System.currentTimeMillis() >= puusExpireTime;
+        return TokenCache.getToken(cacheKey) == null || System.currentTimeMillis() >= TokenCache.getExpire(cacheKey);
     }
 
     /**
@@ -164,11 +174,10 @@ public class UcTool extends PanBase {
                             auths.set("cookie", updatedCookie);
                         }
                         
-                        // 更新静态缓存
-                        cachedPuus = newPuus;
-                        puusExpireTime = System.currentTimeMillis() + PUUS_TTL_MS;
-                        
-                        log.info("UC: __puus cookie 刷新成功，有效期至: {}ms", puusExpireTime);
+                        TokenCache.putToken(cacheKey, newPuus);
+                        TokenCache.putExpire(cacheKey, System.currentTimeMillis() + PUUS_TTL_MS);
+
+                        log.info("UC: __puus cookie 刷新成功，有效期至: {}ms", TokenCache.getExpire(cacheKey));
                         refreshPromise.complete(true);
                     } else {
                         log.debug("UC: 响应中未包含 __puus，可能 cookie 仍然有效");
@@ -242,35 +251,16 @@ public class UcTool extends PanBase {
                                         log.warn("UC 提取文件信息失败，继续解析: {}", e.getMessage());
                                     }
                                     
-                                    // 第三次请求获取下载链接
-                                    var bodyJson = JsonObject.of()
-                                            .put("fids", JsonArray.of(info.getString("fid")))
-                                            .put("pwd_id", dataKey)
-                                            .put("stoken", stoken)
-                                            .put("fids_token", JsonArray.of(info.getString("share_fid_token")));
-                                    client.postAbs(THIRD_REQUEST_URL)
-                                            .putHeaders(header)
-                                            .sendJsonObject(bodyJson)
-                                            .onSuccess(res3 -> {
-                                                log.debug("第三阶段 {}", res3.body());
-                                                var resJson3 = res3.bodyAsJsonObject();
-                                                if (resJson3.getInteger("code") != 0) {
-                                                    fail(FIRST_REQUEST_URL + " 返回异常: " + resJson2);
-                                                    return;
-                                                }
-                                                try {
-                                                    JsonArray dataList = resJson3.getJsonArray("data");
-                                                    if (dataList == null || dataList.isEmpty()) {
-                                                        fail("UC API 返回的下载链接列表为空");
-                                                        return;
-                                                    }
-                                                    String downloadUrl = dataList.getJsonObject(0).getString("download_url");
-                                                    // UC 需配合下载器（带 cookie），保存下载请求头
-                                                    completeWithMeta(downloadUrl, buildDownloadHeaders(null));
-                                                } catch (Exception e) {
-                                                    fail("解析 UC 下载链接失败: " + e.getMessage());
-                                                }
-                                            }).onFailure(handleFail(THIRD_REQUEST_URL));
+                                    String fid = info.getString("fid");
+                                    String shareFidToken = info.getString("share_fid_token");
+                                    Future<String> download;
+                                    if (QuarkFamilyDownloadPolicy.knownLarge(QuarkFamilyDownloadPolicy.sizeOf(info))) {
+                                        download = resolveUcLarge(fid, dataKey, stoken, shareFidToken, info.getString("file_name"));
+                                    } else {
+                                        download = requestUcDownload(fid, dataKey, stoken, shareFidToken);
+                                    }
+                                    download.onSuccess(this::finishUcParse)
+                                            .onFailure(t -> fail(t.getMessage() == null ? "解析失败" : t.getMessage()));
                                 } catch (Exception e) {
                                     fail("解析 UC 文件信息失败: " + e.getMessage());
                                 }
@@ -279,6 +269,108 @@ public class UcTool extends PanBase {
                 }
         ).onFailure(handleFail(FIRST_REQUEST_URL));
         return promise.future();
+    }
+
+    /**
+     * 大于 10MiB 才检查会员。有效 SVIP/VIP 仍走原来的账号 {@code /file/download}；
+     * 否则只接受探测通过的 H5 文件地址。没有该地址时明确失败，不把 UC 说成免登录。
+     */
+    private Future<String> resolveUcLarge(String fid, String pwdId, String stoken, String shareFidToken, String fileName) {
+        if (fid == null || fid.isEmpty()) {
+            return Future.failedFuture(QuarkFamilyDownloadPolicy.largeFileError("uc", null,
+                    new IllegalStateException("缺少 fid")));
+        }
+        return QuarkFamilyDownloadPolicy.fetchMembership(client, header, true)
+                .compose(member -> {
+                    if (!member.validPaid) {
+                        return ucH5(pwdId, stoken, fid, shareFidToken, fileName)
+                                .recover(h5Error -> Future.failedFuture(
+                                        QuarkFamilyDownloadPolicy.largeFileError("uc", null, h5Error)));
+                    }
+                    return requestUcDownload(fid, pwdId, stoken, shareFidToken)
+                            .recover(directError -> ucH5(pwdId, stoken, fid, shareFidToken, fileName)
+                                    .recover(h5Error -> Future.failedFuture(
+                                            QuarkFamilyDownloadPolicy.largeFileError("uc", directError, h5Error))));
+                });
+    }
+
+    private Future<String> ucH5(String pwdId, String stoken, String fid, String shareFidToken, String fileName) {
+        return QuarkFamilyDownloadPolicy.resolveH5Download(clientNoRedirects, WebClientVertxInit.get(),
+                        "uc", pwdId, stoken, fid, shareFidToken, fileName)
+                .map(url -> {
+                    publicDirectLink = true;
+                    shareLinkInfo.getOtherParam().put("publicDirectLink", true);
+                    shareLinkInfo.getOtherParam().put("previewUrl", QuarkFamilyDownloadPolicy.bareFileUrl(url));
+                    return url;
+                });
+    }
+
+    private Future<String> requestUcDownload(String fid, String pwdId, String stoken, String shareFidToken) {
+        Promise<String> downloadPromise = Promise.promise();
+        JsonObject bodyJson = JsonObject.of()
+                .put("fids", JsonArray.of(fid))
+                .put("pwd_id", pwdId)
+                .put("stoken", stoken);
+        if (shareFidToken != null && !shareFidToken.isEmpty()) {
+            bodyJson.put("fids_token", JsonArray.of(shareFidToken));
+        }
+        client.postAbs(THIRD_REQUEST_URL)
+                .putHeaders(header)
+                .sendJsonObject(bodyJson)
+                .onSuccess(res3 -> {
+                    log.debug("UC 下载接口 {}", res3.body());
+                    JsonObject resJson3 = res3.bodyAsJsonObject();
+                    if (resJson3.getInteger("code") == null || resJson3.getInteger("code") != 0) {
+                        downloadPromise.fail(THIRD_REQUEST_URL + " 返回异常: " + resJson3);
+                        return;
+                    }
+                    try {
+                        JsonArray dataList = resJson3.getJsonArray("data");
+                        if (dataList == null || dataList.isEmpty()) {
+                            downloadPromise.fail("UC API 返回的下载链接列表为空");
+                            return;
+                        }
+                        String downloadUrl = dataList.getJsonObject(0).getString("download_url");
+                        if (downloadUrl == null || downloadUrl.isEmpty()) {
+                            downloadPromise.fail("未找到下载链接");
+                            return;
+                        }
+                        downloadPromise.complete(downloadUrl);
+                    } catch (Exception e) {
+                        downloadPromise.fail("解析 UC 下载链接失败: " + e.getMessage());
+                    }
+                })
+                .onFailure(t -> downloadPromise.fail("请求下载链接失败: " + t.getMessage()));
+        return downloadPromise.future();
+    }
+
+    private void finishUcParse(String downloadUrl) {
+        String presented = presentUcIfPublic(downloadUrl);
+        if (publicDirectLink) {
+            completeWithMeta(presented, Map.of());
+            shareLinkInfo.getOtherParam().put("needDownloader", false);
+            return;
+        }
+        completeWithMeta(presented, buildDownloadHeaders(null));
+    }
+
+    private String presentUcIfPublic(String downloadUrl) {
+        String presented = QuarkFamilyDownloadPolicy.presentPublicDownload(downloadUrl, "uc", currentUcFileName());
+        if (!presented.equals(downloadUrl) || QuarkFamilyDownloadPolicy.isPublicFileUrl(presented, "uc")) {
+            publicDirectLink = true;
+            shareLinkInfo.getOtherParam().put("publicDirectLink", true);
+            shareLinkInfo.getOtherParam().put("previewUrl", QuarkFamilyDownloadPolicy.bareFileUrl(presented));
+        }
+        return presented;
+    }
+
+    private String currentUcFileName() {
+        Object info = shareLinkInfo.getOtherParam().get("fileInfo");
+        if (info instanceof FileInfo file && file.getFileName() != null && !file.getFileName().isBlank()) {
+            return file.getFileName();
+        }
+        Object name = shareLinkInfo.getOtherParam().get("fileName");
+        return name == null ? "" : name.toString();
     }
 
     // 目录解析
@@ -461,6 +553,7 @@ public class UcTool extends PanBase {
                             if (shareFidToken != null) {
                                 extParams.put("share_fid_token", shareFidToken);
                             }
+                            extParams.put("size", fileSize);
                             extParams.put("needDownloader", true);
                             Map<String, String> dlHeaders = new HashMap<>();
                             String listCookie = header.get(HttpHeaders.COOKIE);
@@ -531,49 +624,27 @@ public class UcTool extends PanBase {
         }
         
         log.debug("UC parseById: fid={}, pwd_id={}, stoken={}", fid, pwdId, stoken);
-        
-        // 调用第三次请求获取下载链接
-        JsonObject bodyJson = JsonObject.of()
-                .put("fids", JsonArray.of(fid))
-                .put("pwd_id", pwdId)
-                .put("stoken", stoken);
-        
-        if (shareFidToken != null && !shareFidToken.isEmpty()) {
-            bodyJson.put("fids_token", JsonArray.of(shareFidToken));
+
+        String fileName = paramJson.getString("fileName", "");
+        Future<String> download;
+        if (QuarkFamilyDownloadPolicy.knownLarge(QuarkFamilyDownloadPolicy.sizeOf(paramJson))) {
+            download = resolveUcLarge(fid, pwdId, stoken, shareFidToken, fileName);
+        } else {
+            download = requestUcDownload(fid, pwdId, stoken, shareFidToken);
         }
-        
-        client.postAbs(THIRD_REQUEST_URL)
-                .putHeaders(header)
-                .sendJsonObject(bodyJson)
-                .onSuccess(res -> {
-                    log.debug("UC parseById 响应: {}", res.body());
-                    JsonObject resJson = res.bodyAsJsonObject();
-                    if (resJson.getInteger("code") != 0) {
-                        promise.fail(THIRD_REQUEST_URL + " 返回异常: " + resJson);
-                        return;
+        download.onSuccess(downloadUrl -> {
+                    shareLinkInfo.getOtherParam().put("fileName", fileName);
+                    String presented = presentUcIfPublic(downloadUrl);
+                    if (publicDirectLink) {
+                        shareLinkInfo.getOtherParam().put("downloadHeaders", new HashMap<>());
+                        shareLinkInfo.getOtherParam().put("needDownloader", false);
+                    } else {
+                        shareLinkInfo.getOtherParam().put("downloadHeaders", buildDownloadHeaders(paramJson));
+                        shareLinkInfo.getOtherParam().put("needDownloader", true);
                     }
-                    try {
-                        JsonArray dataList = resJson.getJsonArray("data");
-                        if (dataList == null || dataList.isEmpty()) {
-                            promise.fail("UC API 返回的下载链接列表为空");
-                            return;
-                        }
-                        String downloadUrl = dataList.getJsonObject(0).getString("download_url");
-                        if (downloadUrl == null || downloadUrl.isEmpty()) {
-                            promise.fail("未找到下载链接");
-                            return;
-                        }
-                        // 存储下载请求头，供目录解析 getFileDownInfo 接口使用
-                        // 优先用当前会话 cookie；缺失时回退入口参数中已带的 cookie
-                        Map<String, String> downloadHeaders = buildDownloadHeaders(paramJson);
-                        shareLinkInfo.getOtherParam().put("downloadHeaders", downloadHeaders);
-                        shareLinkInfo.getOtherParam().put("fileName", paramJson.getString("fileName", ""));
-                        promise.complete(downloadUrl);
-                    } catch (Exception e) {
-                        promise.fail("解析 UC 下载链接失败: " + e.getMessage());
-                    }
+                    promise.complete(presented);
                 })
-                .onFailure(t -> promise.fail("请求下载链接失败: " + t.getMessage()));
+                .onFailure(t -> promise.fail(t.getMessage() == null ? "请求下载链接失败" : t.getMessage()));
         
         return promise.future();
     }

@@ -9,6 +9,7 @@ import org.junit.Test;
 
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -36,12 +37,17 @@ public class QkToolGuestFolderLiveTest {
             String url = tool.parse().toCompletionStage().toCompletableFuture().get(90, TimeUnit.SECONDS);
             assertNotNull(url);
             assertTrue(url.startsWith("http"));
-            assertTrue("guest download host, got " + url, url.contains("dl-guest"));
             FileInfo fileInfo = (FileInfo) info.getOtherParam().get("fileInfo");
             assertNotNull(fileInfo);
             assertNotNull(fileInfo.getFileName());
-            assertTrue("expected a small file, got " + fileInfo.getSize() + " " + fileInfo.getFileName(),
-                    fileInfo.getSize() > 0 && fileInfo.getSize() < 40L * 1024 * 1024);
+            assertTrue(fileInfo.getSize() > 0);
+            if (fileInfo.getSize() > QuarkFamilyDownloadPolicy.NORMAL_PARSE_MAX_BYTES) {
+                assertTrue("large file should be a public dl-c url, got " + url, url.contains("dl-c-"));
+                assertTrue(url.contains("filename="));
+                assertFalse(url.contains("dl-guest"));
+            } else {
+                assertTrue("guest download host, got " + url, url.contains("dl-guest"));
+            }
         } finally {
             if (tool != null) {
                 tool.close();
