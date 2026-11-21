@@ -26,7 +26,7 @@ public class PlaygroundConfig {
     /**
      * 单例实例
      */
-    private static PlaygroundConfig instance;
+    private static volatile PlaygroundConfig instance = new PlaygroundConfig();
 
     /**
      * 已颁发的认证Token及其创建时间
@@ -47,9 +47,8 @@ public class PlaygroundConfig {
     
     /**
      * 访问密码
-     * 默认密码：nfd_playground_2024
      */
-    private String password = "nfd_playground_2024";
+    private String password;
     
     /**
      * 私有构造函数
@@ -117,13 +116,6 @@ public class PlaygroundConfig {
      * 获取单例实例
      */
     public static PlaygroundConfig getInstance() {
-        if (instance == null) {
-            synchronized (PlaygroundConfig.class) {
-                if (instance == null) {
-                    instance = new PlaygroundConfig();
-                }
-            }
-        }
         return instance;
     }
     
@@ -131,23 +123,13 @@ public class PlaygroundConfig {
      * 从JsonObject加载配置
      */
     public static void loadFromJson(JsonObject config) {
-        PlaygroundConfig cfg = getInstance();
-        if (config != null && config.containsKey("playground")) {
-            JsonObject playgroundConfig = config.getJsonObject("playground");
-            cfg.enabled = playgroundConfig.getBoolean("enabled", false);
-            cfg.isPublic = playgroundConfig.getBoolean("public", false);
-            cfg.password = playgroundConfig.getString("password", "nfd_playground_2024");
-            
-            log.info("Playground配置已加载: enabled={}, public={}, password={}", 
-                    cfg.enabled, cfg.isPublic, cfg.isPublic ? "N/A" : "已设置");
-            
-            if (!cfg.enabled) {
-                log.info("演练场功能已禁用");
-            } else if (!cfg.isPublic && "nfd_playground_2024".equals(cfg.password)) {
-                log.warn("⚠️ 警告：您正在使用默认密码，建议修改配置文件中的 playground.password 以确保安全！");
+        PlaygroundConfig cfg = new PlaygroundConfig();
+        if (config != null && config.getValue("playground") instanceof JsonObject playground) {
+            cfg.enabled = playground.getBoolean("enabled", false);
+            cfg.isPublic = playground.getBoolean("public", false);
+            if (playground.getValue("password") instanceof String configuredPassword) {
+                cfg.password = configuredPassword;
             }
-        } else {
-            log.info("未找到playground配置，使用默认值: enabled=false, public=false");
         }
         String enabledOverride = System.getProperty("NFD_PLAYGROUND_ENABLED");
         if (enabledOverride == null || enabledOverride.isBlank()) {
@@ -155,7 +137,16 @@ public class PlaygroundConfig {
         }
         if (enabledOverride != null && !enabledOverride.isBlank()) {
             cfg.enabled = Boolean.parseBoolean(enabledOverride);
-            log.info("Playground enabled 已被 NFD_PLAYGROUND_ENABLED 覆盖为 {}", cfg.enabled);
         }
+
+        // Validate after all overrides so enabling via the environment follows the same rules.
+        if (cfg.enabled && !cfg.isPublic && (cfg.password == null || cfg.password.isBlank()
+                || "nfd_playground_2024".equals(cfg.password.strip()))) {
+            cfg.enabled = false;
+            log.warn("演练场已禁用：请在 app-dev.yml 中设置实例专属的 playground.password，替换空值或旧版默认密码，然后重启服务。");
+        } else {
+            log.info("演练场配置已加载：enabled={}, public={}", cfg.enabled, cfg.isPublic);
+        }
+        instance = cfg;
     }
 }

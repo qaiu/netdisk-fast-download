@@ -5,7 +5,6 @@ import cn.qaiu.entity.ShareLinkInfo;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
-import org.openjdk.nashorn.api.scripting.NashornScriptEngineFactory;
 import org.openjdk.nashorn.api.scripting.ScriptObjectMirror;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,15 +110,7 @@ public class JsPlaygroundExecutor implements AutoCloseable {
      */
     private ScriptEngine initEngine() {
         try {
-            // 使用安全的ClassFilter创建Nashorn引擎
-            NashornScriptEngineFactory factory = new NashornScriptEngineFactory();
-            
-            // 正确的方法签名: getScriptEngine(String[] args, ClassLoader appLoader, ClassFilter classFilter)
-            ScriptEngine engine = factory.getScriptEngine(new String[0], null, new SecurityClassFilter());
-            
-            if (engine == null) {
-                throw new RuntimeException("无法创建JavaScript引擎，请确保Nashorn可用");
-            }
+            ScriptEngine engine = ParserScriptEngine.create();
             this.engine = engine;
             
             // 注入Java对象到JavaScript环境
@@ -127,14 +118,6 @@ public class JsPlaygroundExecutor implements AutoCloseable {
             engine.put("logger", playgroundLogger);
             engine.put("shareLinkInfo", shareLinkInfoWrapper);
             engine.put("JavaFetch", fetchBridge);
-            
-            // 禁用Java对象访问
-            engine.eval("var Java = undefined;");
-            engine.eval("var JavaImporter = undefined;");
-            engine.eval("var Packages = undefined;");
-            engine.eval("var javax = undefined;");
-            engine.eval("var org = undefined;");
-            engine.eval("var com = undefined;");
             
             // 加载fetch运行时（Promise和fetch API polyfill）
             String fetchRuntime = JsParserExecutor.loadFetchRuntime();

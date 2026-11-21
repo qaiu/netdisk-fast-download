@@ -7,50 +7,7 @@
 // 全局类型定义，使用JSDoc注释
 // 这些类型定义将在VSCode中提供代码补全和类型检查
 
-// ============================================================================
-// Nashorn Java 互操作全局对象
-// ============================================================================
-
-/**
- * Java 全局对象类型定义 (Nashorn引擎提供)
- * 用于访问Java类型和进行Java互操作
- * @typedef {Object} JavaGlobal
- * @property {function(string): any} type - 获取Java类，参数为完整类名（如"java.util.zip.CRC32"）
- * @property {function(any): any} from - 将Java对象转换为JavaScript对象
- * @property {function(any): any} to - 将JavaScript对象转换为Java对象
- * @property {function(any): boolean} isType - 检查对象是否为指定Java类型
- * @property {function(any): boolean} isJavaObject - 检查对象是否为Java对象
- * @property {function(any): boolean} isJavaMethod - 检查对象是否为Java方法
- * @property {function(any): boolean} isJavaFunction - 检查对象是否为Java函数
- */
-
-/**
- * Java 全局对象 (Nashorn引擎提供)
- * @global
- * @type {JavaGlobal}
- */
-var Java;
-
-/**
- * java 命名空间对象类型定义 (Nashorn引擎提供)
- * 用于直接访问Java包和类
- * @typedef {Object} JavaNamespace
- * @property {Object} lang - java.lang 包
- * @property {Object} util - java.util 包
- * @property {Object} io - java.io 包
- * @property {Object} net - java.net 包
- * @property {Object} math - java.math 包
- * @property {Object} security - java.security 包
- * @property {Object} text - java.text 包
- * @property {Object} time - java.time 包
- */
-
-/**
- * java 命名空间对象 (Nashorn引擎提供)
- * @global
- * @type {JavaNamespace}
- */
-var java;
+// 解析脚本通过项目注入的接口访问分享信息、HTTP 和日志。
 
 /**
  * @typedef {Object} ShareLinkInfo
