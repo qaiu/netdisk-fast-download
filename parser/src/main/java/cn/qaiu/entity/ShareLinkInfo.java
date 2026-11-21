@@ -1,5 +1,7 @@
 package cn.qaiu.entity;
 
+import cn.qaiu.util.QuarkAccountScope;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -85,10 +87,17 @@ public class ShareLinkInfo {
     public String getCacheKey() {
         // 将type和shareKey组合成一个字符串作为缓存key
         String key = type + ":" + shareKey;
-        if (type.equals("p115")) {
+        if (type != null && type.equals("p115")) {
             Object ua = otherParam != null ? otherParam.get("UA") : null;
             if (ua != null) {
                 key += ("_" + ua.toString().hashCode());
+            }
+        }
+        // 带账号的夸克 / UC 直链按账号隔离，避免会员链和 Cookie 进入分享级缓存。
+        if (type != null && ("qk".equalsIgnoreCase(type) || "uc".equalsIgnoreCase(type))) {
+            String scope = QuarkAccountScope.suffix(otherParam);
+            if (scope != null) {
+                key += "#" + scope;
             }
         }
         return key;

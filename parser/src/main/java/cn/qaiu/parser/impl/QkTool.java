@@ -1,5 +1,6 @@
 package cn.qaiu.parser.impl;
 
+import cn.qaiu.WebClientVertxInit;
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
 import cn.qaiu.parser.PanBase;
@@ -8,6 +9,7 @@ import cn.qaiu.util.CommonUtils;
 import cn.qaiu.util.CookieUtils;
 import cn.qaiu.util.FileSizeConverter;
 import cn.qaiu.util.HeaderUtils;
+import cn.qaiu.util.QuarkAccountScope;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
@@ -66,8 +68,10 @@ public class QkTool extends PanBase {
             "夸克要求登录后才能下载。请配置 Cookie（auths.qk.cookie，或请求参数 auth）。"
                     + "小文件可以免登录直链；这个报错表示当前文件需要账号，请到 Cookie/auth 配置里补登录态。";
     
-    // 静态变量：缓存已转存的文件 (分享key -> 转存文件ID)
+    // 静态变量：缓存已转存的文件 (账号范围 + 分享文件 -> 转存文件ID)
     private static final Map<String, String> savedFileCache = new java.util.concurrent.ConcurrentHashMap<>();
+    /** 本次解析得到的是不带账号的公开文件地址。 */
+    private boolean publicDirectLink;
     
     private final MultiMap header = HeaderUtils.parseHeaders("""
             User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) quark-cloud-drive/2.5.20 Chrome/100.0.4896.160 Electron/18.3.5.4-b478491100 Safari/537.36 Channel/pckk_other_ch
@@ -249,7 +253,7 @@ public class QkTool extends PanBase {
                     // 根目录可能只是文件夹（#282）。先列出再进入，找到文件后再取直链。
                     findDownloadableFiles(pwdId, stoken, "0", 0)
                             .compose(files -> resolveListedFiles(files, pwdId, stoken))
-                            .onSuccess(downloadUrl -> completeWithMeta(downloadUrl, buildDownloadHeaders(null)))
+                            .onSuccess(this::finishParse)
                             .onFailure(t -> fail(t.getMessage() == null ? "解析失败" : t.getMessage()));
                 })
                 .onFailure(handleFail(TOKEN_URL));
@@ -261,12 +265,81 @@ public class QkTool extends PanBase {
         if (files == null || files.isEmpty()) {
             return Future.failedFuture(EMPTY_SHARE_MSG);
         }
+        JsonObject primary = files.get(0);
+        if (QuarkFamilyDownloadPolicy.knownLarge(fileSize(primary))) {
+            rememberFile(primary);
+            return resolveLargeFile(primary, pwdId, stoken);
+        }
         if (hasQuarkCookie()) {
-            JsonObject first = files.get(0);
-            rememberFile(first);
-            return resolveDownloadUrl(first.getString("fid"), pwdId, stoken, first.getString("share_fid_token"));
+            rememberFile(primary);
+            return resolveDownloadUrl(primary.getString("fid"), pwdId, stoken, primary.getString("share_fid_token"));
         }
         return resolveGuestDownloads(orderGuestCandidates(files), pwdId, stoken, 0, 0);
+    }
+
+    /**
+     * 大于 10MiB：有效 SVIP/VIP 走现有账号直链（含原有转存回退）；否则只要探测通过的 H5 文件地址。
+     */
+    private Future<String> resolveLargeFile(JsonObject file, String pwdId, String stoken) {
+        String fid = file.getString("fid");
+        String shareFidToken = file.getString("share_fid_token");
+        String fileName = file.getString("file_name", "");
+        if (fid == null || fid.isEmpty()) {
+            return Future.failedFuture(QuarkFamilyDownloadPolicy.largeFileError("qk", null,
+                    new IllegalStateException("缺少 fid")));
+        }
+        return QuarkFamilyDownloadPolicy.fetchMembership(client, header, false)
+                .compose(member -> {
+                    if (!member.validPaid) {
+                        return h5Download(pwdId, stoken, fid, shareFidToken, fileName)
+                                .recover(h5Error -> Future.failedFuture(
+                                        QuarkFamilyDownloadPolicy.largeFileError("qk", null, h5Error)));
+                    }
+                    return resolveDownloadUrl(fid, pwdId, stoken, shareFidToken)
+                            .recover(directError -> h5Download(pwdId, stoken, fid, shareFidToken, fileName)
+                                    .recover(h5Error -> Future.failedFuture(
+                                            QuarkFamilyDownloadPolicy.largeFileError("qk", directError, h5Error))));
+                });
+    }
+
+    private Future<String> h5Download(String pwdId, String stoken, String fid, String shareFidToken, String fileName) {
+        return QuarkFamilyDownloadPolicy.resolveH5Download(clientNoRedirects, WebClientVertxInit.get(),
+                        "qk", pwdId, stoken, fid, shareFidToken, fileName)
+                .map(url -> {
+                    publicDirectLink = true;
+                    shareLinkInfo.getOtherParam().put("publicDirectLink", true);
+                    shareLinkInfo.getOtherParam().put("previewUrl", QuarkFamilyDownloadPolicy.bareFileUrl(url));
+                    return url;
+                });
+    }
+
+    private void finishParse(String downloadUrl) {
+        String presented = presentIfPublic(downloadUrl);
+        if (publicDirectLink) {
+            completeWithMeta(presented, Map.of());
+            shareLinkInfo.getOtherParam().put("needDownloader", false);
+            return;
+        }
+        completeWithMeta(presented, buildDownloadHeaders(null));
+    }
+
+    private String presentIfPublic(String downloadUrl) {
+        String presented = QuarkFamilyDownloadPolicy.presentPublicDownload(downloadUrl, "qk", currentFileName());
+        if (!presented.equals(downloadUrl) || QuarkFamilyDownloadPolicy.isPublicFileUrl(presented, "qk")) {
+            publicDirectLink = true;
+            shareLinkInfo.getOtherParam().put("publicDirectLink", true);
+            shareLinkInfo.getOtherParam().put("previewUrl", QuarkFamilyDownloadPolicy.bareFileUrl(presented));
+        }
+        return presented;
+    }
+
+    private String currentFileName() {
+        Object info = shareLinkInfo.getOtherParam().get("fileInfo");
+        if (info instanceof FileInfo file && file.getFileName() != null && !file.getFileName().isBlank()) {
+            return file.getFileName();
+        }
+        Object name = shareLinkInfo.getOtherParam().get("fileName");
+        return name == null ? "" : name.toString();
     }
 
     /**
@@ -280,7 +353,7 @@ public class QkTool extends PanBase {
         }
         JsonObject file = files.get(index);
         String fid = file.getString("fid");
-        if (fid == null || fid.isEmpty()) {
+        if (fid == null || fid.isEmpty() || QuarkFamilyDownloadPolicy.knownLarge(fileSize(file))) {
             return resolveGuestDownloads(files, pwdId, stoken, index + 1, attempts);
         }
         return getShareDownloadLink(fid, pwdId, stoken, file.getString("share_fid_token"))
@@ -764,6 +837,7 @@ public class QkTool extends PanBase {
                             if (shareFidToken != null) {
                                 extParams.put("share_fid_token", shareFidToken);
                             }
+                            extParams.put("size", fileSize);
                             extParams.put("needDownloader", true);
                             Map<String, String> dlHeaders = new HashMap<>();
                             String listCookie = header.get(HttpHeaders.COOKIE);
@@ -834,13 +908,29 @@ public class QkTool extends PanBase {
         
         log.debug("夸克 parseById: fid={}, pwd_id={}, stoken={}", fid, pwdId, stoken);
 
-        resolveDownloadUrl(fid, pwdId, stoken, shareFidToken)
-                .onSuccess(downloadUrl -> {
-                    Map<String, String> downloadHeaders = buildDownloadHeaders(paramJson);
-                    shareLinkInfo.getOtherParam().put("downloadHeaders", downloadHeaders);
-                    shareLinkInfo.getOtherParam().put("fileName", paramJson.getString("fileName", ""));
-                    shareLinkInfo.getOtherParam().put("needDownloader", true);
-                    promise.complete(downloadUrl);
+        String fileName = paramJson.getString("fileName", "");
+        Future<String> download;
+        if (QuarkFamilyDownloadPolicy.knownLarge(QuarkFamilyDownloadPolicy.sizeOf(paramJson))) {
+            JsonObject file = new JsonObject()
+                    .put("fid", fid)
+                    .put("share_fid_token", shareFidToken)
+                    .put("file_name", fileName)
+                    .put("size", QuarkFamilyDownloadPolicy.sizeOf(paramJson));
+            download = resolveLargeFile(file, pwdId, stoken);
+        } else {
+            download = resolveDownloadUrl(fid, pwdId, stoken, shareFidToken);
+        }
+        download.onSuccess(downloadUrl -> {
+                    shareLinkInfo.getOtherParam().put("fileName", fileName);
+                    String presented = presentIfPublic(downloadUrl);
+                    if (publicDirectLink) {
+                        shareLinkInfo.getOtherParam().put("downloadHeaders", new HashMap<>());
+                        shareLinkInfo.getOtherParam().put("needDownloader", false);
+                    } else {
+                        shareLinkInfo.getOtherParam().put("downloadHeaders", buildDownloadHeaders(paramJson));
+                        shareLinkInfo.getOtherParam().put("needDownloader", true);
+                    }
+                    promise.complete(presented);
                 })
                 .onFailure(promise::fail);
 
@@ -904,7 +994,8 @@ public class QkTool extends PanBase {
      */
     private Future<String> saveAndDownload(String pwdId, String stoken, String shareFid, String shareFidToken) {
         Promise<String> promise = Promise.promise();
-        String fileCacheKey = pwdId + "_" + (shareFid == null ? "" : shareFid);
+        String scope = QuarkAccountScope.suffix(shareLinkInfo.getOtherParam());
+        String fileCacheKey = (scope == null ? "_" : scope) + ":" + pwdId + "_" + (shareFid == null ? "" : shareFid);
 
         // 本地缓存命中 → 跳过转存，直接用已转存 fid 取链
         String cachedFid = savedFileCache.get(fileCacheKey);

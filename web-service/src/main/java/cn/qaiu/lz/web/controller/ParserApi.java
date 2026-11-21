@@ -16,6 +16,7 @@ import cn.qaiu.lz.web.service.DbService;
 import cn.qaiu.parser.PanDomainTemplate;
 import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.ParserCreate;
+import cn.qaiu.parser.impl.QuarkFamilyDownloadPolicy;
 import cn.qaiu.parser.clientlink.ClientLinkGeneratorFactory;
 import cn.qaiu.parser.clientlink.ClientLinkType;
 import cn.qaiu.util.CommonUtils;
@@ -318,8 +319,9 @@ public class ParserApi {
             }
         }
 
-        boolean needDownloader = Boolean.TRUE.equals(paramJson.getBoolean("needDownloader"))
-                || !downloadHeaders.isEmpty();
+        boolean publicDirect = Boolean.TRUE.equals(shareLinkInfo.getOtherParam().get("publicDirectLink"));
+        boolean needDownloader = QuarkFamilyDownloadPolicy.prepareDownloader(downloadHeaders,
+                Boolean.TRUE.equals(paramJson.getBoolean("needDownloader")), publicDirect);
 
         shareLinkInfo.getOtherParam().put("downloadUrl", downloadUrl);
         if (!downloadHeaders.isEmpty()) {
