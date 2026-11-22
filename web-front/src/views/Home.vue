@@ -75,8 +75,8 @@
         <div class="project-intro">
           <div class="intro-title">NFD网盘直链解析 {{ projectVersion }}</div>
           <div class="intro-desc">
-            <div>支持网盘：蓝奏云、蓝奏云优享、小飞机盘、123云盘、iCloud、移动云空间、联想乐云、QQ闪传等 <el-link style="color:#606cf5" :href="githubRepoUrl + '?tab=readme-ov-file#%E7%BD%91%E7%9B%98%E6%94%AF%E6%8C%81%E6%83%85%E5%86%B5'" target="_blank"> &gt;&gt; </el-link></div>
-            <div>文件夹解析支持：蓝奏云、蓝奏云优享、小飞机盘、123云盘</div>
+            <div>支持网盘：蓝奏云、蓝奏云优享、小飞机盘、123云盘、夸克网盘、UC网盘、iCloud、移动云空间、联想乐云、QQ闪传等 <el-link style="color:#606cf5" :href="githubRepoUrl + '?tab=readme-ov-file#%E7%BD%91%E7%9B%98%E6%94%AF%E6%8C%81%E6%83%85%E5%86%B5'" target="_blank"> &gt;&gt; </el-link></div>
+            <div>文件夹解析支持：蓝奏云、蓝奏云优享、小飞机盘、123云盘、夸克网盘、UC网盘</div>
           </div>
         </div>
         <div class="typo">
@@ -122,7 +122,12 @@
 
           <!-- 解析结果 -->
           <div v-if="parseResult.code" style="margin-top: 10px">
-            <strong>解析结果: </strong>
+            <strong :style="parseResult.code === 200 ? 'color:var(--el-color-success)' : 'color:var(--el-color-danger)'">
+              {{ parseResult.code === 200 ? '解析成功' : '解析失败' }}
+            </strong>
+            <span v-if="parseResult.code === 200 && parsedFileMeta.length" class="parse-file-meta">
+              <el-tag v-for="item in parsedFileMeta" :key="item" size="small" type="info" effect="plain">{{ item }}</el-tag>
+            </span>
             <json-viewer :value="parseResult" :expand-depth="5" copyable boxed sort />
             <!-- 下载链接卡片 -->
             <div v-if="downloadUrl" style="margin-top: 15px;">
@@ -416,6 +421,12 @@
 
           <!-- 目录树组件 -->
           <div v-if="showDirectoryTree" class="directory-tree-container">
+            <div v-if="folderParseMeta.length" style="margin-bottom: 10px;">
+              <strong style="color:var(--el-color-success)">解析成功</strong>
+              <span class="parse-file-meta">
+                <el-tag v-for="item in folderParseMeta" :key="item" size="small" type="info" effect="plain">{{ item }}</el-tag>
+              </span>
+            </div>
             <div style="margin-bottom: 10px; text-align: right;">
               <ViewModeSwitch v-model="directoryViewMode" pane-label="窗格" tree-label="文件树" />
             </div>
@@ -620,6 +631,7 @@ import ViewModeSwitch from '@/components/ViewModeSwitch'
 import DownloadDialog from '@/components/DownloadDialog'
 import parserUrl from '../parserUrl1'
 import { openNoReferrer } from '../utils/openNoReferrer'
+import parseResultMeta from '../utils/parseResultMeta'
 import fileTypeUtils from '@/utils/fileTypeUtils'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { playgroundApi } from '@/utils/playgroundApi'
@@ -750,6 +762,27 @@ export default {
     },
     projectVersion() {
       return process.env.VUE_APP_VERSION || '0.0.0'
+    },
+    parsedFileMeta() {
+      const data = this.parseResult?.data || {}
+      const info = data.fileInfo || data.otherParam?.fileInfo || {}
+      const panType = info.panType || data.panType || ''
+      return parseResultMeta.buildParseFileMeta({
+        fileName: info.fileName,
+        size: info.size,
+        sizeStr: info.sizeStr,
+        panType,
+        panList: this.panList
+      })
+    },
+    folderParseMeta() {
+      if (!this.showDirectoryTree) return []
+      const meta = [`${this.directoryData.length} 个文件/文件夹`]
+      const recognized = parserUrl.parseLink(this.link || '')
+      const panType = this.getCurrentPanType()
+      const name = recognized?.name || (panType ? parseResultMeta.panDisplayName(panType.toLowerCase(), this.panList) : '')
+      if (name) meta.push(name)
+      return meta
     },
     // 检查是否配置了认证信息（针对当前链接的网盘类型）
     hasAuthConfig() {
@@ -2141,6 +2174,13 @@ hr {
   color: #888;
   font-size: 0.98rem;
   line-height: 1.7;
+}
+.parse-file-meta {
+  margin-left: 10px;
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  vertical-align: middle;
 }
 .dark-theme .project-intro, .dark-theme .intro-title, .dark-theme .intro-desc {
   color: #bbb;

@@ -19,10 +19,10 @@ QQ交流群：1017480890
 
 
 > 本平台所有音乐解析工具不再维护，请移步[Sonder播放器](https://sodecode.qaiu.top)  
-> 需要百度，迅雷，UC，夸克的完整支持请使用[专业版](https://189.qaiu.top)  
+> 需要百度、迅雷的完整支持请使用[专业版](https://189.qaiu.top)。夸克网盘、UC网盘已包含在开源版。
 
 ## 介绍
-> netdisk-fast-download网盘直链解析可以把云盘分享链接转为直链，可广泛应用于各类下载站，资源站，个人博客，图床，APP下载更新，视频点播等领域。支持市面各大主流云盘的文件分享以及文件夹分享链接，已支持蓝奏云/蓝奏云优享/移动云云空间/小飞机盘/亿方云/123云盘/永硕E盘/Cloudreve等，支持加密分享，以及部分网盘文件夹分享。  
+> netdisk-fast-download网盘直链解析可以把云盘分享链接转为直链，可广泛应用于各类下载站，资源站，个人博客，图床，APP下载更新，视频点播等领域。支持市面各大主流云盘的文件分享以及文件夹分享链接，已支持蓝奏云/蓝奏云优享/移动云云空间/小飞机盘/亿方云/123云盘/夸克网盘/UC网盘/永硕E盘/Cloudreve等，支持加密分享，以及部分网盘文件夹分享。
 
 [官方文档](https://nfd-parser.github.io/)  
 [API接入](https://nfdparser.apifox.cn/)  
@@ -80,6 +80,8 @@ wget -O v01 "https://lz.qaiu.top/parser?url=https%3A%2F%2Fwww.ecpan.cn%2Fweb%2F%
 - [123云盘-ye](https://www.123pan.com/) ⚠️仅建议本地部署使用。公共云解析没有共享 123 账号；下载返回 5112 / 请登录后下载时，在本机配置 `auths.ye.authorization`（Windows 可直接用 run.bat）
 - ~[115网盘(失效)-p115](https://115.com/)~
 - [文叔叔-ws](https://www.wenshushu.cn/)
+- [夸克网盘-qk](https://pan.quark.cn/)
+- [UC网盘-uc](https://fast.uc.cn/)
 - [联想乐云-le](https://lecloud.lenovo.com/)
 - [QQ邮箱云盘-qqw](https://mail.qq.com/)
 - [QQ闪传-qqsc](https://nutty.qq.com/nutty/ssr/26797.html)
@@ -104,8 +106,6 @@ wget -O v01 "https://lz.qaiu.top/parser?url=https%3A%2F%2Fwww.ecpan.cn%2Fweb%2F%
 - 百度网盘开放平台-bd
 - 迅雷云盘开放平台-xl
 - [光鸭云盘开放平台-gy](https://www.guangyapan.com)
-- [夸克云盘-qk](https://pan.quark.cn/)
-- [UC云盘-uc](https://fast.uc.cn/)
 - [移动云盘-p139](https://yun.139.com/)
 - [联通云盘-pwo](https://pan.wo.cn/)
 - [天翼云盘-p189](https://cloud.189.cn/)
@@ -470,7 +470,7 @@ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock containrrr/watchtow
 > 注意: netdisk-fast-download.service中的ExecStart的路径改为实际路径
 ```shell
 cd ~
-wget -O netdisk-fast-download.zip https://github.com/qaiu/netdisk-fast-download/releases/download/v0.4.9/netdisk-fast-download-linux-amd64.zip
+wget -O netdisk-fast-download.zip https://github.com/qaiu/netdisk-fast-download/releases/download/v0.4.10/netdisk-fast-download-linux-amd64.zip
 unzip netdisk-fast-download.zip
 cd netdisk-fast-download
 bash service-install.sh
