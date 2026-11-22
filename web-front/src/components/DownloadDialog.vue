@@ -105,6 +105,7 @@
 
 <script>
 import { testConnection, addDownload, getConfig, hasCookieHeader, hasCustomUaHeader } from '@/utils/downloaderService'
+import { openNoReferrer } from '@/utils/openNoReferrer'
 
 export default {
   name: 'DownloadDialog',
@@ -193,13 +194,7 @@ export default {
     /** 直接打开下载链接（可能因缺请求头而失败） */
     doDirectDownload() {
       if (this.info && this.info.downloadUrl) {
-        const a = document.createElement('a')
-        a.href = this.info.downloadUrl
-        a.target = '_blank'
-        a.rel = 'noopener noreferrer'
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
+        openNoReferrer(this.info.downloadUrl)
         this.dialogVisible = false
       }
     },

@@ -455,6 +455,7 @@ import fileTypeUtils from '@/utils/fileTypeUtils'
 import DownloadDialog from '@/components/DownloadDialog.vue'
 import { testConnection, autoDetect, addDownload, batchAddDownload, getConfig, saveConfig } from '@/utils/downloaderService'
 import batchTreeCollect from '@/utils/batchTreeCollect'
+import { openNoReferrer } from '@/utils/openNoReferrer'
 
 const {
   DEFAULT_BATCH_MAX_DEPTH,
@@ -758,13 +759,7 @@ export default {
     // 下载文件
     downloadFile(file) {
       if (file?.parserUrl) {
-        const a = document.createElement('a')
-        a.href = this.appendToken(file.parserUrl)
-        a.target = '_blank'
-        a.rel = 'noopener noreferrer'
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
+        openNoReferrer(this.appendToken(file.parserUrl))
         this.$message.success('开始下载文件')
       } else {
         this.$message.warning('该文件暂无下载链接')
@@ -805,14 +800,7 @@ export default {
             this.downloadInfo = info
             this.downloadDialogVisible = true
           } else if (info.downloadUrl) {
-            // 服务端判断不需要下载器，直接跳转
-            const a = document.createElement('a')
-            a.href = info.downloadUrl
-            a.target = '_blank'
-            a.rel = 'noopener noreferrer'
-            document.body.appendChild(a)
-            a.click()
-            document.body.removeChild(a)
+            openNoReferrer(info.downloadUrl)
             this.$message.success('开始下载文件')
           } else {
             this.downloadFile(file)
@@ -948,14 +936,7 @@ export default {
     },
     openPreviewInNewTab() {
       if (this.previewUrl) {
-        // 使用动态 a 标签并设置 noopener noreferrer 以避免携带 Referer，绕过防盗链机制
-        const a = document.createElement('a')
-        a.href = this.previewUrl
-        a.target = '_blank'
-        a.rel = 'noopener noreferrer'
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
+        openNoReferrer(this.previewUrl)
       }
     },
     hasValidTime(value) {
@@ -1237,14 +1218,8 @@ export default {
       this.batchProgress = { current: 0, total: files.length, failed: 0 }
       for (const file of files) {
         try {
-          const a = document.createElement('a')
           const rawUrl = file.parserUrl.startsWith('http') ? file.parserUrl : (window.location.origin + file.parserUrl)
-          a.href = this.appendToken(rawUrl)
-          a.target = '_blank'
-          a.rel = 'noopener noreferrer'
-          document.body.appendChild(a)
-          a.click()
-          document.body.removeChild(a)
+          openNoReferrer(this.appendToken(rawUrl))
           await new Promise(r => setTimeout(r, 500))
         } catch {
           this.batchProgress.failed++

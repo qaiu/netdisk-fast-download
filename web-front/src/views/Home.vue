@@ -619,6 +619,7 @@ import DirectoryTree from '@/components/DirectoryTree'
 import ViewModeSwitch from '@/components/ViewModeSwitch'
 import DownloadDialog from '@/components/DownloadDialog'
 import parserUrl from '../parserUrl1'
+import { openNoReferrer } from '../utils/openNoReferrer'
 import fileTypeUtils from '@/utils/fileTypeUtils'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { playgroundApi } from '@/utils/playgroundApi'
@@ -770,15 +771,22 @@ export default {
       }
       return map[this.aria2ConfigForm.downloaderType] || 'Aria2'
     },
-    // 需要下载器（带 cookie 等特殊头）时禁用浏览器下载/复制直链；UC/夸克始终需要
+    // 带 Cookie 的直链浏览器带不上，仍走下载器。
+    // 夸克 / UC 的公开 H5 文件地址没有 Cookie，允许浏览器打开；文件名在 URL 的 filename 上
+    // （跨域时 a[download] 无效，不能靠它改名）。
     needsDownloader() {
-      const pan = (this.getCurrentPanType() || '').toLowerCase()
-      if (pan === 'uc' || pan === 'qk') return true
       const data = this.parseResult?.data
+      const pan = (this.getCurrentPanType() || '').toLowerCase()
+      const headers = data && (data.downloadHeaders || data.otherParam?.downloadHeaders)
+      const hasCookie = !!(headers && (headers.cookie || headers.Cookie))
+      if (pan === 'uc' || pan === 'qk') {
+        if (!data) return true
+        if (hasCookie) return true
+        return !!(data.needDownloader || data.otherParam?.needDownloader)
+      }
       if (!data) return false
       if (data.needDownloader || data.otherParam?.needDownloader) return true
-      const headers = data.downloadHeaders || data.otherParam?.downloadHeaders
-      return !!(headers && (headers.cookie || headers.Cookie))
+      return hasCookie
     }
   },
   methods: {
@@ -1423,7 +1431,7 @@ export default {
     // 文件点击处理
     handleFileClick(file) {
       if (file.parserUrl) {
-        window.open(file.parserUrl, '_blank', 'noopener,noreferrer')
+        openNoReferrer(file.parserUrl)
       } else {
         this.$message.warning('该文件暂无下载链接')
       }
@@ -1860,7 +1868,7 @@ export default {
       }
     },
     openUrl(url) {
-      if (url) window.open(url, '_blank', 'noopener,noreferrer')
+      openNoReferrer(url)
     },
     async loadDirectoryParseSupportedPans() {
       try {
