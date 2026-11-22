@@ -619,6 +619,7 @@ import DirectoryTree from '@/components/DirectoryTree'
 import ViewModeSwitch from '@/components/ViewModeSwitch'
 import DownloadDialog from '@/components/DownloadDialog'
 import parserUrl from '../parserUrl1'
+import { openNoReferrer } from '../utils/openNoReferrer'
 import fileTypeUtils from '@/utils/fileTypeUtils'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { playgroundApi } from '@/utils/playgroundApi'
@@ -1430,7 +1431,7 @@ export default {
     // 文件点击处理
     handleFileClick(file) {
       if (file.parserUrl) {
-        window.open(file.parserUrl, '_blank', 'noopener,noreferrer')
+        openNoReferrer(file.parserUrl)
       } else {
         this.$message.warning('该文件暂无下载链接')
       }
@@ -1867,7 +1868,7 @@ export default {
       }
     },
     openUrl(url) {
-      if (url) window.open(url, '_blank', 'noopener,noreferrer')
+      openNoReferrer(url)
     },
     async loadDirectoryParseSupportedPans() {
       try {
