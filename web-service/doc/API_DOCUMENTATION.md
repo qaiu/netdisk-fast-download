@@ -598,6 +598,8 @@ GET /v2/redirectUrl/pan/eyJmaWxlSWQiOiIxMjM0NTYifQ==
 - 小飞机盘 (fj)
 - 360亿方云 (fc)
 - 联想乐云 (le)
+- 夸克网盘 (qk)
+- UC网盘 (uc)
 - 文叔叔 (ws)
 - Cloudreve (ce)
 - 等等...
