@@ -249,7 +249,7 @@ public class YsTool extends PanBase {
                 .onSuccess(res -> {
                     try {
                         if (res.statusCode() >= 400) {
-                            p.fail(baseMsg() + " - 密码验证失败 HTTP " + res.statusCode());
+                            p.fail(baseMsg() + " - " + passwordFailureMessage(res.statusCode(), res.bodyAsString()));
                             return;
                         }
                         JsonObject json = res.bodyAsJsonObject();
@@ -695,6 +695,44 @@ public class YsTool extends PanBase {
         }
         Matcher matcher = DLMC_ATTR_PATTERN.matcher(html);
         return matcher.find() ? matcher.group(2) : null;
+    }
+
+    /**
+     * 把密码接口的失败响应转成可展示的短句。上游对错误密码返回 HTTP 400，
+     * 正文是 {@code code=invalid_password}。不回传响应原文，避免带上令牌。
+     */
+    static String passwordFailureMessage(int statusCode, String body) {
+        try {
+            if (body != null && body.trim().startsWith("{")) {
+                JsonObject json = new JsonObject(body);
+                String code = StringUtils.defaultString(json.getString("code"));
+                String message = safePasswordMessage(json.getString("message"));
+                if ("invalid_password".equals(code)) {
+                    return message != null ? message : "密码错误";
+                }
+                if (message != null) {
+                    return message;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return "密码验证失败 HTTP " + statusCode;
+    }
+
+    private static String safePasswordMessage(String message) {
+        if (StringUtils.isBlank(message)) {
+            return null;
+        }
+        String trimmed = message.trim();
+        if (trimmed.length() > 80) {
+            return null;
+        }
+        String lower = trimmed.toLowerCase();
+        if (lower.contains("eyj") || trimmed.contains("CfDJ") || lower.contains("jwttk")
+                || lower.contains("cookie") || lower.contains("token")) {
+            return null;
+        }
+        return trimmed;
     }
 
     /** 密码验证地址。origin 必须是重定向结束后的主机，不能用 ys168.com 原站。 */

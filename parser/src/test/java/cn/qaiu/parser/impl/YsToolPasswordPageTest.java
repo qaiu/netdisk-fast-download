@@ -96,6 +96,21 @@ public class YsToolPasswordPageTest {
     }
 
     @Test
+    public void testWrongPasswordUsesUpstreamMessageWithoutSecrets() {
+        String body = "{\"success\":false,\"code\":\"invalid_password\",\"message\":\"密码错误\"}";
+        assertEquals("密码错误", YsTool.passwordFailureMessage(400, body));
+
+        String leaked = "{\"success\":false,\"code\":\"invalid_password\",\"message\":\"eyJhbGciOiJIUzI1NiJ9.secret\"}";
+        assertEquals("密码错误", YsTool.passwordFailureMessage(400, leaked));
+
+        String other = "{\"success\":false,\"message\":\"空间已关闭\"}";
+        assertEquals("空间已关闭", YsTool.passwordFailureMessage(400, other));
+
+        assertEquals("密码验证失败 HTTP 500", YsTool.passwordFailureMessage(500, "<html>CfDJ8secret</html>"));
+        assertEquals("密码验证失败 HTTP 400", YsTool.passwordFailureMessage(400, ""));
+    }
+
+    @Test
     public void testBlankRedirectIsRejected() {
         assertNull(YsTool.resolveRedirect("https://qaiu.ys168.com/", " "));
         assertNull(YsTool.resolveRedirect("https://qaiu.ys168.com/", null));
