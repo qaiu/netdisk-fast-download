@@ -54,6 +54,7 @@ public class AppMain {
         deploy.addPostShutdownTask(cn.qaiu.parser.PanBase::shutdownSharedClients);
         deploy.addPostShutdownTask(cn.qaiu.parser.IPanTool::shutdownCloseAfterScheduler);
         deploy.addPostShutdownTask(cn.qaiu.parser.impl.PodTool::shutdownWorkerExecutor);
+        deploy.addPostShutdownTask(cn.qaiu.parser.impl.CtTool::shutdownWorkerExecutor);
         // start
         deploy.start(args, AppMain::exec);
     }
