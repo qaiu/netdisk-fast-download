@@ -4,8 +4,11 @@ import org.junit.Test;
 
 import java.util.List;
 
+import java.util.Map;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -165,6 +168,55 @@ public class LzToolShareUrlTest {
         assertTrue(origins.indexOf("https://apifile.lanzouw.com")
                 < origins.indexOf("https://wwww.lanzoux.com"));
         assertFalse(LzTool.ajaxOrigins("https://a.lanzouw.com/xxx").contains("https://apifile.lanzouw.com"));
+    }
+
+    @Test
+    public void oldFolderPageSuppliesFilemoreParameters() {
+        String html = """
+                <script type="text/javascript">
+                var ibb6kj = '111';
+                var demoKey = 'abc';
+                function file(){
+                  $.ajax({
+                    url : '/filemoreajax.php?file=66477',
+                    data : {
+                      'lx':2,
+                      'fid':66477,
+                      'uid':'11',
+                      'pg':pgs,
+                      't':ibb6kj,
+                      'k':demoKey,
+                      'up':1,
+                      'pwd':pwd
+                    }
+                  });
+                }
+                </script>
+                """;
+        Map<String, String> form = LzTool.folderAjaxForm(html, "1234");
+        assertEquals("66477", form.get("fid"));
+        assertEquals("111", form.get("t"));
+        assertEquals("abc", form.get("k"));
+        assertEquals("1", form.get("pg"));
+        assertEquals("1234", form.get("pwd"));
+        assertEquals("/filemoreajax.php?file=66477", LzTool.folderAjaxPath(html, "1234"));
+        assertFalse(LzTool.isAccessRiskPage(html));
+    }
+
+    @Test
+    public void blankOffPageIsRiskControlNotExpiry() {
+        String html = """
+                <div class="off"><div class="off0"><div class="off1"></div></div></div>
+                <div style="display:none ">folder66477ufolder66477ip203.0.113.8</div>
+                """;
+        assertTrue(LzTool.isAccessRiskPage(html));
+        assertNull(LzTool.folderAjaxForm(html, null));
+
+        String cancelled = """
+                <div class="off"><div class="off1"></div></div>
+                文件取消分享了
+                """;
+        assertFalse(LzTool.isAccessRiskPage(cancelled));
     }
 
     @Test

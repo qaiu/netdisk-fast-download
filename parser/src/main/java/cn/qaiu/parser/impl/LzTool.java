@@ -727,6 +727,16 @@ public class LzTool extends PanBase {
         return new AjaxCall(block.group(1), data);
     }
 
+    static Map<String, String> folderAjaxForm(String html, String pwd) {
+        AjaxCall call = extractFolderAjax(html, pwd);
+        return call == null ? null : call.form();
+    }
+
+    static String folderAjaxPath(String html, String pwd) {
+        AjaxCall call = extractFolderAjax(html, pwd);
+        return call == null ? null : call.path();
+    }
+
     private static String resolveJsValue(String html, String raw) {
         if (raw == null) {
             return "";
@@ -1127,6 +1137,14 @@ public class LzTool extends PanBase {
         complete(downloadUrl);
     }
 
+    /** 目录分享页和 filemoreajax.php 都用移动端 UA。文件页仍走桌面 UA，才能拿到 iframe。 */
+    private static MultiMap folderPageHeaders(String referer) {
+        MultiMap headers = folderListHeaders(referer);
+        headers.set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+        headers.set("Accept-Encoding", "identity");
+        return headers;
+    }
+
     /** 目录列表 filemoreajax.php 用移动端 UA。 */
     private static MultiMap folderListHeaders(String referer) {
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
@@ -1147,7 +1165,9 @@ public class LzTool extends PanBase {
         final String sUrl = resolveShareUrl();
         final String pwd = shareLinkInfo.getSharePassword();
 
-        getWithArg1Retry(sUrl, PAGE_HEADERS)
+        // 目录页用移动端 UA。桌面 Chrome 访问旧目录（如 /b66477）常返回空白风控页，
+        // 页面里没有 filemoreajax，随后会被误报成「获取失败1，可能分享已失效」。
+        getWithArg1Retry(sUrl, folderPageHeaders(sUrl))
                 .onSuccess(html -> handleFileListParse(html, pwd, sUrl, listPromise))
                 .onFailure(listPromise::fail);
         return listPromise.future();
@@ -1156,6 +1176,10 @@ public class LzTool extends PanBase {
     private void handleFileListParse(String html, String pwd, String sUrl, Promise<List<FileInfo>> listPromise) {
         if (!isLzFolderShare(sUrl, html)) {
             listPromise.fail(baseMsg() + "该链接为蓝奏云文件分享，请使用文件解析接口");
+            return;
+        }
+        if (isAccessRiskPage(html)) {
+            listPromise.fail(baseMsg() + "蓝奏云返回了访问风控页，不能据此判断分享已失效，请稍后重试");
             return;
         }
         try {
@@ -1211,6 +1235,26 @@ public class LzTool extends PanBase {
             return false;
         }
         return path.charAt(0) == 'b' || path.charAt(0) == 'B';
+    }
+
+    /**
+     * 桌面 UA 下的空白提示页：有 off1，隐藏块里是 folder 编号和访问 IP，没有取消分享文案，
+     * 也没有目录参数。这是访问风控，不是分享失效。
+     */
+    static boolean isAccessRiskPage(String html) {
+        if (html == null || html.isBlank()) {
+            return false;
+        }
+        if (html.contains("filemoreajax") || html.contains(ARG1_MARK)) {
+            return false;
+        }
+        if (!html.contains("off1")) {
+            return false;
+        }
+        if (html.contains("取消分享") || html.contains("不存在") || html.contains("地址错误")) {
+            return false;
+        }
+        return html.contains("folder") && html.contains("ip");
     }
 
     private static boolean isLzFolderHtml(String html) {
