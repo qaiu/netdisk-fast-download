@@ -97,23 +97,13 @@ public class YsToolTest {
     }
 
     @Test
-    public void testOfficialSampleUrlRealDownload() throws Exception {
-        String official = "https://ys-l.ysepan.com/wap/yssl/A95UIe495EkSKE/Bc8hF8Nsbl2I4Ec6vAm5EGe9HU36iC/lu20.jpg";
-        String withForcePrefix = "https://ys-l.ysepan.com/wap/yssl/_A95UIe495EkSKE/Bc8hF8Nsbl2I4Ec6vAm5EGe9HU36iC/lu20.jpg";
-
-        Buffer ok = download(official, "https://yssl.ysepan.com/");
-        assertTrue("官方直链应能下载到 JPEG", ok.length() > 1000);
-        assertEquals((byte) 0xFF, ok.getByte(0));
-        assertEquals((byte) 0xD8, ok.getByte(1));
-
-        int forceStatus = webClient.getAbs(withForcePrefix)
-                .putHeader("User-Agent", "Mozilla/5.0")
-                .putHeader("Referer", "https://yssl.ysepan.com/")
-                .send()
-                .toCompletionStage().toCompletableFuture()
-                .get(30, TimeUnit.SECONDS)
-                .statusCode();
-        assertNotEquals("带 _ 前缀的直链应失败(文件不存在)", 200, forceStatus);
+    public void testYsslOpenSpaceRealDownload() throws Exception {
+        // 旧样例 lu20.jpg 已从示例空间删除（直链 404）。改为现场列出示例空间里的小文件再下载。
+        FileInfo file = firstSmallFile("https://yssl.ysepan.com/", null, 2_000_000);
+        assertNotNull("示例空间应至少有一个可下载的小文件", file);
+        Buffer body = downloadParsedFile(file, "https://yssl.ysepan.com/");
+        assertEquals(file.getSize().longValue(), body.length());
+        System.out.println("yssl real download ok, file=" + file.getFileName() + ", size=" + body.length());
     }
 
     @Test
@@ -249,44 +239,173 @@ public class YsToolTest {
         assertTrue("sohehe4 应有多个目录", dirs.size() >= 3);
         assertTrue(dirs.stream().allMatch(d -> "folder".equals(d.getFileType())));
 
-        String dirId = dirs.stream()
-                .filter(d -> d.getFileName() != null && d.getFileName().contains("留言"))
-                .map(FileInfo::getFileId)
+        FileInfo file = null;
+        for (FileInfo dir : dirs) {
+            if (!"folder".equals(dir.getFileType())) {
+                continue;
+            }
+            file = firstSmallFileInDir("https://sohehe4.ysepan.com/", "1234", dir.getFileId(), 5_000_000);
+            if (file != null) {
+                break;
+            }
+        }
+        assertNotNull("sohehe4 应能找到可下载的小文件", file);
+        Buffer body = downloadParsedFile(file, "https://sohehe4.ysepan.com/");
+        assertEquals(file.getSize().longValue(), body.length());
+        System.out.println("sohehe4 real download ok, file=" + file.getFileName()
+                + ", size=" + body.length());
+    }
+
+    @Test
+    public void testQaiuRequiresPassword() throws Exception {
+        ParserCreate create = ParserCreate.fromShareUrl("https://qaiu.ysepan.com/");
+        create.getShareLinkInfo().getOtherParam().put("domainName", "http://localhost");
+        try {
+            create.createTool().parseFileList()
+                    .toCompletionStage().toCompletableFuture()
+                    .get(60, TimeUnit.SECONDS);
+            fail("未提供密码时应拒绝进入");
+        } catch (java.util.concurrent.ExecutionException e) {
+            assertTrue(e.getCause().getMessage(), e.getCause().getMessage().contains("空间需要访问密码"));
+        }
+    }
+
+    @Test
+    public void testFufu1Ys168RedirectOpenSpace() throws Exception {
+        List<FileInfo> roots = fileList("https://fufu1.ys168.com/", null);
+        assertNotNull(roots);
+        assertTrue(roots.stream().anyMatch(f -> "游戏3".equals(f.getFileName())));
+    }
+
+    @Test
+    public void testQaiuYs168PasswordRedirectAndRealDownload() throws Exception {
+        List<FileInfo> dirs = fileList("https://qaiu.ys168.com/", "qaiuys168");
+        assertNotNull(dirs);
+        assertFalse(dirs.isEmpty());
+        FileInfo app = dirs.stream()
+                .filter(d -> d.getFileName() != null && d.getFileName().contains("app"))
                 .findFirst()
-                .orElse(dirs.get(0).getFileId());
+                .orElse(dirs.get(0));
 
-        ParserCreate filesCreate = ParserCreate.fromShareUrl("https://sohehe4.ysepan.com/");
-        filesCreate.getShareLinkInfo().setSharePassword("1234");
-        filesCreate.getShareLinkInfo().getOtherParam().put("domainName", "http://localhost");
-        filesCreate.getShareLinkInfo().getOtherParam().put("dirId", dirId);
-
-        List<FileInfo> files = filesCreate.createTool().parseFileList()
-                .toCompletionStage().toCompletableFuture()
-                .get(60, TimeUnit.SECONDS);
-
-        assertNotNull(files);
-        assertFalse(files.isEmpty());
-
-        FileInfo file = files.stream()
+        List<FileInfo> files = fileList("https://qaiu.ys168.com/", "qaiuys168", app.getFileId());
+        FileInfo zip = files.stream()
                 .filter(f -> "file".equals(f.getFileType()))
-                .filter(f -> f.getSize() != null && f.getSize() > 0 && f.getSize() < 5_000_000)
+                .filter(f -> f.getFileName() != null && f.getFileName().contains("Pycharm"))
                 .findFirst()
                 .orElse(null);
-        if (file != null) {
-            String param = file.getParserUrl().substring(file.getParserUrl().lastIndexOf('/') + 1);
-            JsonObject paramJson = new JsonObject(CommonUtils.urlBase64Decode(param));
-            String downloadUrl = paramJson.getString("downloadUrl");
-            assertNotNull(downloadUrl);
-            assertFalse(downloadUrl.contains("/_"));
+        assertNotNull("ys168 重定向后应能列出 Pycharm 压缩包", zip);
 
-            Buffer body = download(downloadUrl, "https://sohehe4.ysepan.com/");
-            assertEquals(file.getSize().longValue(), body.length());
-            System.out.println("sohehe4 real download ok, file=" + file.getFileName()
-                    + ", size=" + body.length());
-        } else {
-            System.out.println("sohehe4 dir=" + dirId + " entries=" + files.size()
-                    + " (no small file for real download sample)");
+        String param = zip.getParserUrl().substring(zip.getParserUrl().lastIndexOf('/') + 1);
+        JsonObject paramJson = new JsonObject(CommonUtils.urlBase64Decode(param));
+        String downloadUrl = paramJson.getString("downloadUrl");
+        assertNotNull(downloadUrl);
+        assertTrue(downloadUrl.contains("ysepan.com"));
+        assertFalse(downloadUrl.contains("ys168.com"));
+        assertFalse(downloadUrl.contains("/_"));
+
+        Buffer body = download(downloadUrl, "https://qaiu.ysepan.com/");
+        assertEquals(zip.getSize().longValue(), body.length());
+        assertEquals('P', (char) body.getByte(0));
+        assertEquals('K', (char) body.getByte(1));
+        System.out.println("qaiu ys168 redirect download ok, size=" + body.length());
+    }
+
+    @Test
+    public void testBackupDomainsOpenAndPasswordSpaces() throws Exception {
+        for (String host : new String[]{"cccpan.com", "uupan.net", "ysok.net"}) {
+            List<FileInfo> openDirs = fileList("https://fufu1." + host + "/", null);
+            assertNotNull(host, openDirs);
+            assertFalse(host + " 无密码空间目录为空", openDirs.isEmpty());
+            assertTrue(host, openDirs.stream().anyMatch(d -> "游戏3".equals(d.getFileName())));
+
+            List<FileInfo> lockedDirs = fileList("https://qaiu." + host + "/", "qaiuys168");
+            assertNotNull(host, lockedDirs);
+            assertFalse(host + " 密码空间目录为空", lockedDirs.isEmpty());
+            assertTrue(host + " " + lockedDirs.stream().map(FileInfo::getFileName).toList(),
+                    lockedDirs.stream().anyMatch(d -> d.getFileName() != null && d.getFileName().contains("app")));
         }
+    }
+
+    private static List<FileInfo> fileList(String url, String pwd) throws Exception {
+        return fileList(url, pwd, null, null);
+    }
+
+    private static List<FileInfo> fileList(String url, String pwd, String dirId) throws Exception {
+        return fileList(url, pwd, dirId, null);
+    }
+
+    private static List<FileInfo> fileList(String url, String pwd, String dirId, String zml) throws Exception {
+        ParserCreate create = ParserCreate.fromShareUrl(url);
+        if (pwd != null) {
+            create.getShareLinkInfo().setSharePassword(pwd);
+        }
+        create.getShareLinkInfo().getOtherParam().put("domainName", "http://localhost");
+        if (dirId != null) {
+            create.getShareLinkInfo().getOtherParam().put("dirId", dirId);
+        }
+        if (zml != null) {
+            create.getShareLinkInfo().getOtherParam().put("zml", zml);
+        }
+        return create.createTool().parseFileList()
+                .toCompletionStage().toCompletableFuture()
+                .get(60, TimeUnit.SECONDS);
+    }
+
+    /** 在目录及其 zml 子目录中找一个体积合适的真实文件。 */
+    private static FileInfo firstSmallFile(String url, String pwd, long maxSize) throws Exception {
+        List<FileInfo> dirs = fileList(url, pwd);
+        assertNotNull(dirs);
+        assertFalse(url + " 目录为空", dirs.isEmpty());
+        for (FileInfo dir : dirs) {
+            if (!"folder".equals(dir.getFileType())) {
+                continue;
+            }
+            FileInfo file = firstSmallFileInDir(url, pwd, dir.getFileId(), maxSize);
+            if (file != null) {
+                return file;
+            }
+        }
+        return null;
+    }
+
+    private static FileInfo firstSmallFileInDir(String url, String pwd, String dirId, long maxSize) throws Exception {
+        List<FileInfo> entries = fileList(url, pwd, dirId);
+        FileInfo direct = smallFile(entries, maxSize);
+        if (direct != null) {
+            return direct;
+        }
+        for (FileInfo entry : entries) {
+            if (!"folder".equals(entry.getFileType()) || entry.getFileId() == null
+                    || !entry.getFileId().contains(":")) {
+                continue;
+            }
+            FileInfo nested = smallFile(fileList(url, pwd, dirId, entry.getFileName()), maxSize);
+            if (nested != null) {
+                return nested;
+            }
+        }
+        return null;
+    }
+
+    private static FileInfo smallFile(List<FileInfo> entries, long maxSize) {
+        if (entries == null) {
+            return null;
+        }
+        return entries.stream()
+                .filter(f -> "file".equals(f.getFileType()))
+                .filter(f -> f.getSize() != null && f.getSize() > 0 && f.getSize() < maxSize)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static Buffer downloadParsedFile(FileInfo file, String referer) throws Exception {
+        assertNotNull(file.getParserUrl());
+        String param = file.getParserUrl().substring(file.getParserUrl().lastIndexOf('/') + 1);
+        JsonObject paramJson = new JsonObject(CommonUtils.urlBase64Decode(param));
+        String downloadUrl = paramJson.getString("downloadUrl");
+        assertNotNull(downloadUrl);
+        assertFalse(downloadUrl.contains("/_"));
+        return download(downloadUrl, referer);
     }
 
     private static Buffer download(String url, String referer) throws Exception {

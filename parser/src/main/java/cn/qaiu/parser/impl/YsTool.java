@@ -14,6 +14,7 @@ import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import org.apache.commons.lang3.StringUtils;
 
+import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -27,6 +28,9 @@ import java.util.regex.Pattern;
  * 永硕E盘（主 ysepan.com / ys168.com，备 cccpan.com / ysupan.com / uupan.net / ysok.net）
  * <p>
  * 空间分享形如 https://{space}.ysepan.com/ ，需空间访问密码时通过 sharePassword 传入。
+ * <p>
+ * 2026-11 起密码空间改为入口页：令牌在 {@code data-verification-token}，登录名在 {@code data-dlmc}。
+ * {@code ys168.com} 会 302 到 {@code ysepan.com}，密码验证必须发往跳转后的主机。
  */
 public class YsTool extends PanBase {
 
@@ -34,10 +38,17 @@ public class YsTool extends PanBase {
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
                     + "(KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36";
 
-    private static final Pattern ANTIFORGERY_PATTERN =
+    /** 旧版入口脚本：{@code RequestVerificationToken': '...'} */
+    private static final Pattern ANTIFORGERY_LEGACY_PATTERN =
             Pattern.compile("RequestVerificationToken'\\s*:\\s*'([^']+)'");
+    /** 新版入口页：{@code data-verification-token="..."} */
+    private static final Pattern ANTIFORGERY_ATTR_PATTERN =
+            Pattern.compile("data-verification-token\\s*=\\s*([\"'])([^\"']+)\\1");
+    private static final Pattern DLMC_ATTR_PATTERN =
+            Pattern.compile("data-dlmc\\s*=\\s*([\"'])([^\"']+)\\1");
     private static final Pattern HTXX_PATTERN =
             Pattern.compile("window\\.htxx\\s*=\\s*(\\{.*?});", Pattern.DOTALL);
+    private static final int MAX_HOME_REDIRECTS = 5;
     private static final Pattern JWT_COOKIE_PATTERN =
             Pattern.compile("jwttk_[^=]+=([^;\\s]+)");
 
@@ -141,21 +152,49 @@ public class YsTool extends PanBase {
     }
 
     private Future<Session> ensureSession() {
-        Promise<Session> p = Promise.promise();
         String space = spaceName();
         if (StringUtils.isBlank(space)) {
-            p.fail(baseMsg() + " - 空间名为空");
-            return p.future();
+            return Future.failedFuture(baseMsg() + " - 空间名为空");
         }
+        // 手动跟随跳转，才能把后续密码验证发到最终主机（ys168.com -> ysepan.com）
+        return fetchSpaceHome(spaceOrigin() + "/", 0)
+                .compose(home -> handleSpaceHome(home.origin(), space, home.response()));
+    }
 
-        String origin = spaceOrigin();
-        clientSession.getAbs(origin + "/")
+    /**
+     * 关闭自动重定向并逐跳记录最终地址。Cookie（含 .AspNetCore.Antiforgery.* 与 jwttk_*）
+     * 仍由同一个 clientSession 保存，供密码验证和接口请求带上。
+     */
+    private Future<FetchedHome> fetchSpaceHome(String url, int redirects) {
+        Promise<FetchedHome> p = Promise.promise();
+        clientSession.getAbs(url)
+                .followRedirects(false)
                 .putHeader("User-Agent", BROWSER_UA)
                 .putHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
                 .send()
-                .compose(res -> handleSpaceHome(origin, space, res))
-                .onSuccess(p::complete)
-                .onFailure(p::fail);
+                .onSuccess(res -> {
+                    int status = res.statusCode();
+                    if (status >= 300 && status < 400 && status != 304) {
+                        if (redirects >= MAX_HOME_REDIRECTS) {
+                            p.fail(baseMsg() + " - 空间首页重定向次数过多");
+                            return;
+                        }
+                        String next = resolveRedirect(url, res.getHeader("Location"));
+                        if (next == null) {
+                            p.fail(baseMsg() + " - 空间首页重定向无效");
+                            return;
+                        }
+                        fetchSpaceHome(next, redirects + 1).onComplete(p);
+                        return;
+                    }
+                    String origin = originOf(url);
+                    if (origin == null) {
+                        p.fail(baseMsg() + " - 空间地址无效");
+                        return;
+                    }
+                    p.complete(new FetchedHome(origin, res));
+                })
+                .onFailure(t -> p.fail(baseMsg() + " - 打开空间失败: " + t.getMessage()));
         return p.future();
     }
 
@@ -172,8 +211,8 @@ public class YsTool extends PanBase {
             return Future.succeededFuture(toSession(origin, space, jwt, htxx));
         }
 
-        // 需要空间密码
-        if (html.contains("VerifyPassword") || html.contains("loginPopup")) {
+        // 需要空间密码（新版入口页或旧版 loginPopup / VerifyPassword）
+        if (isPasswordPage(html)) {
             String pwd = shareLinkInfo.getSharePassword();
             if (StringUtils.isBlank(pwd)) {
                 return Future.failedFuture(baseMsg() + " - 空间需要访问密码");
@@ -182,21 +221,25 @@ public class YsTool extends PanBase {
             if (StringUtils.isBlank(antiforgery)) {
                 return Future.failedFuture(baseMsg() + " - 无法获取防伪令牌");
             }
-            return verifyPassword(origin, space, pwd, antiforgery)
-                    .compose(verifiedJwt -> reloadSpace(origin, space, verifiedJwt));
+            String dlmc = StringUtils.defaultIfBlank(extractDlmc(html), space);
+            // 新版 VerifyPassword 只返回 {"success":true}，jwttk 在入口页就已经下发
+            return verifyPassword(origin, dlmc, pwd, antiforgery)
+                    .compose(verifiedJwt -> reloadSpace(origin, space,
+                            StringUtils.defaultIfBlank(verifiedJwt, jwt)));
         }
 
         return Future.failedFuture(baseMsg() + " - 无法解析空间信息");
     }
 
-    private Future<String> verifyPassword(String origin, String space, String pwd, String antiforgery) {
+    private Future<String> verifyPassword(String origin, String dlmc, String pwd, String antiforgery) {
         Promise<String> p = Promise.promise();
         JsonObject body = new JsonObject()
                 .put("password", pwd)
-                .put("dlmc", space)
+                .put("dlmc", dlmc)
                 .put("remember", false);
 
-        clientSession.postAbs(origin + "/?handler=VerifyPassword")
+        clientSession.postAbs(verifyPasswordEndpoint(origin))
+                .followRedirects(false)
                 .putHeader("User-Agent", BROWSER_UA)
                 .putHeader("Content-Type", "application/json")
                 .putHeader("Origin", origin)
@@ -205,18 +248,18 @@ public class YsTool extends PanBase {
                 .sendJsonObject(body)
                 .onSuccess(res -> {
                     try {
+                        if (res.statusCode() >= 400) {
+                            p.fail(baseMsg() + " - " + passwordFailureMessage(res.statusCode(), res.bodyAsString()));
+                            return;
+                        }
                         JsonObject json = res.bodyAsJsonObject();
                         if (json == null || !Boolean.TRUE.equals(json.getBoolean("success"))) {
                             String msg = json != null ? json.getString("message", "密码错误") : "密码验证失败";
                             p.fail(baseMsg() + " - " + msg);
                             return;
                         }
-                        String jwt = extractJwt(res);
-                        if (StringUtils.isBlank(jwt)) {
-                            p.fail(baseMsg() + " - 密码验证成功但未返回会话令牌");
-                            return;
-                        }
-                        p.complete(jwt);
+                        // 响应里若刷新了 jwttk 就用新的；否则调用方回退到入口页令牌
+                        p.complete(StringUtils.defaultString(extractJwt(res)));
                     } catch (Exception e) {
                         p.fail(baseMsg() + " - 密码验证响应异常: " + e.getMessage());
                     }
@@ -226,27 +269,18 @@ public class YsTool extends PanBase {
     }
 
     private Future<Session> reloadSpace(String origin, String space, String verifiedJwt) {
-        Promise<Session> p = Promise.promise();
-        clientSession.getAbs(origin + "/")
-                .putHeader("User-Agent", BROWSER_UA)
-                .putHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-                .send()
-                .onSuccess(res -> {
-                    String html = res.bodyAsString() != null ? res.bodyAsString() : "";
-                    JsonObject htxx = extractHtxx(html);
-                    String jwt = StringUtils.defaultIfBlank(extractJwt(res), verifiedJwt);
-                    if (htxx == null || StringUtils.isBlank(htxx.getString("qqdz"))) {
-                        p.fail(baseMsg() + " - 密码验证后仍无法进入空间");
-                        return;
-                    }
-                    if (StringUtils.isBlank(jwt)) {
-                        p.fail(baseMsg() + " - 密码验证后无法获取会话令牌");
-                        return;
-                    }
-                    p.complete(toSession(origin, space, jwt, htxx));
-                })
-                .onFailure(t -> p.fail(baseMsg() + " - 重新加载空间失败: " + t.getMessage()));
-        return p.future();
+        return fetchSpaceHome(origin + "/", 0).compose(home -> {
+            String html = home.response().bodyAsString() != null ? home.response().bodyAsString() : "";
+            JsonObject htxx = extractHtxx(html);
+            String jwt = StringUtils.defaultIfBlank(extractJwt(home.response()), verifiedJwt);
+            if (htxx == null || StringUtils.isBlank(htxx.getString("qqdz"))) {
+                return Future.failedFuture(baseMsg() + " - 密码验证后仍无法进入空间");
+            }
+            if (StringUtils.isBlank(jwt)) {
+                return Future.failedFuture(baseMsg() + " - 密码验证后无法获取会话令牌");
+            }
+            return Future.succeededFuture(toSession(home.origin(), space, jwt, htxx));
+        });
     }
 
     private Session toSession(String origin, String space, String jwt, JsonObject htxx) {
@@ -620,24 +654,134 @@ public class YsTool extends PanBase {
     }
 
     private String spaceOrigin() {
-        String shareUrl = shareLinkInfo.getShareUrl();
-        if (StringUtils.isNotBlank(shareUrl)) {
-            try {
-                java.net.URI uri = java.net.URI.create(shareUrl);
-                String scheme = uri.getScheme() != null ? uri.getScheme() : "https";
-                return scheme + "://" + uri.getHost();
-            } catch (Exception ignored) {
-            }
+        String fromUrl = originOf(shareLinkInfo.getShareUrl());
+        if (fromUrl != null) {
+            return fromUrl;
         }
         return "https://" + spaceName() + ".ysepan.com";
     }
 
-    private static String extractAntiforgery(String html) {
-        Matcher m = ANTIFORGERY_PATTERN.matcher(html);
-        return m.find() ? m.group(1) : null;
+    static boolean isPasswordPage(String html) {
+        if (StringUtils.isBlank(html)) {
+            return false;
+        }
+        return html.contains("VerifyPassword")
+                || html.contains("loginPopup")
+                || html.contains("data-verification-token")
+                || html.contains("id=\"entryConfig\"")
+                || html.contains("id=\"loginForm\"")
+                || html.contains("id='entryConfig'")
+                || html.contains("id='loginForm'");
     }
 
-    private static JsonObject extractHtxx(String html) {
+    /**
+     * 优先新版 data-verification-token，其次旧版脚本里的 RequestVerificationToken。
+     */
+    static String extractAntiforgery(String html) {
+        if (html == null) {
+            return null;
+        }
+        Matcher attr = ANTIFORGERY_ATTR_PATTERN.matcher(html);
+        if (attr.find()) {
+            return attr.group(2);
+        }
+        Matcher legacy = ANTIFORGERY_LEGACY_PATTERN.matcher(html);
+        return legacy.find() ? legacy.group(1) : null;
+    }
+
+    static String extractDlmc(String html) {
+        if (html == null) {
+            return null;
+        }
+        Matcher matcher = DLMC_ATTR_PATTERN.matcher(html);
+        return matcher.find() ? matcher.group(2) : null;
+    }
+
+    /**
+     * 把密码接口的失败响应转成可展示的短句。上游对错误密码返回 HTTP 400，
+     * 正文是 {@code code=invalid_password}。不回传响应原文，避免带上令牌。
+     */
+    static String passwordFailureMessage(int statusCode, String body) {
+        try {
+            if (body != null && body.trim().startsWith("{")) {
+                JsonObject json = new JsonObject(body);
+                String code = StringUtils.defaultString(json.getString("code"));
+                String message = safePasswordMessage(json.getString("message"));
+                if ("invalid_password".equals(code)) {
+                    return message != null ? message : "密码错误";
+                }
+                if (message != null) {
+                    return message;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return "密码验证失败 HTTP " + statusCode;
+    }
+
+    private static String safePasswordMessage(String message) {
+        if (StringUtils.isBlank(message)) {
+            return null;
+        }
+        String trimmed = message.trim();
+        if (trimmed.length() > 80) {
+            return null;
+        }
+        String lower = trimmed.toLowerCase();
+        if (lower.contains("eyj") || trimmed.contains("CfDJ") || lower.contains("jwttk")
+                || lower.contains("cookie") || lower.contains("token")) {
+            return null;
+        }
+        return trimmed;
+    }
+
+    /** 密码验证地址。origin 必须是重定向结束后的主机，不能用 ys168.com 原站。 */
+    static String verifyPasswordEndpoint(String origin) {
+        return origin + "/?handler=VerifyPassword";
+    }
+
+    static String resolveRedirect(String currentUrl, String location) {
+        if (StringUtils.isBlank(currentUrl) || StringUtils.isBlank(location)) {
+            return null;
+        }
+        try {
+            URI resolved = URI.create(currentUrl.trim()).resolve(location.trim());
+            if (resolved.getScheme() == null || resolved.getHost() == null) {
+                return null;
+            }
+            return resolved.toString();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    static String originOf(String url) {
+        if (StringUtils.isBlank(url)) {
+            return null;
+        }
+        try {
+            URI uri = URI.create(url.trim());
+            if (uri.getScheme() == null || uri.getHost() == null) {
+                return null;
+            }
+            String scheme = uri.getScheme();
+            int port = uri.getPort();
+            boolean defaultPort = port < 0
+                    || ("https".equalsIgnoreCase(scheme) && port == 443)
+                    || ("http".equalsIgnoreCase(scheme) && port == 80);
+            if (defaultPort) {
+                return scheme + "://" + uri.getHost();
+            }
+            return scheme + "://" + uri.getHost() + ":" + port;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    static JsonObject extractHtxx(String html) {
+        if (html == null) {
+            return null;
+        }
         Matcher m = HTXX_PATTERN.matcher(html);
         if (!m.find()) {
             return null;
@@ -684,6 +828,9 @@ public class YsTool extends PanBase {
 
     private static String urlEncode(String value) {
         return URLEncoder.encode(StringUtils.defaultString(value), StandardCharsets.UTF_8);
+    }
+
+    private record FetchedHome(String origin, HttpResponse<Buffer> response) {
     }
 
     private record Session(String origin, String space, String jwt, String apiBase) {
