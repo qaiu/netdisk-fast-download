@@ -302,5 +302,6 @@ jobs:
           netdisk-fast-download-linux-amd64.zip
           netdisk-fast-download-windows-amd64.zip
         tag_name: ${{ github.ref_name }}
+        body_path: .github/release-notes.md
         generate_release_notes: true
         fail_on_unmatched_files: true
