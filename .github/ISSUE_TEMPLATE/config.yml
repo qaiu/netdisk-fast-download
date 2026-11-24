@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 使用文档
+    url: https://nfd-parser.github.io/
+    about: 部署、接口和配置说明
+  - name: 已发布版本
+    url: https://github.com/qaiu/netdisk-fast-download/releases
+    about: 先看最新版本和更新说明，再反馈旧版本里已经修过的问题
