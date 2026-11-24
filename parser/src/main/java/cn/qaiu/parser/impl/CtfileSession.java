@@ -69,7 +69,9 @@ final class CtfileSession implements AutoCloseable {
             remember(decision, password, null);
             return body;
         }
-        if (decision.kind == Kind.ALTCHA) {
+        // 带密码分享的首次响应经常标成 turnstile，但提交一次 ALTCHA 后正确密码会直接 200。
+        // 过期的 access_pass 同样会回到这个分支，丢弃后重新计算。
+        if (shouldSolveAltcha(decision)) {
             String cached = cachedPass(decision.ownerId, password);
             if (cached != null) {
                 JsonObject retry = getResource(kind, id, target, password, null, null, cached);
@@ -88,25 +90,30 @@ final class CtfileSession implements AutoCloseable {
             String token = AltchaV2Solver.payload(challenge, solution);
             JsonObject retry = getResource(kind, id, target, password, token, null, null);
             Decision solved = classify(retry, 200, password);
-            if (solved.kind != Kind.OK) {
-                if (solved.kind == Kind.ALTCHA) {
-                    throw new CtfileException("ALTCHA 人机验证未通过，请重试");
-                }
-                throw new CtfileException(solved.message);
-            }
-            remember(solved, password, null);
-            return retry;
-        }
-        if (decision.kind == Kind.TURNSTILE && turnstileToken != null && !turnstileToken.isBlank()) {
-            JsonObject retry = getResource(kind, id, target, password, null, turnstileToken, null);
-            Decision again = classify(retry, 200, password);
-            if (again.kind == Kind.OK) {
-                remember(again, password, null);
+            if (solved.kind == Kind.OK) {
+                remember(solved, password, null);
                 return retry;
             }
-            throw new CtfileException(again.message);
+            if (solved.kind == Kind.ALTCHA) {
+                throw new CtfileException("ALTCHA 人机验证未通过，请重试");
+            }
+            if (solved.kind == Kind.TURNSTILE && turnstileToken != null && !turnstileToken.isBlank()) {
+                JsonObject withTurnstile = getResource(kind, id, target, password, null, turnstileToken, null);
+                Decision afterTurnstile = classify(withTurnstile, 200, password);
+                if (afterTurnstile.kind == Kind.OK) {
+                    remember(afterTurnstile, password, null);
+                    return withTurnstile;
+                }
+                throw new CtfileException(afterTurnstile.message);
+            }
+            throw new CtfileException(solved.message);
         }
         throw new CtfileException(decision.message);
+    }
+
+    /** 匿名分享优先解 ALTCHA。首次响应写成 turnstile 时，正确密码仍可能被 ALTCHA 放行。 */
+    static boolean shouldSolveAltcha(Decision decision) {
+        return decision != null && (decision.kind == Kind.ALTCHA || decision.kind == Kind.TURNSTILE);
     }
 
     DirectLink download(String id, ShareTarget target, String password, JsonObject resource) throws Exception {

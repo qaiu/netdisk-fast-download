@@ -22,8 +22,8 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 城通官方客户端协议 {@code /v4}。带访问密码的分享在网页接口上会被 Turnstile 拦住，
- * 登录自己的免费账号后改走这里列目录和取直链。
+ * 城通官方客户端协议 {@code /v4}。匿名 ALTCHA 仍被 Turnstile 拦住时的可选回退，
+ * 需要调用方自己的登录令牌。带访问密码的分享默认不走这里。
  */
 final class CtfileV4Client {
 
@@ -50,10 +50,10 @@ final class CtfileV4Client {
     }
 
     static String missingAccountMessage() {
-        return "未配置城通账号。带访问密码的分享需要登录后的令牌："
-                + "在 app-dev.yml 配置 auths.ct.refresh_token，或请求里用 auth 传入。"
+        return "匿名解析仍被 Cloudflare Turnstile 拦住，且未配置城通账号。"
+                + "可在 app-dev.yml 配置 auths.ct.refresh_token 作为可选回退，或在请求 auth 中传入。"
                 + "refresh_token 来自浏览器登录 pan.ctfile.com 后 Session Storage 中的 refresh_token；"
-                + "也可以同时填写 token 作为当前 access token。目录分享的类型是 ctd，未单独配置时会回退使用 ct。";
+                + "token 可填当前 access token。目录类型 ctd 未单独配置时回退使用 ct。";
     }
 
     DirectLink downloadShare(String shareKey, boolean directory) throws Exception {

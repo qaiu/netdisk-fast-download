@@ -11,13 +11,18 @@ import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -36,7 +41,9 @@ public class CtToolLiveTest {
     private static final String PASSWORD_FILE_WITHOUT_PASSWORD =
             "https://url94.ctfile.com/f/64115194-17569800420720-06c697";
     private static final String PASSWORD_DIR =
-            "https://url94.ctfile.com/d/64115194-164803691-48508c?p=7609&d=164803691&fk=decb36";
+            "https://url94.ctfile.com/d/64115194-164803691-48508c?p=7609";
+    private static final String PASSWORD_FILE_WRONG =
+            "https://url94.ctfile.com/f/64115194-17569800420720-06c697?p=0000";
 
     private static Vertx vertx;
 
@@ -122,25 +129,115 @@ public class CtToolLiveTest {
     }
 
     @Test
-    public void passwordShareIsTurnstileAndMissingShareIsNotFound() throws Exception {
+    public void passwordFileDownloadsAnonymously() throws Exception {
         liveOnly();
-        String withPassword = failure(tool(PASSWORD_FILE).parse());
-        assertTrue(withPassword, withPassword.contains("未配置城通账号"));
-        assertFalse(withPassword, withPassword.contains("已过期"));
-        assertFalse(withPassword, withPassword.contains("密码不正确"));
+        CtTool tool = tool(PASSWORD_FILE);
+        String url = tool.parse().toCompletionStage().toCompletableFuture().get(120, TimeUnit.SECONDS);
+        FileInfo info = (FileInfo) tool.getShareLinkInfo().getOtherParam().get("fileInfo");
+        assertEquals("欢迎使用微盘.pdf", info.getFileName());
+        assertEquals(Long.valueOf(4005749L), info.getSize());
+        byte[] body = download(url);
+        assertEquals(4005749, body.length);
+        assertTrue(new String(body, 0, 5, StandardCharsets.ISO_8859_1).startsWith("%PDF-"));
+        assertTrue(new String(body, body.length - 16, 16, StandardCharsets.ISO_8859_1).contains("%%EOF"));
+        assertEquals("cce8357689762fd1acd1f73fcd7e83d62b4e9bcee6fccf0c9b8f46d26ee74902", sha256(body));
+    }
 
+    @Test
+    public void passwordDirectoryListsAndDownloadsZipAnonymously() throws Exception {
+        liveOnly();
+        CtTool directory = tool(PASSWORD_DIR);
+        List<FileInfo> files = directory.parseFileList().toCompletionStage().toCompletableFuture()
+                .get(120, TimeUnit.SECONDS);
+        assertEquals(3, files.size());
+        FileInfo zip = null;
+        for (FileInfo file : files) {
+            assertNotNull(file.getParserUrl());
+            assertTrue(file.getParserUrl().contains("pwd=7609") || decodedParam(file).getString("pwd").equals("7609"));
+            if ("osm_model_20260602_153158.zip".equals(file.getFileName())) {
+                zip = file;
+            }
+        }
+        assertNotNull(zip);
+        assertEquals(Long.valueOf(158842L), zip.getSize());
+        ShareLinkInfo child = ShareLinkInfo.newBuilder()
+                .type("ct")
+                .panName("城通网盘")
+                .shareKey("pending")
+                .shareUrl("https://ctfile.com/file/pending")
+                .build();
+        child.getOtherParam().put("paramJson", decodedParam(zip));
+        child.getOtherParam().put("domainName", "https://nfd.example");
+        CtTool downloader = new CtTool(child);
+        String url = downloader.parseById().toCompletionStage().toCompletableFuture().get(120, TimeUnit.SECONDS);
+        byte[] body = download(url);
+        assertEquals(158842, body.length);
+        assertEquals('P', (char) body[0]);
+        assertEquals('K', (char) body[1]);
+        int entries = 0;
+        try (ZipInputStream zipIn = new ZipInputStream(new ByteArrayInputStream(body))) {
+            ZipEntry entry;
+            while ((entry = zipIn.getNextEntry()) != null) {
+                byte[] ignored = zipIn.readAllBytes();
+                assertTrue(entry.getName() != null);
+                assertTrue(ignored.length >= 0);
+                zipIn.closeEntry();
+                entries++;
+            }
+        }
+        assertTrue(entries > 0);
+    }
+
+    @Test
+    public void missingPasswordAndMissingShareStayDistinct() throws Exception {
+        liveOnly();
         String withoutPassword = failure(tool(PASSWORD_FILE_WITHOUT_PASSWORD).parse());
         assertTrue(withoutPassword, withoutPassword.contains("需要访问密码"));
+        assertFalse(withoutPassword, withoutPassword.contains("未配置城通账号"));
 
-        CtTool directory = (CtTool) ParserCreate.fromShareUrl(PASSWORD_DIR).createTool();
-        String directoryFailure = failure(directory.parseFileList());
-        assertTrue(directoryFailure, directoryFailure.contains("未配置城通账号"));
+        String wrongPassword = failure(tool(PASSWORD_FILE_WRONG).parse());
+        assertTrue(wrongPassword, wrongPassword.contains("访问密码不正确"));
+        assertFalse(wrongPassword, wrongPassword.contains("未配置城通账号"));
 
         String missingFile = failure(tool("https://474b.com/file/4015376-1").parse());
         assertTrue(missingFile, missingFile.contains("不存在或已过期"));
 
         String missingOwner = failure(tool("https://474b.com/file/0-0").parse());
         assertTrue(missingOwner, missingOwner.contains("不存在或已过期"));
+    }
+
+    private static JsonObject decodedParam(FileInfo file) {
+        String url = file.getParserUrl();
+        return new JsonObject(decodeUrlBase64(url.substring(url.lastIndexOf('/') + 1)));
+    }
+
+    private static String decodeUrlBase64(String value) {
+        String padded = value;
+        int mod = padded.length() % 4;
+        if (mod != 0) {
+            padded += "=".repeat(4 - mod);
+        }
+        return new String(java.util.Base64.getUrlDecoder().decode(padded), StandardCharsets.UTF_8);
+    }
+
+    private static byte[] download(String url) throws Exception {
+        HttpResponse<byte[]> response = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(20))
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .build()
+                .send(HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(120)).GET().build(),
+                        HttpResponse.BodyHandlers.ofByteArray());
+        assertEquals(200, response.statusCode());
+        return response.body();
+    }
+
+    private static String sha256(byte[] body) throws Exception {
+        byte[] digest = MessageDigest.getInstance("SHA-256").digest(body);
+        StringBuilder hex = new StringBuilder();
+        for (byte value : digest) {
+            hex.append(String.format("%02x", value));
+        }
+        return hex.toString();
     }
 
     private static void liveOnly() {

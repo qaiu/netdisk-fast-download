@@ -21,9 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 城通网盘。免密分享走网页接口 {@code api.ctfile.com/url/*} 和 ALTCHA v2。
- * 带访问密码的分享在网页接口上会被 Turnstile 拦住，改走官方客户端 {@code /v4}，
- * 需要在 {@code auths.ct.refresh_token} 配置自己的登录令牌。
+ * 城通网盘。免密和带访问密码的分享都先走匿名网页接口和 ALTCHA v2。
+ * 官方客户端 {@code /v4} 只在匿名结果仍是 Turnstile、且调用方自己配置了登录令牌时回退。
  */
 public class CtTool extends PanBase {
 
@@ -167,15 +166,17 @@ public class CtTool extends PanBase {
         return new ParsedDownload(link.url, java.util.Map.of(), link.file, "");
     }
 
-    private boolean requiresV4() {
-        if (shareLinkInfo.getOtherParam() != null) {
-            Object fileId = shareLinkInfo.getOtherParam().get("ctV4FileId");
-            if (fileId != null && !fileId.toString().isBlank()) {
-                return true;
-            }
+    /** 只有 v4 目录列表生成的文件参数才直接走客户端协议。访问密码本身不触发登录。 */
+    static boolean requiresV4(ShareLinkInfo info) {
+        if (info == null || info.getOtherParam() == null) {
+            return false;
         }
-        String password = shareLinkInfo.getSharePassword();
-        return password != null && !password.isBlank();
+        Object fileId = info.getOtherParam().get("ctV4FileId");
+        return fileId != null && !fileId.toString().isBlank();
+    }
+
+    private boolean requiresV4() {
+        return requiresV4(shareLinkInfo);
     }
 
     private static boolean turnstile(CtfileException error) {
@@ -206,12 +207,6 @@ public class CtTool extends PanBase {
 
     private List<FileInfo> listDirectory(String shareKey) throws Exception {
         String password = shareLinkInfo.getSharePassword();
-        if (password != null && !password.isBlank()) {
-            if (!CtfileV4Client.hasCredentials(shareLinkInfo)) {
-                throw new CtfileException(CtfileV4Client.missingAccountMessage());
-            }
-            return new CtfileV4Client(shareLinkInfo).listShare(shareKey, ShareTarget.from(shareLinkInfo).folderId, maxListPages());
-        }
         ShareTarget target = ShareTarget.from(shareLinkInfo);
         int maxPages = maxListPages();
         try (CtfileSession session = CtfileSession.open(shareLinkInfo)) {

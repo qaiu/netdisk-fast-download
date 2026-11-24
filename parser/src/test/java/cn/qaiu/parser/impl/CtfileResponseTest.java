@@ -57,6 +57,29 @@ public class CtfileResponseTest {
                 "{\"code\":200,\"data\":{\"access_pass\":\"v1.aaa.bbb\",\"capabilities\":{\"ownerId\":4015376}}}"), 200, "");
         assertEquals(Kind.OK, ok.kind);
         assertEquals("v1.aaa.bbb", ok.accessPass);
+
+        Decision labeledTurnstile = CtfileSession.classify(new JsonObject(
+                "{\"code\":423,\"data\":{\"error_type\":\"captcha_required\",\"captcha_type\":\"turnstile\","
+                        + "\"capabilities\":{\"passcodeRequired\":true}},\"msg\":\"Share passcode needs a new human check.\"}"),
+                423, "pw");
+        assertTrue(CtfileSession.shouldSolveAltcha(labeledTurnstile));
+        assertFalse(CtfileSession.shouldSolveAltcha(needPassword));
+        Decision wrongAfterAltcha = CtfileSession.classify(new JsonObject(
+                "{\"code\":423,\"data\":{\"error_type\":\"passcode_incorrect\",\"captcha_type\":\"turnstile\","
+                        + "\"capabilities\":{\"passcodeRequired\":true}},\"msg\":\"Share passcode is incorrect.\"}"),
+                423, "0000");
+        assertEquals(Kind.BAD_PASSWORD, wrongAfterAltcha.kind);
+        assertFalse(CtfileSession.shouldSolveAltcha(wrongAfterAltcha));
+
+        ShareLinkInfo passwordShare = ShareLinkInfo.newBuilder()
+                .type("ct")
+                .shareKey("11-22-ab")
+                .sharePassword("pw")
+                .shareUrl("https://example.test/f/11-22-ab?p=pw")
+                .build();
+        assertFalse(CtTool.requiresV4(passwordShare));
+        passwordShare.getOtherParam().put("ctV4FileId", "f22");
+        assertTrue(CtTool.requiresV4(passwordShare));
     }
 
     @Test

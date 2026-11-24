@@ -145,7 +145,8 @@ auths:
     username:
     password:
     # authorization:
-  # 城通：免密分享不需要登录。带访问密码的文件和目录要自己的客户端令牌。
+  # 城通：免密和带访问密码的分享都先匿名解 ALTCHA，通常不用登录。
+  # 只有匿名结果仍是 Turnstile 时，下面的令牌才会作为可选回退。
   # 浏览器打开 https://pan.ctfile.com 并登录，F12 → Application → Session Storage，
   # 复制 refresh_token。token 可空，填了就当作当前 access token，过期后用 refresh_token 刷新。
   # 刷新若轮换了 refresh_token，进程内会写回这份配置和 TokenCache；重启前请把新值保存回本文件。
