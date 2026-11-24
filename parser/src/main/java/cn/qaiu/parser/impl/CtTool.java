@@ -21,9 +21,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 城通网盘。分享页已经改成 {@code api.ctfile.com/url/*}：
- * 免密分享先解 ALTCHA v2，再取 {@code access_pass} 和下载地址；
- * 带密码分享由 Cloudflare Turnstile 拦住，服务端解不开。
+ * 城通网盘。免密分享走网页接口 {@code api.ctfile.com/url/*} 和 ALTCHA v2。
+ * 带访问密码的分享在网页接口上会被 Turnstile 拦住，改走官方客户端 {@code /v4}，
+ * 需要在 {@code auths.ct.refresh_token} 配置自己的登录令牌。
  */
 public class CtTool extends PanBase {
 
@@ -118,6 +118,18 @@ public class CtTool extends PanBase {
             return false;
         }
         shareLinkInfo.setSharePassword(paramJson.getString("pwd", ""));
+        String xtlink = paramJson.getString("xtlink", "");
+        if (!xtlink.isBlank()) {
+            shareLinkInfo.getOtherParam().put("ctXtlink", xtlink);
+            shareLinkInfo.getOtherParam().put("ctV4FileId", fileShareKey);
+            String parentKey = paramJson.getString("shareKey", "");
+            if (!parentKey.isBlank()) {
+                shareLinkInfo.setShareKey(parentKey);
+            } else if (shareLinkInfo.getShareKey() == null || shareLinkInfo.getShareKey().isBlank()) {
+                shareLinkInfo.setShareKey(fileShareKey);
+            }
+            return true;
+        }
         shareLinkInfo.setShareKey(fileShareKey);
         shareLinkInfo.setShareUrl(SHARE_FILE_URL_PREFIX + fileShareKey);
         shareLinkInfo.setStandardUrl(SHARE_FILE_URL_PREFIX + fileShareKey);
@@ -125,6 +137,9 @@ public class CtTool extends PanBase {
     }
 
     private ParsedDownload resolveDownload(String shareKey) throws Exception {
+        if (requiresV4()) {
+            return downloadWithV4(shareKey);
+        }
         VerificationMismatch mismatch = null;
         for (int attempt = 0; attempt < 2; attempt++) {
             try (CtfileSession session = CtfileSession.open(shareLinkInfo)) {
@@ -133,10 +148,47 @@ public class CtTool extends PanBase {
                 } catch (VerificationMismatch retryable) {
                     // verifycode 和签发它的那次连接绑在一起。换一个客户端再取一次。
                     mismatch = retryable;
+                } catch (CtfileException e) {
+                    if (turnstile(e) && CtfileV4Client.hasCredentials(shareLinkInfo)) {
+                        return downloadWithV4(shareKey);
+                    }
+                    throw e;
                 }
             }
         }
         throw mismatch == null ? new CtfileException("未返回下载地址") : mismatch;
+    }
+
+    private ParsedDownload downloadWithV4(String shareKey) throws Exception {
+        if (!CtfileV4Client.hasCredentials(shareLinkInfo)) {
+            throw new CtfileException(CtfileV4Client.missingAccountMessage());
+        }
+        CtfileV4Client.DirectLink link = new CtfileV4Client(shareLinkInfo).downloadShare(shareKey, directoryShare());
+        return new ParsedDownload(link.url, java.util.Map.of(), link.file, "");
+    }
+
+    private boolean requiresV4() {
+        if (shareLinkInfo.getOtherParam() != null) {
+            Object fileId = shareLinkInfo.getOtherParam().get("ctV4FileId");
+            if (fileId != null && !fileId.toString().isBlank()) {
+                return true;
+            }
+        }
+        String password = shareLinkInfo.getSharePassword();
+        return password != null && !password.isBlank();
+    }
+
+    private static boolean turnstile(CtfileException error) {
+        return error.getMessage() != null && error.getMessage().contains("Turnstile");
+    }
+
+    private boolean directoryShare() {
+        String type = shareLinkInfo.getType();
+        if (type != null && type.equalsIgnoreCase("ctd")) {
+            return true;
+        }
+        String url = shareLinkInfo.getShareUrl();
+        return url != null && url.matches("(?i).*/d/[^/].*");
     }
 
     private ParsedDownload downloadOnce(CtfileSession session, String shareKey) throws Exception {
@@ -154,6 +206,12 @@ public class CtTool extends PanBase {
 
     private List<FileInfo> listDirectory(String shareKey) throws Exception {
         String password = shareLinkInfo.getSharePassword();
+        if (password != null && !password.isBlank()) {
+            if (!CtfileV4Client.hasCredentials(shareLinkInfo)) {
+                throw new CtfileException(CtfileV4Client.missingAccountMessage());
+            }
+            return new CtfileV4Client(shareLinkInfo).listShare(shareKey, ShareTarget.from(shareLinkInfo).folderId, maxListPages());
+        }
         ShareTarget target = ShareTarget.from(shareLinkInfo);
         int maxPages = maxListPages();
         try (CtfileSession session = CtfileSession.open(shareLinkInfo)) {
@@ -185,6 +243,11 @@ public class CtTool extends PanBase {
                 return files;
             }
             throw new CtfileException("目录文件过多，已超过 " + maxPages + " 页");
+        } catch (CtfileException e) {
+            if (turnstile(e) && CtfileV4Client.hasCredentials(shareLinkInfo)) {
+                return new CtfileV4Client(shareLinkInfo).listShare(shareKey, target.folderId, maxPages);
+            }
+            throw e;
         }
     }
 

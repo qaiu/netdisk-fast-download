@@ -125,16 +125,16 @@ public class CtToolLiveTest {
     public void passwordShareIsTurnstileAndMissingShareIsNotFound() throws Exception {
         liveOnly();
         String withPassword = failure(tool(PASSWORD_FILE).parse());
-        assertTrue(withPassword, withPassword.contains("Turnstile"));
-        assertFalse(withPassword, withPassword.contains("密码不正确"));
+        assertTrue(withPassword, withPassword.contains("未配置城通账号"));
         assertFalse(withPassword, withPassword.contains("已过期"));
+        assertFalse(withPassword, withPassword.contains("密码不正确"));
 
         String withoutPassword = failure(tool(PASSWORD_FILE_WITHOUT_PASSWORD).parse());
         assertTrue(withoutPassword, withoutPassword.contains("需要访问密码"));
 
         CtTool directory = (CtTool) ParserCreate.fromShareUrl(PASSWORD_DIR).createTool();
         String directoryFailure = failure(directory.parseFileList());
-        assertTrue(directoryFailure, directoryFailure.contains("Turnstile"));
+        assertTrue(directoryFailure, directoryFailure.contains("未配置城通账号"));
 
         String missingFile = failure(tool("https://474b.com/file/4015376-1").parse());
         assertTrue(missingFile, missingFile.contains("不存在或已过期"));

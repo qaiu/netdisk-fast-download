@@ -546,6 +546,11 @@ auths:
     username: 你的用户名
     password: 你的密码
     # authorization: 浏览器登录后的 authorToken / sso-token
+  # 城通带访问密码的分享需要登录令牌。免密分享不用配。
+  # 登录 https://pan.ctfile.com 后，从 Session Storage 复制 refresh_token。
+  # ct:
+  #   refresh_token: 登录后的 refresh_token
+  #   token: 可选，当前 access token
 ```
 
 
