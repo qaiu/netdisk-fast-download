@@ -1,6 +1,20 @@
 <template>
   <div class="main-container">
     <div class="directory-tree" :class="{ 'dark-theme': isDarkTheme }">
+      <div class="dir-filter-bar">
+        <el-input
+          v-model="nameFilter"
+          class="dir-name-filter"
+          clearable
+          placeholder="按文件名筛选"
+          aria-label="按文件名筛选"
+        >
+          <template #prefix>
+            <i class="fas fa-search" aria-hidden="true"></i>
+          </template>
+        </el-input>
+        <p v-if="nameQuery" class="dir-filter-hint">仅筛选已加载的 {{ loadedCount }} 项，匹配 {{ matchedCount }} 项</p>
+      </div>
       <template v-if="viewMode === 'pane'">
         <!-- 窗格模式（原有） -->
         <div class="breadcrumb">
@@ -18,7 +32,7 @@
         </div>
         <div class="file-grid" v-loading="loading">
           <div 
-            v-for="file in currentFileList" 
+            v-for="file in visibleFileList" 
             :key="fileKey(file)"
             class="file-item"
             :class="[getFileTypeClass(file), { 'selected': batchMode && isFileSelected(file) }]"
@@ -36,10 +50,10 @@
               {{ fileMetaText(file) }}
             </div>
           </div>
-          <div v-if="!loading && (!currentFileList || currentFileList.length === 0)" class="empty-state">
-            <i class="fas fa-folder-open"></i>
-            <h3>此文件夹为空</h3>
-            <p>暂无文件或文件夹</p>
+          <div v-if="!loading && visibleFileList.length === 0" class="empty-state">
+            <i class="fas" :class="nameQuery && currentFileList.length ? 'fa-search' : 'fa-folder-open'"></i>
+            <h3>{{ nameQuery && currentFileList.length ? '没有匹配的文件' : '此文件夹为空' }}</h3>
+            <p>{{ nameQuery && currentFileList.length ? '换个关键字，或加载更多后再筛' : '暂无文件或文件夹' }}</p>
           </div>
         </div>
         <div v-if="paneMore" ref="loadMoreBar" class="load-more-bar">
@@ -126,6 +140,11 @@
                   </span>
                 </div>
                 <div class="tree-scroll-wrap" v-loading="treeExpanding">
+                  <div v-if="treeFilterEmpty" class="empty-state tree-filter-empty">
+                    <i class="fas fa-search"></i>
+                    <h3>没有匹配的文件</h3>
+                    <p>换个关键字，或加载更多后再筛</p>
+                  </div>
                   <el-tree
                     ref="fileTree"
                     :data="treeData"
@@ -136,16 +155,20 @@
                     :highlight-current="!batchMode"
                     :show-checkbox="batchMode"
                     :check-strictly="false"
+                    :filter-node-method="filterTreeNode"
                     @node-click="onNodeClick"
                     @check="onTreeCheck"
                     @check-change="onTreeCheckChange"
                     :default-expand-all="false"
-                    :default-expanded-keys="['root']"
                     :render-content="renderContent"
                     style="background:transparent;"
                   />
                 </div>
                 <div v-if="batchMode" class="tree-sidebar-footer">
+                  <div class="tree-select-row">
+                    <el-button size="small" @click="selectAll">全选</el-button>
+                    <el-button size="small" @click="deselectAll">取消全选</el-button>
+                  </div>
                   <span class="tree-sidebar-count">已勾选 {{ selectedFiles.length }} 个文件</span>
                   <div class="tree-sidebar-actions">
                     <el-button
@@ -276,6 +299,11 @@
                 </span>
               </div>
               <div class="tree-scroll-wrap" v-loading="treeExpanding">
+                <div v-if="treeFilterEmpty" class="empty-state tree-filter-empty">
+                  <i class="fas fa-search"></i>
+                  <h3>没有匹配的文件</h3>
+                  <p>换个关键字，或加载更多后再筛</p>
+                </div>
                 <el-tree
                   ref="fileTree"
                   :data="treeData"
@@ -286,11 +314,11 @@
                   :highlight-current="!batchMode"
                   :show-checkbox="batchMode"
                   :check-strictly="false"
+                  :filter-node-method="filterTreeNode"
                   @node-click="onNodeClick"
                   @check="onTreeCheck"
                   @check-change="onTreeCheckChange"
                   :default-expand-all="false"
-                  :default-expanded-keys="['root']"
                   :render-content="renderContent"
                   style="background:transparent;"
                 />
@@ -366,6 +394,10 @@
                 </el-button>
               </div>
               <div v-if="batchMode" class="mobile-batch-footer">
+                <div class="tree-select-row">
+                  <el-button size="small" @click="selectAll">全选</el-button>
+                  <el-button size="small" @click="deselectAll">取消全选</el-button>
+                </div>
                 <span class="tree-sidebar-count">已勾选 {{ selectedFiles.length }} 个文件</span>
                 <div class="tree-sidebar-actions">
                   <el-button type="primary" size="small" :disabled="selectedFiles.length === 0 || batchDownloading || treeExpanding || batchBrowserDownloadDisabled" :loading="batchDownloading" @click="batchBrowserDownload" :title="batchBrowserDownloadDisabled ? '所选文件需使用下载器下载' : ''">浏览器下载</el-button>
@@ -462,16 +494,26 @@ import DownloadDialog from '@/components/DownloadDialog.vue'
 import { testConnection, autoDetect, addDownload, batchAddDownload, getConfig, saveConfig } from '@/utils/downloaderService'
 import batchTreeCollect from '@/utils/batchTreeCollect'
 import folderPaging from '@/utils/folderPaging'
+import nameFilter from '@/utils/nameFilter'
 import { openNoReferrer } from '@/utils/openNoReferrer'
 
 const {
   DEFAULT_BATCH_MAX_DEPTH,
   getTreeNodeId,
   normalizeTreeItem,
+  fileIdentity,
   uniqueFiles,
   collectFolderFiles
 } = batchTreeCollect
 const { toPageUrl, readPage, appendUnique, nextState, makeMoreNode, isMoreNode } = folderPaging
+const {
+  matchesFileName,
+  filterByFileName,
+  filterSummary,
+  selectMatching,
+  deselectMatching,
+  collectLoadedNodes
+} = nameFilter
 
 export default {
   name: 'DirectoryTree',
@@ -514,6 +556,9 @@ export default {
       loading: false,
       pathStack: [{ name: '全部文件', url: '' }],
       currentFileList: [],
+      nameFilter: '',
+      rootLoadedFiles: [],
+      treeLoadVersion: 0,
       // 当前窗格目录的下一页状态；null 表示已全部加载
       paneMore: null,
       rootMore: null,
@@ -549,11 +594,26 @@ export default {
     }
   },
   computed: {
+    nameQuery() {
+      return String(this.nameFilter || '').trim()
+    },
+    visibleFileList() {
+      return filterByFileName(this.currentFileList, this.nameFilter)
+    },
+    loadedCount() {
+      return filterSummary(this.entriesForCount(), this.nameFilter).loaded
+    },
+    matchedCount() {
+      return filterSummary(this.entriesForCount(), this.nameFilter).matched
+    },
+    treeFilterEmpty() {
+      return this.viewMode === 'tree' && !!this.nameQuery && this.matchedCount === 0 && this.loadedCount > 0
+    },
     folderCount() {
-      return this.currentFileList.filter(file => file.fileType === 'folder').length
+      return this.visibleFileList.filter(file => file.fileType === 'folder').length
     },
     fileCount() {
-      return this.currentFileList.filter(file => file.fileType !== 'folder').length
+      return this.visibleFileList.filter(file => file.fileType !== 'folder').length
     },
     batchProgressPercent() {
       if (this.batchProgress.total === 0) return 0
@@ -591,8 +651,15 @@ export default {
     paneMore() {
       this.$nextTick(() => this.observeLoadMore())
     },
-    viewMode() {
-      this.$nextTick(() => this.observeLoadMore())
+    viewMode(next, prev) {
+      if (prev === 'tree' && next !== 'tree') this.snapshotTreeRoot()
+      this.$nextTick(() => {
+        this.observeLoadMore()
+        if (next === 'tree') this.applyTreeFilter()
+      })
+    },
+    nameFilter() {
+      this.$nextTick(() => this.applyTreeFilter())
     },
     fileList: {
       immediate: true,
@@ -600,23 +667,12 @@ export default {
         this.rootExtra = []
         this.rootMore = nextState(this.buildApiUrl(), readPage(this.rootPageInfo || []))
         this.treeMoreFolders = new Set()
-        const children = (newList || []).map(item => normalizeTreeItem(item))
-        if (this.rootMore) {
-          children.push(makeMoreNode('root', { ...this.rootMore }))
-          this.treeMoreFolders.add('root')
-        }
-        // 根节点children为当前目录下所有文件/文件夹
-        this.treeData = [
-          {
-            id: 'root',
-            fileName: '全部文件',
-            fileType: 'folder',
-            children,
-            isLeaf: false
-          }
-        ]
+        this.rootLoadedFiles = (newList || []).slice()
+        this.nameFilter = ''
+        this.treeLoadVersion += 1
+        this.syncTreeDataChildren()
         this.pathStack = [{ name: '全部文件', url: '' }]
-        this.currentFileList = newList
+        this.currentFileList = newList || []
         this.paneMore = this.rootMore
       }
     }
@@ -624,6 +680,7 @@ export default {
   created() {
     this.treeMoreFolders = this.treeMoreFolders || new Set()
     this._paneLoadSeq = 0
+    this._syncingChecks = false
     this.resetTreeCollectState()
   },
   methods: {
@@ -653,10 +710,106 @@ export default {
       }
       return this.withAuth(`${baseUrl}?${params.toString()}`)
     },
+    entriesForCount() {
+      // 树节点不是响应式数据，翻页后靠 treeLoadVersion 让「已加载 / 匹配」重新计算
+      void this.treeLoadVersion
+      return this.activeLoadedEntries()
+    },
+    activeLoadedEntries() {
+      if (this.viewMode !== 'tree') return this.currentFileList || []
+      const tree = this.getFileTree()
+      const storeRoot = tree && tree.store ? tree.store.root : null
+      if (storeRoot) return collectLoadedNodes(storeRoot)
+      return this.rootLoadedFiles || []
+    },
+    // 加载更多占位和虚拟根始终留下，否则无匹配时无法继续翻页
+    filterTreeNode(value, data) {
+      if (!data || data.id === 'root') return false
+      if (isMoreNode(data) || !value) return true
+      return matchesFileName(data, value)
+    },
+    displayRootNodes() {
+      const nodes = (this.rootLoadedFiles || []).map(item => normalizeTreeItem(item))
+      if (this.rootMore) nodes.push(makeMoreNode('root', { ...this.rootMore }))
+      return nodes
+    },
+    revealFilter() {
+      const tree = this.getFileTree()
+      if (tree && typeof tree.filter === 'function') tree.filter(this.nameQuery || '')
+    },
+    applyTreeFilter() {
+      this.revealFilter()
+      this.syncChecksFromSelection()
+    },
+    syncTreeDataChildren() {
+      const children = this.displayRootNodes()
+      if (this.rootMore) {
+        if (this.treeMoreFolders) this.treeMoreFolders.add('root')
+      } else if (this.treeMoreFolders) {
+        this.treeMoreFolders.delete('root')
+      }
+      // 树的数据就是当前已加载列表，不包一层「全部文件」，避免懒加载把根节点再插进列表
+      this.treeData = children
+    },
+    snapshotTreeRoot() {
+      const tree = this.getFileTree()
+      const root = tree && tree.store ? tree.store.root : null
+      if (!root) return
+      const files = []
+      let more = null
+      let sawMore = false
+      const pushNode = (child) => {
+        if (!child || !child.data || isMoreNode(child.data)) {
+          if (child && child.data && isMoreNode(child.data)) {
+            sawMore = true
+            more = child.data.paging || null
+          }
+          return
+        }
+        if (child.data.id === 'root') {
+          for (const grand of child.childNodes || []) pushNode(grand)
+          return
+        }
+        files.push(child.data)
+      }
+      for (const child of root.childNodes || []) pushNode(child)
+      if (files.length || sawMore) {
+        this.rootLoadedFiles = appendUnique([], files)
+        this.rootMore = more
+      }
+      if (this.pathStack.length <= 1) {
+        this.currentFileList = (this.rootLoadedFiles || []).slice()
+        this.paneMore = this.rootMore
+          ? { ...this.rootMore, loading: false, error: this.rootMore.error || '' }
+          : null
+      }
+      this.$nextTick(() => {
+        if (this.viewMode !== 'tree') this.syncTreeDataChildren()
+      })
+    },
+    syncChecksFromSelection() {
+      const tree = this.getFileTree()
+      if (!tree || !this.batchMode || typeof tree.setChecked !== 'function') return
+      const root = tree.store ? tree.store.root : null
+      if (!root) return
+      this._syncingChecks = true
+      try {
+        const selectedKeys = new Set(this.selectedFiles.map(fileIdentity))
+        for (const file of collectLoadedNodes(root)) {
+          if (!this.isDownloadableFile(file)) continue
+          if (this.nameQuery && !matchesFileName(file, this.nameQuery)) continue
+          tree.setChecked(getTreeNodeId(file), selectedKeys.has(fileIdentity(file)), false)
+        }
+      } finally {
+        this._syncingChecks = false
+      }
+    },
     // 懒加载子节点（批量勾选文件夹时会通过 node.expand → store.load 复用此方法）
     loadNode(node, resolve) {
       if (node.level === 0) {
-        resolve((this.treeData[0]?.children || []).map(item => normalizeTreeItem(item)))
+        resolve(this.displayRootNodes())
+        this.treeLoadVersion += 1
+        this.$nextTick(() => this.revealFilter())
       } else if (node.data.fileType === 'folder' && node.data.parserUrl) {
         const listUrl = this.withAuth(node.data.parserUrl)
         const pageUrl = toPageUrl(listUrl, 1)
@@ -673,6 +826,8 @@ export default {
               this.treeMoreFolders.delete(folderKey)
             }
             resolve(children)
+            this.treeLoadVersion += 1
+            this.$nextTick(() => this.revealFilter())
           } else {
             this.$message.error(res.data.msg || '获取子节点失败')
             resolve([])
@@ -702,7 +857,8 @@ export default {
       if (!this._moreObserver) {
         this._moreObserver = new IntersectionObserver((entries) => {
           const state = this.paneMore
-          if (!state || state.loading || state.error || this.viewMode !== 'pane') return
+          // 有关键字时列表变短，哨兵会露出来；这时不自动翻页，避免把未加载页一次拉完
+          if (!state || state.loading || state.error || this.viewMode !== 'pane' || this.nameQuery) return
           if (entries.some(e => e.isIntersecting)) this.loadMorePane()
         })
       }
@@ -735,8 +891,11 @@ export default {
         if (this.pathStack.length === 1) {
           this.rootExtra = appendUnique(this.rootExtra, added)
           this.rootMore = next
+          this.rootLoadedFiles = appendUnique(this.rootLoadedFiles, added)
+          if (this.viewMode !== 'tree') this.syncTreeDataChildren()
         }
         this.paneMore = next
+        this.treeLoadVersion += 1
       } catch (error) {
         if (seq !== this._paneLoadSeq || this.paneMore !== state) return
         state.error = error.response?.data?.msg || error.message || '加载下一页失败'
@@ -753,25 +912,53 @@ export default {
       const parent = moreNode?.parent
       if (!parent) return
       state.loading = true
+      state.error = ''
       try {
         const page = await this.fetchPage(state)
         const parentKey = getTreeNodeId(parent.data) || 'root'
-        const existing = new Set((parent.childNodes || []).map(n => getTreeNodeId(n.data)))
-        tree.remove(moreNode)
-        for (const item of page.list.map(normalizeTreeItem)) {
-          if (existing.has(item.id)) continue
-          existing.add(item.id)
-          tree.append(item, parent)
-        }
+        const parentIsRoot = parent.level === 0
         const next = nextState(state.listUrl, page)
-        if (next) {
-          tree.append(makeMoreNode(parentKey, next), parent)
+        if (parentIsRoot) {
+          // 换一份根数据，而不是 append 到 el-tree 正在监听的数组上，避免根节点被插进两遍
+          this.rootLoadedFiles = appendUnique(this.rootLoadedFiles, page.list)
+          this.rootMore = next
+          if (next) this.treeMoreFolders.add('root')
+          else this.treeMoreFolders.delete('root')
+          this.treeData = this.displayRootNodes()
         } else {
-          this.treeMoreFolders.delete(parentKey)
+          const existing = new Set((parent.childNodes || []).map(n => getTreeNodeId(n.data)))
+          const selectedKeys = new Set(this.selectedFiles.map(fileIdentity))
+          this._syncingChecks = true
+          try {
+            tree.remove(moreNode)
+            for (const item of page.list.map(normalizeTreeItem)) {
+              if (existing.has(item.id)) continue
+              existing.add(item.id)
+              tree.append(item, parent)
+              if (this.isDownloadableFile(item) && typeof tree.setChecked === 'function') {
+                tree.setChecked(item.id, selectedKeys.has(fileIdentity(item)), false)
+              }
+            }
+            if (next) {
+              tree.append(makeMoreNode(parentKey, next), parent)
+              this.treeMoreFolders.add(parentKey)
+            } else {
+              this.treeMoreFolders.delete(parentKey)
+            }
+          } finally {
+            this._syncingChecks = false
+          }
         }
+        state.loading = false
+        this.treeLoadVersion += 1
+        this.$nextTick(() => {
+          this.revealFilter()
+          this.syncChecksFromSelection()
+        })
       } catch (error) {
         state.loading = false
-        this.$message.error(`${error.response?.data?.msg || error.message || '加载下一页失败'}，可再次点击「加载更多」重试`)
+        state.error = error.response?.data?.msg || error.message || '加载下一页失败'
+        this.$message.error(`${state.error}，可再次点击「加载更多」重试`)
       }
     },
     // 处理文件点击
@@ -1243,7 +1430,21 @@ export default {
       const fromTree = tree
         ? tree.getCheckedNodes().filter(n => this.isDownloadableFile(n))
         : []
-      this.selectedFiles = uniqueFiles([...fromTree, ...extraFiles])
+      const visibleKeys = new Set(
+        filterByFileName(this.activeLoadedEntries(), this.nameFilter)
+          .filter(file => this.isDownloadableFile(file))
+          .map(fileIdentity)
+      )
+      const extraKeys = new Set((extraFiles || []).map(fileIdentity))
+      const kept = this.selectedFiles.filter(file => {
+        const key = fileIdentity(file)
+        return !visibleKeys.has(key) && !extraKeys.has(key)
+      })
+      const checkedVisible = fromTree.filter(file => {
+        const key = fileIdentity(file)
+        return visibleKeys.has(key) || extraKeys.has(key)
+      })
+      this.selectedFiles = uniqueFiles([...kept, ...checkedVisible, ...(extraFiles || [])])
     },
     enqueueFolderCollect(folderData) {
       const key = getTreeNodeId(folderData)
@@ -1302,11 +1503,13 @@ export default {
       }
     },
     isFileSelected(file) {
-      return this.selectedFiles.some(f => f.fileName === file.fileName && f.parserUrl === file.parserUrl)
+      const key = fileIdentity(file)
+      return this.selectedFiles.some(item => fileIdentity(item) === key)
     },
     toggleFileSelect(file) {
-      if (file.fileType === 'folder') return
-      const idx = this.selectedFiles.findIndex(f => f.fileName === file.fileName && f.parserUrl === file.parserUrl)
+      if (!file || file.fileType === 'folder' || isMoreNode(file)) return
+      const key = fileIdentity(file)
+      const idx = this.selectedFiles.findIndex(item => fileIdentity(item) === key)
       if (idx >= 0) {
         this.selectedFiles.splice(idx, 1)
       } else {
@@ -1323,16 +1526,32 @@ export default {
       this.toggleFileSelect(file)
     },
     selectAll() {
-      this.selectedFiles = this.currentFileList.filter(f => this.isDownloadableFile(f))
-      if (this.paneMore) {
-        this.$message.warning(`仅选中已加载的 ${this.selectedFiles.length} 个文件，当前目录还有未加载的分页`)
+      const loaded = this.activeLoadedEntries()
+      this.selectedFiles = selectMatching(
+        this.selectedFiles,
+        loaded,
+        this.nameFilter,
+        file => this.isDownloadableFile(file)
+      )
+      const hasMore = this.viewMode === 'tree'
+        ? !!(this.rootMore || (this.treeMoreFolders && this.treeMoreFolders.size))
+        : !!this.paneMore
+      if (hasMore) {
+        this.$message.warning('仅选中已加载且匹配筛选的文件，未继续拉取后续分页')
       }
+      this.$nextTick(() => this.syncChecksFromSelection())
     },
     deselectAll() {
-      this.selectedFiles = []
+      this.selectedFiles = deselectMatching(
+        this.selectedFiles,
+        this.activeLoadedEntries(),
+        this.nameFilter,
+        file => this.isDownloadableFile(file)
+      )
+      this.$nextTick(() => this.syncChecksFromSelection())
     },
     onTreeCheckChange() {
-      if (!this.batchMode || this._treeCollecting) return
+      if (!this.batchMode || this._treeCollecting || this._syncingChecks) return
       this.syncSelectedFilesFromTree()
     },
     extractTypeParam(file) {
@@ -1520,6 +1739,56 @@ html, body, #app, .main-container, .directory-tree, .content-card {
   color: #ffffff;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   border: 1px solid #404040;
+}
+
+.dir-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px 14px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  background: #fff;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.dark-theme .dir-filter-bar {
+  background: #2d2d2d;
+  border-bottom-color: #404040;
+}
+
+.dir-name-filter {
+  flex: 1 1 220px;
+  max-width: 420px;
+  min-width: 0;
+  height: auto;
+}
+
+.dir-name-filter .el-input__wrapper {
+  min-height: 36px;
+}
+
+.dir-filter-hint {
+  margin: 0;
+  flex: 1 1 200px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #909399;
+}
+
+.dark-theme .dir-filter-hint {
+  color: #bdc3c7;
+}
+
+.tree-filter-empty {
+  padding: 16px 8px 8px;
+}
+
+.tree-select-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .breadcrumb {
@@ -2354,6 +2623,27 @@ html, body, #app, .main-container, .directory-tree, .content-card {
 }
 
 @media (max-width: 768px) {
+  .dir-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 8px 10px;
+  }
+  .dir-name-filter {
+    flex: 0 0 auto;
+    max-width: none;
+    width: 100%;
+    height: auto;
+  }
+  .dir-name-filter .el-input__wrapper {
+    min-height: 40px;
+  }
+  .dir-filter-hint {
+    flex: none;
+  }
+  .tree-select-row .el-button {
+    flex: 1 1 0;
+  }
   .file-grid {
     grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     gap: 8px;

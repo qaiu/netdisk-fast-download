@@ -8,7 +8,7 @@
     "build": "node scripts/sync-version.js && vue-cli-service build && node scripts/compress-vs.js",
     "build:no-compress": "node scripts/sync-version.js && vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "test": "node --test src/utils/batchTreeCollect.spec.js src/utils/folderPaging.spec.js"
+    "test": "node --test src/utils/batchTreeCollect.spec.js src/utils/folderPaging.spec.js src/utils/nameFilter.spec.js"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
