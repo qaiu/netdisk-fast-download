@@ -157,6 +157,16 @@ public class LzToolShareUrlTest {
     }
 
     @Test
+    public void ajaxfilesEndpointIsRecognized() {
+        assertEquals("/ajaxfiles.php?file=333017612",
+                LzTool.fileAjaxTarget("url : '/ajaxfiles.php?file=333017612',"));
+        assertEquals("https://apifile.lanzouw.com/ajaxfiles.php?file=7",
+                LzTool.fileAjaxTarget("url : 'https://apifile.lanzouw.com/ajaxfiles.php?file=7',"));
+        assertEquals("/ajaxm.php?file=5", LzTool.fileAjaxTarget("url : '/ajaxm.php?file=5',"));
+        assertNull(LzTool.fileAjaxTarget("url : '/ajaxfilex.php?file=5',"));
+    }
+
+    @Test
     public void relativeFileAjaxFallsThroughToApifileBeforeWwww() {
         String html = "url : '/ajaxfile.php?file=150233466',";
         assertEquals("/ajaxfile.php?file=150233466", LzTool.fileAjaxTarget(html));

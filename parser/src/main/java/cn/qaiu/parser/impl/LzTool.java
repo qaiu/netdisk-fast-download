@@ -99,11 +99,14 @@ public class LzTool extends PanBase {
     private static final Pattern P_AJAXDATA = Pattern.compile("ajaxdata\\s*=\\s*'([^']+)'");
     private static final Pattern P_WEBSIGN = Pattern.compile("'websign'\\s*:\\s*'([^']*)'");
     private static final Pattern P_WEBPAGE = Pattern.compile("[?&]webpage=([^&\"'\\s#]+)");
-    /** 页面脚本里的绝对 ajax，例如 https://apifile.lanzouw.com/ajaxfile.php?file=123 */
+    /**
+     * 页面脚本里的绝对 ajax，例如 https://apifile.lanzouw.com/ajaxfile.php?file=123。
+     * 文件名有 ajaxm / ajaxfile / ajaxfiles 三种，2026-11 起文件页 iframe 改用 ajaxfiles.php。
+     */
     private static final Pattern P_AJAX_ABSOLUTE = Pattern.compile(
-            "['\"]((?:https?:)?//[^'\"\\s<>]+/ajax(?:m|file)\\.php\\?file=\\d+)['\"]",
+            "['\"]((?:https?:)?//[^'\"\\s<>]+/ajax(?:m|files?)\\.php\\?file=\\d+)['\"]",
             Pattern.CASE_INSENSITIVE);
-    private static final Pattern P_AJAX_PATH = Pattern.compile("(?:['\"/]|^)(ajax(?:m|file)\\.php\\?file=\\d+)");
+    private static final Pattern P_AJAX_PATH = Pattern.compile("(?:['\"/]|^)(ajax(?:m|files?)\\.php\\?file=\\d+)");
     private static final Pattern P_SIGN = Pattern.compile("'sign'\\s*:\\s*'([^']+)'");
     private static final Pattern P_ISNGIS = Pattern.compile("var\\s+isngis\\s*=\\s*'([^']+)'");
     private static final Pattern P_VERIFY_FILE = Pattern.compile("'file'\\s*:\\s*'([^']+)'");
