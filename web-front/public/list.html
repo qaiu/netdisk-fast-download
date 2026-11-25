@@ -315,6 +315,73 @@
             opacity: .6;
             cursor: default;
         }
+
+        .name-filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px 14px;
+            flex-wrap: wrap;
+            padding: 12px 24px;
+            background: #fff;
+            border-bottom: 1px solid #eaeaea;
+        }
+
+        .name-filter-input {
+            flex: 1 1 220px;
+            max-width: 420px;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid #dcdfe6;
+            border-radius: 6px;
+            padding: 0 10px;
+            min-height: 36px;
+            background: #fff;
+        }
+
+        .name-filter-input i {
+            color: #909399;
+            font-size: 14px;
+        }
+
+        .name-filter-input input {
+            flex: 1;
+            min-width: 0;
+            border: 0;
+            outline: none;
+            font-size: 14px;
+            line-height: 1.4;
+            padding: 8px 0;
+            background: transparent;
+            color: #303133;
+        }
+
+        .filter-hint {
+            flex: 1 1 200px;
+            min-width: 0;
+            font-size: 12px;
+            line-height: 1.45;
+            color: #909399;
+        }
+
+        @media (max-width: 768px) {
+            .name-filter-bar {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 10px 12px;
+                gap: 6px;
+            }
+            .name-filter-input,
+            .filter-hint {
+                flex: 0 0 auto;
+                max-width: none;
+                width: 100%;
+            }
+            .name-filter-input {
+                min-height: 40px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -327,6 +394,14 @@
         <div class="dashboard">
             <div class="breadcrumb" id="breadcrumb">
                 <!-- 面包屑导航会通过JS动态生成 -->
+            </div>
+
+            <div class="name-filter-bar">
+                <label class="name-filter-input">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                    <input id="name-filter" type="search" placeholder="按文件名筛选" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="按文件名筛选" />
+                </label>
+                <span id="filter-hint" class="filter-hint" hidden></span>
             </div>
             
             <div class="content">
@@ -438,6 +513,9 @@
         let seenKeys = new Set();
         let folderCount = 0;
         let fileCount = 0;
+        // 已加载的完整列表。筛选只看这里，规则与 src/utils/nameFilter.js 一致。
+        let loadedFiles = [];
+        let nameFilter = '';
         const moreEl = document.createElement('div');
         moreEl.className = 'load-more';
         moreEl.style.display = 'none';
@@ -471,7 +549,18 @@
         }
 
         function fileKey(file) {
-            return `${file.parserUrl || ''}::${file.fileName || ''}::${file.fileId || ''}`;
+            return `${file.parserUrl || ''}::${file.fileName || ''}::${file.fileId || file.id || ''}`;
+        }
+
+        function normalizeQuery(keyword) {
+            return String(keyword == null ? '' : keyword).trim().toLowerCase();
+        }
+
+        function filterByFileName(list, keyword) {
+            const rows = list || [];
+            const query = normalizeQuery(keyword);
+            if (!query) return rows.slice();
+            return rows.filter(file => String((file && file.fileName) || '').toLowerCase().includes(query));
         }
 
         function renderMore() {
@@ -520,7 +609,8 @@
 
         if (typeof IntersectionObserver !== 'undefined') {
             new IntersectionObserver(entries => {
-                if (more && !more.loading && !more.error && entries.some(e => e.isIntersecting)) loadMore();
+                // 有关键字时不自动翻页，避免筛选结果变短后把后续页一次拉完
+                if (more && !more.loading && !more.error && !normalizeQuery(nameFilter) && entries.some(e => e.isIntersecting)) loadMore();
             }).observe(moreEl);
         }
 
@@ -534,6 +624,13 @@
         // 初始化
         document.addEventListener('DOMContentLoaded', () => {
             fileGridEl.insertAdjacentElement('afterend', moreEl);
+            const nameInput = document.getElementById('name-filter');
+            if (nameInput) {
+                nameInput.addEventListener('input', () => {
+                    nameFilter = nameInput.value;
+                    renderLoadedFiles();
+                });
+            }
             renderBreadcrumb();
             fetchFileList(currentDir.url);
             
@@ -605,37 +702,50 @@
             }
         }
 
-        // 渲染文件列表
-        function renderFileList(files, append = false) {
-            if (!append) {
-                fileGridEl.innerHTML = '';
-                seenKeys = new Set();
-                folderCount = 0;
-                fileCount = 0;
+        function updateFilterHint(matchedCount) {
+            const hint = document.getElementById('filter-hint');
+            if (!hint) return;
+            const query = normalizeQuery(nameFilter);
+            if (!query) {
+                hint.hidden = true;
+                hint.textContent = '';
+                return;
             }
-            
-            if (!append && (!files || files.length === 0)) {
-                fileGridEl.innerHTML = `
-                    <div class="empty-state">
+            hint.hidden = false;
+            hint.textContent = `仅筛选已加载的 ${loadedFiles.length} 项，匹配 ${matchedCount} 项`;
+        }
+
+        // 按当前关键字重绘已加载列表。加载更多按钮在网格外面，无匹配时仍然在。
+        function renderLoadedFiles() {
+            const visible = filterByFileName(loadedFiles, nameFilter);
+            fileGridEl.innerHTML = '';
+            folderCount = 0;
+            fileCount = 0;
+
+            if (!visible.length) {
+                const filtering = normalizeQuery(nameFilter) && loadedFiles.length;
+                fileGridEl.innerHTML = filtering
+                    ? `<div class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <h3>没有匹配的文件</h3>
+                        <p>换个关键字，或加载更多后再筛</p>
+                    </div>`
+                    : `<div class="empty-state">
                         <i class="fas fa-folder-open"></i>
                         <h3>此文件夹为空</h3>
                         <p>暂无文件或文件夹</p>
-                    </div>
-                `;
+                    </div>`;
                 folderCountEl.textContent = '0';
                 fileCountEl.textContent = '0';
+                updateFilterHint(0);
                 return;
             }
-            
-            (files || []).forEach(file => {
-                const key = fileKey(file);
-                if (seenKeys.has(key)) return;
-                seenKeys.add(key);
+
+            visible.forEach(file => {
                 const item = document.createElement('div');
                 const metaText = fileMetaText(file);
-                
+
                 if (file.fileType === 'folder') {
-                    // 文件夹
                     item.className = 'item folder';
                     item.innerHTML = `
                         <div class="item-icon">
@@ -645,16 +755,12 @@
                         ${metaText ? `<div class="item-meta">${metaText}</div>` : ''}
                     `;
                     folderCount++;
-                    
-                    // 添加点击事件
                     item.addEventListener('click', () => {
                         enterFolder(file);
                     });
                 } else {
-                    // 文件
                     const fileExt = getFileExtension(file.fileName);
                     const fileTypeInfo = fileTypeIcons[fileExt.toLowerCase()] || fileTypeIcons['default'];
-                    
                     item.className = `item ${fileTypeInfo.type}`;
                     item.innerHTML = `
                         <div class="item-icon">
@@ -664,19 +770,34 @@
                         ${metaText ? `<div class="item-meta">${metaText}</div>` : ''}
                     `;
                     fileCount++;
-                    
-                    // 添加点击事件
                     item.addEventListener('click', () => {
                         handleFileClick(file);
                     });
                 }
-                
+
                 fileGridEl.appendChild(item);
             });
-            
-            // 更新统计信息
+
             folderCountEl.textContent = folderCount;
             fileCountEl.textContent = fileCount;
+            updateFilterHint(visible.length);
+        }
+
+        // 渲染文件列表
+        function renderFileList(files, append = false) {
+            if (!append) {
+                seenKeys = new Set();
+                loadedFiles = [];
+            }
+
+            (files || []).forEach(file => {
+                const key = fileKey(file);
+                if (seenKeys.has(key)) return;
+                seenKeys.add(key);
+                loadedFiles.push(file);
+            });
+
+            renderLoadedFiles();
         }
 
         // 获取文件扩展名
