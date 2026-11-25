@@ -84,8 +84,9 @@ public class LzTool extends PanBase {
     /** 同一组 t/k 两次 filemoreajax 间隔不足约 1.5 秒时返回 zt=4「请刷新，重试」。 */
     static final int LZ_ZT_REFRESH = 4;
     static final long LZ_PAGE_INTERVAL_MS = 1500;
-    static final long LZ_REFRESH_RETRY_DELAY_MS = 2000;
-    static final int LZ_REFRESH_RETRIES = 2;
+    /** zt=4 时同页重试的等待时间：实测多数 2 秒内恢复，个别需要约 5 秒。 */
+    static final long[] LZ_REFRESH_RETRY_DELAYS_MS = {2000, 5000};
+    static final int LZ_REFRESH_RETRIES = LZ_REFRESH_RETRY_DELAYS_MS.length;
     /** 无游标时从第 1 页顺序翻的最大页数，保证一次请求能在路由超时（默认 15 秒）内完成。 */
     static final int LZ_MAX_WALK_PAGES = 6;
     /** 分享页 / ajax 请求超时 */
@@ -1308,8 +1309,9 @@ public class LzTool extends PanBase {
                 return;
             }
             if (reply.zt() == LZ_ZT_REFRESH && attempt < LZ_REFRESH_RETRIES) {
-                log.debug("蓝奏目录第 {} 页返回 {}，{}ms 后重试", pg, reply.info(), LZ_REFRESH_RETRY_DELAY_MS);
-                WebClientVertxInit.get().setTimer(LZ_REFRESH_RETRY_DELAY_MS,
+                long delay = LZ_REFRESH_RETRY_DELAYS_MS[attempt];
+                log.debug("蓝奏目录第 {} 页返回 {}，{}ms 后重试", pg, reply.info(), delay);
+                WebClientVertxInit.get().setTimer(delay,
                         id -> postFolderPage(sUrl, call, pg, attempt + 1, onReply, onFailure));
                 return;
             }
