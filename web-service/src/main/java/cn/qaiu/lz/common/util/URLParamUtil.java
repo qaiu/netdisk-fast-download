@@ -71,7 +71,8 @@ public class URLParamUtil {
             // 忽略单独处理的参数，不应拼接到分享URL中
             if (!paramName.equals("url") && !paramName.equals("pwd") && !paramName.equals("dirId")
                     && !paramName.equals("uuid") && !paramName.equals("auth")
-                    && !paramName.equals("stoken") && !paramName.equals("zml")) {
+                    && !paramName.equals("stoken") && !paramName.equals("zml")
+                    && !paramName.equals("page") && !paramName.equals("pageCursor")) {
                 if (firstParam) {
                     urlBuilder.append("?");
                     firstParam = false;

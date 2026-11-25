@@ -10,9 +10,11 @@ import cn.qaiu.lz.common.util.URLParamUtil;
 import cn.qaiu.lz.web.model.AuthParam;
 import cn.qaiu.lz.web.model.CacheLinkInfo;
 import cn.qaiu.lz.web.model.ClientLinkResp;
+import cn.qaiu.lz.web.model.FileListPageResp;
 import cn.qaiu.lz.web.model.LinkInfoResp;
 import cn.qaiu.lz.web.model.StatisticsInfo;
 import cn.qaiu.lz.web.service.DbService;
+import cn.qaiu.parser.FolderPaging;
 import cn.qaiu.parser.PanDomainTemplate;
 import cn.qaiu.parser.IPanTool;
 import cn.qaiu.parser.ParserCreate;
@@ -162,15 +164,66 @@ public class ParserApi {
         }}).collect(Collectors.toList());
     }
 
+    /**
+     * 目录列表。不带 page 时行为与旧版一致；带 page 时返回该页（结构不变）。
+     * 需要 hasMore / nextCursor 时用 {@link #getFileListPage}。
+     */
     @RouteMapping("/getFileList")
     public Future<List<FileInfo>> getFileList(HttpServerRequest request, String pwd, String dirId, String uuid,
-                                             String stoken, String zml, String auth) {
+                                             String stoken, String zml, String auth,
+                                             String page, String pageCursor) {
+        Integer pageNo;
+        try {
+            pageNo = FolderPaging.parsePage(page);
+        } catch (IllegalArgumentException e) {
+            return Future.failedFuture(e.getMessage());
+        }
+        return listFolder(request, pwd, dirId, uuid, stoken, zml, auth, pageNo, pageCursor)
+                .map(FolderListResult::list);
+    }
+
+    /**
+     * 目录分页：参数同 /getFileList，另有 page（默认 1）与 pageCursor（上一页的 nextCursor）。
+     */
+    @RouteMapping("/getFileListPage")
+    public Future<FileListPageResp> getFileListPage(HttpServerRequest request, String pwd, String dirId, String uuid,
+                                                    String stoken, String zml, String auth,
+                                                    String page, String pageCursor) {
+        int pageNo;
+        try {
+            Integer parsed = FolderPaging.parsePage(page);
+            pageNo = parsed == null ? 1 : parsed;
+        } catch (IllegalArgumentException e) {
+            return Future.failedFuture(e.getMessage());
+        }
+        return listFolder(request, pwd, dirId, uuid, stoken, zml, auth, pageNo, pageCursor)
+                .map(r -> r.unpagedBeyondFirst()
+                        ? FileListPageResp.beyondUnpaged(pageNo)
+                        : FileListPageResp.of(r.list(), pageNo, FolderPaging.pageInfo(r.shareLinkInfo())));
+    }
+
+    private record FolderListResult(List<FileInfo> list, ShareLinkInfo shareLinkInfo, boolean unpagedBeyondFirst) {
+    }
+
+    private Future<FolderListResult> listFolder(HttpServerRequest request, String pwd, String dirId, String uuid,
+                                                String stoken, String zml, String auth,
+                                                Integer page, String pageCursor) {
         String url = URLParamUtil.parserParams(request);
         ParserCreate parserCreate;
         try {
             parserCreate = ParserCreate.fromShareUrl(url).setShareLinkInfoPwd(pwd);
         } catch (Exception e) {
             return Future.failedFuture(e);
+        }
+        ShareLinkInfo info = parserCreate.getShareLinkInfo();
+        if (page != null && page > 1 && !FileListPageResp.isPagedType(info.getType())) {
+            return Future.succeededFuture(new FolderListResult(new ArrayList<>(), info, true));
+        }
+        if (page != null) {
+            info.getOtherParam().put(FolderPaging.PAGE, page);
+            if (StringUtils.isNotBlank(pageCursor)) {
+                info.getOtherParam().put(FolderPaging.CURSOR, pageCursor);
+            }
         }
         String linkPrefix = getLinkPrefix(request);
         JsonObject otherParam = ParserAuthUtil.buildOtherParam(request, auth, linkPrefix);
@@ -198,7 +251,8 @@ public class ParserApi {
                                 ParserAuthUtil.recordAutoDonatedFailureIfNeeded(dbService,
                                         parserCreate.getShareLinkInfo(), t);
                             });
-                });
+                })
+                .map(list -> new FolderListResult(list, info, false));
     }
 
     // 目录解析下载文件
