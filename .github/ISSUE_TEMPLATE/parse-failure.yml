@@ -25,8 +25,8 @@ body:
     id: version
     attributes:
       label: 版本号
-      description: 页面上的版本，或发布包名里的版本，例如 0.4.11。
-      placeholder: "0.4.11"
+      description: 页面上的版本，或发布包名里的版本，例如 0.4.12。
+      placeholder: "0.4.12"
     validations:
       required: true
   - type: dropdown
