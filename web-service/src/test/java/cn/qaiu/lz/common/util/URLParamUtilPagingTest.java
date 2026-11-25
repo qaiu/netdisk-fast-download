@@ -17,6 +17,7 @@ public class URLParamUtilPagingTest {
                 .add("url", "https://pan.lanzoui.com/b66477")
                 .add("pwd", "1234")
                 .add("page", "2")
+                .add("pg", "2")
                 .add("pageCursor", "eyJ2IjoxfQ");
         assertEquals("https://pan.lanzoui.com/b66477", URLParamUtil.parserParams(request(params)));
     }

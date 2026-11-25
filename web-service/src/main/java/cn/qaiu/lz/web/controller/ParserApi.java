@@ -165,16 +165,16 @@ public class ParserApi {
     }
 
     /**
-     * 目录列表。不带 page 时行为与旧版一致；带 page 时返回该页（结构不变）。
+     * 目录列表。不带 page 时行为与旧版一致；带 page 时返回该页（结构不变）。pg 是 page 的别名。
      * 需要 hasMore / nextCursor 时用 {@link #getFileListPage}。
      */
     @RouteMapping("/getFileList")
     public Future<List<FileInfo>> getFileList(HttpServerRequest request, String pwd, String dirId, String uuid,
                                              String stoken, String zml, String auth,
-                                             String page, String pageCursor) {
+                                             String page, String pg, String pageCursor) {
         Integer pageNo;
         try {
-            pageNo = FolderPaging.parsePage(page);
+            pageNo = FolderPaging.parsePage(StringUtils.isNotBlank(page) ? page : pg);
         } catch (IllegalArgumentException e) {
             return Future.failedFuture(e.getMessage());
         }
@@ -188,10 +188,10 @@ public class ParserApi {
     @RouteMapping("/getFileListPage")
     public Future<FileListPageResp> getFileListPage(HttpServerRequest request, String pwd, String dirId, String uuid,
                                                     String stoken, String zml, String auth,
-                                                    String page, String pageCursor) {
+                                                    String page, String pg, String pageCursor) {
         int pageNo;
         try {
-            Integer parsed = FolderPaging.parsePage(page);
+            Integer parsed = FolderPaging.parsePage(StringUtils.isNotBlank(page) ? page : pg);
             pageNo = parsed == null ? 1 : parsed;
         } catch (IllegalArgumentException e) {
             return Future.failedFuture(e.getMessage());

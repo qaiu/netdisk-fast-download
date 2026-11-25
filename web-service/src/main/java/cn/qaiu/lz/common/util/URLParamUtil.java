@@ -72,7 +72,8 @@ public class URLParamUtil {
             if (!paramName.equals("url") && !paramName.equals("pwd") && !paramName.equals("dirId")
                     && !paramName.equals("uuid") && !paramName.equals("auth")
                     && !paramName.equals("stoken") && !paramName.equals("zml")
-                    && !paramName.equals("page") && !paramName.equals("pageCursor")) {
+                    && !paramName.equals("page") && !paramName.equals("pg")
+                    && !paramName.equals("pageCursor")) {
                 if (firstParam) {
                     urlBuilder.append("?");
                     firstParam = false;
