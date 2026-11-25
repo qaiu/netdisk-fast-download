@@ -42,11 +42,11 @@
             <p>暂无文件或文件夹</p>
           </div>
         </div>
-        <div v-if="paneMore" class="load-more-bar">
+        <div v-if="paneMore" ref="loadMoreBar" class="load-more-bar">
           <el-button size="small" :loading="paneMore.loading" @click="loadMorePane">
             {{ paneMore.error ? '加载失败，点击重试' : '加载更多' }}
           </el-button>
-          <span class="load-more-hint">已加载 {{ currentFileList.length }} 项{{ paneMore.error ? `：${paneMore.error}` : '，还有更多' }}</span>
+          <span class="load-more-hint">已加载 {{ currentFileList.length }} 项{{ paneMore.error ? `：${paneMore.error}` : '，滚动到底部自动加载' }}</span>
         </div>
         <!-- 批量模式 action-bar -->
         <div v-if="batchMode" class="action-bar batch-action-bar">
@@ -588,6 +588,12 @@ export default {
     }
   },
   watch: {
+    paneMore() {
+      this.$nextTick(() => this.observeLoadMore())
+    },
+    viewMode() {
+      this.$nextTick(() => this.observeLoadMore())
+    },
     fileList: {
       immediate: true,
       handler(newList) {
@@ -689,6 +695,19 @@ export default {
     },
     fileKey(file) {
       return getTreeNodeId(file)
+    },
+    // 滚动到底部自动加载；失败后暂停，等用户点击重试
+    observeLoadMore() {
+      if (typeof IntersectionObserver === 'undefined') return
+      if (!this._moreObserver) {
+        this._moreObserver = new IntersectionObserver((entries) => {
+          const state = this.paneMore
+          if (!state || state.loading || state.error || this.viewMode !== 'pane') return
+          if (entries.some(e => e.isIntersecting)) this.loadMorePane()
+        })
+      }
+      this._moreObserver.disconnect()
+      if (this.$refs.loadMoreBar) this._moreObserver.observe(this.$refs.loadMoreBar)
     },
     async fetchPage(state) {
       const res = await axios.get(toPageUrl(state.listUrl, state.nextPage, state.nextCursor), {
@@ -1465,6 +1484,9 @@ export default {
   beforeUnmount() {
     if (this._observer) {
       this._observer.disconnect()
+    }
+    if (this._moreObserver) {
+      this._moreObserver.disconnect()
     }
     if (this._onResize) {
       window.removeEventListener('resize', this._onResize)
