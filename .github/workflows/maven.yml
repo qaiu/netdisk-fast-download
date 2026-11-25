@@ -9,8 +9,9 @@ on:
   push:
     tags:
       - 'v*'
+    # '*' 不匹配含 / 的分支名（如 cursor/xxx），会让功能分支推送也发布 :latest 镜像
     branches-ignore:
-      - '*'
+      - '**'
     paths-ignore:
       - 'bin/**'
       - '.github/**'

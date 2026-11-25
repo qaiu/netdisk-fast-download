@@ -292,6 +292,29 @@
                 gap: 10px;
             }
         }
+        .load-more {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 12px 0 4px;
+            font-size: 13px;
+            color: #7f8c8d;
+        }
+
+        .load-more button {
+            padding: 6px 14px;
+            border: 1px solid #3498db;
+            background: #fff;
+            color: #3498db;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .load-more button:disabled {
+            opacity: .6;
+            cursor: default;
+        }
     </style>
 </head>
 <body>
@@ -409,6 +432,98 @@
         };
         const pathStack = [currentDir];
 
+        // 目录分页：/v2/getFileList 链接换成 /v2/getFileListPage 并带 page / pageCursor
+        let more = null;
+        let loadSeq = 0;
+        let seenKeys = new Set();
+        let folderCount = 0;
+        let fileCount = 0;
+        const moreEl = document.createElement('div');
+        moreEl.className = 'load-more';
+        moreEl.style.display = 'none';
+
+        function toPageUrl(listUrl, page, cursor) {
+            const m = String(listUrl || '').match(/^(.*?\/v2\/getFileList)(\?.*)?$/);
+            if (!m) return null;
+            let url = `${m[1]}Page${m[2] || ''}`;
+            url += (url.includes('?') ? '&' : '?') + `page=${encodeURIComponent(page)}`;
+            if (cursor) url += `&pageCursor=${encodeURIComponent(cursor)}`;
+            return url;
+        }
+
+        function readPage(data) {
+            if (Array.isArray(data)) return { list: data, hasMore: false };
+            const d = data || {};
+            const hasMore = !!d.hasMore && Number.isInteger(d.nextPage);
+            return { list: Array.isArray(d.list) ? d.list : [], hasMore, nextPage: d.nextPage, nextCursor: d.nextCursor || null };
+        }
+
+        async function fetchJson(url) {
+            const response = await fetch(url);
+            let data = null;
+            try {
+                data = await response.json();
+            } catch (e) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            if (data && data.code === 200 && data.success) return data;
+            throw new Error((data && data.msg) || `获取文件列表失败 (HTTP ${response.status})`);
+        }
+
+        function fileKey(file) {
+            return `${file.parserUrl || ''}::${file.fileName || ''}::${file.fileId || ''}`;
+        }
+
+        function renderMore() {
+            if (!more) {
+                moreEl.style.display = 'none';
+                moreEl.innerHTML = '';
+                return;
+            }
+            moreEl.style.display = '';
+            const total = folderCount + fileCount;
+            const label = more.loading ? '加载中…' : (more.error ? '加载失败，点击重试' : '加载更多');
+            const hint = more.error ? `已加载 ${total} 项：${more.error}` : `已加载 ${total} 项，滚动到底部自动加载`;
+            moreEl.innerHTML = '';
+            const btn = document.createElement('button');
+            btn.textContent = label;
+            btn.disabled = !!more.loading;
+            btn.addEventListener('click', loadMore);
+            const span = document.createElement('span');
+            span.textContent = hint;
+            moreEl.appendChild(btn);
+            moreEl.appendChild(span);
+        }
+
+        // 加载失败只提示重试，已加载的条目保留；失败后暂停滚动自动加载
+        async function loadMore() {
+            const state = more;
+            if (!state || state.loading) return;
+            const seq = loadSeq;
+            state.loading = true;
+            state.error = '';
+            renderMore();
+            try {
+                const data = await fetchJson(toPageUrl(state.listUrl, state.nextPage, state.nextCursor));
+                if (seq !== loadSeq || more !== state) return;
+                const page = readPage(data.data);
+                renderFileList(page.list, true);
+                more = page.hasMore ? { listUrl: state.listUrl, nextPage: page.nextPage, nextCursor: page.nextCursor } : null;
+            } catch (error) {
+                if (seq !== loadSeq || more !== state) return;
+                state.error = error.message || '加载下一页失败';
+            } finally {
+                state.loading = false;
+                renderMore();
+            }
+        }
+
+        if (typeof IntersectionObserver !== 'undefined') {
+            new IntersectionObserver(entries => {
+                if (more && !more.loading && !more.error && entries.some(e => e.isIntersecting)) loadMore();
+            }).observe(moreEl);
+        }
+
         // DOM 元素
         const breadcrumbEl = document.getElementById('breadcrumb');
         const fileGridEl = document.getElementById('file-grid');
@@ -418,6 +533,7 @@
 
         // 初始化
         document.addEventListener('DOMContentLoaded', () => {
+            fileGridEl.insertAdjacentElement('afterend', moreEl);
             renderBreadcrumb();
             fetchFileList(currentDir.url);
             
@@ -458,6 +574,9 @@
 
         // 获取文件列表
         async function fetchFileList(url) {
+            const seq = ++loadSeq;
+            more = null;
+            renderMore();
             try {
                 // 显示加载状态
                 fileGridEl.innerHTML = `
@@ -466,18 +585,15 @@
                     </div>
                 `;
                 
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
-                
-                if (data.code === 200 && data.success) {
-                    renderFileList(data.data);
-                } else {
-                    throw new Error(data.msg || '获取文件列表失败');
-                }
+                const pageUrl = toPageUrl(url, 1);
+                const data = await fetchJson(pageUrl || url);
+                if (seq !== loadSeq) return;
+                const page = readPage(data.data);
+                renderFileList(page.list);
+                more = pageUrl && page.hasMore ? { listUrl: url, nextPage: page.nextPage, nextCursor: page.nextCursor } : null;
+                renderMore();
             } catch (error) {
+                if (seq !== loadSeq) return;
                 console.error('获取文件列表失败:', error);
                 fileGridEl.innerHTML = `
                     <div class="empty-state">
@@ -490,10 +606,15 @@
         }
 
         // 渲染文件列表
-        function renderFileList(files) {
-            fileGridEl.innerHTML = '';
+        function renderFileList(files, append = false) {
+            if (!append) {
+                fileGridEl.innerHTML = '';
+                seenKeys = new Set();
+                folderCount = 0;
+                fileCount = 0;
+            }
             
-            if (!files || files.length === 0) {
+            if (!append && (!files || files.length === 0)) {
                 fileGridEl.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-folder-open"></i>
@@ -506,10 +627,10 @@
                 return;
             }
             
-            let folderCount = 0;
-            let fileCount = 0;
-            
-            files.forEach(file => {
+            (files || []).forEach(file => {
+                const key = fileKey(file);
+                if (seenKeys.has(key)) return;
+                seenKeys.add(key);
                 const item = document.createElement('div');
                 const metaText = fileMetaText(file);
                 

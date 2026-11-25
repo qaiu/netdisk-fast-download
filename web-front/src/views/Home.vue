@@ -432,6 +432,7 @@
             </div>
             <DirectoryTree 
               :file-list="directoryData" 
+              :root-page-info="directoryPageInfo"
               :share-url="link"
               :password="password"
               :auth="directoryAuth"
@@ -670,6 +671,7 @@ export default {
       // 目录树
       showDirectoryTree: false,
       directoryData: [],
+      directoryPageInfo: null,
       directoryAuth: '', // 目录解析时的加密 auth，透传给子目录/下载
       
       // 统计信息
@@ -777,7 +779,7 @@ export default {
     },
     folderParseMeta() {
       if (!this.showDirectoryTree) return []
-      const meta = [`${this.directoryData.length} 个文件/文件夹`]
+      const meta = [`${this.directoryData.length}${this.directoryPageInfo?.hasMore ? '+' : ''} 个文件/文件夹`]
       const recognized = parserUrl.parseLink(this.link || '')
       const panType = this.getCurrentPanType()
       const name = recognized?.name || (panType ? parseResultMeta.panDisplayName(panType.toLowerCase(), this.panList) : '')
@@ -1242,6 +1244,7 @@ export default {
       this.statisticsData = {}
       this.showDirectoryTree = false
       this.directoryData = []
+      this.directoryPageInfo = null
       this.directoryAuth = ''
     },
 
@@ -1376,14 +1379,17 @@ export default {
           params.auth = this.directoryAuth
         }
         
-        // 直接调用 getFileList，让后端返回错误（不做客户端类型检查）
-        const directoryResult = await this.callAPI('/v2/getFileList', params)
-        this.directoryData = directoryResult.data || []
+        // 直接调用 getFileListPage，让后端返回错误（不做客户端类型检查）
+        const directoryResult = await this.callAPI('/v2/getFileListPage', params)
+        const page = directoryResult.data || {}
+        this.directoryPageInfo = Array.isArray(page) ? null : page
+        this.directoryData = Array.isArray(page) ? page : (page.list || [])
         this.showDirectoryTree = true
         // 自动赋值分享链接
         this.showListLink = `${this.baseUrl}/showList?url=${encodeURIComponent(this.link)}`
 
-        this.$message.success(`目录解析成功！共找到 ${this.directoryData.length} 个文件/文件夹`)
+        const more = this.directoryPageInfo?.hasMore ? '（当前为第 1 页，可在列表底部加载更多）' : ''
+        this.$message.success(`目录解析成功！共找到 ${this.directoryData.length} 个文件/文件夹${more}`)
       } catch (error) {
         console.error('目录解析失败:', error)
       }

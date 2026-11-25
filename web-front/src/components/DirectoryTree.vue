@@ -19,7 +19,7 @@
         <div class="file-grid" v-loading="loading">
           <div 
             v-for="file in currentFileList" 
-            :key="file.fileName"
+            :key="fileKey(file)"
             class="file-item"
             :class="[getFileTypeClass(file), { 'selected': batchMode && isFileSelected(file) }]"
             @click="batchMode ? onBatchClick(file) : handleFileClick(file)"
@@ -41,6 +41,12 @@
             <h3>此文件夹为空</h3>
             <p>暂无文件或文件夹</p>
           </div>
+        </div>
+        <div v-if="paneMore" ref="loadMoreBar" class="load-more-bar">
+          <el-button size="small" :loading="paneMore.loading" @click="loadMorePane">
+            {{ paneMore.error ? '加载失败，点击重试' : '加载更多' }}
+          </el-button>
+          <span class="load-more-hint">已加载 {{ currentFileList.length }} 项{{ paneMore.error ? `：${paneMore.error}` : '，滚动到底部自动加载' }}</span>
         </div>
         <!-- 批量模式 action-bar -->
         <div v-if="batchMode" class="action-bar batch-action-bar">
@@ -455,6 +461,7 @@ import fileTypeUtils from '@/utils/fileTypeUtils'
 import DownloadDialog from '@/components/DownloadDialog.vue'
 import { testConnection, autoDetect, addDownload, batchAddDownload, getConfig, saveConfig } from '@/utils/downloaderService'
 import batchTreeCollect from '@/utils/batchTreeCollect'
+import folderPaging from '@/utils/folderPaging'
 import { openNoReferrer } from '@/utils/openNoReferrer'
 
 const {
@@ -464,6 +471,7 @@ const {
   uniqueFiles,
   collectFolderFiles
 } = batchTreeCollect
+const { toPageUrl, readPage, appendUnique, nextState, makeMoreNode, isMoreNode } = folderPaging
 
 export default {
   name: 'DirectoryTree',
@@ -472,6 +480,11 @@ export default {
     fileList: {
       type: Array,
       default: () => []
+    },
+    // 根目录分页信息（/v2/getFileListPage 的返回），null 表示不分页
+    rootPageInfo: {
+      type: Object,
+      default: null
     },
     shareUrl: {
       type: String,
@@ -501,6 +514,10 @@ export default {
       loading: false,
       pathStack: [{ name: '全部文件', url: '' }],
       currentFileList: [],
+      // 当前窗格目录的下一页状态；null 表示已全部加载
+      paneMore: null,
+      rootMore: null,
+      rootExtra: [],
       fileDialogVisible: false,
       selectedFile: null,
       isDarkTheme: false,
@@ -519,7 +536,8 @@ export default {
       treeProps: {
         label: 'fileName',
         children: 'children',
-        isLeaf: 'isLeaf'
+        isLeaf: 'isLeaf',
+        disabled: 'disabled'
       },
       isMobile: false,
       // 批量下载相关
@@ -570,24 +588,42 @@ export default {
     }
   },
   watch: {
+    paneMore() {
+      this.$nextTick(() => this.observeLoadMore())
+    },
+    viewMode() {
+      this.$nextTick(() => this.observeLoadMore())
+    },
     fileList: {
       immediate: true,
       handler(newList) {
+        this.rootExtra = []
+        this.rootMore = nextState(this.buildApiUrl(), readPage(this.rootPageInfo || []))
+        this.treeMoreFolders = new Set()
+        const children = (newList || []).map(item => normalizeTreeItem(item))
+        if (this.rootMore) {
+          children.push(makeMoreNode('root', { ...this.rootMore }))
+          this.treeMoreFolders.add('root')
+        }
         // 根节点children为当前目录下所有文件/文件夹
         this.treeData = [
           {
             id: 'root',
             fileName: '全部文件',
             fileType: 'folder',
-            children: (newList || []).map(item => normalizeTreeItem(item)),
+            children,
             isLeaf: false
           }
         ]
+        this.pathStack = [{ name: '全部文件', url: '' }]
         this.currentFileList = newList
+        this.paneMore = this.rootMore
       }
     }
   },
   created() {
+    this.treeMoreFolders = this.treeMoreFolders || new Set()
+    this._paneLoadSeq = 0
     this.resetTreeCollectState()
   },
   methods: {
@@ -622,9 +658,20 @@ export default {
       if (node.level === 0) {
         resolve((this.treeData[0]?.children || []).map(item => normalizeTreeItem(item)))
       } else if (node.data.fileType === 'folder' && node.data.parserUrl) {
-        axios.get(this.withAuth(node.data.parserUrl), { headers: this.apiKeyHeaders() }).then(res => {
+        const listUrl = this.withAuth(node.data.parserUrl)
+        const pageUrl = toPageUrl(listUrl, 1)
+        axios.get(pageUrl || listUrl, { headers: this.apiKeyHeaders() }).then(res => {
           if (res.data.code === 200) {
-            const children = (res.data.data || []).map(item => normalizeTreeItem(item))
+            const page = readPage(res.data.data)
+            const children = page.list.map(item => normalizeTreeItem(item))
+            const more = pageUrl ? nextState(listUrl, page) : null
+            const folderKey = getTreeNodeId(node.data)
+            if (more) {
+              children.push(makeMoreNode(folderKey, more))
+              this.treeMoreFolders.add(folderKey)
+            } else {
+              this.treeMoreFolders.delete(folderKey)
+            }
             resolve(children)
           } else {
             this.$message.error(res.data.msg || '获取子节点失败')
@@ -640,7 +687,92 @@ export default {
       }
     },
     onNodeClick(data) {
+      if (isMoreNode(data)) {
+        this.loadMoreTreeNode(data)
+        return
+      }
       this.selectedNode = data
+    },
+    fileKey(file) {
+      return getTreeNodeId(file)
+    },
+    // 滚动到底部自动加载；失败后暂停，等用户点击重试
+    observeLoadMore() {
+      if (typeof IntersectionObserver === 'undefined') return
+      if (!this._moreObserver) {
+        this._moreObserver = new IntersectionObserver((entries) => {
+          const state = this.paneMore
+          if (!state || state.loading || state.error || this.viewMode !== 'pane') return
+          if (entries.some(e => e.isIntersecting)) this.loadMorePane()
+        })
+      }
+      this._moreObserver.disconnect()
+      if (this.$refs.loadMoreBar) this._moreObserver.observe(this.$refs.loadMoreBar)
+    },
+    async fetchPage(state) {
+      const res = await axios.get(toPageUrl(state.listUrl, state.nextPage, state.nextCursor), {
+        headers: this.apiKeyHeaders()
+      })
+      if (res.data.code !== 200) {
+        throw new Error(res.data.msg || '加载下一页失败')
+      }
+      return readPage(res.data.data)
+    },
+    // 加载失败（如上游限流）只保留重试入口，已加载的条目不清除
+    async loadMorePane() {
+      const state = this.paneMore
+      if (!state || state.loading) return
+      const seq = this._paneLoadSeq
+      state.loading = true
+      state.error = ''
+      try {
+        const page = await this.fetchPage(state)
+        if (seq !== this._paneLoadSeq || this.paneMore !== state) return
+        const before = this.currentFileList.length
+        this.currentFileList = appendUnique(this.currentFileList, page.list)
+        const added = this.currentFileList.slice(before)
+        const next = nextState(state.listUrl, page)
+        if (this.pathStack.length === 1) {
+          this.rootExtra = appendUnique(this.rootExtra, added)
+          this.rootMore = next
+        }
+        this.paneMore = next
+      } catch (error) {
+        if (seq !== this._paneLoadSeq || this.paneMore !== state) return
+        state.error = error.response?.data?.msg || error.message || '加载下一页失败'
+        this.$message.error(state.error)
+      } finally {
+        state.loading = false
+      }
+    },
+    async loadMoreTreeNode(moreData) {
+      const state = moreData.paging
+      const tree = this.getFileTree()
+      if (!state || state.loading || !tree) return
+      const moreNode = tree.getNode(moreData.id)
+      const parent = moreNode?.parent
+      if (!parent) return
+      state.loading = true
+      try {
+        const page = await this.fetchPage(state)
+        const parentKey = getTreeNodeId(parent.data) || 'root'
+        const existing = new Set((parent.childNodes || []).map(n => getTreeNodeId(n.data)))
+        tree.remove(moreNode)
+        for (const item of page.list.map(normalizeTreeItem)) {
+          if (existing.has(item.id)) continue
+          existing.add(item.id)
+          tree.append(item, parent)
+        }
+        const next = nextState(state.listUrl, page)
+        if (next) {
+          tree.append(makeMoreNode(parentKey, next), parent)
+        } else {
+          this.treeMoreFolders.delete(parentKey)
+        }
+      } catch (error) {
+        state.loading = false
+        this.$message.error(`${error.response?.data?.msg || error.message || '加载下一页失败'}，可再次点击「加载更多」重试`)
+      }
     },
     // 处理文件点击
     handleFileClick(file) {
@@ -662,14 +794,19 @@ export default {
       try {
         this.loading = true
         const folderUrl = this.withAuth(folder.parserUrl)
-        const response = await axios.get(folderUrl, { headers: this.apiKeyHeaders() })
+        const seq = ++this._paneLoadSeq
+        const pageUrl = toPageUrl(folderUrl, 1)
+        const response = await axios.get(pageUrl || folderUrl, { headers: this.apiKeyHeaders() })
+        if (seq !== this._paneLoadSeq) return
         if (response.data.code === 200) {
           const newDir = {
             url: folderUrl,
             name: folder.fileName || '未命名文件夹'
           }
+          const page = readPage(response.data.data)
           this.pathStack.push(newDir)
-          this.currentFileList = response.data.data || []
+          this.currentFileList = page.list
+          this.paneMore = pageUrl ? nextState(folderUrl, page) : null
         } else {
           this.$message.error(response.data.msg || '获取文件夹内容失败')
         }
@@ -693,15 +830,23 @@ export default {
     },
     async loadCurrentDirectory() {
       const currentDir = this.pathStack[this.pathStack.length - 1]
+      const seq = ++this._paneLoadSeq
       if (!currentDir.url) {
-        this.currentFileList = this.fileList
+        this.currentFileList = appendUnique(this.fileList, this.rootExtra)
+        this.paneMore = this.rootMore
         return
       }
+      this.paneMore = null
       try {
         this.loading = true
-        const response = await axios.get(this.withAuth(currentDir.url), { headers: this.apiKeyHeaders() })
+        const listUrl = this.withAuth(currentDir.url)
+        const pageUrl = toPageUrl(listUrl, 1)
+        const response = await axios.get(pageUrl || listUrl, { headers: this.apiKeyHeaders() })
+        if (seq !== this._paneLoadSeq) return
         if (response.data.code === 200) {
-          this.currentFileList = response.data.data || []
+          const page = readPage(response.data.data)
+          this.currentFileList = page.list
+          this.paneMore = pageUrl ? nextState(listUrl, page) : null
         } else {
           this.$message.error(response.data.msg || '加载目录失败')
         }
@@ -1135,6 +1280,9 @@ export default {
           visitedKeys: this._visitedInCollect
         })
         this.syncSelectedFilesFromTree(ctx.files)
+        if ([...this._visitedInCollect].some(key => this.treeMoreFolders.has(key))) {
+          this.$message.warning('部分文件夹还有未加载的分页，只勾选了已加载的文件；请先点击「加载更多」后再勾选')
+        }
         if (ctx.depthExceeded) {
           this.$message.warning(
             `已达到最大展开深度（${this.effectiveBatchMaxDepth} 层），部分深层文件未勾选`
@@ -1176,6 +1324,9 @@ export default {
     },
     selectAll() {
       this.selectedFiles = this.currentFileList.filter(f => this.isDownloadableFile(f))
+      if (this.paneMore) {
+        this.$message.warning(`仅选中已加载的 ${this.selectedFiles.length} 个文件，当前目录还有未加载的分页`)
+      }
     },
     deselectAll() {
       this.selectedFiles = []
@@ -1291,6 +1442,12 @@ export default {
       }
     },
     renderContent(h, { node, data, store }) {
+      if (isMoreNode(data)) {
+        return h('div', { class: 'custom-tree-node tree-load-more' }, [
+          h('i', { class: 'fas fa-angle-double-down' }),
+          h('span', { class: 'node-label' }, node.label)
+        ])
+      }
       const isFolder = data.fileType === 'folder'
       const isUrl = data.fileType === 'url'
       return h('div', {
@@ -1327,6 +1484,9 @@ export default {
   beforeUnmount() {
     if (this._observer) {
       this._observer.disconnect()
+    }
+    if (this._moreObserver) {
+      this._moreObserver.disconnect()
     }
     if (this._onResize) {
       window.removeEventListener('resize', this._onResize)
@@ -1507,6 +1667,24 @@ html, body, #app, .main-container, .directory-tree, .content-card {
 
 .dark-theme .file-meta {
   color: #bdc3c7;
+}
+
+.load-more-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 0 4px;
+}
+
+.load-more-hint {
+  font-size: 12px;
+  color: #909399;
+}
+
+.tree-load-more {
+  color: #409eff;
+  cursor: pointer;
 }
 
 .empty-state {

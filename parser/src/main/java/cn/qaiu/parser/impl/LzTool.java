@@ -3,6 +3,7 @@ package cn.qaiu.parser.impl;
 import cn.qaiu.WebClientVertxInit;
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
+import cn.qaiu.parser.FolderPaging;
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.*;
 import io.netty.handler.codec.http.cookie.DefaultCookie;
@@ -11,6 +12,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.ProxyOptions;
 import io.vertx.core.net.ProxyType;
@@ -25,9 +27,11 @@ import java.io.ByteArrayInputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -73,6 +77,18 @@ public class LzTool extends PanBase {
             "https://www.lanzoux.com",
             "https://wwww.lanzoux.com"
     );
+    /** filemoreajax.php 每页条数（含 id=-1 占位项），不足即最后一页。 */
+    static final int LZ_FOLDER_PAGE_SIZE = 50;
+    /** 目录页不渲染的占位项 id。 */
+    static final String LZ_PLACEHOLDER_ID = "-1";
+    /** 同一组 t/k 两次 filemoreajax 间隔不足约 1.5 秒时返回 zt=4「请刷新，重试」。 */
+    static final int LZ_ZT_REFRESH = 4;
+    static final long LZ_PAGE_INTERVAL_MS = 1500;
+    /** zt=4 时同页重试的等待时间：实测多数 2 秒内恢复，个别需要约 5 秒。 */
+    static final long[] LZ_REFRESH_RETRY_DELAYS_MS = {2000, 5000};
+    static final int LZ_REFRESH_RETRIES = LZ_REFRESH_RETRY_DELAYS_MS.length;
+    /** 无游标时从第 1 页顺序翻的最大页数，保证一次请求能在路由超时（默认 15 秒）内完成。 */
+    static final int LZ_MAX_WALK_PAGES = 6;
     /** 分享页 / ajax 请求超时 */
     private static final long REQUEST_TIMEOUT = 8000;
     /** 下载域跳转与二次验证超时，链路更长 */
@@ -727,6 +743,16 @@ public class LzTool extends PanBase {
         return new AjaxCall(block.group(1), data);
     }
 
+    static Map<String, String> folderAjaxForm(String html, String pwd) {
+        AjaxCall call = extractFolderAjax(html, pwd);
+        return call == null ? null : call.form();
+    }
+
+    static String folderAjaxPath(String html, String pwd) {
+        AjaxCall call = extractFolderAjax(html, pwd);
+        return call == null ? null : call.path();
+    }
+
     private static String resolveJsValue(String html, String raw) {
         if (raw == null) {
             return "";
@@ -1075,7 +1101,7 @@ public class LzTool extends PanBase {
     private static String originOf(String url, String fallback) {
         try {
             URL u = new URL(url);
-            return u.getProtocol() + "://" + u.getHost();
+            return u.getProtocol() + "://" + u.getHost() + (u.getPort() == -1 ? "" : ":" + u.getPort());
         } catch (Exception e) {
             return fallback;
         }
@@ -1127,6 +1153,14 @@ public class LzTool extends PanBase {
         complete(downloadUrl);
     }
 
+    /** 目录分享页和 filemoreajax.php 都用移动端 UA。文件页仍走桌面 UA，才能拿到 iframe。 */
+    private static MultiMap folderPageHeaders(String referer) {
+        MultiMap headers = folderListHeaders(referer);
+        headers.set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+        headers.set("Accept-Encoding", "identity");
+        return headers;
+    }
+
     /** 目录列表 filemoreajax.php 用移动端 UA。 */
     private static MultiMap folderListHeaders(String referer) {
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
@@ -1146,16 +1180,75 @@ public class LzTool extends PanBase {
 
         final String sUrl = resolveShareUrl();
         final String pwd = shareLinkInfo.getSharePassword();
+        final int page;
+        try {
+            page = FolderPaging.pageOrFirst(shareLinkInfo);
+        } catch (IllegalArgumentException e) {
+            listPromise.fail(baseMsg() + e.getMessage());
+            return listPromise.future();
+        }
 
-        getWithArg1Retry(sUrl, PAGE_HEADERS)
-                .onSuccess(html -> handleFileListParse(html, pwd, sUrl, listPromise))
-                .onFailure(listPromise::fail);
+        LzFolderCursor cursor = page > 1
+                ? LzFolderCursor.decode(FolderPaging.cursor(shareLinkInfo), shareLinkInfo.getShareKey(), page)
+                : null;
+        if (cursor == null) {
+            if (page > LZ_MAX_WALK_PAGES) {
+                listPromise.fail(baseMsg() + walkLimitMessage(page));
+                return listPromise.future();
+            }
+            loadFolderPage(sUrl, pwd, page, listPromise);
+            return listPromise.future();
+        }
+        if (cursor.webpage != null) {
+            shareLinkInfo.getOtherParam().put("webpage", cursor.webpage);
+        }
+        AjaxCall call = new AjaxCall(cursor.path, cursor.formFor(pwd, page));
+        postFolderPage(sUrl, call, page, 0, reply -> {
+            if (reply.zt() == 1) {
+                finishFolderPage(call, page, reply, listPromise);
+            } else if (reply.zt() == 2) {
+                finishEmptyFolderPage(page, listPromise);
+            } else if (reply.zt() == LZ_ZT_REFRESH) {
+                fallbackFromCursor(sUrl, pwd, page, reply.info(), listPromise);
+            } else {
+                listPromise.tryFail(baseMsg() + "蓝奏云目录第 " + page + " 页获取失败: " + reply.info());
+            }
+        }, err -> fallbackFromCursor(sUrl, pwd, page, err.getMessage(), listPromise));
         return listPromise.future();
     }
 
-    private void handleFileListParse(String html, String pwd, String sUrl, Promise<List<FileInfo>> listPromise) {
+    /** 游标过期（令牌约 10 分钟）或被拒：页码不大时整段重翻，否则让调用方从第 1 页重新加载。 */
+    private void fallbackFromCursor(String sUrl, String pwd, int page, String reason,
+                                    Promise<List<FileInfo>> listPromise) {
+        log.debug("蓝奏目录游标不可用 page={} reason={}", page, reason);
+        if (page > LZ_MAX_WALK_PAGES) {
+            listPromise.tryFail(baseMsg() + "蓝奏云目录分页游标已失效（" + reason + "），请从第 1 页重新加载");
+            return;
+        }
+        loadFolderPage(sUrl, pwd, page, listPromise);
+    }
+
+    private static String walkLimitMessage(int page) {
+        return "蓝奏云目录需按顺序翻页：第 " + page + " 页请带上一页返回的 nextCursor 请求"
+                + "（无游标最多直接取到第 " + LZ_MAX_WALK_PAGES + " 页）";
+    }
+
+    private void loadFolderPage(String sUrl, String pwd, int page, Promise<List<FileInfo>> listPromise) {
+        // 目录页用移动端 UA。桌面 Chrome 访问旧目录（如 /b66477）常返回空白风控页，
+        // 页面里没有 filemoreajax，随后会被误报成「获取失败1，可能分享已失效」。
+        getWithArg1Retry(sUrl, folderPageHeaders(sUrl))
+                .onSuccess(html -> handleFileListParse(html, pwd, sUrl, page, listPromise))
+                .onFailure(listPromise::fail);
+    }
+
+    private void handleFileListParse(String html, String pwd, String sUrl, int page,
+                                     Promise<List<FileInfo>> listPromise) {
         if (!isLzFolderShare(sUrl, html)) {
             listPromise.fail(baseMsg() + "该链接为蓝奏云文件分享，请使用文件解析接口");
+            return;
+        }
+        if (isAccessRiskPage(html)) {
+            listPromise.fail(baseMsg() + "蓝奏云返回了访问风控页，不能据此判断分享已失效，请稍后重试");
             return;
         }
         try {
@@ -1169,11 +1262,103 @@ public class LzTool extends PanBase {
             }
             log.debug("解析参数: {}", call.form());
 
-            postAjaxWithFallback(sUrl, call, folderListHeaders(sUrl),
-                    body -> handleFileListResponse(body, listPromise),
-                    listPromise::fail);
+            walkFolderPages(sUrl, call, 1, page, listPromise);
         } catch (ScriptException | NoSuchMethodException | RuntimeException e) {
             listPromise.fail(e);
+        }
+    }
+
+    /**
+     * 同一组 t/k 从第 {@code pg} 页顺序翻到 {@code target} 页。新令牌不能跳页，
+     * 两次请求间隔不足约 1.5 秒会返回 zt=4，所以逐页间隔 {@link #LZ_PAGE_INTERVAL_MS}；
+     * 次数受 {@link #LZ_MAX_WALK_PAGES} 限制。
+     */
+    private void walkFolderPages(String sUrl, AjaxCall call, int pg, int target,
+                                 Promise<List<FileInfo>> listPromise) {
+        postFolderPage(sUrl, call, pg, 0, reply -> {
+            if (reply.zt() == 1) {
+                if (pg == target) {
+                    finishFolderPage(call, target, reply, listPromise);
+                } else if (reply.rawCount() < LZ_FOLDER_PAGE_SIZE) {
+                    finishEmptyFolderPage(target, listPromise);
+                } else {
+                    WebClientVertxInit.get().setTimer(LZ_PAGE_INTERVAL_MS,
+                            id -> walkFolderPages(sUrl, call, pg + 1, target, listPromise));
+                }
+                return;
+            }
+            if (target == 1) {
+                listPromise.tryFail(baseMsg() + reply.info());
+            } else if (reply.zt() == 2) {
+                finishEmptyFolderPage(target, listPromise);
+            } else {
+                listPromise.tryFail(baseMsg() + "蓝奏云目录第 " + pg + " 页获取失败: " + reply.info()
+                        + "；未取到第 " + target + " 页，目录列表不完整，请稍后重试");
+            }
+        }, listPromise::tryFail);
+    }
+
+    /** 取一页；zt=4（请求过快）时同一令牌等一会儿重试，最多 {@link #LZ_REFRESH_RETRIES} 次。 */
+    private void postFolderPage(String sUrl, AjaxCall call, int pg, int attempt,
+                                Handler<FolderReply> onReply, Handler<Throwable> onFailure) {
+        call.form().put("pg", String.valueOf(pg));
+        postAjaxWithFallback(sUrl, call, folderListHeaders(sUrl), body -> {
+            FolderReply reply = FolderReply.parse(body);
+            if (reply == null) {
+                onFailure.handle(new RuntimeException(baseMsg() + "目录列表返回非JSON"));
+                return;
+            }
+            if (reply.zt() == LZ_ZT_REFRESH && attempt < LZ_REFRESH_RETRIES) {
+                long delay = LZ_REFRESH_RETRY_DELAYS_MS[attempt];
+                log.debug("蓝奏目录第 {} 页返回 {}，{}ms 后重试", pg, reply.info(), delay);
+                WebClientVertxInit.get().setTimer(delay,
+                        id -> postFolderPage(sUrl, call, pg, attempt + 1, onReply, onFailure));
+                return;
+            }
+            onReply.handle(reply);
+        }, onFailure);
+    }
+
+    private void finishEmptyFolderPage(int page, Promise<List<FileInfo>> listPromise) {
+        FolderPaging.pageInfo(shareLinkInfo, page, LZ_FOLDER_PAGE_SIZE, false, null, null, null);
+        listPromise.tryComplete(new ArrayList<>());
+    }
+
+    private void finishFolderPage(AjaxCall call, int page, FolderReply reply, Promise<List<FileInfo>> listPromise) {
+        try {
+            List<FileInfo> list = toFolderFileInfos(reply.items());
+            boolean hasMore = reply.rawCount() >= LZ_FOLDER_PAGE_SIZE;
+            String next = hasMore
+                    ? LzFolderCursor.encode(shareLinkInfo.getShareKey(), call.path(), call.form(), page + 1,
+                    currentWebpage())
+                    : null;
+            FolderPaging.pageInfo(shareLinkInfo, page, LZ_FOLDER_PAGE_SIZE, hasMore, null, null, next);
+            listPromise.tryComplete(list);
+        } catch (Exception e) {
+            listPromise.tryFail(e);
+        }
+    }
+
+    /** filemoreajax.php 单页响应；text 不是数组时 items 为空。 */
+    record FolderReply(int zt, String info, List<JsonObject> items, int rawCount) {
+        static FolderReply parse(String body) {
+            JsonObject json = parseLzJson(body);
+            if (json == null) {
+                return null;
+            }
+            Integer zt = jsonInt(json, "zt");
+            Object info = json.getValue("info");
+            List<JsonObject> items = new ArrayList<>();
+            Object text = json.getValue("text");
+            if (text instanceof JsonArray arr) {
+                for (Object o : arr) {
+                    if (o instanceof JsonObject item) {
+                        items.add(item);
+                    }
+                }
+            }
+            return new FolderReply(zt == null ? -1 : zt, info == null ? null : String.valueOf(info),
+                    items, items.size());
         }
     }
 
@@ -1213,6 +1398,26 @@ public class LzTool extends PanBase {
         return path.charAt(0) == 'b' || path.charAt(0) == 'B';
     }
 
+    /**
+     * 桌面 UA 下的空白提示页：有 off1，隐藏块里是 folder 编号和访问 IP，没有取消分享文案，
+     * 也没有目录参数。这是访问风控，不是分享失效。
+     */
+    static boolean isAccessRiskPage(String html) {
+        if (html == null || html.isBlank()) {
+            return false;
+        }
+        if (html.contains("filemoreajax") || html.contains(ARG1_MARK)) {
+            return false;
+        }
+        if (!html.contains("off1")) {
+            return false;
+        }
+        if (html.contains("取消分享") || html.contains("不存在") || html.contains("地址错误")) {
+            return false;
+        }
+        return html.contains("folder") && html.contains("ip");
+    }
+
     private static boolean isLzFolderHtml(String html) {
         if (html == null || html.isBlank()) {
             return false;
@@ -1249,66 +1454,59 @@ public class LzTool extends PanBase {
         return u;
     }
 
-    private void handleFileListResponse(String responseBody, Promise<List<FileInfo>> listPromise) {
-        try {
-            JsonObject fileListJson = parseLzJson(responseBody);
-            if (fileListJson == null) {
-                listPromise.fail(baseMsg() + "目录列表返回非JSON");
-                return;
+    /**
+     * 目录页 JS 不渲染 id 为 -1 的占位项（如「***.apk」），这里同样跳过；它仍计入每页 50 条。
+     * 同一页里重复的 id 只保留第一条。
+     */
+    private List<FileInfo> toFolderFileInfos(List<JsonObject> items) {
+        List<FileInfo> list = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        for (JsonObject fileJson : items) {
+            /*
+            {
+              "icon": "apk",
+              "t": 0,
+              "id": "iULV2n4361c",
+              "name_all": "xx.apk",
+              "size": "49.8 M",
+              "time": "2021-03-19",
+              "duan": "in4361",
+              "p_ico": 0
             }
-            Integer zt = fileListJson.getInteger("zt");
-            if (zt == null || zt != 1) {
-                listPromise.fail(baseMsg() + fileListJson.getString("info"));
-                return;
+             */
+            String id = fileJson.getString("id");
+            if (id == null || id.isBlank() || LZ_PLACEHOLDER_ID.equals(id) || !seen.add(id)) {
+                continue;
             }
-            List<FileInfo> list = new ArrayList<>();
-            fileListJson.getJsonArray("text").forEach(item -> {
-                /*
-                {
-                  "icon": "apk",
-                  "t": 0,
-                  "id": "iULV2n4361c",
-                  "name_all": "xx.apk",
-                  "size": "49.8 M",
-                  "time": "2021-03-19",
-                  "duan": "in4361",
-                  "p_ico": 0
-                }
-                 */
-                JsonObject fileJson = (JsonObject) item;
-                FileInfo fileInfo = new FileInfo();
-                String size = fileJson.getString("size");
-                Long sizeNum = FileSizeConverter.convertToBytes(size);
-                String panType = shareLinkInfo.getType();
-                String id = fileJson.getString("id");
-                String fileName = fileJson.getString("name_all");
-                // 构建 base64 参数，用于 /v2/redirectUrl 接口
-                JsonObject paramJson = new JsonObject()
-                        .put("id", id)
-                        .put("fileName", fileName)
-                        .put("shareKey", shareLinkInfo.getShareKey());
-                String webpage = currentWebpage();
-                if (webpage != null) {
-                    paramJson.put("webpage", webpage);
-                }
-                String param = CommonUtils.urlBase64Encode(paramJson.encode());
-                fileInfo.setFileName(fileName)
-                        .setFileId(id)
-                        .setCreateTime(fileJson.getString("time"))
-                        .setFileType(fileJson.getString("icon"))
-                        .setSizeStr(fileJson.getString("size"))
-                        .setSize(sizeNum)
-                        .setPanType(panType)
-                        .setParserUrl(String.format("%s/v2/redirectUrl/%s/%s", getDomainName(), panType, param))
-                        .setPreviewUrl(String.format("%s/v2/view/%s/%s", getDomainName(),
-                                shareLinkInfo.getType(), id));
-                log.debug("文件信息: {}", fileInfo);
-                list.add(fileInfo);
-            });
-            listPromise.complete(list);
-        } catch (Exception e) {
-            listPromise.fail(e);
+            FileInfo fileInfo = new FileInfo();
+            String size = fileJson.getString("size");
+            Long sizeNum = FileSizeConverter.convertToBytes(size);
+            String panType = shareLinkInfo.getType();
+            String fileName = fileJson.getString("name_all");
+            // 构建 base64 参数，用于 /v2/redirectUrl 接口
+            JsonObject paramJson = new JsonObject()
+                    .put("id", id)
+                    .put("fileName", fileName)
+                    .put("shareKey", shareLinkInfo.getShareKey());
+            String webpage = currentWebpage();
+            if (webpage != null) {
+                paramJson.put("webpage", webpage);
+            }
+            String param = CommonUtils.urlBase64Encode(paramJson.encode());
+            fileInfo.setFileName(fileName)
+                    .setFileId(id)
+                    .setCreateTime(fileJson.getString("time"))
+                    .setFileType(fileJson.getString("icon"))
+                    .setSizeStr(fileJson.getString("size"))
+                    .setSize(sizeNum)
+                    .setPanType(panType)
+                    .setParserUrl(String.format("%s/v2/redirectUrl/%s/%s", getDomainName(), panType, param))
+                    .setPreviewUrl(String.format("%s/v2/view/%s/%s", getDomainName(),
+                            shareLinkInfo.getType(), id));
+            log.debug("文件信息: {}", fileInfo);
+            list.add(fileInfo);
         }
+        return list;
     }
 
     @Override
