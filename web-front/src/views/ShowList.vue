@@ -20,6 +20,7 @@
     <div v-else>
       <DirectoryTree  
         :file-list="directoryData"
+        :root-page-info="pageInfo"
         :share-url="url"
         :password="''"
         :view-mode="viewMode"
@@ -42,6 +43,7 @@ export default {
       loading: true,
       error: '',
       directoryData: [],
+      pageInfo: null,
       url: '',
       viewMode: 'pane'
     }
@@ -55,8 +57,10 @@ export default {
         return
       }
       try {
-        const res = await axios.get('/v2/getFileList', { params: { url: this.url } })
-        this.directoryData = res.data.data || []
+        const res = await axios.get('/v2/getFileListPage', { params: { url: this.url } })
+        const page = res.data.data || {}
+        this.pageInfo = Array.isArray(page) ? null : page
+        this.directoryData = Array.isArray(page) ? page : (page.list || [])
       } catch (e) {
         this.error = e.response?.data?.msg || e.response?.data?.error || '目录解析失败'
       } finally {
