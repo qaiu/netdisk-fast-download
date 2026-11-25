@@ -25,8 +25,8 @@ body:
     id: version
     attributes:
       label: 版本号
-      description: 例如 0.4.12。不确定就写获取方式。
-      placeholder: "0.4.12"
+      description: 例如 0.4.13。不确定就写获取方式。
+      placeholder: "0.4.13"
     validations:
       required: true
   - type: dropdown
