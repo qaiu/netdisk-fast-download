@@ -18,6 +18,8 @@ public class Ye2LoginHintTest {
         assertTrue(Ye2Tool.isYeLoginRequired(0, "需要登录才能下载"));
         assertFalse(Ye2Tool.isYeLoginRequired(0, "ok"));
         assertFalse(Ye2Tool.isYeLoginRequired(null, null));
+        assertFalse(Ye2Tool.isYeLoginRequired(5113, "分享方提取流量包不足"));
+        assertFalse(Ye2Tool.isYeLoginRequired(5066, "该文件暂不支持在当前版本下载"));
     }
 
     @Test
