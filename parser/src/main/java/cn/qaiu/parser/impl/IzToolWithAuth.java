@@ -2,6 +2,7 @@ package cn.qaiu.parser.impl;
 
 import cn.qaiu.entity.FileInfo;
 import cn.qaiu.entity.ShareLinkInfo;
+import cn.qaiu.parser.FolderPaging;
 import cn.qaiu.parser.PanBase;
 import cn.qaiu.util.AESUtils;
 import cn.qaiu.util.AcwScV2Generator;
@@ -54,7 +55,10 @@ public class IzToolWithAuth extends PanBase {
 
     private static final String FILE_LIST_URL = API_URL_PREFIX + "/share/list?devType=6&devModel=Chrome&uuid" +
             "={uuid}&extra=2&timestamp={ts}&shareId={shareId}&folderId" +
-            "={folderId}&offset=1&limit=60";
+            "={folderId}&offset={offset}&limit={limit}";
+
+    /** share/list 每页条数；offset 是从 1 开始的页码。 */
+    static final int LIST_LIMIT = 60;
 
 
     WebClientSession webClientSession = WebClientSession.create(clientNoRedirects);
@@ -512,7 +516,11 @@ public class IzToolWithAuth extends PanBase {
                     .setParserUrl(id)
                     .setPanType(shareLinkInfo.getType());
             List<FileInfo> result = new ArrayList<>();
-            result.add(fileInfo);
+            int page = FolderPaging.pageOrFirst(shareLinkInfo);
+            if (page == 1) {
+                result.add(fileInfo);
+            }
+            FolderPaging.pageInfo(shareLinkInfo, page, LIST_LIMIT, false, 1, 1, null);
             promise.complete(result);
             return;
         }
@@ -565,6 +573,8 @@ public class IzToolWithAuth extends PanBase {
                 .setTemplateParam("uuid", uuid)
                 .setTemplateParam("ts", tsEncode)
                 .setTemplateParam("folderId", id)
+                .setTemplateParam("offset", String.valueOf(FolderPaging.pageOrFirst(shareLinkInfo)))
+                .setTemplateParam("limit", String.valueOf(LIST_LIMIT))
                 .send().onSuccess(res -> {
                     String resBody = asText(res);
                     // 检查是否包含 cookie 验证
@@ -579,6 +589,8 @@ public class IzToolWithAuth extends PanBase {
                                 .setTemplateParam("uuid", uuid)
                                 .setTemplateParam("ts", tsEncode)
                                 .setTemplateParam("folderId", id)
+                                .setTemplateParam("offset", String.valueOf(FolderPaging.pageOrFirst(shareLinkInfo)))
+                                .setTemplateParam("limit", String.valueOf(LIST_LIMIT))
                                 .send().onSuccess(res2 -> {
                                     processDirResponse(res2, shareId, promise);
                                 }).onFailure(err -> {
@@ -671,6 +683,7 @@ public class IzToolWithAuth extends PanBase {
                                 shareLinkInfo.getType(), param));
                 result.add(fileInfo);
             });
+            FolderPaging.offsetListPage(shareLinkInfo, jsonObject, list.size(), LIST_LIMIT);
             promise.complete(result);
         } catch (Exception e) {
             log.error("处理目录响应异常: {}", e.getMessage(), e);
