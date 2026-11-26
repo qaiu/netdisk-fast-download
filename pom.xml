@@ -32,7 +32,7 @@
         <slf4j.version>2.0.16</slf4j.version>
         <commons-lang3.version>3.18.0</commons-lang3.version>
         <commons-beanutils2.version>2.0.0</commons-beanutils2.version>
-        <parserVersion>10.2.5</parserVersion>
+        <parserVersion>10.2.6</parserVersion>
         <jackson.version>2.18.9</jackson.version>
         <!-- Logback 最新稳定版 -->
         <logback.version>1.5.34</logback.version>

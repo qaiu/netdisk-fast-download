@@ -11,7 +11,7 @@
 <dependency>
     <groupId>cn.qaiu</groupId>
     <artifactId>parser</artifactId>
-    <version>10.2.5</version>
+    <version>10.2.6</version>
 </dependency>
 ```
 
