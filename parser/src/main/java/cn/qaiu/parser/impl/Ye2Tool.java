@@ -32,8 +32,12 @@ import java.util.zip.CRC32;
 import static cn.qaiu.util.RandomStringGenerator.gen36String;
 
 /**
- * 123盘解析器 v2 - 使用Android平台API
- * 支持账号密码或token配置
+ * 123盘解析器。
+ * 分享单文件走分享域名：先 POST /api/share/download/traffic/check，
+ * 再 POST /api/v2/share/download/info。platform web，App-Version 149。
+ * 域名只由 shareKey 解码出的数字 uid 组成，不使用调用方提供的任意 host。
+ * 文件夹打包下载仍走 App-Version 55 的 batch_download_share_info。
+ * 支持账号密码或 token 配置。
  *
  * @author <a href="https://qaiu.top">QAIU</a>
  */
@@ -41,9 +45,13 @@ public class Ye2Tool extends PanBase {
 
     private static final String API_BASE = "https://api.123278.com";
     private static final String GET_SHARE_INFO_URL = API_BASE + "/b/api/share/get?limit=100&next=1&orderBy=share_id&orderDirection=desc&shareKey={shareKey}&SharePwd={pwd}&ParentFileId={ParentFileId}&Page=1";
-    private static final String DOWNLOAD_API_URL = API_BASE + "/b/api/file/download_info";
-    private static final String DOWNLOAD_API_V2_BASE = "https://api.123278.com";
-    private static final String DOWNLOAD_API_V2_PATH = "/b/api/v2/share/download/info";
+    /** 分享页脚本把 /share/download/traffic/check 加上 /api 前缀，发到当前分享域名。 */
+    static final String SHARE_TRAFFIC_CHECK_PATH = "/api/share/download/traffic/check";
+    /** 分享页脚本把 /v2/share/download/info 加上 /api 前缀，不是 api.123278.com/b/api。 */
+    static final String SHARE_DOWNLOAD_INFO_PATH = "/api/v2/share/download/info";
+    static final String SHARE_PLATFORM = "web";
+    /** 当前分享页静态资源里的 App-Version。个人文件接口 App-Version 55 会返回 5066。 */
+    static final String SHARE_WEB_APP_VERSION = "149";
     private static final String BATCH_DOWNLOAD_API_URL = API_BASE + "/b/api/file/batch_download_share_info";
     private static final String LOGIN_URL = "https://login.123pan.com/api/user/sign_in";
 
@@ -126,28 +134,25 @@ public class Ye2Tool extends PanBase {
         return TokenCache.isExpired(cacheKey);
     }
 
-    private String crc32(String data) {
-        CRC32 crc32 = new CRC32();
-        crc32.update(data.getBytes());
-        long value = crc32.getValue();
-        return String.format("%08x", value);
-    }
-
-    private long hexToInt(String hexStr) {
-        return Long.parseLong(hexStr, 16);
-    }
-
     private String encode123(String url, String way, String version, String timestamp) {
-        Random random = new Random();
-        int randomInt = random.nextInt(10000000) + 1;
-        long a = (10000000L * randomInt) / 10000;
+        return signQuery(url, way, version, Long.parseLong(timestamp), nextSignRandom());
+    }
 
-        long timeLong = Long.parseLong(timestamp) / 1000;
+    private static long nextSignRandom() {
+        int randomInt = new Random().nextInt(10000000) + 1;
+        return (10000000L * randomInt) / 10000;
+    }
+
+    /**
+     * 签名原文：unix秒|随机数|实际路径|platform|App-Version|时间混淆值。
+     * 分享下载的路径是 /api/...，platform 是 web，版本是 149。
+     */
+    static String signMaterial(String url, String way, String version, long timeMillis, long randomA) {
+        long timeLong = timeMillis / 1000;
         java.time.LocalDateTime dateTime = java.time.Instant.ofEpochSecond(timeLong)
                 .atZone(java.time.ZoneId.systemDefault())
                 .toLocalDateTime();
         String timeStr = dateTime.format(DateTimeFormatter.ofPattern("yyyyMMddHHmm"));
-
         StringBuilder g = new StringBuilder();
         for (char c : timeStr.toCharArray()) {
             int digit = Character.getNumericValue(c);
@@ -157,11 +162,22 @@ public class Ye2Tool extends PanBase {
                 g.append(CHAR_MAP.charAt(digit - 1));
             }
         }
+        String y = String.valueOf(crc32Decimal(g.toString()));
+        return timeLong + "|" + randomA + "|" + url + "|" + way + "|" + version + "|" + y;
+    }
 
-        String y = String.valueOf(hexToInt(crc32(g.toString())));
-        String finalCrcInput = String.format("%d|%d|%s|%s|%s|%s", timeLong, a, url, way, version, y);
-        String finalCrc = String.valueOf(hexToInt(crc32(finalCrcInput)));
-        return String.format("?%s=%d-%d-%s", y, timeLong, a, finalCrc);
+    static String signQuery(String url, String way, String version, long timeMillis, long randomA) {
+        String material = signMaterial(url, way, version, timeMillis, randomA);
+        String y = material.substring(material.lastIndexOf('|') + 1);
+        long timeLong = timeMillis / 1000;
+        String finalCrc = String.valueOf(crc32Decimal(material));
+        return "?" + y + "=" + timeLong + "-" + randomA + "-" + finalCrc;
+    }
+
+    private static long crc32Decimal(String data) {
+        CRC32 crc32 = new CRC32();
+        crc32.update(data.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        return crc32.getValue();
     }
 
     public Future<String> parse() {
@@ -210,15 +226,14 @@ public class Ye2Tool extends PanBase {
                         }
 
                         JsonObject fileInfo = data.getJsonArray("InfoList").getJsonObject(0);
-                        if (token.equals("nologin")) {
-                            fail(loginRequiredDownloadMessage(false, null));
-                            return;
-                        }
-
                         if (fileInfo.getInteger("Type", 0) == 1) {
+                            if (!hasUsableToken(token)) {
+                                fail(loginRequiredDownloadMessage(false, null));
+                                return;
+                            }
                             getZipDownUrl(client, fileInfo);
                         } else {
-                            getDownUrl(client, fileInfo);
+                            getDownUrl(fileInfo, token);
                         }
                     })
                     .onFailure(this.handleFail(GET_SHARE_INFO_URL));
@@ -317,112 +332,55 @@ public class Ye2Tool extends PanBase {
         return promise.future();
     }
 
-    private void getDownUrl(WebClient client, JsonObject fileInfo) {
+    /**
+     * 分享单文件：流量预检通过后走分享域名 v2。不回退个人文件接口，也不创建订单。
+     */
+    private void getDownUrl(JsonObject fileInfo, String token) {
         setFileInfo(fileInfo);
 
         String normalizedShareKey = YeShareHostUtil.normalizeShareKey(shareLinkInfo.getShareKey());
-        if (StringUtils.isNotEmpty(normalizedShareKey)) {
-            JsonObject v2Body = new JsonObject()
-                    .put("ShareKey", normalizedShareKey)
-                    .put("FileID", fileInfo.getInteger("FileId"))
-                    .put("S3keyFlag", fileInfo.getString("S3KeyFlag"))
-                    .put("Size", fileInfo.getLong("Size"))
-                    .put("Etag", fileInfo.getString("Etag"));
-            requestShareV2Download(normalizedShareKey, v2Body).onSuccess(v2Url -> {
-                if (StringUtils.isNotEmpty(v2Url)) {
-                    complete(v2Url);
-                    return;
-                }
-                requestLegacyDownUrl(client, fileInfo);
-            }).onFailure(err -> {
-                log.warn("Ye2 v2分享下载接口失败，回退旧接口: {}", err.getMessage());
-                requestLegacyDownUrl(client, fileInfo);
-            });
+        applyResolvedShareKey(shareLinkInfo, normalizedShareKey);
+        Integer fileId = fileInfo.getInteger("FileId");
+        if (!usableShareKey(normalizedShareKey) || fileId == null) {
+            fail("123网盘公开下载参数缺少分享标识");
             return;
         }
-
-        requestLegacyDownUrl(client, fileInfo);
+        long size = fileInfo.getLong("Size") == null ? 0L : fileInfo.getLong("Size");
+        requestShareDownload(normalizedShareKey, fileId, fileInfo.getString("S3KeyFlag"), size,
+                fileInfo.getString("Etag"), token).onSuccess(this::complete)
+                .onFailure(err -> fail(err.getMessage()));
     }
 
-    private void requestLegacyDownUrl(WebClient client, JsonObject fileInfo) {
-        JsonObject jsonObject = new JsonObject();
-        jsonObject.put("driveId", 0);
-        jsonObject.put("etag", fileInfo.getString("Etag"));
-        jsonObject.put("fileId", fileInfo.getInteger("FileId"));
-        jsonObject.put("fileName", fileInfo.getString("FileName"));
-        jsonObject.put("s3keyFlag", fileInfo.getString("S3KeyFlag"));
-        jsonObject.put("size", fileInfo.getLong("Size"));
-        jsonObject.put("type", 0);
-
-        String timestamp = String.valueOf(System.currentTimeMillis());
-        String encryptedParams = encode123("/b/api/file/download_info", "android", "55", timestamp);
-        String apiUrl = DOWNLOAD_API_URL + encryptedParams;
-
-        log.info("Ye2 API URL: {}", apiUrl);
-
-        HttpRequest<Buffer> bufferHttpRequest = client.postAbs(apiUrl);
-        bufferHttpRequest.putHeader("platform", "android");
-        bufferHttpRequest.putHeader("App-Version", "55");
-        bufferHttpRequest.putHeader("Authorization", "Bearer " + TokenCache.getToken(cacheKey));
-        bufferHttpRequest.putHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36");
-        bufferHttpRequest.putHeader("Content-Type", "application/json");
-
-        bufferHttpRequest
-                .sendJsonObject(jsonObject)
-                .onSuccess(res2 -> handleDownloadUrlResponse(client, asJson(res2), "Ye2"))
-                .onFailure(err -> fail("下载接口失败: " + err.getMessage()));
+    private Future<String> requestShareDownload(String shareKey, long fileId, String s3keyFlag, long size,
+                                                String etag, String token) {
+        return executeShareFileDownload(this::postShareJson, new ShareFileRequest(
+                shareLinkInfo.getShareUrl(),
+                shareLinkInfo.getStandardUrl(),
+                shareKey,
+                shareLinkInfo.getSharePassword(),
+                fileId,
+                s3keyFlag,
+                size,
+                etag,
+                token,
+                System.currentTimeMillis(),
+                nextSignRandom()));
     }
 
-    private Future<String> requestShareV2Download(String shareKey, JsonObject body) {
-        Promise<String> promise = Promise.promise();
-        String timestamp = String.valueOf(System.currentTimeMillis());
-        String encryptedParams = encode123(DOWNLOAD_API_V2_PATH, "web", "3", timestamp);
-        String apiUrl = DOWNLOAD_API_V2_BASE + DOWNLOAD_API_V2_PATH + encryptedParams;
-        String shareOrigin = resolveYeShareOrigin(shareKey);
-        String shareReferer = buildShareReferer(shareOrigin, shareKey, shareLinkInfo.getSharePassword());
-
-        HttpRequest<Buffer> request = client.postAbs(apiUrl);
-        request.putHeader("Accept", "*/*");
-        request.putHeader("Authorization", "Bearer " + TokenCache.getToken(cacheKey));
-        request.putHeader("App-Version", "3");
-        request.putHeader("platform", "web");
-        request.putHeader("Origin", shareOrigin);
-        request.putHeader("Referer", shareReferer);
-        request.putHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36");
-        request.putHeader("Content-Type", "application/json;charset=UTF-8");
-
-        request.sendJsonObject(body).onSuccess(resp -> {
-            JsonObject json = asJson(resp);
-            if (json == null || json.getInteger("code", -1) != 0) {
-                promise.fail("v2接口返回异常: " + (json == null ? "null" : json.encode()));
-                return;
-            }
-            JsonObject data = json.getJsonObject("data", new JsonObject());
-            JsonArray dispatchList = data.getJsonArray("dispatchList", new JsonArray());
-            String downloadPath = data.getString("downloadPath");
-            if (StringUtils.isBlank(downloadPath)) {
-                promise.complete("");
-                return;
-            }
-            String prefix = "";
-            if (dispatchList.size() > 0) {
-                JsonObject firstDispatch = dispatchList.getJsonObject(0);
-                if (firstDispatch != null) {
-                    prefix = firstDispatch.getString("prefix", "");
-                }
-            }
-            if (StringUtils.isBlank(prefix)) {
-                promise.complete(downloadPath);
-                return;
-            }
-            String finalUrl = prefix.endsWith("/") ? prefix.substring(0, prefix.length() - 1) : prefix;
-            finalUrl += downloadPath.startsWith("/") ? downloadPath : "/" + downloadPath;
-            promise.complete(finalUrl);
-        }).onFailure(promise::fail);
-
+    private Future<JsonObject> postShareJson(ShareHttpCall call) {
+        Promise<JsonObject> promise = Promise.promise();
+        HttpRequest<Buffer> request = client.postAbs(call.url());
+        call.headers.forEach(entry -> request.putHeader(entry.getKey(), entry.getValue()));
+        request.sendJsonObject(call.body)
+                .onSuccess(resp -> promise.complete(asJson(resp)))
+                .onFailure(promise::fail);
         return promise.future();
     }
 
+    /**
+     * 文件夹打包下载仍使用 App-Version 55 的 /b/api/file/batch_download_share_info。
+     * 分享页脚本已改走 /v2/file/batch_download_share_info，这次不改这条路径。
+     */
     private void getZipDownUrl(WebClient client, JsonObject fileInfo) {
         JsonObject jsonObject = new JsonObject();
         jsonObject.put("shareKey", YeShareHostUtil.normalizeShareKey(shareLinkInfo.getShareKey()));
@@ -691,76 +649,322 @@ public class Ye2Tool extends PanBase {
         Future<String> tokenFuture = resolveTokenFuture();
 
         tokenFuture.onSuccess(token -> {
-            if (token.equals("nologin")) {
-                fail(loginRequiredDownloadMessage(false, null));
+            if (hasUsableToken(token)) {
+                TokenCache.putToken(cacheKey, token);
+            }
+            String normalizedShareKey = resolveDownloadShareKey(paramJson, shareLinkInfo.getShareKey());
+            applyResolvedShareKey(shareLinkInfo, normalizedShareKey);
+            if (!usableShareKey(normalizedShareKey)) {
+                fail("123网盘公开下载参数缺少分享标识");
                 return;
             }
-
-            String rawShareKey = paramJson.getString("shareKey");
-            if (StringUtils.isBlank(rawShareKey)) {
-                rawShareKey = paramJson.getString("ShareKey");
-            }
-            if (StringUtils.isBlank(rawShareKey)) {
-                rawShareKey = shareLinkInfo.getShareKey();
-            }
-            String normalizedShareKey = YeShareHostUtil.normalizeShareKey(rawShareKey);
-            if (StringUtils.isNotEmpty(normalizedShareKey)) {
-                JsonObject v2Body = new JsonObject()
-                        .put("ShareKey", normalizedShareKey)
-                        .put("FileID", paramJson.getInteger("fileId", paramJson.getInteger("FileID", 0)))
-                        .put("S3keyFlag", paramJson.getString("s3keyFlag", paramJson.getString("S3keyFlag", "")))
-                        .put("Size", paramJson.getLong("size", paramJson.getLong("Size", 0L)))
-                        .put("Etag", paramJson.getString("etag", paramJson.getString("Etag", "")));
-                requestShareV2Download(normalizedShareKey, v2Body).onSuccess(v2Url -> {
-                    if (StringUtils.isNotEmpty(v2Url)) {
-                        complete(v2Url);
-                        return;
-                    }
-                    parseByIdLegacy(token, paramJson);
-                }).onFailure(err -> {
-                    log.warn("Ye2 parseById v2接口失败，回退旧接口: {}", err.getMessage());
-                    parseByIdLegacy(token, paramJson);
-                });
-                return;
-            }
-
-            parseByIdLegacy(token, paramJson);
+            long fileId = paramJson.getLong("fileId", paramJson.getLong("FileID", 0L));
+            String s3keyFlag = firstNonBlank(paramJson, "s3keyFlag", "S3keyFlag", "S3KeyFlag");
+            long size = paramJson.getLong("size", paramJson.getLong("Size", 0L));
+            String etag = firstNonBlank(paramJson, "etag", "Etag");
+            requestShareDownload(normalizedShareKey, fileId, s3keyFlag, size, etag, token)
+                    .onSuccess(this::complete)
+                    .onFailure(err -> fail(err.getMessage()));
         }).onFailure(err -> fail("123盘解析异常: " + err.getMessage()));
 
         return promise.future();
     }
 
-    private void parseByIdLegacy(String token, JsonObject paramJson) {
-        if (paramJson.containsKey("FileID") && !paramJson.containsKey("fileId")) {
-            paramJson.put("fileId", paramJson.getValue("FileID"));
+    static final class ShareFileRequest {
+        final String shareUrl;
+        final String standardUrl;
+        final String shareKey;
+        final String password;
+        final long fileId;
+        final String s3keyFlag;
+        final long size;
+        final String etag;
+        final String token;
+        final long timeMillis;
+        final long randomA;
+
+        ShareFileRequest(String shareUrl, String standardUrl, String shareKey, String password, long fileId,
+                         String s3keyFlag, long size, String etag, String token, long timeMillis, long randomA) {
+            this.shareUrl = shareUrl;
+            this.standardUrl = standardUrl;
+            this.shareKey = shareKey;
+            this.password = password;
+            this.fileId = fileId;
+            this.s3keyFlag = s3keyFlag;
+            this.size = size;
+            this.etag = etag;
+            this.token = token;
+            this.timeMillis = timeMillis;
+            this.randomA = randomA;
         }
-        if (paramJson.containsKey("S3keyFlag") && !paramJson.containsKey("s3keyFlag")) {
-            paramJson.put("s3keyFlag", paramJson.getValue("S3keyFlag"));
-        }
-        if (paramJson.containsKey("Size") && !paramJson.containsKey("size")) {
-            paramJson.put("size", paramJson.getValue("Size"));
-        }
-        if (paramJson.containsKey("Etag") && !paramJson.containsKey("etag")) {
-            paramJson.put("etag", paramJson.getValue("Etag"));
+    }
+
+    static final class ShareHttpCall {
+        final String origin;
+        final String path;
+        final String query;
+        final JsonObject body;
+        final MultiMap headers;
+
+        ShareHttpCall(String origin, String path, String query, JsonObject body, MultiMap headers) {
+            this.origin = origin;
+            this.path = path;
+            this.query = query;
+            this.body = body;
+            this.headers = headers;
         }
 
-        String timestamp = String.valueOf(System.currentTimeMillis());
-        String encryptedParams = encode123("/b/api/file/download_info", "android", "55", timestamp);
-        String apiUrl = DOWNLOAD_API_URL + encryptedParams;
+        String url() {
+            return origin + path + query;
+        }
+    }
 
-        log.info("Ye2 parseById API URL: {}", apiUrl);
+    @FunctionalInterface
+    interface ShareJsonPost {
+        Future<JsonObject> post(ShareHttpCall call);
+    }
 
-        HttpRequest<Buffer> bufferHttpRequest = client.postAbs(apiUrl);
-        bufferHttpRequest.putHeader("platform", "android");
-        bufferHttpRequest.putHeader("App-Version", "55");
-        bufferHttpRequest.putHeader("Authorization", "Bearer " + token);
-        bufferHttpRequest.putHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36");
-        bufferHttpRequest.putHeader("Content-Type", "application/json");
+    /**
+     * 分享接口只发到 key 解码出的 https://{uid}.share.123pan.cn。
+     * mshare、/s/ 和调用方写入的其它 host 都不能改变这个目标。
+     */
+    static String shareApiOrigin(String shareUrl, String standardUrl, String shareKey) {
+        String uid = YeShareHostUtil.getNumericSubdomainIdByShareKey(shareKey);
+        if (!uid.matches("\\d+")) {
+            return null;
+        }
+        if (hostileShareHost(shareUrl) || hostileShareHost(standardUrl)) {
+            return null;
+        }
+        return "https://" + uid + ".share.123pan.cn";
+    }
 
-        bufferHttpRequest
-                .sendJsonObject(paramJson)
-                .onSuccess(res2 -> handleDownloadUrlResponse(client, asJson(res2), "Ye2"))
-                .onFailure(err -> fail("下载接口失败: " + err.getMessage()));
+    /**
+     * 调用方给出的地址如果带了 host，只允许空、普通网页，或与 shareKey 一致的数字分享域名。
+     * 127.0.0.1、云元数据、以及伪装成 123 域名的其它 host 直接拒绝。
+     */
+    static boolean hostileShareHost(String url) {
+        if (StringUtils.isBlank(url)) {
+            return false;
+        }
+        java.net.URI uri;
+        try {
+            uri = java.net.URI.create(url.trim());
+        } catch (IllegalArgumentException e) {
+            return true;
+        }
+        String host = uri.getHost();
+        if (host == null) {
+            return true;
+        }
+        String scheme = uri.getScheme();
+        if (!"https".equalsIgnoreCase(scheme) && !"http".equalsIgnoreCase(scheme)) {
+            return true;
+        }
+        if (uri.getUserInfo() != null || uri.getPort() > 0) {
+            return true;
+        }
+        if (host.equalsIgnoreCase("www.123pan.com") || host.equalsIgnoreCase("yun.123pan.com")
+                || host.equalsIgnoreCase("123pan.com")) {
+            return false;
+        }
+        return !host.matches("(?i)\\d+\\.(?:mshare|share)\\.123pan\\.cn");
+    }
+
+    static JsonObject trafficCheckBody(String shareKey, long fileId) {
+        return new JsonObject()
+                .put("shareKey", shareKey)
+                .put("fileIds", new JsonArray().add(fileId));
+    }
+
+    static JsonObject downloadInfoBody(String shareKey, long fileId, String s3keyFlag, long size, String etag) {
+        return new JsonObject()
+                .put("ShareKey", shareKey)
+                .put("FileID", fileId)
+                .put("S3keyFlag", s3keyFlag == null ? "" : s3keyFlag)
+                .put("Size", size)
+                .put("Etag", etag == null ? "" : etag);
+    }
+
+    static String trafficStopMessage(JsonObject data) {
+        if (data == null) {
+            return null;
+        }
+        if (Boolean.TRUE.equals(data.getBoolean("isBlocked"))) {
+            return "123网盘限制了这个分享的下载。解析器不会自动下单或选择付费流量。";
+        }
+        if (Boolean.TRUE.equals(data.getBoolean("isPay"))) {
+            return "123网盘这个文件需要付费后下载。解析器不会自动下单或选择付费流量。";
+        }
+        if (Boolean.TRUE.equals(data.getBoolean("isTrafficExceeded"))) {
+            return "123网盘分享提取流量不足。解析器不会自动购买或选择付费流量。";
+        }
+        return null;
+    }
+
+    static String joinDownloadUrl(String downloadPath, String prefix) {
+        if (StringUtils.isBlank(downloadPath)) {
+            return "";
+        }
+        String path = downloadPath.trim();
+        if (path.startsWith("//")) {
+            return "";
+        }
+        if (isAbsoluteHttp(path)) {
+            return path;
+        }
+        if (StringUtils.isBlank(prefix) || !isAbsoluteHttp(prefix.trim())) {
+            return "";
+        }
+        String normalizedPrefix = prefix.trim();
+        if (normalizedPrefix.endsWith("/") && path.startsWith("/")) {
+            return normalizedPrefix.substring(0, normalizedPrefix.length() - 1) + path;
+        }
+        if (!normalizedPrefix.endsWith("/") && !path.startsWith("/")) {
+            return normalizedPrefix + "/" + path;
+        }
+        return normalizedPrefix + path;
+    }
+
+    private static boolean isAbsoluteHttp(String value) {
+        return value.startsWith("https://") || value.startsWith("http://");
+    }
+
+    static Future<String> executeShareFileDownload(ShareJsonPost post, ShareFileRequest request) {
+        String origin = shareApiOrigin(request.shareUrl, request.standardUrl, request.shareKey);
+        if (origin == null || !usableShareKey(request.shareKey)) {
+            return Future.failedFuture("123网盘公开下载参数缺少可识别的分享域名");
+        }
+        String referer = origin + "/123pan/" + YeShareHostUtil.normalizeShareKey(request.shareKey);
+        if (StringUtils.isNotBlank(request.password)) {
+            referer = referer + "?pwd=" + request.password;
+        }
+        MultiMap headers = shareHeaders(origin, referer, request.token);
+        ShareHttpCall traffic = new ShareHttpCall(
+                origin,
+                SHARE_TRAFFIC_CHECK_PATH,
+                signQuery(SHARE_TRAFFIC_CHECK_PATH, SHARE_PLATFORM, SHARE_WEB_APP_VERSION,
+                        request.timeMillis, request.randomA),
+                trafficCheckBody(request.shareKey, request.fileId),
+                headers);
+        ShareHttpCall download = new ShareHttpCall(
+                origin,
+                SHARE_DOWNLOAD_INFO_PATH,
+                signQuery(SHARE_DOWNLOAD_INFO_PATH, SHARE_PLATFORM, SHARE_WEB_APP_VERSION,
+                        request.timeMillis, request.randomA),
+                downloadInfoBody(request.shareKey, request.fileId, request.s3keyFlag, request.size, request.etag),
+                headers);
+        return post.post(traffic).compose(json -> {
+            if (json == null || json.getInteger("code", -1) != 0) {
+                return Future.failedFuture(shareV2FailureMessage(json, request.token));
+            }
+            String stop = trafficStopMessage(json.getJsonObject("data"));
+            if (stop != null) {
+                return Future.failedFuture(stop);
+            }
+            return post.post(download);
+        }).compose(json -> {
+            if (json == null || json.getInteger("code", -1) != 0) {
+                return Future.failedFuture(shareV2FailureMessage(json, request.token));
+            }
+            JsonObject data = json.getJsonObject("data", new JsonObject());
+            JsonArray dispatchList = data.getJsonArray("dispatchList", new JsonArray());
+            String prefix = "";
+            if (!dispatchList.isEmpty() && dispatchList.getJsonObject(0) != null) {
+                prefix = dispatchList.getJsonObject(0).getString("prefix", "");
+            }
+            String url = joinDownloadUrl(data.getString("downloadPath"), prefix);
+            if (StringUtils.isBlank(url)) {
+                return Future.failedFuture("123网盘公开下载接口未返回下载链接");
+            }
+            return Future.succeededFuture(url);
+        });
+    }
+
+    private static MultiMap shareHeaders(String origin, String referer, String token) {
+        MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+        headers.set("Accept", "*/*");
+        headers.set("App-Version", SHARE_WEB_APP_VERSION);
+        headers.set("platform", SHARE_PLATFORM);
+        headers.set("Origin", origin);
+        headers.set("Referer", referer);
+        headers.set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36");
+        headers.set("Content-Type", "application/json;charset=UTF-8");
+        String authorization = bearerAuthorization(token);
+        if (authorization != null) {
+            headers.set("Authorization", authorization);
+        }
+        return headers;
+    }
+
+    private static String firstNonBlank(JsonObject json, String... keys) {
+        if (json == null) {
+            return "";
+        }
+        for (String key : keys) {
+            String value = json.getString(key);
+            if (StringUtils.isNotBlank(value)) {
+                return value;
+            }
+        }
+        return "";
+    }
+
+    static String resolveDownloadShareKey(JsonObject paramJson, String fallbackShareKey) {
+        String shareKey = paramJson == null ? null : paramJson.getString("shareKey");
+        if (StringUtils.isBlank(shareKey) && paramJson != null) {
+            shareKey = paramJson.getString("ShareKey");
+        }
+        if (StringUtils.isBlank(shareKey)) {
+            shareKey = fallbackShareKey;
+        }
+        return YeShareHostUtil.normalizeShareKey(shareKey);
+    }
+
+    static boolean usableShareKey(String shareKey) {
+        return StringUtils.isNotBlank(shareKey) && !"-".equals(shareKey);
+    }
+
+    /**
+     * getFileDownInfo / redirectUrl 用 shareKey="-" 占位，错误文案会变成 /s/-。
+     * 目录参数里已有真实 shareKey 时，只替换这个占位地址。
+     */
+    static void applyResolvedShareKey(ShareLinkInfo info, String shareKey) {
+        if (info == null || !usableShareKey(shareKey)) {
+            return;
+        }
+        info.setShareKey(shareKey);
+        String rebuilt = "https://www.123pan.com/s/" + shareKey;
+        if (isPlaceholderYeShareUrl(info.getShareUrl())) {
+            info.setShareUrl(rebuilt);
+        }
+        if (isPlaceholderYeShareUrl(info.getStandardUrl())) {
+            info.setStandardUrl(rebuilt);
+        }
+    }
+
+    static boolean isPlaceholderYeShareUrl(String url) {
+        return StringUtils.isNotBlank(url) && (url.endsWith("/s/-") || url.endsWith("/s/-.html"));
+    }
+
+    static String bearerAuthorization(String token) {
+        return hasUsableToken(token) ? "Bearer " + token : null;
+    }
+
+    /**
+     * v2 非 0 的说明。5112 仍用现有登录提示；5113、5066 原样留在 v2 错误里，不再改写成个人文件接口的文案。
+     */
+    static String shareV2FailureMessage(JsonObject json, String token) {
+        Integer code = json == null ? null : json.getInteger("code");
+        String message = json == null ? null : json.getString("message");
+        if (isYeLoginRequired(code, message)) {
+            return loginRequiredDownloadMessage(hasUsableToken(token), message);
+        }
+        return "v2接口返回异常: " + (json == null ? "null" : json.encode());
+    }
+
+    private static boolean hasUsableToken(String token) {
+        return StringUtils.isNotBlank(token) && !"nologin".equals(token);
     }
 
     private void setFileTimes(JsonObject item, FileInfo fileInfo) {
