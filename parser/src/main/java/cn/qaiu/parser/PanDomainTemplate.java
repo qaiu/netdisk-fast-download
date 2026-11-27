@@ -25,7 +25,7 @@ public enum PanDomainTemplate {
 
     // https://www.ilanzou.com/s/
     IZ("蓝奏云优享",
-            compile("https://www\\.ilanzou\\.com/s/(?<KEY>.+)"),
+            compile("https://www\\.ilanzou\\.com/s/(?<KEY>[^/?#]+)(?:[?#].*)?"),
             "https://www.ilanzou.com/s/{shareKey}",
             IzTool.class),
     // 网盘定义
@@ -111,7 +111,7 @@ public enum PanDomainTemplate {
     // https://www.feijix.com/s/
     // https://share.feijipan.com/s/
     FJ("小飞机网盘",
-            compile("https://(share\\.feijipan\\.com|www\\.feijix\\.com)/s/(?<KEY>.+)"),
+            compile("https://(share\\.feijipan\\.com|www\\.feijix\\.com)/s/(?<KEY>[^/?#]+)(?:[?#].*)?"),
             "https://www.feijix.com/s/{shareKey}",
             FjTool.class),
 

@@ -5,6 +5,7 @@ import cn.qaiu.parser.custom.CustomParserConfig;
 import cn.qaiu.parser.custom.CustomParserRegistry;
 import cn.qaiu.parser.customjs.JsParserExecutor;
 
+import cn.qaiu.util.ShareUrlParams;
 import org.apache.commons.lang3.StringUtils;
 
 import java.net.URLEncoder;
@@ -96,6 +97,8 @@ public class ParserCreate {
                     }
                 } catch (IllegalStateException | IllegalArgumentException ignored) {}
 
+                applyShareUrlParams(shareLinkInfo, shareUrl);
+
                 // 设置标准URL
                 if (customParserConfig.getStandardUrlTemplate() != null) {
                     String standardUrl = customParserConfig.getStandardUrlTemplate()
@@ -126,6 +129,10 @@ public class ParserCreate {
         Matcher matcher = this.panDomainTemplate.getPattern().matcher(shareUrl);
         if (matcher.find()) {
             String k0 = matcher.group(KEY);
+            String cleanedKey = ShareUrlParams.cleanShareKey(k0);
+            if (StringUtils.isNotEmpty(cleanedKey)) {
+                k0 = cleanedKey;
+            }
             String shareKey = URLEncoder.encode(k0, StandardCharsets.UTF_8);
 
             // 返回规范化的标准链接
@@ -142,6 +149,15 @@ public class ParserCreate {
 
             shareLinkInfo.setShareUrl(shareUrl);
             shareLinkInfo.setShareKey(shareKey);
+            if (StringUtils.isBlank(shareLinkInfo.getSharePassword())) {
+                String pwdFromUrl = ShareUrlParams.extractSharePassword(shareUrl);
+                if (StringUtils.isNotEmpty(pwdFromUrl)) {
+                    shareLinkInfo.setSharePassword(pwdFromUrl);
+                    if (standardUrl != null && standardUrl.contains("{pwd}")) {
+                        standardUrl = standardUrl.replace("{pwd}", pwdFromUrl);
+                    }
+                }
+            }
             if (!isGenericBuiltInParser(panDomainTemplate)) {
                 shareLinkInfo.setStandardUrl(standardUrl);
             }
@@ -290,6 +306,8 @@ public class ParserCreate {
                         }
                     } catch (IllegalStateException | IllegalArgumentException ignored) {}
 
+                    applyShareUrlParams(shareLinkInfo, shareUrl);
+
                     // 设置标准URL（如果有模板）
                     if (customConfig.getStandardUrlTemplate() != null) {
                         String standardUrl = customConfig.getStandardUrlTemplate()
@@ -408,6 +426,23 @@ public class ParserCreate {
      */
     public CustomParserConfig getCustomParserConfig() {
         return customParserConfig;
+    }
+
+
+    private static void applyShareUrlParams(ShareLinkInfo shareLinkInfo, String shareUrl) {
+        String key = shareLinkInfo.getShareKey();
+        if (StringUtils.isNotEmpty(key)) {
+            String cleaned = ShareUrlParams.cleanShareKey(key);
+            if (StringUtils.isNotEmpty(cleaned)) {
+                shareLinkInfo.setShareKey(cleaned);
+            }
+        }
+        if (StringUtils.isBlank(shareLinkInfo.getSharePassword())) {
+            String pwdFromUrl = ShareUrlParams.extractSharePassword(shareUrl);
+            if (StringUtils.isNotEmpty(pwdFromUrl)) {
+                shareLinkInfo.setSharePassword(pwdFromUrl);
+            }
+        }
     }
 
     private static boolean isGenericBuiltInParser(PanDomainTemplate panDomainTemplate) {

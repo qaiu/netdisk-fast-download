@@ -81,18 +81,14 @@ public class CeTool extends PanBase {
         // 禁止跟随重定向：assertPublicHost 只校验初始 host，自动 30x 会绕过 SSRF 防护
         clientNoRedirects.getAbs(pingUrlV4).send().onSuccess(res -> {
             if (res.statusCode() == 200) {
-                try {
-                    JsonObject json = asJson(res);
-                    // v4 ping 成功且返回有效JSON，使用 Ce4Tool
-                    if (json != null && !json.isEmpty()) {
-                        log.debug("检测到Cloudreve 4.x (通过v4 ping)");
-                        delegateToCe4Tool();
-                        return;
-                    }
-                } catch (Exception e) {
-                    // JSON解析失败，继续尝试 v3
-                    log.debug("v4 ping返回非JSON响应，尝试v3");
+                // 使用 tryParseJson 而非 asJson，避免非JSON响应（如HTML）提前终止整个解析流程
+                JsonObject json = tryParseJson(res);
+                if (json != null && !json.isEmpty()) {
+                    log.debug("检测到Cloudreve 4.x (通过v4 ping)");
+                    delegateToCe4Tool();
+                    return;
                 }
+                log.debug("v4 ping返回非JSON响应，尝试v3");
             }
             // v4 ping失败或返回非JSON，尝试 v3
             tryV3Ping(baseUrl, key, pwd);
@@ -111,18 +107,14 @@ public class CeTool extends PanBase {
         
         clientNoRedirects.getAbs(pingUrlV3).send().onSuccess(res -> {
             if (res.statusCode() == 200) {
-                try {
-                    JsonObject json = asJson(res);
-                    // v3 ping 成功且返回有效JSON，进一步验证是否为 v3
-                    if (json != null && !json.isEmpty()) {
-                        // 尝试调用 v3 share API 来确认
-                        verifyV3AndParse(baseUrl, key, pwd);
-                        return;
-                    }
-                } catch (Exception e) {
-                    // JSON解析失败，不是Cloudreve盘
-                    log.debug("v3 ping返回非JSON响应，不是Cloudreve盘");
+                // 使用 tryParseJson 而非 asJson，避免非JSON响应（如HTML）提前终止整个解析流程
+                JsonObject json = tryParseJson(res);
+                if (json != null && !json.isEmpty()) {
+                    // 尝试调用 v3 share API 来确认
+                    verifyV3AndParse(baseUrl, key, pwd);
+                    return;
                 }
+                log.debug("v3 ping返回非JSON响应，不是Cloudreve盘");
             }
             // v3 ping失败，不是Cloudreve盘
             log.debug("v3 ping失败，尝试下一个解析器");
@@ -148,9 +140,9 @@ public class CeTool extends PanBase {
         httpRequest.send().onSuccess(res -> {
             try {
                 if (res.statusCode() == 200) {
-                    JsonObject jsonObject = asJson(res);
+                    JsonObject jsonObject = tryParseJson(res);
                     // 检查响应格式是否符合 v3 API
-                    if (jsonObject.containsKey("code") && jsonObject.getInteger("code") == 0) {
+                    if (jsonObject != null && jsonObject.containsKey("code") && jsonObject.getInteger("code") == 0) {
                         // v3 share API 成功，确认是 v3 版本
                         // 设置文件信息
                         setFileInfo(jsonObject);
@@ -184,9 +176,9 @@ public class CeTool extends PanBase {
         httpRequest.send().onSuccess(res -> {
             try {
                 if (res.statusCode() == 200) {
-                    JsonObject jsonObject = asJson(res);
+                    JsonObject jsonObject = tryParseJson(res);
                     // 检查响应格式是否符合 v4 API
-                    if (jsonObject.containsKey("code") && jsonObject.getInteger("code") == 0) {
+                    if (jsonObject != null && jsonObject.containsKey("code") && jsonObject.getInteger("code") == 0) {
                         // v4 share API 成功，使用 Ce4Tool
                         log.debug("确认是Cloudreve 4.x (通过v4 share API)");
                         delegateToCe4Tool();
