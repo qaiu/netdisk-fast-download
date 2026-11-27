@@ -4,26 +4,26 @@ NFD 解析器模块：聚合各类网盘/分享页解析，统一输出文件列
 
 - 语言：Java 17
 - 构建：Maven
-- 模块版本：10.2.5
+- 模块版本：10.2.6（独立于应用 `<revision>`，当前应用版本仍是 0.4.13）
 
 ## 依赖（Maven Central）
 ```xml
 <dependency>
   <groupId>cn.qaiu</groupId>
   <artifactId>parser</artifactId>
-  <version>10.2.5</version>
+  <version>10.2.6</version>
 </dependency>
 ```
 - Gradle Groovy DSL：
 ```groovy
 dependencies {
-  implementation 'cn.qaiu:parser:10.2.5'
+  implementation 'cn.qaiu:parser:10.2.6'
 }
 ```
 - Gradle Kotlin DSL：
 ```kotlin
 dependencies {
-  implementation("cn.qaiu:parser:10.2.5")
+  implementation("cn.qaiu:parser:10.2.6")
 }
 ```
 
@@ -55,6 +55,20 @@ mvn -pl parser -am install
 ```
 mvn -pl parser test
 ```
+
+## 发布到 Maven Central（手动）
+
+`cn.qaiu:parser` 不由 `.github/workflows/maven.yml` 发布。该 workflow 只在推送 `v*` tag 时构建 GitHub Release 压缩包和 Docker 镜像。
+
+Central 上的 `10.2.5` 已发布，不能覆盖。下一版只发布 `10.2.6`。在仓库根目录执行：
+
+```
+mvn -pl parser -am clean deploy -DskipTests
+```
+
+本机需要 JDK 17+、Maven 3.9+、可用于签名的 GPG 私钥，以及 `~/.m2/settings.xml` 中 id 为 `sonatype` 的 Central Portal 用户名和 token。密钥口令放在本机 settings 的 `gpg.passphrase`（插件已使用 `--pinentry-mode loopback`），不要写进仓库，也不要放在命令行参数里。
+
+`parser/pom.xml` 已配置 `central-publishing-maven-plugin`（`publishingServerId=sonatype`，`autoPublish=true`）、`maven-gpg-plugin` 和 `flatten-maven-plugin`（`flattenMode=ossrh`）。上面的 `deploy` 会使用打平后的 POM 签名并自动发布，坐标仍是 `cn.qaiu:parser`，许可证 MIT。
 
 ## 自定义解析器扩展
 本模块支持用户自定义解析器扩展。通过简单的配置和注册，你可以添加自己的网盘解析实现：
